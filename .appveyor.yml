@@ -1,0 +1,33 @@
+version: "{branch} #{build}"
+
+shallow_clone: true
+
+image:
+  - Visual Studio 2017
+
+platform:
+  - Win32
+  - x64
+
+configuration:
+  - Debug
+  - Release
+
+build:
+  parallel: true
+
+environment:
+  matrix:
+    - GENERATOR: "Visual Studio 15 2017"
+
+before_build:
+  - if exist build RMDIR /S /Q build
+  - if not exist build mkdir build
+  - cd build
+  - cmake -G "%GENERATOR%" -A %PLATFORM% ..
+
+build_script:
+  - cmake --build . --config %CONFIGURATION%
+
+test_script:
+  - ctest --output-on-failure -C %CONFIGURATION%

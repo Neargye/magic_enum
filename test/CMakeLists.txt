@@ -1,0 +1,53 @@
+﻿include(CheckCXXCompilerFlag)
+
+include_directories(3rdparty/Catch2)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+set(SOURCES test.cpp)
+
+set(OPTIONS "")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(OPTIONS /W4)
+    check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
+    if(HAS_PERMISSIVE_FLAG)
+        set(OPTIONS ${OPTIONS} /permissive-)
+    endif()
+    set(OPTIONS ${OPTIONS} /wd4702) # Disable warning C4702: unreachable code
+
+    set(HAS_CPP11_FLAG TRUE)
+    check_cxx_compiler_flag(/std:c++14 HAS_CPP14_FLAG)
+    check_cxx_compiler_flag(/std:c++17 HAS_CPP17_FLAG)
+    check_cxx_compiler_flag(/std:c++20 HAS_CPP20_FLAG)
+    check_cxx_compiler_flag(/std:c++latest HAS_CPPLATEST_FLAG)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_VERBOSE_MAKEFILE ON)
+    set(OPTIONS -Wall -Wextra -pedantic-errors)
+
+    check_cxx_compiler_flag(-std=c++11 HAS_CPP11_FLAG)
+    check_cxx_compiler_flag(-std=c++14 HAS_CPP14_FLAG)
+    check_cxx_compiler_flag(-std=c++17 HAS_CPP17_FLAG)
+    check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
+endif()
+
+function(make_target target std)
+    add_executable(${target} ${SOURCES})
+    target_compile_options(${target} PRIVATE ${OPTIONS})
+    if(std)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+            target_compile_options(${target} PRIVATE /std:${std})
+        else()
+            target_compile_options(${target} PRIVATE -std=${std})
+        endif()
+    endif()
+endfunction()
+
+if(HAS_CPP17_FLAG)
+    make_target(${CMAKE_PROJECT_NAME}-cpp17.t c++17)
+    add_test(NAME ${CMAKE_PROJECT_NAME}-cpp17.t COMMAND ${CMAKE_PROJECT_NAME}-cpp17.t)
+endif()
+
+if(HAS_CPPLATEST_FLAG)
+    make_target(${CMAKE_PROJECT_NAME}-cpplatest.t c++latest)
+    add_test(NAME ${CMAKE_PROJECT_NAME}-cpplatest.t COMMAND ${CMAKE_PROJECT_NAME}-cpplatest.t)
+endif()
