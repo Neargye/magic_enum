@@ -170,6 +170,9 @@ template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string(T value) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<std::decay_t<T>>>;
   constexpr int min = s ? -MAGIC_ENUM_MAX_SEARCH_DEPTH : 0;
+  if (static_cast<int>(value) >= MAGIC_ENUM_MAX_SEARCH_DEPTH || static_cast<int>(value) <= -MAGIC_ENUM_MAX_SEARCH_DEPTH) {
+    return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
+  }
   return detail::enum_to_string_impl_t<std::decay_t<T>, min>{}(static_cast<int>(value));
 }
 
