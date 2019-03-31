@@ -58,7 +58,7 @@ namespace detail {
 
 template <auto V>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string_impl() noexcept {
-  static_assert(std::is_enum_v<decltype(V)>);
+  static_assert(std::is_enum_v<decltype(V)>, "magic_enum::enum_to_string require enum type.");
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9)
   std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("]") - 1;
@@ -89,7 +89,7 @@ template <auto V>
 template <typename E, int V>
 struct enum_to_string_impl_t final {
   [[nodiscard]] constexpr std::optional<std::string_view> operator()(int value) const noexcept {
-    static_assert(std::is_enum_v<E>);
+    static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
     if constexpr (V > std::numeric_limits<std::underlying_type_t<E>>::max()) {
       return std::nullopt; // Enum variable out of range.
     }
@@ -120,14 +120,52 @@ struct enum_to_string_impl_t final {
 template <typename E>
 struct enum_to_string_impl_t<E, MAGIC_ENUM_MAX_SEARCH_DEPTH> final {
   [[nodiscard]] constexpr std::optional<std::string_view> operator()(int) const noexcept {
-    static_assert(std::is_enum_v<E>);
+    static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
+    return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
+  }
+};
+
+template <typename E, int V>
+struct enum_from_string_impl_t final {
+  [[nodiscard]] constexpr std::optional<E> operator()(std::string_view name) const noexcept {
+    static_assert(std::is_enum_v<E>, "magic_enum::enum_from_string require enum type.");
+    if constexpr (V > std::numeric_limits<std::underlying_type_t<E>>::max()) {
+      return std::nullopt; // Enum variable out of range.
+    }
+
+    if (enum_to_string_impl<static_cast<E>(V)>() == name) {
+      return static_cast<E>(V);
+    } else if (enum_to_string_impl<static_cast<E>(V + 1)>() == name) {
+      return static_cast<E>(V + 1);
+    } else if (enum_to_string_impl<static_cast<E>(V + 2)>() == name) {
+      return static_cast<E>(V + 2);
+    } else if (enum_to_string_impl<static_cast<E>(V + 3)>() == name) {
+      return static_cast<E>(V + 3);
+    } else if (enum_to_string_impl<static_cast<E>(V + 4)>() == name) {
+      return static_cast<E>(V + 4);
+    } else if (enum_to_string_impl<static_cast<E>(V + 5)>() == name) {
+      return static_cast<E>(V + 5);
+    } else if (enum_to_string_impl<static_cast<E>(V + 6)>() == name) {
+      return static_cast<E>(V + 6);
+    } else if (enum_to_string_impl<static_cast<E>(V + 7)>() == name) {
+      return static_cast<E>(V + 7);
+    } else {
+      return enum_from_string_impl_t<E, V + 8>{}(name);
+    }
+  }
+};
+
+template <typename E>
+struct enum_from_string_impl_t<E, MAGIC_ENUM_MAX_SEARCH_DEPTH> final {
+  [[nodiscard]] constexpr std::optional<E> operator()(std::string_view) const noexcept {
+    static_assert(std::is_enum_v<E>, "magic_enum::enum_from_string require enum type.");
     return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
   }
 };
 
 } // namespace detail
 
-// enum_to_string(value) used to obtain string enum name from enum variable.
+// enum_to_string(enum) used to obtain string enum name from enum variable.
 template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string(T value) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<std::decay_t<T>>>;
@@ -135,7 +173,7 @@ template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>
   return detail::enum_to_string_impl_t<std::decay_t<T>, min>{}(static_cast<int>(value));
 }
 
-// enum_to_string<value>() used to obtain string enum name from static storage enum variable
+// enum_to_string<enum>() used to obtain string enum name from static storage enum variable
 template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string() noexcept {
   return detail::enum_to_string_impl<V>();
@@ -146,13 +184,7 @@ template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 [[nodiscard]] constexpr std::optional<E> enum_from_string(std::string_view name) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<E>>;
   constexpr int min = s ? -MAGIC_ENUM_MAX_SEARCH_DEPTH : 0;
-  for (int i = min; i < MAGIC_ENUM_MAX_SEARCH_DEPTH; ++i) {
-    if (detail::enum_to_string_impl_t<E, min>{}(i) == name) {
-      return static_cast<E>(i);
-    }
-  }
-
-  return std::nullopt; // Argument name has not been enum variable name.
+  return detail::enum_from_string_impl_t<E, min>{}(name);
 }
 
 } // namespace magic_enum

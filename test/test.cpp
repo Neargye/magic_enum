@@ -34,7 +34,7 @@ enum Directions { Up = 85, Down = -42, Right = 119, Left = -119 };
 
 enum number : int { one = 10, two = 20, three = 30 };
 
-TEST_CASE("magic_enum::enum_to_string(value)") {
+TEST_CASE("magic_enum::enum_to_string(enum)") {
   Color cr = Color::RED;
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE(magic_enum::enum_to_string(cr).value() == "RED");
@@ -62,7 +62,7 @@ TEST_CASE("magic_enum::enum_to_string(value)") {
   REQUIRE(!magic_enum::enum_to_string(static_cast<number>(MAGIC_ENUM_MAX_SEARCH_DEPTH)).has_value());
 }
 
-TEST_CASE("magic_enum::enum_to_string<value>()") {
+TEST_CASE("magic_enum::enum_to_string<enum>()") {
   constexpr Color cr = Color::RED;
   constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE(magic_enum::enum_to_string<cr>().value() == "RED");
