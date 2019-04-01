@@ -41,10 +41,10 @@ int main() {
   }
 
   // Static storage enum variable to string enum name.
-  constexpr auto cx = Color::BLUE;
-  auto cx_name = magic_enum::enum_to_string<cx>();
-  if (cx_name.has_value()) {
-    std::cout << cx_name.value() << std::endl; // BLUE
+  constexpr auto c3 = Color::BLUE;
+  constexpr auto c3_name = magic_enum::enum_to_string<c3>();
+  if (c3_name.has_value()) {
+    std::cout << c3_name.value() << std::endl; // BLUE
   }
 
   return 0;

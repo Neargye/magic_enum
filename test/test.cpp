@@ -23,7 +23,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
-#define MAGIC_ENUM_MAX_SEARCH_DEPTH 120
+#define MAGIC_ENUM_RANGE 120
 #include <magic_enum.hpp>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -40,26 +40,26 @@ TEST_CASE("magic_enum::enum_to_string(enum)") {
   REQUIRE(magic_enum::enum_to_string(cr).value() == "RED");
   REQUIRE(magic_enum::enum_to_string(Color::BLUE).value() == "BLUE");
   REQUIRE(magic_enum::enum_to_string(cm[1]).value() == "GREEN");
-  REQUIRE(!magic_enum::enum_to_string(static_cast<Color>(MAGIC_ENUM_MAX_SEARCH_DEPTH)).has_value());
+  REQUIRE(!magic_enum::enum_to_string(static_cast<Color>(MAGIC_ENUM_RANGE)).has_value());
 
   Numbers no = Numbers::one;
   REQUIRE(magic_enum::enum_to_string(no).value() == "one");
   REQUIRE(magic_enum::enum_to_string(Numbers::two).value() == "two");
   REQUIRE(magic_enum::enum_to_string(Numbers::three).value() == "three");
-  REQUIRE(!magic_enum::enum_to_string(static_cast<Numbers>(MAGIC_ENUM_MAX_SEARCH_DEPTH)).has_value());
+  REQUIRE(!magic_enum::enum_to_string(static_cast<Numbers>(MAGIC_ENUM_RANGE)).has_value());
 
   Directions dr = Directions::Right;
   REQUIRE(magic_enum::enum_to_string(Directions::Up).value() == "Up");
   REQUIRE(magic_enum::enum_to_string(Directions::Down).value() == "Down");
   REQUIRE(magic_enum::enum_to_string(dr).value() == "Right");
   REQUIRE(magic_enum::enum_to_string(Directions::Left).value() == "Left");
-  REQUIRE(!magic_enum::enum_to_string(static_cast<Directions>(MAGIC_ENUM_MAX_SEARCH_DEPTH)).has_value());
+  REQUIRE(!magic_enum::enum_to_string(static_cast<Directions>(MAGIC_ENUM_RANGE)).has_value());
 
   number nt = number::three;
   REQUIRE(magic_enum::enum_to_string(number::one).value() == "one");
   REQUIRE(magic_enum::enum_to_string(number::two).value() == "two");
   REQUIRE(magic_enum::enum_to_string(nt).value() == "three");
-  REQUIRE(!magic_enum::enum_to_string(static_cast<number>(MAGIC_ENUM_MAX_SEARCH_DEPTH)).has_value());
+  REQUIRE(!magic_enum::enum_to_string(static_cast<number>(MAGIC_ENUM_RANGE)).has_value());
 }
 
 TEST_CASE("magic_enum::enum_to_string<enum>()") {
@@ -68,26 +68,26 @@ TEST_CASE("magic_enum::enum_to_string<enum>()") {
   REQUIRE(magic_enum::enum_to_string<cr>().value() == "RED");
   REQUIRE(magic_enum::enum_to_string<Color::BLUE>().value() == "BLUE");
   REQUIRE(magic_enum::enum_to_string<cm[1]>().value() == "GREEN");
-  REQUIRE(!magic_enum::enum_to_string<static_cast<Color>(MAGIC_ENUM_MAX_SEARCH_DEPTH)>().has_value());
+  REQUIRE(!magic_enum::enum_to_string<static_cast<Color>(MAGIC_ENUM_RANGE)>().has_value());
 
   constexpr Numbers no = Numbers::one;
   REQUIRE(magic_enum::enum_to_string<no>().value() == "one");
   REQUIRE(magic_enum::enum_to_string<Numbers::two>().value() == "two");
   REQUIRE(magic_enum::enum_to_string<Numbers::three>().value() == "three");
-  REQUIRE(!magic_enum::enum_to_string<static_cast<Numbers>(MAGIC_ENUM_MAX_SEARCH_DEPTH)>().has_value());
+  REQUIRE(!magic_enum::enum_to_string<static_cast<Numbers>(MAGIC_ENUM_RANGE)>().has_value());
 
   constexpr Directions dr = Directions::Right;
   REQUIRE(magic_enum::enum_to_string<Directions::Up>().value() == "Up");
   REQUIRE(magic_enum::enum_to_string<Directions::Down>().value() == "Down");
   REQUIRE(magic_enum::enum_to_string<dr>().value() == "Right");
   REQUIRE(magic_enum::enum_to_string<Directions::Left>().value() == "Left");
-  REQUIRE(!magic_enum::enum_to_string<static_cast<Directions>(MAGIC_ENUM_MAX_SEARCH_DEPTH)>().has_value());
+  REQUIRE(!magic_enum::enum_to_string<static_cast<Directions>(MAGIC_ENUM_RANGE)>().has_value());
 
   constexpr number nt = number::three;
   REQUIRE(magic_enum::enum_to_string<number::one>().value() == "one");
   REQUIRE(magic_enum::enum_to_string<number::two>().value() == "two");
   REQUIRE(magic_enum::enum_to_string<nt>().value() == "three");
-  REQUIRE(!magic_enum::enum_to_string<static_cast<number>(MAGIC_ENUM_MAX_SEARCH_DEPTH)>().has_value());
+  REQUIRE(!magic_enum::enum_to_string<static_cast<number>(MAGIC_ENUM_RANGE)>().has_value());
 }
 
 TEST_CASE("magic_enum::enum_from_string(name)") {

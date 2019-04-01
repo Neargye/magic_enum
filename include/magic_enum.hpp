@@ -37,23 +37,23 @@
 #include <string_view>
 #include <optional>
 
-#if !defined(MAGIC_ENUM_MAX_SEARCH_DEPTH)
-#  define MAGIC_ENUM_MAX_SEARCH_DEPTH 128
+#if !defined(MAGIC_ENUM_RANGE)
+#  define MAGIC_ENUM_RANGE 128
 #endif
 
 namespace magic_enum {
 
-static_assert(MAGIC_ENUM_MAX_SEARCH_DEPTH > 0,
-              "MAGIC_ENUM_MAX_SEARCH_DEPTH must be positive and greater than zero.");
-static_assert(MAGIC_ENUM_MAX_SEARCH_DEPTH % 8 == 0,
-              "MAGIC_ENUM_MAX_SEARCH_DEPTH must be a multiple of 8.");
-static_assert(MAGIC_ENUM_MAX_SEARCH_DEPTH < std::numeric_limits<int>::max(),
-              "MAGIC_ENUM_MAX_SEARCH_DEPTH must be less INT_MAX.");
+static_assert(MAGIC_ENUM_RANGE > 0,
+              "MAGIC_ENUM_RANGE must be positive and greater than zero.");
+static_assert(MAGIC_ENUM_RANGE % 8 == 0,
+              "MAGIC_ENUM_RANGE must be a multiple of 8.");
+static_assert(MAGIC_ENUM_RANGE < std::numeric_limits<int>::max(),
+              "MAGIC_ENUM_RANGE must be less INT_MAX.");
 
 namespace detail {
 
-[[nodiscard]] constexpr bool is_name_char(char c) noexcept {
-  return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+[[nodiscard]] constexpr bool is_name_char(char c, bool front) noexcept {
+  return (!front && c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
 template <auto V>
@@ -72,16 +72,16 @@ template <auto V>
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9) || defined(_MSC_VER)
   name.remove_suffix(suffix);
   for (std::size_t i = name.size(); i > 0; --i) {
-    if (!is_name_char(name[i - 1])) {
+    if (!is_name_char(name[i - 1], false)) {
       name.remove_prefix(i);
       break;
     }
   }
 
-  if (name.front() >= '0' && name.front() <= '9') {
-    return std::nullopt; // Enum variable does not have name.
-  } else {
+  if (name.length() > 0 && is_name_char(name.front(), true)) {
     return name;
+  } else {
+    return std::nullopt; // Enum variable does not have name.
   }
 #endif
 }
@@ -118,10 +118,10 @@ struct enum_to_string_impl_t final {
 };
 
 template <typename E>
-struct enum_to_string_impl_t<E, MAGIC_ENUM_MAX_SEARCH_DEPTH> final {
+struct enum_to_string_impl_t<E, MAGIC_ENUM_RANGE> final {
   [[nodiscard]] constexpr std::optional<std::string_view> operator()(int) const noexcept {
     static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
-    return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
+    return std::nullopt; // Enum variable out of range MAGIC_ENUM_RANGE.
   }
 };
 
@@ -156,10 +156,10 @@ struct enum_from_string_impl_t final {
 };
 
 template <typename E>
-struct enum_from_string_impl_t<E, MAGIC_ENUM_MAX_SEARCH_DEPTH> final {
+struct enum_from_string_impl_t<E, MAGIC_ENUM_RANGE> final {
   [[nodiscard]] constexpr std::optional<E> operator()(std::string_view) const noexcept {
     static_assert(std::is_enum_v<E>, "magic_enum::enum_from_string require enum type.");
-    return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
+    return std::nullopt; // Enum variable out of range MAGIC_ENUM_RANGE.
   }
 };
 
@@ -169,9 +169,9 @@ struct enum_from_string_impl_t<E, MAGIC_ENUM_MAX_SEARCH_DEPTH> final {
 template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string(T value) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<std::decay_t<T>>>;
-  constexpr int min = s ? -MAGIC_ENUM_MAX_SEARCH_DEPTH : 0;
-  if (static_cast<int>(value) >= MAGIC_ENUM_MAX_SEARCH_DEPTH || static_cast<int>(value) <= -MAGIC_ENUM_MAX_SEARCH_DEPTH) {
-    return std::nullopt; // Enum variable out of range MAGIC_ENUM_MAX_SEARCH_DEPTH.
+  constexpr int min = s ? -MAGIC_ENUM_RANGE : 0;
+  if (static_cast<int>(value) >= MAGIC_ENUM_RANGE || static_cast<int>(value) <= -MAGIC_ENUM_RANGE) {
+    return std::nullopt; // Enum variable out of range MAGIC_ENUM_RANGE.
   }
   return detail::enum_to_string_impl_t<std::decay_t<T>, min>{}(static_cast<int>(value));
 }
@@ -186,7 +186,7 @@ template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<declty
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 [[nodiscard]] constexpr std::optional<E> enum_from_string(std::string_view name) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<E>>;
-  constexpr int min = s ? -MAGIC_ENUM_MAX_SEARCH_DEPTH : 0;
+  constexpr int min = s ? -MAGIC_ENUM_RANGE : 0;
   return detail::enum_from_string_impl_t<E, min>{}(name);
 }
 
