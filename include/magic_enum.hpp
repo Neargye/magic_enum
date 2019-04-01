@@ -56,9 +56,9 @@ namespace detail {
   return (!front && c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
-template <auto V>
+template <typename E, E V>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string_impl() noexcept {
-  static_assert(std::is_enum_v<decltype(V)>, "magic_enum::enum_to_string require enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9)
   std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("]") - 1;
@@ -96,21 +96,21 @@ struct enum_to_string_impl_t final {
 
     switch (value - V) {
       case 0:
-        return enum_to_string_impl<static_cast<E>(V)>();
+        return enum_to_string_impl<E, static_cast<E>(V)>();
       case 1:
-        return enum_to_string_impl<static_cast<E>(V + 1)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 1)>();
       case 2:
-        return enum_to_string_impl<static_cast<E>(V + 2)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 2)>();
       case 3:
-        return enum_to_string_impl<static_cast<E>(V + 3)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 3)>();
       case 4:
-        return enum_to_string_impl<static_cast<E>(V + 4)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 4)>();
       case 5:
-        return enum_to_string_impl<static_cast<E>(V + 5)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 5)>();
       case 6:
-        return enum_to_string_impl<static_cast<E>(V + 6)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 6)>();
       case 7:
-        return enum_to_string_impl<static_cast<E>(V + 7)>();
+        return enum_to_string_impl<E, static_cast<E>(V + 7)>();
       default:
         return enum_to_string_impl_t<E, V + 8>{}(value);
     }
@@ -133,21 +133,21 @@ struct enum_from_string_impl_t final {
       return std::nullopt; // Enum variable out of range.
     }
 
-    if (enum_to_string_impl<static_cast<E>(V)>() == name) {
+    if (enum_to_string_impl<E, static_cast<E>(V)>() == name) {
       return static_cast<E>(V);
-    } else if (enum_to_string_impl<static_cast<E>(V + 1)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 1)>() == name) {
       return static_cast<E>(V + 1);
-    } else if (enum_to_string_impl<static_cast<E>(V + 2)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 2)>() == name) {
       return static_cast<E>(V + 2);
-    } else if (enum_to_string_impl<static_cast<E>(V + 3)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 3)>() == name) {
       return static_cast<E>(V + 3);
-    } else if (enum_to_string_impl<static_cast<E>(V + 4)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 4)>() == name) {
       return static_cast<E>(V + 4);
-    } else if (enum_to_string_impl<static_cast<E>(V + 5)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 5)>() == name) {
       return static_cast<E>(V + 5);
-    } else if (enum_to_string_impl<static_cast<E>(V + 6)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 6)>() == name) {
       return static_cast<E>(V + 6);
-    } else if (enum_to_string_impl<static_cast<E>(V + 7)>() == name) {
+    } else if (enum_to_string_impl<E, static_cast<E>(V + 7)>() == name) {
       return static_cast<E>(V + 7);
     } else {
       return enum_from_string_impl_t<E, V + 8>{}(name);
@@ -179,7 +179,7 @@ template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>
 // enum_to_string<enum>() used to obtain string enum name from static storage enum variable
 template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string() noexcept {
-  return detail::enum_to_string_impl<V>();
+  return detail::enum_to_string_impl<decltype(V), V>();
 }
 
 // enum_from_string(name) used to obtain enum variable from enum string name.
