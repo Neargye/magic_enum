@@ -38,14 +38,14 @@ Header-only C++17 library provides Enum-to-String and String-to-Enum functions.
 * Enum to string
 ```cpp
 auto color = Color::RED;
-// Enum variable to string enum name
+// Enum variable to string enum name.
 auto color_name = magic_enum::enum_to_string(c);
 if (color_name.has_value()) {
   // color_name.value() -> "RED"
 }
 
 constexpr auto cx_color = Color::BLUE;
-// Static storage enum variable to string enum name
+// Static storage enum variable to string enum name.
 auto cx_color_name = magic_enum::enum_to_string<cx_color>();
 if (color_name.has_value()) {
   // cx_color_name.value() -> "BLUE"
@@ -54,7 +54,7 @@ if (color_name.has_value()) {
 
 * String to enum
 ```cpp
-// String enum name to enum variable
+// String enum name to enum variable.
 auto color = magic_enum::enum_from_string<Color>("GREEN");
 if (color.has_value()) {
   // color.value() -> Color::GREEN
