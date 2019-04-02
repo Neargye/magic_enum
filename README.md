@@ -46,16 +46,16 @@ if (color_name.has_value()) {
 
 constexpr auto cx_color = Color::BLUE;
 // Static storage enum variable to string enum name.
-auto cx_color_name = magic_enum::enum_to_string<cx_color>();
+constexpr auto color_name = magic_enum::enum_to_string<cx_color>();
 if (color_name.has_value()) {
-  // cx_color_name.value() -> "BLUE"
+  // color_name.value() -> "BLUE"
 }
 ```
 
 * String to enum
 ```cpp
 // String enum name to enum variable.
-auto color = magic_enum::enum_from_string<Color>("GREEN");
+constexpr auto color = magic_enum::enum_from_string<Color>("GREEN");
 if (color.has_value()) {
   // color.value() -> Color::GREEN
 }
