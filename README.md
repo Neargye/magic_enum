@@ -35,39 +35,39 @@ Header-only C++17 library provides Enum-to-String and String-to-Enum functions.
 
 ## [Examples](example/example.cpp)
 
-* Enum to string
-```cpp
-auto color = Color::RED;
-// Enum variable to string enum name.
-auto color_name = magic_enum::enum_to_string(c);
-if (color_name.has_value()) {
-  // color_name.value() -> "RED"
-}
+* Enum variable to string enum name
+  ```cpp
+  auto color = Color::RED;
+  auto color_name = magic_enum::enum_to_string(color);
+  if (color_name.has_value()) {
+    // color_name.value() -> "RED"
+  }
+  ```
 
-constexpr auto color = Color::BLUE;
-// Static storage enum variable to string enum name.
-constexpr auto color_name = magic_enum::enum_to_string<color>();
-if (color_name.has_value()) {
-  // color_name.value() -> "BLUE"
-}
-```
+* Static storage enum variable to string enum name
+  ```cpp
+  constexpr auto color = Color::BLUE;
+  constexpr auto color_name = magic_enum::enum_to_string<color>();
+  if (color_name.has_value()) {
+    // color_name.value() -> "BLUE"
+  }
+  ```
 
-* String to enum
-```cpp
-// String enum name to enum variable.
-constexpr auto color = magic_enum::enum_from_string<Color>("GREEN");
-if (color.has_value()) {
-  // color.value() -> Color::GREEN
-}
-```
+* String enum name to enum variable
+  ```cpp
+  constexpr auto color = magic_enum::enum_from_string<Color>("GREEN");
+  if (color.has_value()) {
+    // color.value() -> Color::GREEN
+  }
+  ```
 
 ## Remarks
 
 * Enum variable must be in range (-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE). By default MAGIC_ENUM_RANGE = 128. If you need a larger range, redefine the macro MAGIC_ENUM_RANGE.
-```cpp
-#define MAGIC_ENUM_RANGE 1028 // Redefine MAGIC_ENUM_RANGE for larger range.
-#include <magic_enum.hpp>
-```
+  ```cpp
+  #define MAGIC_ENUM_RANGE 1028 // Redefine MAGIC_ENUM_RANGE for larger range.
+  #include <magic_enum.hpp>
+  ```
 
 ## Integration
 
