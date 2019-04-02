@@ -68,6 +68,12 @@ matrix:
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
+  allow_failures: # gcc-9 yeat unstable.
+    - os: linux
+      compiler: g++
+      env:
+        - CXX_COMPILER=g++-9 CC_COMPILER=gcc-9
+
 install:
   - export CC=${CC_COMPILER}
   - export CXX=${CXX_COMPILER}
