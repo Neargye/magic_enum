@@ -16,7 +16,7 @@
 [![Build Status](https://travis-ci.org/Neargye/magic_enum.svg?branch=master)](https://travis-ci.org/Neargye/magic_enum)
 [![Build status](https://ci.appveyor.com/api/projects/status/0rpr966p9ssrvwu3/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/magic-enum-hf8vk/branch/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/64d04f150af14c3e8bd1090057b68538)](https://www.codacy.com/app/Neargye/magic_enum?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/magic_enum&amp;utm_campaign=Badge_Grade)
-[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/vvYmXey2yclPdeKM)
+[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/gkjJ86ur57I3KOO6)
 
 ## What is Magic Enum?
 
@@ -44,9 +44,9 @@ if (color_name.has_value()) {
   // color_name.value() -> "RED"
 }
 
-constexpr auto cx_color = Color::BLUE;
+constexpr auto color = Color::BLUE;
 // Static storage enum variable to string enum name.
-constexpr auto color_name = magic_enum::enum_to_string<cx_color>();
+constexpr auto color_name = magic_enum::enum_to_string<color>();
 if (color_name.has_value()) {
   // color_name.value() -> "BLUE"
 }
@@ -59,6 +59,14 @@ constexpr auto color = magic_enum::enum_from_string<Color>("GREEN");
 if (color.has_value()) {
   // color.value() -> Color::GREEN
 }
+```
+
+## Remarks
+
+* Enum variable must be in range (-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE). By default MAGIC_ENUM_RANGE = 128. If you need a larger range, redefine the macro MAGIC_ENUM_RANGE.
+```cpp
+#define MAGIC_ENUM_RANGE 1028 // Redefine MAGIC_ENUM_RANGE for larger range.
+#include <magic_enum.hpp>
 ```
 
 ## Integration

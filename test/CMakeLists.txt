@@ -13,7 +13,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     if(HAS_PERMISSIVE_FLAG)
         set(OPTIONS ${OPTIONS} /permissive-)
     endif()
-    set(OPTIONS ${OPTIONS} /wd4702) # Disable warning C4702: unreachable code
 
     set(HAS_CPP11_FLAG TRUE)
     check_cxx_compiler_flag(/std:c++14 HAS_CPP14_FLAG)
