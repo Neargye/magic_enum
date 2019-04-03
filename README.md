@@ -63,7 +63,11 @@ Header-only C++17 library provides Enum-to-String and String-to-Enum functions.
 
 ## Remarks
 
-* Enum variable must be in range (-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE). By default MAGIC_ENUM_RANGE = 128. If you need a larger range, redefine the macro MAGIC_ENUM_RANGE.
+* `magic_enum::enum_to_string` return `std::optional<std::string_view>`, using `has_value()` to check contain enum name and `value()` to get enum name. If enum variable does not have name or out of range `MAGIC_ENUM_RANGE` return `std::nullopt`.
+
+* `magic_enum::enum_from_string` return `std::optional<E>`, using `has_value()` to check contain enum variable and `value(`) to get enum variable. If enum variable does not have name or out of range `MAGIC_ENUM_RANGE` return `std::nullopt`.
+
+* Enum variable must be in range `(-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE)`. By default `MAGIC_ENUM_RANGE = 128`. If you need a larger range, redefine the macro `MAGIC_ENUM_RANGE`.
   ```cpp
   #define MAGIC_ENUM_RANGE 1028 // Redefine MAGIC_ENUM_RANGE for larger range.
   #include <magic_enum.hpp>
