@@ -166,7 +166,7 @@ struct enum_from_string_impl_t<E, MAGIC_ENUM_RANGE> final {
 
 } // namespace detail
 
-// enum_to_string(enum) used to obtain string enum name from enum variable.
+// enum_to_string(enum) obtains string enum name from enum variable.
 template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string(T value) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<std::decay_t<T>>>;
@@ -177,13 +177,13 @@ template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>
   return detail::enum_to_string_impl_t<std::decay_t<T>, min>{}(static_cast<int>(value));
 }
 
-// enum_to_string<enum>() used to obtain string enum name from static storage enum variable
+// enum_to_string<enum>() obtains string enum name from static storage enum variable.
 template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_to_string() noexcept {
   return detail::enum_to_string_impl<decltype(V), V>();
 }
 
-// enum_from_string(name) used to obtain enum variable from enum string name.
+// enum_from_string(name) obtains enum variable from enum string name.
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 [[nodiscard]] constexpr std::optional<E> enum_from_string(std::string_view name) noexcept {
   constexpr bool s = std::is_signed_v<std::underlying_type_t<E>>;
