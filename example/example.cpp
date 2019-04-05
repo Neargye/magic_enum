@@ -47,5 +47,19 @@ int main() {
     std::cout << c3_name.value() << std::endl; // BLUE
   }
 
+  constexpr auto colors = magic_enum::enum_sequence<Color>();
+  std::cout << "Color sequence:";
+  for (auto e : colors) {
+    std::cout << " " << magic_enum::enum_to_string(e).value();
+  }
+  std::cout << std::endl;
+
+  constexpr auto colors_name = magic_enum::enum_to_string_sequence<Color>();
+  std::cout << "Color sequence:";
+  for (auto e : colors_name) {
+    std::cout << " " << e;
+  }
+  std::cout << std::endl;
+
   return 0;
 }

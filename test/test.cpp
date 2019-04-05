@@ -32,7 +32,7 @@ enum class Numbers : char { one = 10, two = 20, three = 30 };
 
 enum Directions { Up = 85, Down = -42, Right = 119, Left = -119 };
 
-enum number : int { one = 10, two = 20, three = 30 };
+enum number : long { one = 10, two = 20, three = 30 };
 
 TEST_CASE("magic_enum::enum_to_string(enum)") {
   Color cr = Color::RED;
