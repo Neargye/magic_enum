@@ -53,13 +53,15 @@ int main() {
     std::cout << " " << magic_enum::enum_to_string(e).value();
   }
   std::cout << std::endl;
+  // Color sequence: RED BLUE GREEN
 
-  constexpr auto colors_name = magic_enum::enum_to_string_sequence<Color>();
+  constexpr auto color_names = magic_enum::enum_to_string_sequence<Color>();
   std::cout << "Color sequence:";
-  for (auto e : colors_name) {
+  for (auto e : color_names) {
     std::cout << " " << e;
   }
   std::cout << std::endl;
+  // Color sequence: RED BLUE GREEN
 
   return 0;
 }
