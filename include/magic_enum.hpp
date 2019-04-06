@@ -5,7 +5,7 @@
 // | |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
 // |_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
 //                __/ | https://github.com/Neargye/magic_enum
-//               |___/  vesion 0.2.0
+//               |___/  vesion 0.3.0-dev
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
@@ -31,13 +31,16 @@
 
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <cstddef>
-#include <type_traits>
+#include <iosfwd>
 #include <limits>
 #include <string_view>
 #include <optional>
-#include <array>
-#include <algorithm>
+#include <type_traits>
+#include <utility>
 
 // Enum value must be in range (-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE). If you need a larger range, redefine the macro MAGIC_ENUM_RANGE.
 #if !defined(MAGIC_ENUM_RANGE)
@@ -53,13 +56,28 @@ static_assert(MAGIC_ENUM_RANGE < std::numeric_limits<int>::max(),
 
 namespace detail {
 
+template <typename E>
+struct enum_range final {
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::detail::enum_range require enum type.");
+  using U = std::underlying_type_t<D>;
+  using C = std::common_type_t<int, U>;
+  static constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
+  static constexpr int max = std::min<C>(MAGIC_ENUM_RANGE, std::numeric_limits<U>::max());
+  static constexpr auto sequence = std::make_integer_sequence<int, max - min + 1>{};
+
+  static constexpr bool contains(int value) noexcept {
+    return static_cast<int>(value) <= enum_range<D>::max && static_cast<int>(value) >= enum_range<D>::min;
+  }
+};
+
 [[nodiscard]] constexpr bool is_name_char(char c, bool front) noexcept {
   return (!front && c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
 template <typename E, E V>
-[[nodiscard]] constexpr std::string_view enum_to_string_impl() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
+[[nodiscard]] constexpr std::string_view name_impl() noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl require enum type.");
 #if defined(__clang__)
   std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("]") - 1;
@@ -90,128 +108,167 @@ template <typename E, E V>
 #endif
 }
 
-template <typename E, int O, int... I>
-[[nodiscard]] constexpr std::string_view enum_to_string_impl(int value, std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string require enum type.");
-  constexpr int n = sizeof...(I);
-  constexpr std::array<std::string_view, n> names{{enum_to_string_impl<E, static_cast<E>(I + O)>()...}};
+template <typename E, int... I>
+[[nodiscard]] constexpr decltype(auto) strings_impl(std::integer_sequence<int, I...>) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::strings_impl require enum type.");
+  constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, static_cast<E>(I + enum_range<E>::min)>()...}};
 
-  return names[value - O];
+  return names;
 }
 
-template <typename E, int O, int... I>
-[[nodiscard]] constexpr std::optional<E> enum_from_string_impl(std::string_view name, std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_from_string require enum type.");
-  std::optional<E> value{std::nullopt};
-  (void)(((enum_to_string_impl<E, static_cast<E>(I + O)>() == name) ? (value = static_cast<E>(I + O), false) : true) && ...);
+template <typename E>
+[[nodiscard]] constexpr std::string_view name_impl(int value) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl require enum type.");
+  constexpr auto names = strings_impl<E>(enum_range<E>::sequence);
 
-  return value;
+  return enum_range<E>::contains(value) ? names[value - enum_range<E>::min] : std::string_view{};
 }
 
-template <typename E, int O, int... I>
-[[nodiscard]] constexpr decltype(auto) enum_to_sequence_impl(std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_to_sequence require enum type.");
+template <typename E, int... I>
+[[nodiscard]] constexpr decltype(auto) values_impl(std::integer_sequence<int, I...>) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::values_impl require enum type.");
   constexpr int n = sizeof...(I);
-  constexpr std::array<bool, n> valid{{!enum_to_string_impl<E, static_cast<E>(I + O)>().empty()...}};
+  constexpr std::array<bool, n> valid{{!name_impl<E, static_cast<E>(I + enum_range<E>::min)>().empty()...}};
   constexpr int num_valid = ((valid[I] ? 1 : 0) + ...);
 
-  std::array<E, num_valid> sequence{};
+  std::array<E, num_valid> enums{};
   for (int i = 0, v = 0; i < n && v < num_valid; ++i) {
     if (valid[i]) {
-      sequence[v++] = static_cast<E>(i + O);
+      enums[v++] = static_cast<E>(i + enum_range<E>::min);
     }
   }
 
-  return sequence;
+  return enums;
 }
 
-template <typename E, int O, int... I>
-[[nodiscard]] constexpr decltype(auto) enum_to_string_sequence_impl(std::integer_sequence<int, I...> s) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_to_string_sequence require enum type.");
-  constexpr int n = sizeof...(I);
-  constexpr std::array<bool, n> valid{{!enum_to_string_impl<E, static_cast<E>(I + O)>().empty()...}};
-  constexpr int num_valid = ((valid[I] ? 1 : 0) + ...);
+template <typename E, std::size_t... I>
+[[nodiscard]] constexpr decltype(auto) names_impl(std::integer_sequence<std::size_t, I...>) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::names_impl require enum type.");
+  constexpr auto enums = values_impl<E>(enum_range<E>::sequence);
+  constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, enums[I]>()...}};
 
-  std::array<std::string_view, num_valid> sequence{};
-  for (int i = 0, v = 0; i < n && v < num_valid; ++i) {
-    if (valid[i]) {
-      sequence[v++] = enum_to_string_impl<E, O>(i + O, s);
+  return names;
+}
+
+template <typename E>
+[[nodiscard]] constexpr std::optional<E> enum_cast_impl(std::string_view value) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::enum_cast_impl require enum type.");
+  constexpr auto values = values_impl<E>(enum_range<E>::sequence);
+  constexpr auto count = values.size();
+  constexpr auto names = names_impl<E>(std::make_index_sequence<count>{});
+
+  for (std::size_t i = 0; i < count; ++i) {
+    if (names[i] == value) {
+      return values[i];
     }
   }
 
-  return sequence;
+  return std::nullopt; // Invalid value or out of range.
 }
 
-} // namespace detail
+template<class E>
+using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<E>>>::type;
 
-// enum_to_string(enum) obtains string enum name from enum variable.
-template <typename T, typename = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
-[[nodiscard]] constexpr std::optional<std::string_view> enum_to_string(T value) noexcept {
-  using D = std::decay_t<T>;
-  using U = std::underlying_type_t<D>;
-  using C = std::common_type_t<int, U>;
-  constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
-  constexpr int max = std::min<C>(MAGIC_ENUM_RANGE, std::numeric_limits<U>::max());
-  constexpr int range = max - min + 1;
+} // namespace magic_enum::detail
 
-  if (static_cast<int>(value) > max || static_cast<int>(value) < min) {
-    return std::nullopt; // Enum value out of range.
+// Obtains enum value from enum string name.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr std::optional<E> enum_cast(std::string_view value) noexcept {
+  using D = std::decay_t<E>;
+
+  return detail::enum_cast_impl<D>(value);
+}
+
+// Obtains enum value from integer value.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr std::optional<E> enum_cast(std::underlying_type_t<E> value) noexcept {
+  using D = std::decay_t<E>;
+
+  if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
+    return std::nullopt; // Invalid value or out of range.
+  } else {
+    return static_cast<D>(value);
   }
+}
 
-  const auto name = detail::enum_to_string_impl<D, min>(static_cast<int>(value), std::make_integer_sequence<int, range>{});
+// Obtains indexed access to enum element.
+template<typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr E enum_value(std::size_t i) noexcept {
+  using D = std::decay_t<E>;
+  constexpr auto values = detail::values_impl<D>(detail::enum_range<D>::sequence);
+
+  return assert(i < values.size()), values[i];
+}
+
+// Obtains value enum sequence.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr decltype(auto) enum_values() noexcept {
+  using D = std::decay_t<E>;
+  constexpr auto values = detail::values_impl<D>(detail::enum_range<D>::sequence);
+
+  return values;
+}
+
+// Obtains number of enum elements.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr std::size_t enum_count() noexcept {
+  using D = std::decay_t<E>;
+  constexpr auto count = detail::values_impl<D>(detail::enum_range<D>::sequence).size();
+
+  return count;
+}
+
+// Obtains string enum name from enum value.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr std::optional<std::string_view> enum_name(E value) noexcept {
+  using D = std::decay_t<E>;
+  const auto name = detail::name_impl<D>(static_cast<int>(value));
+
   if (name.empty()) {
     return std::nullopt;
   } else {
-    return name; // Enum value does not have name.
+    return name; // Enum value does not have name or out of range.
   }
 }
 
-// enum_to_string<enum>() obtains string enum name from static storage enum variable.
-template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>>>
-[[nodiscard]] constexpr std::optional<std::string_view> enum_to_string() noexcept {
-  constexpr auto name = detail::enum_to_string_impl<decltype(V), V>();
+// Obtains string enum name sequence.
+template <typename E, typename = detail::enable_if_enum_t<E>>
+[[nodiscard]] constexpr decltype(auto) enum_names() noexcept {
+  using D = std::decay_t<E>;
+  constexpr auto count = detail::values_impl<D>(detail::enum_range<D>::sequence).size();
+  constexpr auto names = detail::names_impl<D>(std::make_index_sequence<count>{});
 
-  if (name.empty()) {
-    return std::nullopt;
-  } else {
-    return name; // Enum value does not have name.
+  return names;
+}
+
+namespace ops {
+
+template <typename E, typename = detail::enable_if_enum_t<E>>
+std::ostream& operator<<(std::ostream& os, E value) {
+  using D = std::decay_t<E>;
+  const auto name = detail::name_impl<D>(static_cast<int>(value));
+
+  if (!name.empty()) {
+    os << name;
   }
+
+  return os;
 }
 
-// enum_from_string(name) obtains enum value from enum string name.
-template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-[[nodiscard]] constexpr std::optional<E> enum_from_string(std::string_view name) noexcept {
-  using U = std::underlying_type_t<E>;
-  using C = std::common_type_t<int, U>;
-  constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
-  constexpr int max = std::min<C>(MAGIC_ENUM_RANGE, std::numeric_limits<U>::max());
-  constexpr int range = max - min + 1;
+template <typename E, typename = detail::enable_if_enum_t<E>>
+std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
+  using D = std::decay_t<E>;
 
-  return detail::enum_from_string_impl<E, min>(name, std::make_integer_sequence<int, range>{});
+  if (value.has_value()) {
+    const auto name = detail::name_impl<D>(static_cast<int>(value.value()));
+    if (!name.empty()) {
+      os << name;
+    }
+  }
+
+  return os;
 }
 
-// enum_to_sequence<enum>() obtains value enum sequence.
-template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-[[nodiscard]] constexpr decltype(auto) enum_to_sequence() noexcept {
-  using U = std::underlying_type_t<E>;
-  using C = std::common_type_t<int, U>;
-  constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
-  constexpr int max = std::min<C>(MAGIC_ENUM_RANGE, std::numeric_limits<U>::max());
-  constexpr int range = max - min + 1;
-
-  return detail::enum_to_sequence_impl<E, min>(std::make_integer_sequence<int, range>{});
-}
-
-// enum_to_string_sequence<enum>() obtains string enum name sequence.
-template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-[[nodiscard]] constexpr decltype(auto) enum_to_string_sequence() noexcept {
-  using U = std::underlying_type_t<E>;
-  using C = std::common_type_t<int, U>;
-  constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
-  constexpr int max = std::min<C>(MAGIC_ENUM_RANGE, std::numeric_limits<U>::max());
-  constexpr int range = max - min + 1;
-
-  return detail::enum_to_string_sequence_impl<E, min>(std::make_integer_sequence<int, range>{});
-}
+} // namespace magic_enum::ops
 
 } // namespace magic_enum

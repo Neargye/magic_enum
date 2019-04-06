@@ -21,10 +21,12 @@
 ## What is Magic Enum?
 
 Header-only C++17 library provides Enum-to-String and String-to-Enum functions.
-* `magic_enum::enum_to_string` obtains string enum name from enum variable.
-* `magic_enum::enum_from_string` obtains enum value from enum string name.
-* `magic_enum::enum_to_sequence` obtains value enum sequence.
-* `magic_enum::enum_to_string_sequence` obtains string enum name sequence.
+* `magic_enum::enum_cast` obtains enum value from string or integer.
+* `magic_enum::enum_value` obtains indexed access to enum value.
+* `magic_enum::enum_values` obtains enum value sequence.
+* `magic_enum::enum_count` obtains number of enum values.
+* `magic_enum::enum_name` obtains string name from enum value.
+* `magic_enum::enum_names` obtains string enum name sequence.
 
 ## Features
 
@@ -34,56 +36,84 @@ Header-only C++17 library provides Enum-to-String and String-to-Enum functions.
 * Compile-time
 * Enum to string
 * String to enum
+* Works with any enum type
 
 ## [Examples](example/example.cpp)
 
-* Enum variable to string enum name
+* Enum value to string
   ```cpp
-  auto color = Color::RED;
-  auto color_name = magic_enum::enum_to_string(color);
+  Color color = Color::RED;
+  auto color_name = magic_enum::enum_name(color);
   if (color_name.has_value()) {
     // color_name.value() -> "RED"
   }
   ```
 
-* Static storage enum variable to string enum name
+* Static storage enum variable to string
   ```cpp
-  constexpr auto color = Color::BLUE;
-  constexpr auto color_name = magic_enum::enum_to_string<color>();
+  constexpr Color color = Color::BLUE;
+  constexpr auto color_name = magic_enum::enum_name(color);
   if (color_name.has_value()) {
     // color_name.value() -> "BLUE"
   }
   ```
 
-* String enum name to enum value
+* String to enum value
   ```cpp
-  constexpr auto color = magic_enum::enum_from_string<Color>("GREEN");
+  constexpr auto color = magic_enum::enum_cast<Color>("GREEN");
   if (color.has_value()) {
     // color.value() -> Color::GREEN
   }
   ```
 
-* Enum to value sequence
+* Integer to enum value
   ```cpp
-  constexpr auto colors = magic_enum::enum_to_sequence<Color>();
+  constexpr auto color = magic_enum::enum_cast<Color>(0);
+  if (color.has_value()) {
+    // color.value() -> Color::RED
+  }
+  ```
+
+* Indexed access to enum value
+  ```cpp
+  constexpr Color color_value = magic_enum::enum_value<Color>(0);
+  // color_element -> Color::RED
+  ```
+
+* Enum value sequence
+  ```cpp
+  constexpr auto colors = magic_enum::enum_values<Color>();
   // colors -> {Color::RED, Color::BLUE, Color::GREEN}
   ```
 
-* Enum to string enum name sequence
+* Number of enum elements
   ```cpp
-  constexpr auto color_names = magic_enum::enum_to_string_sequence<Color>();
+  constexpr std::size_t color_size = magic_enum::enum_count<Color>();
+  // color_size -> 3
+  ```
+
+* Enum string sequence
+  ```cpp
+  constexpr auto color_names = magic_enum::enum_names<Color>();
   // color_names -> {"RED", "BLUE", "GREEN"}
+  ```
+
+* Stream operator for enum
+  ```cpp
+  using namespace magic_enum::ops; // out-of-the-box stream operator for enums.
+  Color color = Color::BLUE;
+  std::cout << color << std::endl; // "BLUE"
   ```
 
 ## Remarks
 
-* `magic_enum::enum_to_string` returns `std::optional<std::string_view>`, using `has_value()` to check contains enum name and `value()` to get the enum name. If enum value does not have name or out of range `MAGIC_ENUM_RANGE`, returns `std::nullopt`.
+* `magic_enum::enum_cast` returns `std::optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
 
-* `magic_enum::enum_from_string` returns `std::optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value. If enum value does not have name or out of range `MAGIC_ENUM_RANGE`, returns `std::nullopt`.
+* `magic_enum::enum_values` returns `std::array<E, N>` with all enum value, sorted by enum value.
 
-* `magic_enum::enum_to_sequence` returns `std::array<E, N>` with all value enum, sorted by enum value.
+* `magic_enum::enum_name` returns `std::optional<std::string_view>`, using `has_value()` to check contains enum name and `value()` to get the enum name.
 
-* `magic_enum::enum_to_string_sequence` returns `std::array<std::string_view, N>` with all string enum name, sorted by enum value.
+* `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name, sorted by enum value.
 
 * Enum value must be in range `(-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE)`. By default `MAGIC_ENUM_RANGE = 128`. If you need larger range, redefine the macro `MAGIC_ENUM_RANGE`.
   ```cpp

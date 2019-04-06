@@ -20,45 +20,57 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <magic_enum.hpp>
-
 #include <iostream>
+#include <sstream>
+
+#include <magic_enum.hpp>
 
 enum Color { RED = -10, BLUE = 0, GREEN = 10 };
 
 int main() {
-  // Enum variable to string enum name.
-  auto c1 = Color::RED;
-  auto c1_name = magic_enum::enum_to_string(c1);
+  // Enum variable to string name.
+  Color c1 = Color::RED;
+  auto c1_name = magic_enum::enum_name(c1);
   if (c1_name.has_value()) {
     std::cout << c1_name.value() << std::endl; // RED
   }
 
-  // String enum name to enum variable.
-  auto c2 = magic_enum::enum_from_string<Color>("GREEN");
-  if (c2.has_value() && c2.value() == Color::GREEN) {
-    std::cout << "GREEN = " << c2.value() << std::endl; // GREEN = 10
-  }
-
-  // Static storage enum variable to string enum name.
-  constexpr auto c3 = Color::BLUE;
-  constexpr auto c3_name = magic_enum::enum_to_string<c3>();
-  if (c3_name.has_value()) {
-    std::cout << c3_name.value() << std::endl; // BLUE
-  }
-
-  constexpr auto colors = magic_enum::enum_to_sequence<Color>();
-  std::cout << "Colors:";
-  for (auto e : colors) {
-    std::cout << " " << magic_enum::enum_to_string(e).value();
+  // String enum name sequence.
+  constexpr auto color_names = magic_enum::enum_names<Color>();
+  std::cout << "Color names:";
+  for (auto n : color_names) {
+    std::cout << " " << n;
   }
   std::cout << std::endl;
-  // Color sequence: RED BLUE GREEN
+  // Color names: RED BLUE GREEN
 
-  constexpr auto color_names = magic_enum::enum_to_string_sequence<Color>();
-  std::cout << "Color names:";
-  for (auto e : color_names) {
-    std::cout << " " << e;
+  // String name to enum value.
+  auto c2 = magic_enum::enum_cast<Color>("BLUE");
+  if (c2.has_value() && c2.value() == Color::BLUE) {
+    std::cout << "BLUE = " << c2.value() << std::endl; // BLUE = 0
+  }
+
+  // Integer value to enum value.
+  auto c3 = magic_enum::enum_cast<Color>(10);
+  if (c3.has_value() && c3.value() == Color::GREEN) {
+    std::cout << "GREEN = " << c3.value() << std::endl; // GREEN = 10
+  }
+
+  using namespace magic_enum::ops; // out-of-the-box stream operator for enums.
+  // ostream operator for enum.
+  std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
+
+  // Number of enum values.
+  std::cout << "Color enum size: " << magic_enum::enum_count<Color>() << std::endl; // Color enum size: 3
+
+  // Indexed access to enum value.
+  std::cout << "Color[0] = " << magic_enum::enum_value<Color>(0) << std::endl; // Color[0] = RED
+
+  // Enum value sequence.
+  constexpr auto colors = magic_enum::enum_values<Color>();
+  std::cout << "Colors sequence:";
+  for (Color c : colors) {
+    std::cout << " " << c; // ostream operator for enum.
   }
   std::cout << std::endl;
   // Color sequence: RED BLUE GREEN
