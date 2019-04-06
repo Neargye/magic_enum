@@ -181,6 +181,7 @@ template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
   return detail::enum_from_string_impl<E, min>(name, std::make_integer_sequence<int, range>{});
 }
 
+// enum_sequence<enum>() obtains string enum sequence.
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 [[nodiscard]] constexpr decltype(auto) enum_sequence() noexcept {
   using U = std::underlying_type_t<E>;
@@ -192,6 +193,7 @@ template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
   return detail::enum_sequence_impl<E, min>(std::make_integer_sequence<int, range>{});
 }
 
+// enum_to_string_sequence<enum>() obtains string enum name sequence.
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 [[nodiscard]] constexpr decltype(auto) enum_to_string_sequence() noexcept {
   using U = std::underlying_type_t<E>;
