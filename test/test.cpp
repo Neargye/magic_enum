@@ -26,6 +26,8 @@
 #define MAGIC_ENUM_RANGE 120
 #include <magic_enum.hpp>
 
+#include <array>
+
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 
 enum class Numbers : char { one = 10, two = 20, three = 30 };
@@ -98,7 +100,7 @@ TEST_CASE("magic_enum::enum_from_string(name)") {
 
   REQUIRE(magic_enum::enum_from_string<Numbers>("one").value() == Numbers::one);
   REQUIRE(magic_enum::enum_from_string<Numbers>("two").value() == Numbers::two);
-  REQUIRE(magic_enum::enum_from_string<Numbers>("two").value() == Numbers::two);
+  REQUIRE(magic_enum::enum_from_string<Numbers>("three").value() == Numbers::three);
   REQUIRE(!magic_enum::enum_from_string<Numbers>("None").has_value());
 
   REQUIRE(magic_enum::enum_from_string<Directions>("Up").value() == Directions::Up);
@@ -109,6 +111,34 @@ TEST_CASE("magic_enum::enum_from_string(name)") {
 
   REQUIRE(magic_enum::enum_from_string<number>("one").value() == number::one);
   REQUIRE(magic_enum::enum_from_string<number>("two").value() == number::two);
-  REQUIRE(magic_enum::enum_from_string<number>("two").value() == number::two);
+  REQUIRE(magic_enum::enum_from_string<number>("three").value() == number::three);
   REQUIRE(!magic_enum::enum_from_string<number>("None").has_value());
+}
+
+TEST_CASE("magic_enum::enum_sequence<enum>()") {
+  constexpr auto mge_s1 = magic_enum::enum_sequence<Color>();
+  REQUIRE(mge_s1 == std::array<Color, 3>{Color::RED, Color::GREEN, Color::BLUE});
+
+  constexpr auto mge_s2 = magic_enum::enum_sequence<Numbers>();
+  REQUIRE(mge_s2 == std::array<Numbers, 3>{Numbers::one, Numbers::two, Numbers::three});
+
+  constexpr auto mge_s3 = magic_enum::enum_sequence<Directions>();
+  REQUIRE(mge_s3 == std::array<Directions, 4>{Directions::Left, Directions::Down, Directions::Up, Directions::Right});
+
+  constexpr auto mge_s4 = magic_enum::enum_sequence<number>();
+  REQUIRE(mge_s4 == std::array<number, 3>{number::one, number::two, number::three});
+}
+
+TEST_CASE("magic_enum::enum_to_string_sequence<enum>()") {
+  constexpr auto mge_s1 = magic_enum::enum_to_string_sequence<Color>();
+  REQUIRE(mge_s1 == std::array<std::string_view, 3>{"RED", "GREEN", "BLUE"});
+
+  constexpr auto mge_s2 = magic_enum::enum_to_string_sequence<Numbers>();
+  REQUIRE(mge_s2 == std::array<std::string_view, 3>{"one", "two","three"});
+
+  constexpr auto mge_s3 = magic_enum::enum_to_string_sequence<Directions>();
+  REQUIRE(mge_s3 == std::array<std::string_view, 4>{"Left", "Down", "Up", "Right"});
+
+  constexpr auto mge_s4 = magic_enum::enum_to_string_sequence<number>();
+  REQUIRE(mge_s4 == std::array<std::string_view, 3>{"one", "two", "three"});
 }
