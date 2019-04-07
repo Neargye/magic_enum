@@ -44,166 +44,166 @@ TEST_CASE("enum_cast") {
 #  define constexpr // Visual Studio 2017 have bug with string_view constexpr compare.
 #endif
 
-    constexpr auto cr = magic_enum::enum_cast<Color>("RED");
+    constexpr auto cr = yae::enum_cast<Color>("RED");
     REQUIRE(cr.value() == Color::RED);
-    REQUIRE(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
-    REQUIRE(magic_enum::enum_cast<Color>("BLUE").value() == Color::BLUE);
-    REQUIRE_FALSE(magic_enum::enum_cast<Color>("None").has_value());
+    REQUIRE(yae::enum_cast<Color>("GREEN").value() == Color::GREEN);
+    REQUIRE(yae::enum_cast<Color>("BLUE").value() == Color::BLUE);
+    REQUIRE_FALSE(yae::enum_cast<Color>("None").has_value());
 
-    constexpr auto no = magic_enum::enum_cast<Numbers>("one");
+    constexpr auto no = yae::enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
-    REQUIRE(magic_enum::enum_cast<Numbers>("two").value() == Numbers::two);
-    REQUIRE(magic_enum::enum_cast<Numbers>("three").value() == Numbers::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>("None").has_value());
+    REQUIRE(yae::enum_cast<Numbers>("two").value() == Numbers::two);
+    REQUIRE(yae::enum_cast<Numbers>("three").value() == Numbers::three);
+    REQUIRE_FALSE(yae::enum_cast<Numbers>("None").has_value());
 
-    constexpr auto dr = magic_enum::enum_cast<Directions>("Right");
-    REQUIRE(magic_enum::enum_cast<Directions>("Up").value() == Directions::Up);
-    REQUIRE(magic_enum::enum_cast<Directions>("Down").value() == Directions::Down);
+    constexpr auto dr = yae::enum_cast<Directions>("Right");
+    REQUIRE(yae::enum_cast<Directions>("Up").value() == Directions::Up);
+    REQUIRE(yae::enum_cast<Directions>("Down").value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(magic_enum::enum_cast<Directions>("Left").value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>("None").has_value());
+    REQUIRE(yae::enum_cast<Directions>("Left").value() == Directions::Left);
+    REQUIRE_FALSE(yae::enum_cast<Directions>("None").has_value());
 
-    constexpr auto nt = magic_enum::enum_cast<number>("three");
-    REQUIRE(magic_enum::enum_cast<number>("one").value() == number::one);
-    REQUIRE(magic_enum::enum_cast<number>("two").value() == number::two);
+    constexpr auto nt = yae::enum_cast<number>("three");
+    REQUIRE(yae::enum_cast<number>("one").value() == number::one);
+    REQUIRE(yae::enum_cast<number>("two").value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>("None").has_value());
+    REQUIRE_FALSE(yae::enum_cast<number>("None").has_value());
 
 #undef constexpr
   }
 
   SECTION("string") {
-    constexpr auto cr = magic_enum::enum_cast<Color>(-12);
+    constexpr auto cr = yae::enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
-    REQUIRE(magic_enum::enum_cast<Color>(7).value() == Color::GREEN);
-    REQUIRE(magic_enum::enum_cast<Color>(15).value() == Color::BLUE);
-    REQUIRE_FALSE(magic_enum::enum_cast<Color>(0).has_value());
+    REQUIRE(yae::enum_cast<Color>(7).value() == Color::GREEN);
+    REQUIRE(yae::enum_cast<Color>(15).value() == Color::BLUE);
+    REQUIRE_FALSE(yae::enum_cast<Color>(0).has_value());
 
-    constexpr auto no = magic_enum::enum_cast<Numbers>(10);
+    constexpr auto no = yae::enum_cast<Numbers>(10);
     REQUIRE(no.value() == Numbers::one);
-    REQUIRE(magic_enum::enum_cast<Numbers>(20).value() == Numbers::two);
-    REQUIRE(magic_enum::enum_cast<Numbers>(30).value() == Numbers::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(0).has_value());
+    REQUIRE(yae::enum_cast<Numbers>(20).value() == Numbers::two);
+    REQUIRE(yae::enum_cast<Numbers>(30).value() == Numbers::three);
+    REQUIRE_FALSE(yae::enum_cast<Numbers>(0).has_value());
 
-    constexpr auto dr = magic_enum::enum_cast<Directions>(119);
-    REQUIRE(magic_enum::enum_cast<Directions>(85).value() == Directions::Up);
-    REQUIRE(magic_enum::enum_cast<Directions>(-42).value() == Directions::Down);
+    constexpr auto dr = yae::enum_cast<Directions>(119);
+    REQUIRE(yae::enum_cast<Directions>(85).value() == Directions::Up);
+    REQUIRE(yae::enum_cast<Directions>(-42).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(magic_enum::enum_cast<Directions>(-119).value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());
+    REQUIRE(yae::enum_cast<Directions>(-119).value() == Directions::Left);
+    REQUIRE_FALSE(yae::enum_cast<Directions>(0).has_value());
 
-    constexpr auto nt = magic_enum::enum_cast<number>(30);
-    REQUIRE(magic_enum::enum_cast<number>(10).value() == number::one);
-    REQUIRE(magic_enum::enum_cast<number>(20).value() == number::two);
+    constexpr auto nt = yae::enum_cast<number>(30);
+    REQUIRE(yae::enum_cast<number>(10).value() == number::one);
+    REQUIRE(yae::enum_cast<number>(20).value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
+    REQUIRE_FALSE(yae::enum_cast<number>(0).has_value());
   }
 }
 
 TEST_CASE("enum_value") {
- constexpr auto cr = magic_enum::enum_value<Color>(0);
+ constexpr auto cr = yae::enum_value<Color>(0);
   REQUIRE(cr == Color::RED);
-  REQUIRE(magic_enum::enum_value<Color>(1) == Color::GREEN);
-  REQUIRE(magic_enum::enum_value<Color>(2) == Color::BLUE);
+  REQUIRE(yae::enum_value<Color>(1) == Color::GREEN);
+  REQUIRE(yae::enum_value<Color>(2) == Color::BLUE);
 
-  constexpr auto no = magic_enum::enum_value<Numbers>(0);
+  constexpr auto no = yae::enum_value<Numbers>(0);
   REQUIRE(no == Numbers::one);
-  REQUIRE(magic_enum::enum_value<Numbers>(1) == Numbers::two);
-  REQUIRE(magic_enum::enum_value<Numbers>(2) == Numbers::three);
+  REQUIRE(yae::enum_value<Numbers>(1) == Numbers::two);
+  REQUIRE(yae::enum_value<Numbers>(2) == Numbers::three);
 
-  constexpr auto dr = magic_enum::enum_value<Directions>(3);
-  REQUIRE(magic_enum::enum_value<Directions>(0) == Directions::Left);
-  REQUIRE(magic_enum::enum_value<Directions>(1) == Directions::Down);
-  REQUIRE(magic_enum::enum_value<Directions>(2) == Directions::Up);
+  constexpr auto dr = yae::enum_value<Directions>(3);
+  REQUIRE(yae::enum_value<Directions>(0) == Directions::Left);
+  REQUIRE(yae::enum_value<Directions>(1) == Directions::Down);
+  REQUIRE(yae::enum_value<Directions>(2) == Directions::Up);
   REQUIRE(dr == Directions::Right);
 
-  constexpr auto nt = magic_enum::enum_value<number>(2);
-  REQUIRE(magic_enum::enum_value<number>(0) == number::one);
-  REQUIRE(magic_enum::enum_value<number>(1) == number::two);
+  constexpr auto nt = yae::enum_value<number>(2);
+  REQUIRE(yae::enum_value<number>(0) == number::one);
+  REQUIRE(yae::enum_value<number>(1) == number::two);
   REQUIRE(nt == number::three);
 }
 
 TEST_CASE("enum_values") {
-  constexpr auto mge_s1 = magic_enum::enum_values<Color>();
+  constexpr auto mge_s1 = yae::enum_values<Color>();
   REQUIRE(mge_s1 == std::array<Color, 3>{Color::RED, Color::GREEN, Color::BLUE});
 
-  constexpr auto mge_s2 = magic_enum::enum_values<Numbers>();
+  constexpr auto mge_s2 = yae::enum_values<Numbers>();
   REQUIRE(mge_s2 == std::array<Numbers, 3>{Numbers::one, Numbers::two, Numbers::three});
 
-  constexpr auto mge_s3 = magic_enum::enum_values<Directions>();
+  constexpr auto mge_s3 = yae::enum_values<Directions>();
   REQUIRE(mge_s3 == std::array<Directions, 4>{Directions::Left, Directions::Down, Directions::Up, Directions::Right});
 
-  constexpr auto mge_s4 = magic_enum::enum_values<number>();
+  constexpr auto mge_s4 = yae::enum_values<number>();
   REQUIRE(mge_s4 == std::array<number, 3>{number::one, number::two, number::three});
 }
 
 TEST_CASE("enum_count") {
-  constexpr auto mge_s1 = magic_enum::enum_count<Color>();
+  constexpr auto mge_s1 = yae::enum_count<Color>();
   REQUIRE(mge_s1 == 3);
 
-  constexpr auto mge_s2 = magic_enum::enum_count<Numbers>();
+  constexpr auto mge_s2 = yae::enum_count<Numbers>();
   REQUIRE(mge_s2 == 3);
 
-  constexpr auto mge_s3 = magic_enum::enum_count<Directions>();
+  constexpr auto mge_s3 = yae::enum_count<Directions>();
   REQUIRE(mge_s3 == 4);
 
-  constexpr auto mge_s4 = magic_enum::enum_count<number>();
+  constexpr auto mge_s4 = yae::enum_count<number>();
   REQUIRE(mge_s4 == 3);
 }
 
 TEST_CASE("enum_name") {
   constexpr Color cr = Color::RED;
-  constexpr auto cr_name = magic_enum::enum_name(cr);
+  constexpr auto cr_name = yae::enum_name(cr);
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE(cr_name.value() == "RED");
-  REQUIRE(magic_enum::enum_name(Color::BLUE).value() == "BLUE");
-  REQUIRE(magic_enum::enum_name(cm[1]).value() == "GREEN");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Color>(MAGIC_ENUM_RANGE)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Color>(-MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE(yae::enum_name(Color::BLUE).value() == "BLUE");
+  REQUIRE(yae::enum_name(cm[1]).value() == "GREEN");
+  REQUIRE_FALSE(yae::enum_name(static_cast<Color>(MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE_FALSE(yae::enum_name(static_cast<Color>(-MAGIC_ENUM_RANGE)).has_value());
 
   constexpr Numbers no = Numbers::one;
-  constexpr auto no_name = magic_enum::enum_name(no);
+  constexpr auto no_name = yae::enum_name(no);
   REQUIRE(no_name.value() == "one");
-  REQUIRE(magic_enum::enum_name(Numbers::two).value() == "two");
-  REQUIRE(magic_enum::enum_name(Numbers::three).value() == "three");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(MAGIC_ENUM_RANGE)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(-MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE(yae::enum_name(Numbers::two).value() == "two");
+  REQUIRE(yae::enum_name(Numbers::three).value() == "three");
+  REQUIRE_FALSE(yae::enum_name(static_cast<Numbers>(MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE_FALSE(yae::enum_name(static_cast<Numbers>(-MAGIC_ENUM_RANGE)).has_value());
 
   constexpr Directions dr = Directions::Right;
-  constexpr auto dr_name = magic_enum::enum_name(dr);
-  REQUIRE(magic_enum::enum_name(Directions::Up).value() == "Up");
-  REQUIRE(magic_enum::enum_name(Directions::Down).value() == "Down");
+  constexpr auto dr_name = yae::enum_name(dr);
+  REQUIRE(yae::enum_name(Directions::Up).value() == "Up");
+  REQUIRE(yae::enum_name(Directions::Down).value() == "Down");
   REQUIRE(dr_name.value() == "Right");
-  REQUIRE(magic_enum::enum_name(Directions::Left).value() == "Left");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Directions>(MAGIC_ENUM_RANGE)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Directions>(-MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE(yae::enum_name(Directions::Left).value() == "Left");
+  REQUIRE_FALSE(yae::enum_name(static_cast<Directions>(MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE_FALSE(yae::enum_name(static_cast<Directions>(-MAGIC_ENUM_RANGE)).has_value());
 
   constexpr number nt = number::three;
-  constexpr auto nt_name = magic_enum::enum_name(nt);
-  REQUIRE(magic_enum::enum_name(number::one).value() == "one");
-  REQUIRE(magic_enum::enum_name(number::two).value() == "two");
+  constexpr auto nt_name = yae::enum_name(nt);
+  REQUIRE(yae::enum_name(number::one).value() == "one");
+  REQUIRE(yae::enum_name(number::two).value() == "two");
   REQUIRE(nt_name.value() == "three");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(MAGIC_ENUM_RANGE)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(-MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE_FALSE(yae::enum_name(static_cast<number>(MAGIC_ENUM_RANGE)).has_value());
+  REQUIRE_FALSE(yae::enum_name(static_cast<number>(-MAGIC_ENUM_RANGE)).has_value());
 }
 
 TEST_CASE("enum_names") {
-  constexpr auto mge_s1 = magic_enum::enum_names<Color>();
+  constexpr auto mge_s1 = yae::enum_names<Color>();
   REQUIRE(mge_s1 == std::array<std::string_view, 3>{"RED", "GREEN", "BLUE"});
 
-  constexpr auto mge_s2 = magic_enum::enum_names<Numbers>();
+  constexpr auto mge_s2 = yae::enum_names<Numbers>();
   REQUIRE(mge_s2 == std::array<std::string_view, 3>{"one", "two", "three"});
 
-  constexpr auto mge_s3 = magic_enum::enum_names<Directions>();
+  constexpr auto mge_s3 = yae::enum_names<Directions>();
   REQUIRE(mge_s3 == std::array<std::string_view, 4>{"Left", "Down", "Up", "Right"});
 
-  constexpr auto mge_s4 = magic_enum::enum_names<number>();
+  constexpr auto mge_s4 = yae::enum_names<number>();
   REQUIRE(mge_s4 == std::array<std::string_view, 3>{"one", "two", "three"});
 }
 
 TEST_CASE("operator<<") {
   auto test_ostream = [](auto e, std::string_view name) {
-    using namespace magic_enum::ops;
+    using namespace yae::ops;
     std::stringstream ss;
     ss << e;
     REQUIRE(ss.str() == name);

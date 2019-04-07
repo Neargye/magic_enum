@@ -5,7 +5,7 @@
 // | |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
 // |_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
 //                __/ | https://github.com/Neargye/magic_enum
-//               |___/  vesion 0.3.0-dev
+//               |___/  vesion 0.3.0
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
@@ -47,7 +47,7 @@
 #  define MAGIC_ENUM_RANGE 256
 #endif
 
-namespace magic_enum {
+namespace yae { // aka Yet Another Enums.
 
 static_assert(MAGIC_ENUM_RANGE > 0,
               "MAGIC_ENUM_RANGE must be positive and greater than zero.");
@@ -59,7 +59,7 @@ namespace detail {
 template <typename E>
 struct enum_range final {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::detail::enum_range require enum type.");
+  static_assert(std::is_enum_v<D>, "yae::detail::enum_range require enum type.");
   using U = std::underlying_type_t<D>;
   using C = std::common_type_t<int, U>;
   static constexpr int min = std::max<C>(std::is_signed_v<U> ? -MAGIC_ENUM_RANGE : 0, std::numeric_limits<U>::min());
@@ -77,7 +77,7 @@ struct enum_range final {
 
 template <typename E, E V>
 [[nodiscard]] constexpr std::string_view name_impl() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::name_impl require enum type.");
 #if defined(__clang__)
   std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("]") - 1;
@@ -110,7 +110,7 @@ template <typename E, E V>
 
 template <typename E, int... I>
 [[nodiscard]] constexpr decltype(auto) strings_impl(std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::strings_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::strings_impl require enum type.");
   constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, static_cast<E>(I + enum_range<E>::min)>()...}};
 
   return names;
@@ -118,7 +118,7 @@ template <typename E, int... I>
 
 template <typename E>
 [[nodiscard]] constexpr std::string_view name_impl(int value) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::name_impl require enum type.");
   constexpr auto names = strings_impl<E>(enum_range<E>::sequence);
 
   return enum_range<E>::contains(value) ? names[value - enum_range<E>::min] : std::string_view{};
@@ -126,7 +126,7 @@ template <typename E>
 
 template <typename E, int... I>
 [[nodiscard]] constexpr decltype(auto) values_impl(std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::values_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::values_impl require enum type.");
   constexpr int n = sizeof...(I);
   constexpr std::array<bool, n> valid{{!name_impl<E, static_cast<E>(I + enum_range<E>::min)>().empty()...}};
   constexpr int num_valid = ((valid[I] ? 1 : 0) + ...);
@@ -143,7 +143,7 @@ template <typename E, int... I>
 
 template <typename E, std::size_t... I>
 [[nodiscard]] constexpr decltype(auto) names_impl(std::integer_sequence<std::size_t, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::names_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::names_impl require enum type.");
   constexpr auto enums = values_impl<E>(enum_range<E>::sequence);
   constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, enums[I]>()...}};
 
@@ -152,7 +152,7 @@ template <typename E, std::size_t... I>
 
 template <typename E>
 [[nodiscard]] constexpr std::optional<E> enum_cast_impl(std::string_view value) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::enum_cast_impl require enum type.");
+  static_assert(std::is_enum_v<E>, "yae::detail::enum_cast_impl require enum type.");
   constexpr auto values = values_impl<E>(enum_range<E>::sequence);
   constexpr auto count = values.size();
   constexpr auto names = names_impl<E>(std::make_index_sequence<count>{});
@@ -169,7 +169,7 @@ template <typename E>
 template<class E>
 using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<E>>>::type;
 
-} // namespace magic_enum::detail
+} // namespace yae::detail
 
 // Obtains enum value from enum string name.
 template <typename E, typename = detail::enable_if_enum_t<E>>
@@ -269,6 +269,6 @@ std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
   return os;
 }
 
-} // namespace magic_enum::ops
+} // namespace yae::ops
 
-} // namespace magic_enum
+} // namespace yae
