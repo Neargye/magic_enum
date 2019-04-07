@@ -44,7 +44,7 @@
 
 // Enum value must be in range (-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE). If you need a larger range, redefine the macro MAGIC_ENUM_RANGE.
 #if !defined(MAGIC_ENUM_RANGE)
-#  define MAGIC_ENUM_RANGE 128
+#  define MAGIC_ENUM_RANGE 256
 #endif
 
 namespace magic_enum {

@@ -16,7 +16,7 @@
 [![Build Status](https://travis-ci.org/Neargye/magic_enum.svg?branch=master)](https://travis-ci.org/Neargye/magic_enum)
 [![Build status](https://ci.appveyor.com/api/projects/status/0rpr966p9ssrvwu3/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/magic-enum-hf8vk/branch/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/64d04f150af14c3e8bd1090057b68538)](https://www.codacy.com/app/Neargye/magic_enum?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/magic_enum&amp;utm_campaign=Badge_Grade)
-[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/XfV2tDCzFdk36RSG)
+[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/KOo6s4qJ9wUSxRGG)
 
 ## What is Magic Enum?
 
@@ -145,9 +145,9 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
-* Enum value must be in range `(-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE)`. By default `MAGIC_ENUM_RANGE = 128`. If you need larger range, redefine the macro `MAGIC_ENUM_RANGE`.
+* Enum value must be in range `(-MAGIC_ENUM_RANGE, MAGIC_ENUM_RANGE)`. By default `MAGIC_ENUM_RANGE = 256`. If you need a larger range, redefine the macro `MAGIC_ENUM_RANGE`.
   ```cpp
-  #define MAGIC_ENUM_RANGE 1028 // Redefine MAGIC_ENUM_RANGE for larger range.
+  #define MAGIC_ENUM_RANGE 1024 // Redefine MAGIC_ENUM_RANGE for larger range.
   #include <magic_enum.hpp>
   ```
 
