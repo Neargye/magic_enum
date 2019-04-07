@@ -27,7 +27,7 @@
 #include <magic_enum.hpp>
 
 #include <array>
-#include <string>
+#include <string_view>
 #include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -72,7 +72,7 @@ TEST_CASE("enum_cast") {
 #undef constexpr
   }
 
-  SECTION("string") {
+  SECTION("integer") {
     constexpr auto cr = yae::enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(yae::enum_cast<Color>(7).value() == Color::GREEN);
@@ -124,31 +124,31 @@ TEST_CASE("enum_value") {
 }
 
 TEST_CASE("enum_values") {
-  constexpr auto mge_s1 = yae::enum_values<Color>();
-  REQUIRE(mge_s1 == std::array<Color, 3>{Color::RED, Color::GREEN, Color::BLUE});
+  constexpr auto s1 = yae::enum_values<Color>();
+  REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
-  constexpr auto mge_s2 = yae::enum_values<Numbers>();
-  REQUIRE(mge_s2 == std::array<Numbers, 3>{Numbers::one, Numbers::two, Numbers::three});
+  constexpr auto s2 = yae::enum_values<Numbers>();
+  REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
 
-  constexpr auto mge_s3 = yae::enum_values<Directions>();
-  REQUIRE(mge_s3 == std::array<Directions, 4>{Directions::Left, Directions::Down, Directions::Up, Directions::Right});
+  constexpr auto s3 = yae::enum_values<Directions>();
+  REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
-  constexpr auto mge_s4 = yae::enum_values<number>();
-  REQUIRE(mge_s4 == std::array<number, 3>{number::one, number::two, number::three});
+  constexpr auto s4 = yae::enum_values<number>();
+  REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
 }
 
 TEST_CASE("enum_count") {
-  constexpr auto mge_s1 = yae::enum_count<Color>();
-  REQUIRE(mge_s1 == 3);
+  constexpr auto s1 = yae::enum_count<Color>();
+  REQUIRE(s1 == 3);
 
-  constexpr auto mge_s2 = yae::enum_count<Numbers>();
-  REQUIRE(mge_s2 == 3);
+  constexpr auto s2 = yae::enum_count<Numbers>();
+  REQUIRE(s2 == 3);
 
-  constexpr auto mge_s3 = yae::enum_count<Directions>();
-  REQUIRE(mge_s3 == 4);
+  constexpr auto s3 = yae::enum_count<Directions>();
+  REQUIRE(s3 == 4);
 
-  constexpr auto mge_s4 = yae::enum_count<number>();
-  REQUIRE(mge_s4 == 3);
+  constexpr auto s4 = yae::enum_count<number>();
+  REQUIRE(s4 == 3);
 }
 
 TEST_CASE("enum_name") {
@@ -188,17 +188,17 @@ TEST_CASE("enum_name") {
 }
 
 TEST_CASE("enum_names") {
-  constexpr auto mge_s1 = yae::enum_names<Color>();
-  REQUIRE(mge_s1 == std::array<std::string_view, 3>{"RED", "GREEN", "BLUE"});
+  constexpr auto s1 = yae::enum_names<Color>();
+  REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
-  constexpr auto mge_s2 = yae::enum_names<Numbers>();
-  REQUIRE(mge_s2 == std::array<std::string_view, 3>{"one", "two", "three"});
+  constexpr auto s2 = yae::enum_names<Numbers>();
+  REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 
-  constexpr auto mge_s3 = yae::enum_names<Directions>();
-  REQUIRE(mge_s3 == std::array<std::string_view, 4>{"Left", "Down", "Up", "Right"});
+  constexpr auto s3 = yae::enum_names<Directions>();
+  REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
-  constexpr auto mge_s4 = yae::enum_names<number>();
-  REQUIRE(mge_s4 == std::array<std::string_view, 3>{"one", "two", "three"});
+  constexpr auto s4 = yae::enum_names<number>();
+  REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
 TEST_CASE("operator<<") {
