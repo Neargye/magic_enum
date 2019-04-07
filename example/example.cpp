@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include <iostream>
-#include <sstream>
 
 #include <magic_enum.hpp>
 
