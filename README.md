@@ -190,7 +190,45 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
     static constexpr int max = 300;
   };
   }
+  ```
 
+* `magic_enum::enum_cast` and `magic_enum::enum_name` obtains the first defined value enums, and won't work if value are aliased.
+  ```cpp
+  enum ShapeKind {
+    ConvexBegin = 0,
+    Box = 0, // Won't work.
+    Sphere = 1,
+    ConvexEnd = 2,
+    Donut = 2, // Won't work too.
+    Banana = 3,
+    COUNT = 4,
+  };
+  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt
+  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
+  ```
+  Work around the issue:
+  ```cpp
+  enum ShapeKind {
+    // Convex shapes, see ConvexBegin and ConvexEnd below.
+    Box = 0,
+    Sphere = 1,
+
+    // Non-convex shapes.
+    Donut = 2,
+    Banana = 3,
+
+    COUNT = Banana + 1,
+
+    // Non-reflected aliases.
+    ConvexBegin = Box,
+    ConvexEnd = Sphere + 1,
+  };
+  // magic_enum::enum_cast<ShapeKind>("Box") -> ShapeKind::Box
+  // magic_enum::enum_name(ShapeKind::Box) -> "Box"
+
+  // Non-reflected aliases.
+  // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> std::nullopt
+  // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
   ```
 
 ## Integration
