@@ -172,7 +172,7 @@ template <typename E>
 }
 
 template<typename T>
-using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<T>>>::type;
+using enable_if_enum_t = typename std::enable_if<std::is_enum_v<T>>::type;
 
 template<typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum_impl : std::false_type {};
@@ -203,54 +203,54 @@ template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 // Obtains enum value from enum string name.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::optional<E> enum_cast(std::string_view value) noexcept {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_cast requires enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_cast requires enum type.");
 
-  return detail::enum_cast_impl<D>(value);
+  return detail::enum_cast_impl<E>(value);
 }
 
 // Obtains enum value from integer value.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::optional<E> enum_cast(std::underlying_type_t<E> value) noexcept {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_cast requires enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_cast requires enum type.");
 
-  if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
+  if (detail::name_impl<E>(static_cast<int>(value)).empty()) {
     return std::nullopt; // Invalid value or out of range.
   } else {
-    return static_cast<D>(value);
+    return static_cast<E>(value);
   }
 }
 
 // Returns enum value at specified index. No bounds checking is performed: the behavior is undefined if index >= number of enum values.
-template<typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template<typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr E enum_value(std::size_t index) {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_value requires enum type.");
-  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_value requires enum type.");
+  constexpr auto values = detail::values_impl<E>(detail::range_impl<E>());
 
   return assert(index < values.size()), values[index];
 }
 
 // Obtains value enum sequence.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr decltype(auto) enum_values() noexcept {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_values requires enum type.");
-  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_values requires enum type.");
+  constexpr auto values = detail::values_impl<E>(detail::range_impl<E>());
 
   return values;
 }
 
 // Returns number of enum values.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::size_t enum_count() noexcept {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_count requires enum type.");
-  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_count requires enum type.");
+  constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
 
   return count;
 }
 
 // Obtains string enum name from enum value.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<D>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_name(E value) noexcept {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_name requires enum type.");
   const auto name = detail::name_impl<D>(static_cast<int>(value));
@@ -263,18 +263,18 @@ template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::
 }
 
 // Obtains string enum name sequence.
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr decltype(auto) enum_names() noexcept {
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_names requires enum type.");
-  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
-  constexpr auto names = detail::names_impl<D>(std::make_index_sequence<count>{});
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_names requires enum type.");
+  constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
+  constexpr auto names = detail::names_impl<E>(std::make_index_sequence<count>{});
 
   return names;
 }
 
 namespace ops {
 
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
 std::ostream& operator<<(std::ostream& os, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::ops::operator<< requires enum type.");
   const auto name = detail::name_impl<D>(static_cast<int>(value));
@@ -286,12 +286,12 @@ std::ostream& operator<<(std::ostream& os, E value) {
   return os;
 }
 
-template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>>
 std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
-  static_assert(std::is_enum_v<D>, "magic_enum::ops::operator<< requires enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::ops::operator<< requires enum type.");
 
   if (value.has_value()) {
-    const auto name = detail::name_impl<D>(static_cast<int>(value.value()));
+    const auto name = detail::name_impl<E>(static_cast<int>(value.value()));
     if (!name.empty()) {
       os << name;
     }
