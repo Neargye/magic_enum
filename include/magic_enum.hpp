@@ -112,7 +112,7 @@ template <typename E, E V>
   if (name.length() > 0 && is_name_char(name.front(), true)) {
     return name;
   } else {
-    return {}; // Enum value does not have name.
+    return {}; // Value does not have name.
   }
 #endif
 }
@@ -134,7 +134,7 @@ template <typename E>
   if (i >= 0 && static_cast<std::size_t>(i) < names.size()) {
     return names[i];
   } else {
-    return {};
+    return {}; // Value out of range.
   }
 }
 
