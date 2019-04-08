@@ -141,7 +141,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Checks whether type is an Unscoped enumeration.
   ```cpp
-  enum сolor { red, green, blue };
+  enum color { red, green, blue };
   enum class direction { left, right };
 
   magic_enum::is_unscoped_enum<color>::value -> true
@@ -154,7 +154,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Checks whether type is an Scoped enumeration.
   ```cpp
-  enum сolor { red, green, blue };
+  enum color { red, green, blue };
   enum class direction { left, right };
 
   magic_enum::is_scoped_enum<color>::value -> false
