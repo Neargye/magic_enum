@@ -197,16 +197,14 @@ struct is_unscoped_enum_impl<T, true> : std::bool_constant<std::is_convertible_v
 
 } // namespace magic_enum::detail
 
-// Checks whether T is an Unscoped enumeration type. Provides the member constant value which is equal to true, if T is an Unscoped enumeration type. Otherwise, value is equal to false.
-// https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration
+// Checks whether T is an Unscoped enumeration type. Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
 template <typename T>
 struct is_unscoped_enum : detail::is_unscoped_enum_impl<T> {};
 
 template <typename T>
 inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
 
-// Checks whether T is an Scoped enumeration type. Provides the member constant value which is equal to true, if T is an Scoped enumeration type. Otherwise, value is equal to false.
-// https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations
+// Checks whether T is an Scoped enumeration type. Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
 template <typename T>
 struct is_scoped_enum : detail::is_scoped_enum_impl<T> {};
 
