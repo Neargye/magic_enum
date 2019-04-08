@@ -74,5 +74,16 @@ int main() {
   std::cout << std::endl;
   // Color sequence: RED BLUE GREEN
 
+  enum color { red, green, blue };
+  enum class direction { left, right };
+
+  // Checks whether type is an Unscoped enumeration.
+  static_assert(magic_enum::is_unscoped_enum_v<color>);
+  static_assert(!magic_enum::is_unscoped_enum_v<direction>);
+
+  // Checks whether type is an Scoped enumeration.
+  static_assert(!magic_enum::is_scoped_enum_v<color>);
+  static_assert(magic_enum::is_scoped_enum_v<direction>);
+
   return 0;
 }
