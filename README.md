@@ -27,6 +27,8 @@ Header-only C++17 library provides static reflection on enums, work with any enu
 * `enum_count` returns number of enum values.
 * `enum_name` obtains string name from enum value.
 * `enum_names` obtains string enum name sequence.
+* `is_unscoped_enum` checks whether type is an Unscoped enumeration.
+* `is_scoped_enum` checks whether type is an Scoped enumeration.
 
 ## Features
 
@@ -135,6 +137,32 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   using namespace magic_enum::ops; // out-of-the-box stream operator for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
+  ```
+
+* Checks whether type is an Unscoped enumeration.
+  ```cpp
+  enum сolor { red, green, blue };
+  enum class direction { left, right };
+
+  magic_enum::is_unscoped_enum<color>::value -> true
+  magic_enum::is_unscoped_enum<direction>::value -> false
+  magic_enum::is_unscoped_enum<int>::value -> false
+
+  // Helper variable template.
+  magic_enum::is_unscoped_enum_v<color> -> true
+  ```
+
+* Checks whether type is an Scoped enumeration.
+  ```cpp
+  enum сolor { red, green, blue };
+  enum class direction { left, right };
+
+  magic_enum::is_scoped_enum<color>::value -> false
+  magic_enum::is_scoped_enum<direction>::value -> true
+  magic_enum::is_scoped_enum<int>::value -> false
+
+  // Helper variable template.
+  magic_enum::is_scoped_enum_v<direction> -> true
   ```
 
 ## Remarks

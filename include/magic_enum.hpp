@@ -180,10 +180,38 @@ template <typename E>
   return std::nullopt; // Invalid value or out of range.
 }
 
-template<class E>
-using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<E>>>::type;
+template<typename T>
+using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<T>>>::type;
+
+template<typename T, bool = std::is_enum_v<T>>
+struct is_scoped_enum_impl : std::false_type {};
+
+template<typename T>
+struct is_scoped_enum_impl<T, true> : std::bool_constant<!std::is_convertible_v<T, std::underlying_type_t<T>>> {};
+
+template<typename T, bool = std::is_enum_v<T>>
+struct is_unscoped_enum_impl : std::false_type {};
+
+template<typename T>
+struct is_unscoped_enum_impl<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
 } // namespace magic_enum::detail
+
+// Checks whether T is an Unscoped enumeration type. Provides the member constant value which is equal to true, if T is an Unscoped enumeration type. Otherwise, value is equal to false.
+// https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration
+template <typename T>
+struct is_unscoped_enum : detail::is_unscoped_enum_impl<T> {};
+
+template <typename T>
+inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
+
+// Checks whether T is an Scoped enumeration type. Provides the member constant value which is equal to true, if T is an Scoped enumeration type. Otherwise, value is equal to false.
+// https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations
+template <typename T>
+struct is_scoped_enum : detail::is_scoped_enum_impl<T> {};
+
+template <typename T>
+inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 // Obtains enum value from enum string name.
 template <typename E, typename = detail::enable_if_enum_t<E>>

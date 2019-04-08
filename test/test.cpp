@@ -233,3 +233,15 @@ TEST_CASE("operator<<") {
   test_ostream(number::three, "three");
   test_ostream((number)0, "");
 }
+
+TEST_CASE("type_traits") {
+  REQUIRE_FALSE(magic_enum::is_unscoped_enum_v<Color>);
+  REQUIRE_FALSE(magic_enum::is_unscoped_enum_v<Numbers>);
+  REQUIRE(magic_enum::is_unscoped_enum_v<Directions>);
+  REQUIRE(magic_enum::is_unscoped_enum_v<number>);
+
+  REQUIRE(magic_enum::is_scoped_enum_v<Color>);
+  REQUIRE(magic_enum::is_scoped_enum_v<Numbers>);
+  REQUIRE_FALSE(magic_enum::is_scoped_enum_v<Directions>);
+  REQUIRE_FALSE(magic_enum::is_scoped_enum_v<number>);
+}
