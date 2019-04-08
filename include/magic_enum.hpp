@@ -56,7 +56,7 @@ namespace detail {
 template <typename E, typename U = std::underlying_type_t<E>>
 [[nodiscard]] constexpr int min_impl() {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::min_impl requires enum type.");
-  constexpr int min = (enum_range<E>::min > std::numeric_limits<U>::min()) ? enum_range<E>::min : std::numeric_limits<U>::min();
+  constexpr int min = enum_range<E>::min > (std::numeric_limits<U>::min)() ? enum_range<E>::min : (std::numeric_limits<U>::min)();
 
   return min;
 }
@@ -64,7 +64,8 @@ template <typename E, typename U = std::underlying_type_t<E>>
 template <typename E, typename U = std::underlying_type_t<E>>
 [[nodiscard]] constexpr decltype(auto) range_impl() {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::range_impl requires enum type.");
-  constexpr int max = (enum_range<E>::max < std::numeric_limits<U>::max()) ? enum_range<E>::max : std::numeric_limits<U>::max();
+  static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
+  constexpr int max = enum_range<E>::max < (std::numeric_limits<U>::max)() ? enum_range<E>::max : (std::numeric_limits<U>::max)();
   constexpr auto range = std::make_integer_sequence<int, max - min_impl<E>() + 1>{};
 
   return range;
