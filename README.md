@@ -20,7 +20,7 @@
 
 ## What is Magic Enum?
 
-Header-only C++17 library provides static reflection on enums, work with any enum type without any macro or boilerplate code.
+Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
 * `enum_cast` obtains enum value from string or integer.
 * `enum_value` returns enum value at specified index.
 * `enum_values` obtains enum value sequence.
