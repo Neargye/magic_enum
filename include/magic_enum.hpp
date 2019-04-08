@@ -212,18 +212,14 @@ template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 // Obtains enum value from enum string name.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr std::optional<E> enum_cast(std::string_view value) noexcept {
-  using D = std::decay_t<E>;
-
   return detail::enum_cast_impl<D>(value);
 }
 
 // Obtains enum value from integer value.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr std::optional<E> enum_cast(std::underlying_type_t<E> value) noexcept {
-  using D = std::decay_t<E>;
-
   if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
     return std::nullopt; // Invalid value or out of range.
   } else {
@@ -232,36 +228,32 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 }
 
 // Returns enum value at specified index. No bounds checking is performed: the behavior is undefined if index >= number of enum values.
-template<typename E, typename = detail::enable_if_enum_t<E>>
+template<typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr E enum_value(std::size_t index) {
-  using D = std::decay_t<E>;
-  constexpr auto values = detail::values_impl<D>(detail::range_impl<E>());
+  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
 
   return assert(index < values.size()), values[index];
 }
 
 // Obtains value enum sequence.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr decltype(auto) enum_values() noexcept {
-  using D = std::decay_t<E>;
-  constexpr auto values = detail::values_impl<D>(detail::range_impl<E>());
+  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
 
   return values;
 }
 
 // Returns number of enum values.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr std::size_t enum_count() noexcept {
-  using D = std::decay_t<E>;
-  constexpr auto count = detail::values_impl<D>(detail::range_impl<E>()).size();
+  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
 
   return count;
 }
 
 // Obtains string enum name from enum value.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr std::optional<std::string_view> enum_name(E value) noexcept {
-  using D = std::decay_t<E>;
   const auto name = detail::name_impl<D>(static_cast<int>(value));
 
   if (name.empty()) {
@@ -272,10 +264,9 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 }
 
 // Obtains string enum name sequence.
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 [[nodiscard]] constexpr decltype(auto) enum_names() noexcept {
-  using D = std::decay_t<E>;
-  constexpr auto count = detail::values_impl<D>(detail::range_impl<E>()).size();
+  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
   constexpr auto names = detail::names_impl<D>(std::make_index_sequence<count>{});
 
   return names;
@@ -283,9 +274,8 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 
 namespace ops {
 
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 std::ostream& operator<<(std::ostream& os, E value) {
-  using D = std::decay_t<E>;
   const auto name = detail::name_impl<D>(static_cast<int>(value));
 
   if (!name.empty()) {
@@ -295,10 +285,8 @@ std::ostream& operator<<(std::ostream& os, E value) {
   return os;
 }
 
-template <typename E, typename = detail::enable_if_enum_t<E>>
+template <typename E, typename = detail::enable_if_enum_t<E>, typename D = std::decay_t<E>>
 std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
-  using D = std::decay_t<E>;
-
   if (value.has_value()) {
     const auto name = detail::name_impl<D>(static_cast<int>(value.value()));
     if (!name.empty()) {
