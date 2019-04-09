@@ -41,15 +41,39 @@
 #include <type_traits>
 #include <utility>
 
+// Enum value must be less than MAGIC_ENUM_RANGE_MAX. By default MAGIC_ENUM_RANGE_MAX = 128.
+// If need another max range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MAX.
+#if !defined(MAGIC_ENUM_RANGE_MAX)
+#  define MAGIC_ENUM_RANGE_MAX 128
+#endif
+
+// Enum value must be greater than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
+// If need another min range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN.
+#if !defined(MAGIC_ENUM_RANGE_MIN)
+#  define MAGIC_ENUM_RANGE_MIN -128
+#endif
+
 namespace magic_enum {
 
-// Enum value must be in range [-256, 256]. If you need another range, add specialization enum_range for necessary enum type.
+// Enum value must be in range [-MAGIC_ENUM_RANGE_MAX, MAGIC_ENUM_RANGE_MIN]. By default MAGIC_ENUM_RANGE_MAX = 128, MAGIC_ENUM_RANGE_MIN = -128.
+// If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MAX and MAGIC_ENUM_RANGE_MIN.
+// If need another range for specific enum type, add specialization enum_range for necessary enum type.
 template <typename E>
 struct enum_range final {
   static_assert(std::is_enum_v<E>, "magic_enum::enum_range requires enum type.");
-  static constexpr int min = std::is_signed_v<std::underlying_type_t<E>> ? -256 : 0;
-  static constexpr int max = 256;
+  static constexpr int min = std::is_signed_v<std::underlying_type_t<E>> ? MAGIC_ENUM_RANGE_MIN : 0;
+  static constexpr int max = MAGIC_ENUM_RANGE_MAX;
 };
+
+static_assert(MAGIC_ENUM_RANGE_MAX > 0,
+              "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
+static_assert(MAGIC_ENUM_RANGE_MAX < std::numeric_limits<int>::max(),
+              "MAGIC_ENUM_RANGE_MAX must be less than INT_MAX.");
+
+static_assert(MAGIC_ENUM_RANGE_MIN <= 0,
+              "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
+static_assert(MAGIC_ENUM_RANGE_MIN > std::numeric_limits<int>::min(),
+              "MAGIC_ENUM_RANGE_MIN must be greater than INT_MIN.");
 
 namespace detail {
 
