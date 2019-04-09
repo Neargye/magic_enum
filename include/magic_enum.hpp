@@ -189,14 +189,16 @@ struct is_unscoped_enum_impl<T, true> : std::bool_constant<std::is_convertible_v
 
 } // namespace magic_enum::detail
 
-// Checks whether T is an Unscoped enumeration type. Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
+// Checks whether T is an Unscoped enumeration type.
+// Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
 template <typename T>
 struct is_unscoped_enum : detail::is_unscoped_enum_impl<T> {};
 
 template <typename T>
 inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
 
-// Checks whether T is an Scoped enumeration type. Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
+// Checks whether T is an Scoped enumeration type.
+// Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
 template <typename T>
 struct is_scoped_enum : detail::is_scoped_enum_impl<T> {};
 
@@ -223,7 +225,8 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
   }
 }
 
-// Returns enum value at specified index. No bounds checking is performed: the behavior is undefined if index >= number of enum values.
+// Returns enum value at specified index.
+// No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr E enum_value(std::size_t index) {
   static_assert(std::is_enum_v<E>, "magic_enum::enum_value requires enum type.");
