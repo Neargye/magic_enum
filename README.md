@@ -177,12 +177,12 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
-* Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MAX = 128`, `MAGIC_ENUM_RANGE_MIN = -128`.
+* Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
-  If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MAX` and `MAGIC_ENUM_RANGE_MIN`.
+  If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
   ```cpp
-  #define MAGIC_ENUM_RANGE_MAX 256
   #define MAGIC_ENUM_RANGE_MIN 0
+  #define MAGIC_ENUM_RANGE_MAX 256
   #include <magic_enum.hpp>
   ```
 
