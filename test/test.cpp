@@ -23,6 +23,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
+#define MAGIC_ENUM_RANGE_MIN -120
+#define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
 
 #include <array>
@@ -31,11 +33,11 @@
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 
-enum class Numbers : char { one = 10, two = 20, three = 30 };
+enum class Numbers : char { one = 10, two = 20, three = 30, many = 127 };
 
-enum Directions { Up = 85, Down = -42, Right = 119, Left = -119 };
+enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
-enum number : unsigned long { one = 100, two = 200, three = 300 };
+enum number : unsigned long { zero = 0, one = 100, two = 200, three = 300, four = 400 };
 
 namespace magic_enum {
 template <>
@@ -61,6 +63,7 @@ TEST_CASE("enum_cast") {
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(magic_enum::enum_cast<Numbers>("two").value() == Numbers::two);
     REQUIRE(magic_enum::enum_cast<Numbers>("three").value() == Numbers::three);
+    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>("many").has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<Numbers>("None").has_value());
 
     constexpr auto dr = magic_enum::enum_cast<Directions>("Right");
@@ -74,6 +77,8 @@ TEST_CASE("enum_cast") {
     REQUIRE(magic_enum::enum_cast<number>("one").value() == number::one);
     REQUIRE(magic_enum::enum_cast<number>("two").value() == number::two);
     REQUIRE(nt.value() == number::three);
+    REQUIRE_FALSE(magic_enum::enum_cast<number>("zero").has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<number>("four").has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<number>("None").has_value());
 
 #undef constexpr
@@ -91,24 +96,27 @@ TEST_CASE("enum_cast") {
     REQUIRE(magic_enum::enum_cast<Numbers>(20).value() == Numbers::two);
     REQUIRE(magic_enum::enum_cast<Numbers>(30).value() == Numbers::three);
     REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(0).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(127).has_value());
 
-    constexpr auto dr = magic_enum::enum_cast<Directions>(119);
+    constexpr auto dr = magic_enum::enum_cast<Directions>(120);
     REQUIRE(magic_enum::enum_cast<Directions>(85).value() == Directions::Up);
     REQUIRE(magic_enum::enum_cast<Directions>(-42).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(magic_enum::enum_cast<Directions>(-119).value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());
+    REQUIRE(magic_enum::enum_cast<Directions>(-120).value() == Directions::Left);
+    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());;
 
     constexpr auto nt = magic_enum::enum_cast<number>(300);
     REQUIRE(magic_enum::enum_cast<number>(100).value() == number::one);
     REQUIRE(magic_enum::enum_cast<number>(200).value() == number::two);
     REQUIRE(nt.value() == number::three);
     REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<number>(400).has_value());
   }
 }
 
 TEST_CASE("enum_value") {
- constexpr auto cr = magic_enum::enum_value<Color>(0);
+  constexpr auto cr = magic_enum::enum_value<Color>(0);
   REQUIRE(cr == Color::RED);
   REQUIRE(magic_enum::enum_value<Color>(1) == Color::GREEN);
   REQUIRE(magic_enum::enum_value<Color>(2) == Color::BLUE);
@@ -173,6 +181,7 @@ TEST_CASE("enum_name") {
   REQUIRE(magic_enum::enum_name(Numbers::two).value() == "two");
   REQUIRE(magic_enum::enum_name(Numbers::three).value() == "three");
   REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(0)).has_value());
+  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(127)).has_value());
 
   constexpr Directions dr = Directions::Right;
   constexpr auto dr_name = magic_enum::enum_name(dr);
@@ -188,6 +197,7 @@ TEST_CASE("enum_name") {
   REQUIRE(magic_enum::enum_name(number::two).value() == "two");
   REQUIRE(nt_name.value() == "three");
   REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(0)).has_value());
+  REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(400)).has_value());
 }
 
 TEST_CASE("enum_names") {
@@ -215,23 +225,25 @@ TEST_CASE("operator<<") {
   test_ostream(Color::RED, "RED");
   test_ostream(Color::GREEN, "GREEN");
   test_ostream(Color::BLUE, "BLUE");
-  test_ostream((Color)0, "");
+  test_ostream(static_cast<Color>(0), "");
 
   test_ostream(Numbers::one, "one");
   test_ostream(Numbers::two, "two");
   test_ostream(Numbers::three, "three");
-  test_ostream((Numbers)0, "");
+  test_ostream(static_cast<Numbers>(0), "");
+  test_ostream(static_cast<Numbers>(127), "");
 
   test_ostream(Directions::Up, "Up");
   test_ostream(Directions::Down, "Down");
   test_ostream(Directions::Right, "Right");
   test_ostream(Directions::Left, "Left");
-  test_ostream((Directions)0, "");
+  test_ostream(static_cast<Directions>(0), "");
 
   test_ostream(number::one, "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
-  test_ostream((number)0, "");
+  test_ostream(static_cast<number>(0), "");
+  test_ostream(static_cast<number>(400), "");
 }
 
 TEST_CASE("type_traits") {
