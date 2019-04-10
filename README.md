@@ -36,11 +36,9 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * Header-only
 * Dependency-free
 * Compile-time
-* Static reflection on enums
 * Enum to string
 * String to enum
-* Work with any enum type
-* Without any macro or boilerplate code
+* Iterating over enum
 
 ## [Examples](example/example.cpp)
 
