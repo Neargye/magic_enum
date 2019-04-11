@@ -114,10 +114,10 @@ template <typename E, E V>
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9) || defined(_MSC_VER)
   constexpr auto prefix = name.find_last_of(" :,-)", name.length() - suffix) + 1;
 
-  if ((name[prefix] >= 'a' && name[prefix] <= 'z') || (name[prefix] >= 'A' && name[prefix] <= 'Z')) {
-    return name.substr(prefix, name.size() - prefix - suffix);
-  } else {
+  if constexpr (name[prefix] >= '0' && name[prefix] <= '9') {
     return {}; // Value does not have name.
+  } else {
+    return name.substr(prefix, name.length() - prefix - suffix);
   }
 #endif
 }
