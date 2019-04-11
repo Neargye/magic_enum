@@ -242,6 +242,31 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
   }
 }
 
+// Obtains integer value from enum value.
+template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<D>>
+[[nodiscard]] constexpr std::optional<std::underlying_type_t<D>> integer_cast(E value) noexcept {
+  static_assert(std::is_enum_v<D>, "magic_enum::integer_cast requires enum type.");
+
+  if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
+    return std::nullopt; // Invalid value or out of range.
+  } else {
+    return static_cast<std::underlying_type_t<D>>(value);
+  }
+}
+
+// Obtains specific type integer value from enum value.
+template <typename I, typename E, typename D = std::decay_t<E>, typename = std::enable_if_t<std::is_enum_v<D> && std::is_arithmetic_v<I>>>
+[[nodiscard]] constexpr std::optional<I> integer_cast(E value) noexcept {
+  static_assert(std::is_enum_v<D>, "magic_enum::integer_cast requires enum type.");
+  static_assert(std::is_arithmetic_v<I>, "magic_enum::integer_cast requires integer type.");
+
+  if (detail::name_impl<D>(static_cast<int>(value)).empty() || static_cast<I>(value) != static_cast<std::underlying_type_t<D>>(value)) {
+    return std::nullopt; // Invalid value or out of range.
+  } else {
+    return static_cast<I>(value);
+  }
+}
+
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E, typename = detail::enable_if_enum_t<E>>
