@@ -95,38 +95,27 @@ template <typename E, typename U = std::underlying_type_t<E>>
   return range;
 }
 
-
-[[nodiscard]] constexpr bool is_name_char(char c, bool front) noexcept {
-  return (!front && c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-}
-
 template <typename E, E V>
 [[nodiscard]] constexpr std::string_view name_impl() noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
 #if defined(__clang__)
-  std::string_view name{__PRETTY_FUNCTION__};
+  constexpr std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("]") - 1;
 #elif defined(__GNUC__) && __GNUC__ >= 9
-  std::string_view name{__PRETTY_FUNCTION__};
+  constexpr std::string_view name{__PRETTY_FUNCTION__};
   constexpr auto suffix = sizeof("; std::string_view = std::basic_string_view<char>]") - 1;
 #elif defined(_MSC_VER)
-  std::string_view name{__FUNCSIG__};
+  constexpr std::string_view name{__FUNCSIG__};
   constexpr auto suffix = sizeof(">(void) noexcept") - 1;
 #else
   return {}; // Unsupported compiler.
 #endif
 
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9) || defined(_MSC_VER)
-  name.remove_suffix(suffix);
-  for (std::size_t i = name.size(); i > 0; --i) {
-    if (!is_name_char(name[i - 1], false)) {
-      name.remove_prefix(i);
-      break;
-    }
-  }
+  constexpr auto prefix = name.find_last_of(" :,-)", name.length() - suffix) + 1;
 
-  if (name.length() > 0 && is_name_char(name.front(), true)) {
-    return name;
+  if ((name[prefix] >= 'a' && name[prefix] <= 'z') || (name[prefix] >= 'A' && name[prefix] <= 'Z')) {
+    return name.substr(prefix, name.size() - prefix - suffix);
   } else {
     return {}; // Value does not have name.
   }
@@ -161,21 +150,21 @@ template <typename E, int... I>
   constexpr std::array<bool, n> valid{{!name_impl<E, static_cast<E>(I + min_impl<E>())>().empty()...}};
   constexpr int num_valid = ((valid[I] ? 1 : 0) + ...);
 
-  std::array<E, num_valid> enums{};
+  std::array<E, num_valid> values{};
   for (int i = 0, v = 0; i < n && v < num_valid; ++i) {
     if (valid[i]) {
-      enums[v++] = static_cast<E>(i + min_impl<E>());
+      values[v++] = static_cast<E>(i + min_impl<E>());
     }
   }
 
-  return enums;
+  return values;
 }
 
 template <typename E, std::size_t... I>
 [[nodiscard]] constexpr decltype(auto) names_impl(std::integer_sequence<std::size_t, I...>) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::names_impl requires enum type.");
-  constexpr auto enums = values_impl<E>(range_impl<E>());
-  constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, enums[I]>()...}};
+  constexpr auto values = values_impl<E>(range_impl<E>());
+  constexpr std::array<std::string_view, sizeof...(I)> names{{name_impl<E, values[I]>()...}};
 
   return names;
 }
