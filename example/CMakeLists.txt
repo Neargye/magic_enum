@@ -1,7 +1,5 @@
 ﻿include(CheckCXXCompilerFlag)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
 set(OPTIONS "")
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
@@ -21,3 +19,4 @@ add_executable(example
                     example.cpp
                     ${CMAKE_SOURCE_DIR}/include/magic_enum.hpp)
 target_compile_options(example PRIVATE ${OPTIONS})
+target_link_libraries(example PRIVATE magic_enum)
