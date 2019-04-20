@@ -316,10 +316,10 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
   return names;
 }
 
-
+// Obtains pair (value enum, string enum name) sequence.
 template <typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr decltype(auto) enum_pairs() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_pairs requires enum type.");
+[[nodiscard]] constexpr decltype(auto) enum_entries() noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_entries requires enum type.");
   constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
   constexpr auto pairs = detail::pairs_impl<E>(std::make_index_sequence<count>{});
 

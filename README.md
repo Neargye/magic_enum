@@ -22,11 +22,13 @@
 
 Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
 * `enum_cast` obtains enum value from string or integer.
+* `integer_cast` obtains integer value from enum value.
 * `enum_value` returns enum value at specified index.
 * `enum_values` obtains enum value sequence.
 * `enum_count` returns number of enum values.
 * `enum_name` obtains string name from enum value.
 * `enum_names` obtains string enum name sequence.
+* `enum_entries` obtains pair (value enum, string enum name) sequence.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 
