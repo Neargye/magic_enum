@@ -1,8 +1,5 @@
 ﻿include(CheckCXXCompilerFlag)
 
-include_directories(3rdparty/Catch2)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
 set(SOURCES test.cpp)
 
 set(OPTIONS "")
@@ -28,6 +25,8 @@ endif()
 function(make_target target std)
     add_executable(${target} ${SOURCES})
     target_compile_options(${target} PRIVATE ${OPTIONS})
+    target_include_directories(${target} PRIVATE 3rdparty/Catch2)
+    target_link_libraries(${target} PRIVATE magic_enum)
     if(std)
         if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
             target_compile_options(${target} PRIVATE /std:${std})
