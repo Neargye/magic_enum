@@ -295,15 +295,10 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 
 // Obtains string enum name from enum value.
 template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<D>>
-[[nodiscard]] constexpr std::optional<std::string_view> enum_name(E value) noexcept {
+[[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_name requires enum type.");
-  const auto name = detail::name_impl<D>(static_cast<int>(value));
 
-  if (name.empty()) {
-    return std::nullopt; // Invalid value or out of range.
-  } else {
-    return name;
-  }
+  return detail::name_impl<D>(static_cast<int>(value));
 }
 
 // Obtains string enum name sequence.

@@ -30,9 +30,7 @@ int main() {
   // Enum variable to string name.
   Color c1 = Color::RED;
   auto c1_name = magic_enum::enum_name(c1);
-  if (c1_name.has_value()) {
-    std::cout << c1_name.value() << std::endl; // RED
-  }
+  std::cout << c1_name << std::endl; // RED
 
   // String enum name sequence.
   constexpr auto color_names = magic_enum::enum_names<Color>();

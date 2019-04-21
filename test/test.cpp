@@ -170,34 +170,34 @@ TEST_CASE("enum_name") {
   constexpr Color cr = Color::RED;
   constexpr auto cr_name = magic_enum::enum_name(cr);
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-  REQUIRE(cr_name.value() == "RED");
-  REQUIRE(magic_enum::enum_name(Color::BLUE).value() == "BLUE");
-  REQUIRE(magic_enum::enum_name(cm[1]).value() == "GREEN");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Color>(0)).has_value());
+  REQUIRE(cr_name == "RED");
+  REQUIRE(magic_enum::enum_name(Color::BLUE) == "BLUE");
+  REQUIRE(magic_enum::enum_name(cm[1]) == "GREEN");
+  REQUIRE(magic_enum::enum_name(static_cast<Color>(0)).empty());
 
   constexpr Numbers no = Numbers::one;
   constexpr auto no_name = magic_enum::enum_name(no);
-  REQUIRE(no_name.value() == "one");
-  REQUIRE(magic_enum::enum_name(Numbers::two).value() == "two");
-  REQUIRE(magic_enum::enum_name(Numbers::three).value() == "three");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(0)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Numbers>(127)).has_value());
+  REQUIRE(no_name == "one");
+  REQUIRE(magic_enum::enum_name(Numbers::two) == "two");
+  REQUIRE(magic_enum::enum_name(Numbers::three) == "three");
+  REQUIRE(magic_enum::enum_name(static_cast<Numbers>(0)).empty());
+  REQUIRE(magic_enum::enum_name(static_cast<Numbers>(127)).empty());
 
   constexpr Directions dr = Directions::Right;
   constexpr auto dr_name = magic_enum::enum_name(dr);
-  REQUIRE(magic_enum::enum_name(Directions::Up).value() == "Up");
-  REQUIRE(magic_enum::enum_name(Directions::Down).value() == "Down");
-  REQUIRE(dr_name.value() == "Right");
-  REQUIRE(magic_enum::enum_name(Directions::Left).value() == "Left");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<Directions>(0)).has_value());
+  REQUIRE(magic_enum::enum_name(Directions::Up) == "Up");
+  REQUIRE(magic_enum::enum_name(Directions::Down) == "Down");
+  REQUIRE(dr_name == "Right");
+  REQUIRE(magic_enum::enum_name(Directions::Left) == "Left");
+  REQUIRE(magic_enum::enum_name(static_cast<Directions>(0)).empty());
 
   constexpr number nt = number::three;
   constexpr auto nt_name = magic_enum::enum_name(nt);
-  REQUIRE(magic_enum::enum_name(number::one).value() == "one");
-  REQUIRE(magic_enum::enum_name(number::two).value() == "two");
-  REQUIRE(nt_name.value() == "three");
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(0)).has_value());
-  REQUIRE_FALSE(magic_enum::enum_name(static_cast<number>(400)).has_value());
+  REQUIRE(magic_enum::enum_name(number::one) == "one");
+  REQUIRE(magic_enum::enum_name(number::two) == "two");
+  REQUIRE(nt_name == "three");
+  REQUIRE(magic_enum::enum_name(static_cast<number>(0)).empty());
+  REQUIRE(magic_enum::enum_name(static_cast<number>(400)).empty());
 }
 
 TEST_CASE("enum_names") {

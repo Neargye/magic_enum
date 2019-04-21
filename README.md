@@ -53,18 +53,14 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   Color color = Color::RED;
   auto color_name = magic_enum::enum_name(color);
-  if (color_name.has_value()) {
-    // color_name.value() -> "RED"
-  }
+  // color_name -> "RED"
   ```
 
 * Static storage enum variable to string
   ```cpp
   constexpr Color color = Color::BLUE;
   constexpr auto color_name = magic_enum::enum_name(color);
-  if (color_name.has_value()) {
-    // color_name.value() -> "BLUE"
-  }
+  // color_name -> "BLUE"
   ```
 
 * String to enum value
@@ -173,7 +169,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * `magic_enum::enum_values` returns `std::array<E, N>` with all enum value where `N = number of enum values`, sorted by enum value.
 
-* `magic_enum::enum_name` returns `std::optional<std::string_view>`, using `has_value()` to check contains enum name and `value()` to get the enum name.
+* `magic_enum::enum_name` returns `std::string_view`. If enum value does not have name, returns empty string.
 
 * `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
