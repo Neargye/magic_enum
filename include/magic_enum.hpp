@@ -326,9 +326,8 @@ namespace ops {
 template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
 std::ostream& operator<<(std::ostream& os, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::ops::operator<< requires enum type.");
-  const auto name = detail::name_impl<D>(static_cast<int>(value));
 
-  if (!name.empty()) {
+  if (auto name = detail::name_impl<D>(static_cast<int>(value)); !name.empty()) {
     os << name;
   }
 
@@ -340,8 +339,7 @@ std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
   static_assert(std::is_enum_v<E>, "magic_enum::ops::operator<< requires enum type.");
 
   if (value.has_value()) {
-    const auto name = detail::name_impl<E>(static_cast<int>(value.value()));
-    if (!name.empty()) {
+    if (auto name = detail::name_impl<E>(static_cast<int>(value.value())); !name.empty()) {
       os << name;
     }
   }
