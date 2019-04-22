@@ -214,6 +214,20 @@ TEST_CASE("enum_names") {
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
+TEST_CASE("enum_entries") {
+  constexpr auto s1 = magic_enum::enum_entries<Color>();
+  REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
+
+  constexpr auto s2 = magic_enum::enum_entries<Numbers>();
+  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
+
+  constexpr auto s3 = magic_enum::enum_entries<Directions>();
+  REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
+
+  constexpr auto s4 = magic_enum::enum_entries<number>();
+  REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
+}
+
 TEST_CASE("operator<<") {
   auto test_ostream = [](auto e, std::string_view name) {
     using namespace magic_enum::ops;

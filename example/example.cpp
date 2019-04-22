@@ -95,5 +95,14 @@ int main() {
   static_assert(!magic_enum::is_scoped_enum_v<color>);
   static_assert(magic_enum::is_scoped_enum_v<direction>);
 
+  // Enum pair (value enum, string enum name) sequence.
+  constexpr auto color_entries = magic_enum::enum_entries<Color>();
+  std::cout << "Colors entries:";
+  for (auto& e : color_entries) {
+    std::cout << " "  << e.second << " = " << static_cast<int>(e.first);
+  }
+  std::cout << std::endl;
+  // Color entries: RED = -10 BLUE = 0 GREEN = 10
+
   return 0;
 }

@@ -170,12 +170,12 @@ template <typename E, std::size_t... I>
 }
 
 template <typename E, std::size_t... I>
-[[nodiscard]] constexpr decltype(auto) pairs_impl(std::integer_sequence<std::size_t, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::pairs_impl requires enum type.");
+[[nodiscard]] constexpr decltype(auto) entries_impl(std::integer_sequence<std::size_t, I...>) noexcept {
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::entries_impl requires enum type.");
   constexpr auto values = values_impl<E>(range_impl<E>());
-  constexpr std::array<std::pair<E, std::string_view>, sizeof...(I)> pairs{{{values[I], name_impl<E, values[I]>()}...}};
+  constexpr std::array<std::pair<E, std::string_view>, sizeof...(I)> entries{{{values[I], name_impl<E, values[I]>()}...}};
 
-  return pairs;
+  return entries;
 }
 
 template<typename T>
@@ -316,9 +316,9 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr decltype(auto) enum_entries() noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::enum_entries requires enum type.");
   constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
-  constexpr auto pairs = detail::pairs_impl<E>(std::make_index_sequence<count>{});
+  constexpr auto entries = detail::entries_impl<E>(std::make_index_sequence<count>{});
 
-  return pairs;
+  return entries;
 }
 
 namespace ops {
