@@ -17,6 +17,6 @@ endif()
 
 add_executable(example
                     example.cpp
-                    ${CMAKE_SOURCE_DIR}/include/magic_enum.hpp)
+                    ${CMAKE_SOURCE_DIR}/include/${CMAKE_PROJECT_NAME}.hpp)
 target_compile_options(example PRIVATE ${OPTIONS})
-target_link_libraries(example PRIVATE magic_enum)
+target_link_libraries(example PRIVATE ${CMAKE_PROJECT_NAME})
