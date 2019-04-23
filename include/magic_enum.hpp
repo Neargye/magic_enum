@@ -323,7 +323,7 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 
 namespace ops {
 
-template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
+template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<D>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::ops::operator<< requires enum type.");
 
@@ -336,7 +336,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   return os;
 }
 
-template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
+template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<D>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
   static_assert(std::is_enum_v<E>, "magic_enum::ops::operator<< requires enum type.");
 
