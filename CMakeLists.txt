@@ -2,14 +2,27 @@
 
 project(magic_enum VERSION "0.4.2" LANGUAGES CXX)
 
-option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ON)
-option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ON)
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 
-if(MAGIC_ENUM_OPT_BUILD_EXAMPLES)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(IS_TOPLEVEL_PROJECT TRUE)
+else ()
+    set(IS_TOPLEVEL_PROJECT FALSE)
+endif ()
+
+option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${IS_TOPLEVEL_PROJECT})
+option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${IS_TOPLEVEL_PROJECT})
+
+if (MAGIC_ENUM_OPT_BUILD_EXAMPLES)
     add_subdirectory(example)
-endif()
+endif ()
 
-if(MAGIC_ENUM_OPT_BUILD_TESTS)
+if (MAGIC_ENUM_OPT_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
-endif()
+endif ()
+
+include(install.cmake)
