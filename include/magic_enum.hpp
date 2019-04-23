@@ -323,24 +323,28 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 
 namespace ops {
 
-template <typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
-std::ostream& operator<<(std::ostream& os, E value) {
+template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::ops::operator<< requires enum type.");
 
   if (auto name = detail::name_impl<D>(static_cast<int>(value)); !name.empty()) {
-    os << name;
+    for (auto c : name) {
+      os.put(c);
+    }
   }
 
   return os;
 }
 
-template <typename E, typename = detail::enable_if_enum_t<E>>
-std::ostream& operator<<(std::ostream& os, std::optional<E> value) {
+template <class Char, class Traits, typename E, typename D = std::decay_t<E>, typename = detail::enable_if_enum_t<E>>
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
   static_assert(std::is_enum_v<E>, "magic_enum::ops::operator<< requires enum type.");
 
   if (value.has_value()) {
-    if (auto name = detail::name_impl<E>(static_cast<int>(value.value())); !name.empty()) {
-      os << name;
+    if (auto name = detail::name_impl<D>(static_cast<int>(value.value())); !name.empty()) {
+      for (auto c : name) {
+        os.put(c);
+      }
     }
   }
 
