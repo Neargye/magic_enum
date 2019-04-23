@@ -134,9 +134,8 @@ template <typename E>
 [[nodiscard]] constexpr std::string_view name_impl(int value) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
   constexpr auto names = strings_impl<E>(range_impl<E>());
-  const int i = value - min_impl<E>();
 
-  if (i >= 0 && static_cast<std::size_t>(i) < names.size()) {
+  if (int i = value - min_impl<E>(); i >= 0 && static_cast<std::size_t>(i) < names.size()) {
     return names[i];
   } else {
     return {}; // Value out of range.
