@@ -137,7 +137,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_names[0] -> "RED"
   ```
 
-* Enum names sequence
+* Enum entries sequence
   ```cpp
   constexpr auto color_entries = magic_enum::enum_entries<Color>();
   // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
@@ -190,6 +190,8 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
+* `magic_enum::enum_entries` returns `std::array<std::pair<E, std::string_view>, N>` with all std::pair (value enum, string enum name) where `N = number of enum values`, sorted by enum value.
+
 * Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
   If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
@@ -214,7 +216,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   }
   ```
 
-* `magic_enum::enum_cast` and `magic_enum::enum_name` obtains the first defined value enums, and won't work if value are aliased.
+* `magic_enum` obtains the first defined value enums, and won't work if value are aliased.
   ```cpp
   enum ShapeKind {
     ConvexBegin = 0,
