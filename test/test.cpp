@@ -95,24 +95,53 @@ TEST_CASE("enum_cast") {
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(magic_enum::enum_cast<Numbers>(20).value() == Numbers::two);
     REQUIRE(magic_enum::enum_cast<Numbers>(30).value() == Numbers::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(0).has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(127).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(0).has_value());
 
     constexpr auto dr = magic_enum::enum_cast<Directions>(120);
     REQUIRE(magic_enum::enum_cast<Directions>(85).value() == Directions::Up);
     REQUIRE(magic_enum::enum_cast<Directions>(-42).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(magic_enum::enum_cast<Directions>(-120).value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());;
+    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());
 
     constexpr auto nt = magic_enum::enum_cast<number>(300);
     REQUIRE(magic_enum::enum_cast<number>(100).value() == number::one);
     REQUIRE(magic_enum::enum_cast<number>(200).value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<number>(400).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
   }
+}
+
+TEST_CASE("enum_integer") {
+  constexpr auto cr = magic_enum::enum_integer(Color::RED);
+  REQUIRE(cr == -12);
+  REQUIRE(magic_enum::enum_integer(Color::GREEN) == 7);
+  REQUIRE(magic_enum::enum_integer(Color::BLUE) == 15);
+  REQUIRE(magic_enum::enum_integer(static_cast<Color>(0)) == 0);
+
+  constexpr auto no = magic_enum::enum_integer(Numbers::one);
+  REQUIRE(no == 10);
+  REQUIRE(magic_enum::enum_integer(Numbers::two) == 20);
+  REQUIRE(magic_enum::enum_integer(Numbers::three) == 30);
+  REQUIRE(magic_enum::enum_integer(Numbers::many) == 127);
+  REQUIRE(magic_enum::enum_integer(static_cast<Numbers>(0)) == 0);
+
+  constexpr auto dr = magic_enum::enum_integer(Directions::Right);
+  REQUIRE(magic_enum::enum_integer(Directions::Left) == -120);
+  REQUIRE(magic_enum::enum_integer(Directions::Down) == -42);
+  REQUIRE(magic_enum::enum_integer(Directions::Up) == 85);
+  REQUIRE(dr == 120);
+  REQUIRE(magic_enum::enum_integer(static_cast<Directions>(0)) == 0);
+
+  constexpr auto nt = magic_enum::enum_integer(number::three);
+  REQUIRE(magic_enum::enum_integer(number::zero) == 0);
+  REQUIRE(magic_enum::enum_integer(number::one) == 100);
+  REQUIRE(magic_enum::enum_integer(number::two) == 200);
+  REQUIRE(nt == 300);
+  REQUIRE(magic_enum::enum_integer(number::four) == 400);
+  REQUIRE(magic_enum::enum_integer(static_cast<number>(0)) == 0);
 }
 
 TEST_CASE("enum_value") {
@@ -180,8 +209,8 @@ TEST_CASE("enum_name") {
   REQUIRE(no_name == "one");
   REQUIRE(magic_enum::enum_name(Numbers::two) == "two");
   REQUIRE(magic_enum::enum_name(Numbers::three) == "three");
+  REQUIRE(magic_enum::enum_name(Numbers::many).empty());
   REQUIRE(magic_enum::enum_name(static_cast<Numbers>(0)).empty());
-  REQUIRE(magic_enum::enum_name(static_cast<Numbers>(127)).empty());
 
   constexpr Directions dr = Directions::Right;
   constexpr auto dr_name = magic_enum::enum_name(dr);
@@ -196,8 +225,9 @@ TEST_CASE("enum_name") {
   REQUIRE(magic_enum::enum_name(number::one) == "one");
   REQUIRE(magic_enum::enum_name(number::two) == "two");
   REQUIRE(nt_name == "three");
+  REQUIRE(magic_enum::enum_name(number::zero).empty());
+  REQUIRE(magic_enum::enum_name(number::four).empty());
   REQUIRE(magic_enum::enum_name(static_cast<number>(0)).empty());
-  REQUIRE(magic_enum::enum_name(static_cast<number>(400)).empty());
 }
 
 TEST_CASE("enum_names") {
@@ -244,8 +274,8 @@ TEST_CASE("operator<<") {
   test_ostream(Numbers::one, "one");
   test_ostream(Numbers::two, "two");
   test_ostream(Numbers::three, "three");
+  test_ostream(Numbers::many, "");
   test_ostream(static_cast<Numbers>(0), "");
-  test_ostream(static_cast<Numbers>(127), "");
 
   test_ostream(Directions::Up, "Up");
   test_ostream(Directions::Down, "Down");
@@ -256,8 +286,9 @@ TEST_CASE("operator<<") {
   test_ostream(number::one, "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
+  test_ostream(number::zero, "");
+  test_ostream(number::four, "");
   test_ostream(static_cast<number>(0), "");
-  test_ostream(static_cast<number>(400), "");
 }
 
 TEST_CASE("type_traits") {
