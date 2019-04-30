@@ -78,18 +78,20 @@ static_assert(MAGIC_ENUM_RANGE_MIN > std::numeric_limits<int>::min(),
 
 namespace detail {
 
-template <typename E, typename U = std::underlying_type_t<E>>
+template <typename E>
 [[nodiscard]] constexpr int min_impl() {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::min_impl requires enum type.");
+  using U = std::underlying_type_t<E>;
   constexpr int min = enum_range<E>::min > (std::numeric_limits<U>::min)() ? enum_range<E>::min : (std::numeric_limits<U>::min)();
 
   return min;
 }
 
-template <typename E, typename U = std::underlying_type_t<E>>
+template <typename E>
 [[nodiscard]] constexpr auto range_impl() {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::range_impl requires enum type.");
   static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
+  using U = std::underlying_type_t<E>;
   constexpr int max = enum_range<E>::max < (std::numeric_limits<U>::max)() ? enum_range<E>::max : (std::numeric_limits<U>::max)();
   constexpr auto range = std::make_integer_sequence<int, max - min_impl<E>() + 1>{};
 
@@ -176,7 +178,7 @@ template <typename E, std::size_t... I>
 }
 
 template<typename T>
-using enable_if_enum_t = typename std::enable_if<std::is_enum_v<std::decay_t<T>>>::type;
+using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>;
 
 template<typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum_impl : std::false_type {};
@@ -209,12 +211,14 @@ template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 // Obtains enum value from enum string name.
+// Returns std::optional with enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::optional<E> enum_cast(std::string_view value) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_cast requires enum type.");
-  constexpr auto values = detail::values_impl<E>(detail::range_impl<E>());
+[[nodiscard]] constexpr std::optional<std::decay_t<E>> enum_cast(std::string_view value) noexcept {
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_cast requires enum type.");
+  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
   constexpr auto count = values.size();
-  constexpr auto names = detail::names_impl<E>(std::make_index_sequence<count>{});
+  constexpr auto names = detail::names_impl<D>(std::make_index_sequence<count>{});
 
   for (std::size_t i = 0; i < count; ++i) {
     if (names[i] == value) {
@@ -226,14 +230,16 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 }
 
 // Obtains enum value from integer value.
+// Returns std::optional with enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::optional<E> enum_cast(std::underlying_type_t<E> value) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_cast requires enum type.");
+[[nodiscard]] constexpr std::optional<std::decay_t<E>> enum_cast(std::underlying_type_t<std::decay_t<E>> value) noexcept {
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_cast requires enum type.");
 
-  if (detail::name_impl<E>(static_cast<int>(value)).empty()) {
+  if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
     return std::nullopt; // Invalid value or out of range.
   } else {
-    return static_cast<E>(value);
+    return static_cast<D>(value);
   }
 }
 
@@ -249,32 +255,36 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr E enum_value(std::size_t index) {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_value requires enum type.");
-  constexpr auto values = detail::values_impl<E>(detail::range_impl<E>());
+[[nodiscard]] constexpr auto enum_value(std::size_t index) {
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_value requires enum type.");
+  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
 
   return assert(index < values.size()), values[index];
 }
 
 // Obtains value enum sequence.
+// Returns std::array with enum values, sorted by enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_values() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_values requires enum type.");
-  constexpr auto values = detail::values_impl<E>(detail::range_impl<E>());
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_values requires enum type.");
+  constexpr auto values = detail::values_impl<D>(detail::range_impl<D>());
 
   return values;
 }
 
 // Returns number of enum values.
 template <typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::size_t enum_count() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_count requires enum type.");
-  constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
+[[nodiscard]] constexpr auto enum_count() noexcept {
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_count requires enum type.");
+  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
 
   return count;
 }
 
-// Obtains string enum name from enum value.
+// Returns string enum name from enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
   using D = std::decay_t<E>;
@@ -284,21 +294,25 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 }
 
 // Obtains string enum name sequence.
+// Returns std::array with string enum names, sorted by enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_names() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_names requires enum type.");
-  constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
-  constexpr auto names = detail::names_impl<E>(std::make_index_sequence<count>{});
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_names requires enum type.");
+  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
+  constexpr auto names = detail::names_impl<D>(std::make_index_sequence<count>{});
 
   return names;
 }
 
 // Obtains pair (value enum, string enum name) sequence.
+// Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_entries() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_entries requires enum type.");
-  constexpr auto count = detail::values_impl<E>(detail::range_impl<E>()).size();
-  constexpr auto entries = detail::entries_impl<E>(std::make_index_sequence<count>{});
+  using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_entries requires enum type.");
+  constexpr auto count = detail::values_impl<D>(detail::range_impl<D>()).size();
+  constexpr auto entries = detail::entries_impl<D>(std::make_index_sequence<count>{});
 
   return entries;
 }
