@@ -22,11 +22,11 @@
 
 Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
 * `enum_cast` obtains enum value from string or integer.
-* `integer_cast` obtains integer value from enum value.
+* `enum_integer_value` obtains integer value from enum value.
 * `enum_value` returns enum value at specified index.
 * `enum_values` obtains enum value sequence.
 * `enum_count` returns number of enum values.
-* `enum_name` obtains string name from enum value.
+* `enum_name` returns string name from enum value.
 * `enum_names` obtains string enum name sequence.
 * `enum_entries` obtains pair (value enum, string enum name) sequence.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
@@ -82,8 +82,8 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Integer to enum value
   ```cpp
-  int color_value = 2;
-  auto color = magic_enum::enum_cast<Color>(color_value);
+  int color_integer = 2;
+  auto color = magic_enum::enum_cast<Color>(color_integer);
   if (colo.has_value()) {
     // color.value() -> Color::RED
   }
@@ -110,10 +110,18 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color -> Color::RED
   ```
 
+* Enum value to integer
+  ```cpp
+  Color color = Color::RED;
+  auto color_integer = magic_enum::enum_integer_value(color);
+  // color -> 2
+  ```
+
 * Enum value sequence
   ```cpp
   constexpr auto colors = magic_enum::enum_values<Color>();
   // colors -> {Color::RED, Color::BLUE, Color::GREEN}
+  // colors[0] -> Color::RED
   ```
 
 * Number of enum elements
@@ -126,6 +134,15 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   constexpr auto color_names = magic_enum::enum_names<Color>();
   // color_names -> {"RED", "BLUE", "GREEN"}
+  // color_names[0] -> "RED"
+  ```
+
+* Enum names sequence
+  ```cpp
+  constexpr auto color_entries = magic_enum::enum_entries<Color>();
+  // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
+  // color_entries[0].first -> Color::RED
+  // color_entries[0].second -> "RED"
   ```
 
 * Stream operator for enum
