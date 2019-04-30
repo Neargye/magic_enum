@@ -54,9 +54,9 @@ int main() {
   }
 
   // Enum value to integer value.
-  auto color_integer_value = magic_enum::enum_integer_value(Color::RED);
-  if (color_integer_value == static_cast<std::underlying_type_t<Color>>(Color::RED)) {
-    std::cout << "RED = " << color_integer_value << std::endl; // RED = -10
+  auto color_integer = magic_enum::enum_integer(Color::RED);
+  if (color_integer == static_cast<std::underlying_type_t<Color>>(Color::RED)) {
+    std::cout << "RED = " << color_integer << std::endl; // RED = -10
   }
 
   using namespace magic_enum::ops; // out-of-the-box stream operator for enums.

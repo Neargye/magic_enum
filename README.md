@@ -22,10 +22,10 @@
 
 Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
 * `enum_cast` obtains enum value from string or integer.
-* `enum_integer_value` obtains integer value from enum value.
 * `enum_value` returns enum value at specified index.
 * `enum_values` obtains enum value sequence.
 * `enum_count` returns number of enum values.
+* `enum_integer` obtains integer value from enum value.
 * `enum_name` returns string name from enum value.
 * `enum_names` obtains string enum name sequence.
 * `enum_entries` obtains pair (value enum, string enum name) sequence.
@@ -110,13 +110,6 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color -> Color::RED
   ```
 
-* Enum value to integer
-  ```cpp
-  Color color = Color::RED;
-  auto color_integer = magic_enum::enum_integer_value(color);
-  // color -> 2
-  ```
-
 * Enum value sequence
   ```cpp
   constexpr auto colors = magic_enum::enum_values<Color>();
@@ -128,6 +121,13 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   constexpr std::size_t color_count = magic_enum::enum_count<Color>();
   // color_count -> 3
+  ```
+
+* Enum value to integer
+  ```cpp
+  Color color = Color::RED;
+  auto color_integer = magic_enum::enum_integer(color);
+  // color -> 2
   ```
 
 * Enum names sequence

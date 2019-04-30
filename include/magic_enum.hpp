@@ -245,9 +245,9 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
 
 // Returns integer value from enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_integer_value(E value) noexcept {
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_integer_value requires enum type.");
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_integer requires enum type.");
 
   return static_cast<std::underlying_type_t<D>>(value);
 }
