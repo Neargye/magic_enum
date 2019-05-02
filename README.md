@@ -56,13 +56,6 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_name -> "RED"
   ```
 
-* Static storage enum variable to string
-  ```cpp
-  constexpr Color color = Color::BLUE;
-  constexpr auto color_name = magic_enum::enum_name(color);
-  // color_name -> "BLUE"
-  ```
-
 * String to enum value
   ```cpp
   std::string color_name{"GREEN"};
@@ -72,28 +65,12 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   }
   ```
 
-* Static storage string to enum value
-  ```cpp
-  constexpr auto color = magic_enum::enum_cast<Color>("BLUE");
-  if (color.has_value()) {
-    // color.value() -> Color::BLUE
-  }
-  ```
-
 * Integer to enum value
   ```cpp
   int color_integer = 2;
   auto color = magic_enum::enum_cast<Color>(color_integer);
   if (colo.has_value()) {
     // color.value() -> Color::RED
-  }
-  ```
-
-* Static storage integer to enum value
-  ```cpp
-  constexpr auto color = magic_enum::enum_cast<Color>(4);
-  if (color.has_value()) {
-    // color.value() -> Color::BLUE
   }
   ```
 
@@ -178,6 +155,13 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   magic_enum::is_scoped_enum_v<direction> -> true
   ```
 
+* Static storage enum variable to string
+  ```cpp
+  constexpr Color color = Color::BLUE;
+  constexpr auto color_name = magic_enum::enum_name<color>();
+  // color_name -> "BLUE"
+  ```
+
 ## Remarks
 
 * `magic_enum::enum_cast` returns `std::optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
@@ -187,6 +171,8 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 * `magic_enum::enum_values` returns `std::array<E, N>` with all enum value where `N = number of enum values`, sorted by enum value.
 
 * `magic_enum::enum_name` returns `std::string_view`. If enum value does not have name, returns empty string.
+
+* `magic_enum::enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range limitation.
 
 * `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
