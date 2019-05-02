@@ -37,7 +37,7 @@ enum class Numbers : char { one = 10, two = 20, three = 30, many = 127 };
 
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
-enum number : unsigned long { zero = 0, one = 100, two = 200, three = 300, four = 400 };
+enum number : unsigned long { one = 100, two = 200, three = 300, four = 400 };
 
 namespace magic_enum {
 template <>
@@ -77,7 +77,6 @@ TEST_CASE("enum_cast") {
     REQUIRE(magic_enum::enum_cast<number>("one").value() == number::one);
     REQUIRE(magic_enum::enum_cast<number>("two").value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>("zero").has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<number>("four").has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<number>("None").has_value());
 
@@ -136,7 +135,6 @@ TEST_CASE("enum_integer") {
   REQUIRE(magic_enum::enum_integer(static_cast<Directions>(0)) == 0);
 
   constexpr auto nt = magic_enum::enum_integer(number::three);
-  REQUIRE(magic_enum::enum_integer(number::zero) == 0);
   REQUIRE(magic_enum::enum_integer(number::one) == 100);
   REQUIRE(magic_enum::enum_integer(number::two) == 200);
   REQUIRE(nt == 300);
@@ -196,38 +194,73 @@ TEST_CASE("enum_count") {
 }
 
 TEST_CASE("enum_name") {
-  constexpr Color cr = Color::RED;
-  constexpr auto cr_name = magic_enum::enum_name(cr);
-  Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-  REQUIRE(cr_name == "RED");
-  REQUIRE(magic_enum::enum_name(Color::BLUE) == "BLUE");
-  REQUIRE(magic_enum::enum_name(cm[1]) == "GREEN");
-  REQUIRE(magic_enum::enum_name(static_cast<Color>(0)).empty());
+  SECTION("automatic storage") {
+    constexpr Color cr = Color::RED;
+    constexpr auto cr_name = magic_enum::enum_name(cr);
+    Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
+    REQUIRE(cr_name == "RED");
+    REQUIRE(magic_enum::enum_name(Color::BLUE) == "BLUE");
+    REQUIRE(magic_enum::enum_name(cm[1]) == "GREEN");
+    REQUIRE(magic_enum::enum_name(static_cast<Color>(0)).empty());
 
-  constexpr Numbers no = Numbers::one;
-  constexpr auto no_name = magic_enum::enum_name(no);
-  REQUIRE(no_name == "one");
-  REQUIRE(magic_enum::enum_name(Numbers::two) == "two");
-  REQUIRE(magic_enum::enum_name(Numbers::three) == "three");
-  REQUIRE(magic_enum::enum_name(Numbers::many).empty());
-  REQUIRE(magic_enum::enum_name(static_cast<Numbers>(0)).empty());
+    constexpr Numbers no = Numbers::one;
+    constexpr auto no_name = magic_enum::enum_name(no);
+    REQUIRE(no_name == "one");
+    REQUIRE(magic_enum::enum_name(Numbers::two) == "two");
+    REQUIRE(magic_enum::enum_name(Numbers::three) == "three");
+    REQUIRE(magic_enum::enum_name(Numbers::many).empty());
+    REQUIRE(magic_enum::enum_name(static_cast<Numbers>(0)).empty());
 
-  constexpr Directions dr = Directions::Right;
-  constexpr auto dr_name = magic_enum::enum_name(dr);
-  REQUIRE(magic_enum::enum_name(Directions::Up) == "Up");
-  REQUIRE(magic_enum::enum_name(Directions::Down) == "Down");
-  REQUIRE(dr_name == "Right");
-  REQUIRE(magic_enum::enum_name(Directions::Left) == "Left");
-  REQUIRE(magic_enum::enum_name(static_cast<Directions>(0)).empty());
+    constexpr Directions dr = Directions::Right;
+    constexpr auto dr_name = magic_enum::enum_name(dr);
+    REQUIRE(magic_enum::enum_name(Directions::Up) == "Up");
+    REQUIRE(magic_enum::enum_name(Directions::Down) == "Down");
+    REQUIRE(dr_name == "Right");
+    REQUIRE(magic_enum::enum_name(Directions::Left) == "Left");
+    REQUIRE(magic_enum::enum_name(static_cast<Directions>(0)).empty());
 
-  constexpr number nt = number::three;
-  constexpr auto nt_name = magic_enum::enum_name(nt);
-  REQUIRE(magic_enum::enum_name(number::one) == "one");
-  REQUIRE(magic_enum::enum_name(number::two) == "two");
-  REQUIRE(nt_name == "three");
-  REQUIRE(magic_enum::enum_name(number::zero).empty());
-  REQUIRE(magic_enum::enum_name(number::four).empty());
-  REQUIRE(magic_enum::enum_name(static_cast<number>(0)).empty());
+    constexpr number nt = number::three;
+    constexpr auto nt_name = magic_enum::enum_name(nt);
+    REQUIRE(magic_enum::enum_name(number::one) == "one");
+    REQUIRE(magic_enum::enum_name(number::two) == "two");
+    REQUIRE(nt_name == "three");
+    REQUIRE(magic_enum::enum_name(number::four).empty());
+    REQUIRE(magic_enum::enum_name(static_cast<number>(0)).empty());
+  }
+
+  SECTION("static storage") {
+    constexpr Color cr = Color::RED;
+    constexpr auto cr_name = magic_enum::enum_name<cr>();
+    constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
+    REQUIRE(cr_name == "RED");
+    REQUIRE(magic_enum::enum_name<Color::BLUE>() == "BLUE");
+    REQUIRE(magic_enum::enum_name<cm[1]>() == "GREEN");
+    REQUIRE(magic_enum::enum_name<static_cast<Color>(0)>().empty());
+
+    constexpr Numbers no = Numbers::one;
+    constexpr auto no_name = magic_enum::enum_name<no>();
+    REQUIRE(no_name == "one");
+    REQUIRE(magic_enum::enum_name<Numbers::two>() == "two");
+    REQUIRE(magic_enum::enum_name<Numbers::three>() == "three");
+    REQUIRE(magic_enum::enum_name<Numbers::many>() == "many");
+    REQUIRE(magic_enum::enum_name<static_cast<Numbers>(0)>().empty());
+
+    constexpr Directions dr = Directions::Right;
+    constexpr auto dr_name = magic_enum::enum_name<dr>();
+    REQUIRE(magic_enum::enum_name<Directions::Up>() == "Up");
+    REQUIRE(magic_enum::enum_name<Directions::Down>() == "Down");
+    REQUIRE(dr_name == "Right");
+    REQUIRE(magic_enum::enum_name<Directions::Left>() == "Left");
+    REQUIRE(magic_enum::enum_name<static_cast<Directions>(0)>().empty());
+
+    constexpr number nt = number::three;
+    constexpr auto nt_name = magic_enum::enum_name<nt>();
+    REQUIRE(magic_enum::enum_name<number::one>() == "one");
+    REQUIRE(magic_enum::enum_name<number::two>() == "two");
+    REQUIRE(nt_name == "three");
+    REQUIRE(magic_enum::enum_name<number::four>() == "four");
+    REQUIRE(magic_enum::enum_name<static_cast<number>(0)>().empty());
+  }
 }
 
 TEST_CASE("enum_names") {
@@ -286,7 +319,6 @@ TEST_CASE("operator<<") {
   test_ostream(number::one, "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
-  test_ostream(number::zero, "");
   test_ostream(number::four, "");
   test_ostream(static_cast<number>(0), "");
 }

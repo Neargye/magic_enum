@@ -285,6 +285,16 @@ template <typename E, typename = detail::enable_if_enum_t<E>>
   return count;
 }
 
+// Returns string enum name from static storage enum variable.
+// This version is much lighter on the compile times and is not restricted to the enum_range limitation.
+template <auto V, typename = detail::enable_if_enum_t<decltype(V)>>
+[[nodiscard]] constexpr std::string_view enum_name() noexcept {
+  using D = std::decay_t<decltype(V)>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_name requires enum type.");
+
+  return detail::name_impl<D, V>();
+}
+
 // Returns string enum name from enum value.
 template <typename E, typename = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
