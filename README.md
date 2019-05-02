@@ -81,12 +81,6 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color -> Color::BLUE
   ```
 
-* Compile-time indexed access.
-  ```cpp
-  constexpr Color color = magic_enum::enum_value<Color>(0);
-  // color -> Color::RED
-  ```
-
 * Enum value sequence
   ```cpp
   constexpr auto colors = magic_enum::enum_values<Color>();
@@ -164,19 +158,19 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 ## Remarks
 
-* `magic_enum::enum_cast` returns `std::optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
+* `magic_enum::enum_cast(value)` returns `std::optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
 
-* `magic_enum::enum_value` no bounds checking is performed: the behavior is undefined if `index >= number of enum values`.
+* `magic_enum::enum_value(index)` no bounds checking is performed: the behavior is undefined if `index >= number of enum values`.
 
-* `magic_enum::enum_values` returns `std::array<E, N>` with all enum value where `N = number of enum values`, sorted by enum value.
+* `magic_enum::enum_values<E>()` returns `std::array<E, N>` with all enum value where `N = number of enum values`, sorted by enum value.
 
-* `magic_enum::enum_name` returns `std::string_view`. If enum value does not have name, returns empty string.
+* `magic_enum::enum_name(value)` returns `std::string_view`. If enum value does not have name, returns empty string.
 
 * `magic_enum::enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range limitation.
 
-* `magic_enum::enum_names` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
+* `magic_enum::enum_names<E>()` returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
 
-* `magic_enum::enum_entries` returns `std::array<std::pair<E, std::string_view>, N>` with all std::pair (value enum, string enum name) where `N = number of enum values`, sorted by enum value.
+* `magic_enum::enum_entries<E>()` returns `std::array<std::pair<E, std::string_view>, N>` with all std::pair (value enum, string enum name) where `N = number of enum values`, sorted by enum value.
 
 * Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
