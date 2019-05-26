@@ -1,18 +1,23 @@
 ﻿include(CheckCXXCompilerFlag)
 
-set(OPTIONS "")
-
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+    check_cxx_compiler_flag(-std=c++17 HAS_CPP17_FLAG)
+    if(!HAS_CPP17_FLAG)
+        MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support.")
+    endif()
+
     set(CMAKE_VERBOSE_MAKEFILE ON)
-    set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
-    set(OPTIONS ${OPTIONS} -std=c++17)
+    set(OPTIONS -Wall -Wextra -pedantic-errors -Werror -std=c++17)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    set(OPTIONS /W4 /WX)
-    check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
+    check_cxx_compiler_flag(/std:c++17 HAS_CPP17_FLAG)
+    if(!HAS_CPP17_FLAG)
+        MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support.")
+    endif()
+
+    set(OPTIONS /W4 /WX /std:c++17)
     if(HAS_PERMISSIVE_FLAG)
         set(OPTIONS ${OPTIONS} /permissive-)
     endif()
-    set(OPTIONS ${OPTIONS} /std:c++17)
 endif()
 
 add_executable(example
