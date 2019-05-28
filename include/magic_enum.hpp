@@ -29,8 +29,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef MAGIC_ENUM_HPP
-#define MAGIC_ENUM_HPP
+#ifndef NEARGYE_MAGIC_ENUM_HPP
+#define NEARGYE_MAGIC_ENUM_HPP
 
 #include <array>
 #include <cassert>
@@ -364,4 +364,4 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 } // namespace magic_enum
 
-#endif // MAGIC_ENUM_HPP
+#endif // NEARGYE_MAGIC_ENUM_HPP
