@@ -99,28 +99,40 @@ template <typename E>
   return range;
 }
 
+[[nodiscard]] constexpr std::string_view pretty_name(std::string_view name) noexcept {
+  for (std::size_t i = name.length(); i > 0; --i) {
+    if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
+          (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
+          (name[i - 1] >= 'A' && name[i - 1] <= 'Z') ||
+          (name[i - 1] == '_'))) {
+      name.remove_prefix(i);
+      break;
+    }
+  }
+
+  if (name.length() > 0 && ((name.front() >= 'a' && name.front() <= 'z') ||
+                            (name.front() >= 'A' && name.front() <= 'Z') ||
+                            (name.front() == '_'))) {
+    return name;
+  } else {
+    return {}; // Invalid name.
+  }
+}
+
 template <typename E, E V>
 [[nodiscard]] constexpr std::string_view name_impl() noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
 #if defined(__clang__)
-  constexpr std::string_view name{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2};
+  constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(__GNUC__) && __GNUC__ >= 9
-  constexpr std::string_view name{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 51};
+  constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 51});
 #elif defined(_MSC_VER)
-  constexpr std::string_view name{__FUNCSIG__, sizeof(__FUNCSIG__) - 17};
+  constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-  return {}; // Unsupported compiler.
+  constexpr std::string_view name; // Unsupported compiler.
 #endif
 
-#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9) || defined(_MSC_VER)
-  constexpr auto prefix = name.find_last_of(" :,-)") + 1;
-
-  if constexpr (name[prefix] >= '0' && name[prefix] <= '9') {
-    return {}; // Value does not have name.
-  } else {
-    return name.substr(prefix, name.length() - prefix);
-  }
-#endif
+  return name;
 }
 
 template <typename E, int... I>
