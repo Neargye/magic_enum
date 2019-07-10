@@ -190,19 +190,19 @@ template <typename E, std::size_t... I>
   return entries;
 }
 
-template<typename T>
+template <typename T>
 using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>;
 
-template<typename T, bool = std::is_enum_v<T>>
+template <typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum_impl : std::false_type {};
 
-template<typename T>
+template <typename T>
 struct is_scoped_enum_impl<T, true> : std::bool_constant<!std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
-template<typename T, bool = std::is_enum_v<T>>
+template <typename T, bool = std::is_enum_v<T>>
 struct is_unscoped_enum_impl : std::false_type {};
 
-template<typename T>
+template <typename T>
 struct is_unscoped_enum_impl<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
 } // namespace magic_enum::detail
