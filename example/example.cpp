@@ -24,7 +24,7 @@
 
 #include <magic_enum.hpp>
 
-enum Color { RED = -10, BLUE = 0, GREEN = 10 };
+enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
 int main() {
   // Enum variable to string name.
@@ -44,13 +44,13 @@ int main() {
   // String name to enum value.
   auto c2 = magic_enum::enum_cast<Color>("BLUE");
   if (c2.has_value() && c2.value() == Color::BLUE) {
-    std::cout << "BLUE = " << c2.value() << std::endl; // BLUE = 0
+    std::cout << "BLUE = " << static_cast<int>(c2.value()) << std::endl; // BLUE = 0
   }
 
   // Integer value to enum value.
   auto c3 = magic_enum::enum_cast<Color>(10);
   if (c3.has_value() && c3.value() == Color::GREEN) {
-    std::cout << "GREEN = " << c3.value() << std::endl; // GREEN = 10
+    std::cout << "GREEN = " << magic_enum::enum_integer(c3.value()) << std::endl; // GREEN = 10
   }
 
   // Enum value to integer value.
@@ -83,11 +83,18 @@ int main() {
 
   // Checks whether type is an Unscoped enumeration.
   static_assert(magic_enum::is_unscoped_enum_v<color>);
+  static_assert(!magic_enum::is_unscoped_enum_v<Color>);
   static_assert(!magic_enum::is_unscoped_enum_v<direction>);
 
   // Checks whether type is an Scoped enumeration.
   static_assert(!magic_enum::is_scoped_enum_v<color>);
+  static_assert(magic_enum::is_scoped_enum_v<Color>);
   static_assert(magic_enum::is_scoped_enum_v<direction>);
+
+  // Checks whether type is an Fixed enumeration.
+  static_assert(!magic_enum::is_fixed_enum_v<color>);
+  static_assert(magic_enum::is_fixed_enum_v<Color>);
+  static_assert(magic_enum::is_fixed_enum_v<direction>);
 
   // Enum pair (value enum, string enum name) sequence.
   constexpr auto color_entries = magic_enum::enum_entries<Color>();
