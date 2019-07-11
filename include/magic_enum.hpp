@@ -205,6 +205,18 @@ struct is_unscoped_enum_impl : std::false_type {};
 template <typename T>
 struct is_unscoped_enum_impl<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
+template <typename T, typename = T>
+struct is_fixed_enum_impl : std::false_type {};
+
+template <typename T>
+struct is_fixed_enum_impl<T, decltype(T{0})> : std::is_enum<T> {};
+
+template <typename T, bool = std::is_enum_v<T>>
+struct underlying_type_impl {};
+
+template <typename T>
+struct underlying_type_impl<T, true> : std::underlying_type<T> {};
+
 } // namespace magic_enum::detail
 
 // Checks whether T is an Unscoped enumeration type.
@@ -222,6 +234,22 @@ struct is_scoped_enum : detail::is_scoped_enum_impl<T> {};
 
 template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
+
+// Checks whether T is an Fixed enumeration type.
+// Provides the member constant value which is equal to true, if T is an [Fixed enumeration](https://en.cppreference.com/w/cpp/language/enum) type. Otherwise, value is equal to false.
+template <typename T>
+struct is_fixed_enum : detail::is_fixed_enum_impl<T> {};
+
+template <typename T>
+inline constexpr bool is_fixed_enum_v = is_fixed_enum<T>::value;
+
+// If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
+// Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
+template <typename T>
+struct underlying_type : detail::underlying_type_impl<T> {};
+
+template <typename T>
+using underlying_type_t = typename underlying_type<T>::type;
 
 // Obtains enum value from enum string name.
 // Returns std::optional with enum value.
