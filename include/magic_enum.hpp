@@ -69,12 +69,12 @@ struct enum_range final {
 
 static_assert(MAGIC_ENUM_RANGE_MAX > 0,
               "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
-static_assert(MAGIC_ENUM_RANGE_MAX < std::numeric_limits<int>::max(),
+static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<int>::max)(),
               "MAGIC_ENUM_RANGE_MAX must be less than INT_MAX.");
 
 static_assert(MAGIC_ENUM_RANGE_MIN <= 0,
               "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
-static_assert(MAGIC_ENUM_RANGE_MIN > std::numeric_limits<int>::min(),
+static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<int>::min)(),
               "MAGIC_ENUM_RANGE_MIN must be greater than INT_MIN.");
 
 namespace detail {
