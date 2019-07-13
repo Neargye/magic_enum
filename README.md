@@ -29,6 +29,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_entries` obtains pair (value enum, string enum name) sequence.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
+* `is_fixed_enum` checks whether type is an [Fixed enumeration](https://en.cppreference.com/w/cpp/language/enum).
+* `underlying_type` port of C++20 improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
 
 ## Features
 
