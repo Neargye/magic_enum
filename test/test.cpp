@@ -333,4 +333,9 @@ TEST_CASE("type_traits") {
   REQUIRE(magic_enum::is_scoped_enum_v<Numbers>);
   REQUIRE_FALSE(magic_enum::is_scoped_enum_v<Directions>);
   REQUIRE_FALSE(magic_enum::is_scoped_enum_v<number>);
+
+  REQUIRE(magic_enum::is_fixed_enum_v<Color>);
+  REQUIRE(magic_enum::is_fixed_enum_v<Numbers>);
+  REQUIRE_FALSE(magic_enum::is_fixed_enum_v<Directions>);
+  REQUIRE(magic_enum::is_fixed_enum_v<number>);
 }
