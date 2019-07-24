@@ -147,11 +147,11 @@ template <typename E>
 inline constexpr auto strings_v = strings_impl<E>(range_v<E>);
 
 template <typename E>
-[[nodiscard]] constexpr std::string_view name_impl(int value) noexcept {
+[[nodiscard]] constexpr std::string_view name_impl(E value) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
   constexpr auto strings = strings_v<E>;
 
-  if (auto i = static_cast<std::size_t>((value - min_v<E>)); i < strings.size()) {
+  if (auto i = static_cast<std::size_t>((static_cast<int>(value) - min_v<E>)); i < strings.size()) {
     return strings[i];
   }
 
@@ -291,7 +291,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::optional<D> enum_cast(std::underlying_type_t<D> value) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_cast requires enum type.");
 
-  if (detail::name_impl<D>(static_cast<int>(value)).empty()) {
+  if (detail::name_impl<D>(static_cast<D>(value)).empty()) {
     return std::nullopt; // Invalid value or out of range.
   }
 
@@ -349,7 +349,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_name requires enum type.");
 
-  return detail::name_impl<D>(static_cast<int>(value));
+  return detail::name_impl<D>(value);
 }
 
 // Obtains string enum name sequence.
@@ -378,10 +378,12 @@ template <class Char, class Traits, typename E, typename D = detail::enable_if_e
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
-  if (auto name = detail::name_impl<D>(static_cast<int>(value)); !name.empty()) {
+  if (auto name = detail::name_impl<D>(value); !name.empty()) {
     for (auto c : name) {
       os.put(c);
     }
+  } else {
+    os << static_cast<std::underlying_type_t<D>>(value);
   }
 
   return os;
@@ -392,10 +394,12 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (value.has_value()) {
-    if (auto name = detail::name_impl<D>(static_cast<int>(value.value())); !name.empty()) {
+    if (auto name = detail::name_impl<D>(value.value()); !name.empty()) {
       for (auto c : name) {
         os.put(c);
       }
+    } else {
+      os << static_cast<std::underlying_type_t<D>>(value.value());
     }
   }
 

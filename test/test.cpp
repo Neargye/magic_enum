@@ -33,7 +33,7 @@
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 
-enum class Numbers : char { one = 10, two = 20, three = 30, many = 127 };
+enum class Numbers : int { one = 10, two = 20, three = 30, many = 127 };
 
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
@@ -302,25 +302,25 @@ TEST_CASE("ostream_operators") {
   test_ostream(Color::RED, "RED");
   test_ostream(Color::GREEN, "GREEN");
   test_ostream(Color::BLUE, "BLUE");
-  test_ostream(static_cast<Color>(0), "");
+  test_ostream(static_cast<Color>(0), "0");
 
   test_ostream(Numbers::one, "one");
   test_ostream(Numbers::two, "two");
   test_ostream(Numbers::three, "three");
-  test_ostream(Numbers::many, "");
-  test_ostream(static_cast<Numbers>(0), "");
+  test_ostream(Numbers::many, "127");
+  test_ostream(static_cast<Numbers>(0), "0");
 
   test_ostream(Directions::Up, "Up");
   test_ostream(Directions::Down, "Down");
   test_ostream(Directions::Right, "Right");
   test_ostream(Directions::Left, "Left");
-  test_ostream(static_cast<Directions>(0), "");
+  test_ostream(static_cast<Directions>(0), "0");
 
   test_ostream(number::one, "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
-  test_ostream(number::four, "");
-  test_ostream(static_cast<number>(0), "");
+  test_ostream(number::four, "400");
+  test_ostream(static_cast<number>(0), "0");
 }
 
 TEST_CASE("bitwise_operators") {
