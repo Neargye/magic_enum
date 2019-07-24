@@ -31,6 +31,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `is_fixed_enum` checks whether type is an [Fixed enumeration](https://en.cppreference.com/w/cpp/language/enum).
 * `underlying_type` port of C++20 improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
+* `using namespace magic_enum::ostream_operators;` // out-of-the-box ostream operators for enums.
+* `using namespace magic_enum::bitwise_operators;` // out-of-the-box bitwise operators for enums.
 
 ## Features
 
@@ -121,6 +123,13 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
+  ```
+
+* Bitwise operator for enum
+  ```cpp
+  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
+  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
+  Flags flags = Flags::A | Flags::B & ~Flags::C;
   ```
 
 * Checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
