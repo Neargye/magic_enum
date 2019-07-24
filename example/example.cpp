@@ -78,23 +78,27 @@ int main() {
   std::cout << std::endl;
   // Color sequence: RED BLUE GREEN
 
+  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
+  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
+  Flags flags = Flags::A | Flags::B & ~Flags::C;
+  std::cout << magic_enum::enum_integer(flags) << std::endl;
+
   enum color { red, green, blue };
-  enum class direction { left, right };
 
   // Checks whether type is an Unscoped enumeration.
   static_assert(magic_enum::is_unscoped_enum_v<color>);
   static_assert(!magic_enum::is_unscoped_enum_v<Color>);
-  static_assert(!magic_enum::is_unscoped_enum_v<direction>);
+  static_assert(!magic_enum::is_unscoped_enum_v<Flags>);
 
   // Checks whether type is an Scoped enumeration.
   static_assert(!magic_enum::is_scoped_enum_v<color>);
   static_assert(magic_enum::is_scoped_enum_v<Color>);
-  static_assert(magic_enum::is_scoped_enum_v<direction>);
+  static_assert(magic_enum::is_scoped_enum_v<Flags>);
 
   // Checks whether type is an Fixed enumeration.
   static_assert(!magic_enum::is_fixed_enum_v<color>);
   static_assert(magic_enum::is_fixed_enum_v<Color>);
-  static_assert(magic_enum::is_fixed_enum_v<direction>);
+  static_assert(magic_enum::is_fixed_enum_v<Flags>);
 
   // Enum pair (value enum, string enum name) sequence.
   constexpr auto color_entries = magic_enum::enum_entries<Color>();
