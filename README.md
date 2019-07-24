@@ -118,7 +118,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Stream operator for enum
   ```cpp
-  using namespace magic_enum::ops; // out-of-the-box stream operator for enums.
+  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
   ```

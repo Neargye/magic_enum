@@ -368,11 +368,11 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
   return entries;
 }
 
-namespace ops {
+namespace ostream_operators {
 
 template <class Char, class Traits, typename E, typename D = detail::enable_if_enum_t<E>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::ops::operator<< requires enum type.");
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (auto name = detail::name_impl<D>(static_cast<int>(value)); !name.empty()) {
     for (auto c : name) {
@@ -385,7 +385,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 template <class Char, class Traits, typename E, typename D = detail::enable_if_enum_t<E>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::ops::operator<< requires enum type.");
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (value.has_value()) {
     if (auto name = detail::name_impl<D>(static_cast<int>(value.value())); !name.empty()) {
@@ -398,7 +398,67 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   return os;
 }
 
-} // namespace magic_enum::ops
+} // namespace magic_enum::ostream_operators
+
+namespace bitwise_operators {
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E operator~(E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator~ requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return static_cast<E>(~static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E operator|(E lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator| requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return static_cast<E>(static_cast<U>(lhs) | static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E operator&(E lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator& requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return static_cast<E>(static_cast<U>(lhs) & static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E operator^(E lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^ requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return static_cast<E>(static_cast<U>(lhs) ^ static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E& operator|=(E& lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator|= requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return lhs = static_cast<E>(static_cast<U>(lhs) | static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E& operator&=(E& lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator%= requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return lhs = static_cast<E>(static_cast<U>(lhs) & static_cast<U>(rhs));
+}
+
+template <typename E, typename D = detail::enable_if_enum_t<E>>
+constexpr E& operator^=(E& lhs, E rhs) {
+  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^= requires enum type.");
+  using U = std::underlying_type_t<D>;
+
+  return lhs = static_cast<E>(static_cast<U>(lhs) ^ static_cast<U>(rhs));
+}
+
+} // namespace magic_enum::bitwise_operators
 
 } // namespace magic_enum
 

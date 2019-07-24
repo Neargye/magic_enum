@@ -291,9 +291,9 @@ TEST_CASE("enum_entries") {
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
 }
 
-TEST_CASE("operator<<") {
+TEST_CASE("ostream_operators") {
   auto test_ostream = [](auto e, std::string_view name) {
-    using namespace magic_enum::ops;
+    using namespace magic_enum::ostream_operators;
     std::stringstream ss;
     ss << e;
     REQUIRE(ss.str() == name);
@@ -321,6 +321,9 @@ TEST_CASE("operator<<") {
   test_ostream(number::three, "three");
   test_ostream(number::four, "");
   test_ostream(static_cast<number>(0), "");
+}
+
+TEST_CASE("bitwise_operators") {
 }
 
 TEST_CASE("type_traits") {

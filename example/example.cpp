@@ -59,7 +59,7 @@ int main() {
     std::cout << "RED = " << color_integer << std::endl; // RED = -10
   }
 
-  using namespace magic_enum::ops; // out-of-the-box stream operator for enums.
+  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for enums.
   // ostream operator for enum.
   std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
 
