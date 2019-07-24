@@ -129,6 +129,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
+  // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flags = Flags::A | Flags::B & ~Flags::C;
   ```
 
