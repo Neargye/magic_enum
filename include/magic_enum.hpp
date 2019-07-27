@@ -151,7 +151,7 @@ template <typename E>
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
   constexpr auto strings = strings_v<E>;
 
-  if (auto i = static_cast<std::size_t>((static_cast<int>(value) - min_v<E>)); i < strings.size()) {
+  if (auto i = static_cast<std::size_t>(static_cast<int>(value) - min_v<E>); i < strings.size()) {
     return strings[i];
   }
 
