@@ -14,7 +14,7 @@
 [![Build Status](https://travis-ci.org/Neargye/magic_enum.svg?branch=master)](https://travis-ci.org/Neargye/magic_enum)
 [![Build status](https://ci.appveyor.com/api/projects/status/0rpr966p9ssrvwu3/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/magic-enum-hf8vk/branch/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/64d04f150af14c3e8bd1090057b68538)](https://www.codacy.com/app/Neargye/magic_enum?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/magic_enum&amp;utm_campaign=Badge_Grade)
-[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/EzMNDcSTYFqAcQfj)
+[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/KaXmRxSliytXn0JO)
 
 # Magic Enum C++
 
@@ -31,8 +31,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `is_fixed_enum` checks whether type is an [Fixed enumeration](https://en.cppreference.com/w/cpp/language/enum).
 * `underlying_type` port of C++20 improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
-* `using namespace magic_enum::ostream_operators;` // out-of-the-box ostream operators for enums.
-* `using namespace magic_enum::bitwise_operators;` // out-of-the-box bitwise operators for enums.
+* `using namespace magic_enum::ostream_operators;` ostream operators for enums.
+* `using namespace magic_enum::bitwise_operators;` bitwise operators for enums.
 
 ## Features
 
