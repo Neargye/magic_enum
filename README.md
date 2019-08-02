@@ -79,7 +79,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Indexed access to enum value
   ```cpp
   int i = 1;
-  Color colo = magic_enum::enum_value<Color>(i);
+  Color color = magic_enum::enum_value<Color>(i);
   // color -> Color::BLUE
   ```
 
