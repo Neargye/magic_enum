@@ -394,13 +394,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (value.has_value()) {
-    if (auto name = detail::name_impl<D>(value.value()); !name.empty()) {
-      for (auto c : name) {
-        os.put(c);
-      }
-    } else {
-      os << static_cast<std::underlying_type_t<D>>(value.value());
-    }
+    os << value.value();
   }
 
   return os;

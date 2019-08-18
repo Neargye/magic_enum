@@ -299,28 +299,32 @@ TEST_CASE("ostream_operators") {
     REQUIRE(ss.str() == name);
   };
 
-  test_ostream(Color::RED, "RED");
+  test_ostream(std::make_optional(Color::RED), "RED");
   test_ostream(Color::GREEN, "GREEN");
   test_ostream(Color::BLUE, "BLUE");
   test_ostream(static_cast<Color>(0), "0");
+  test_ostream(std::make_optional(static_cast<Color>(0)), "0");
 
-  test_ostream(Numbers::one, "one");
+  test_ostream(std::make_optional(Numbers::one), "one");
   test_ostream(Numbers::two, "two");
   test_ostream(Numbers::three, "three");
   test_ostream(Numbers::many, "127");
   test_ostream(static_cast<Numbers>(0), "0");
+  test_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
 
-  test_ostream(Directions::Up, "Up");
+  test_ostream(std::make_optional(Directions::Up), "Up");
   test_ostream(Directions::Down, "Down");
   test_ostream(Directions::Right, "Right");
   test_ostream(Directions::Left, "Left");
   test_ostream(static_cast<Directions>(0), "0");
+  test_ostream(std::make_optional(static_cast<Directions>(0)), "0");
 
-  test_ostream(number::one, "one");
+  test_ostream(std::make_optional(number::one), "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
   test_ostream(number::four, "400");
   test_ostream(static_cast<number>(0), "0");
+  test_ostream(std::make_optional(static_cast<number>(0)), "0");
 }
 
 TEST_CASE("bitwise_operators") {
