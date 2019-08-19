@@ -47,247 +47,249 @@ struct enum_range<number> {
 };
 }
 
+using namespace magic_enum;
+
 TEST_CASE("enum_cast") {
   SECTION("string") {
 #if defined(_MSC_VER) && _MSC_VER < 1920
 #  define constexpr // Visual Studio 2017 have bug with string_view constexpr compare.
 #endif
 
-    constexpr auto cr = magic_enum::enum_cast<Color>("RED");
+    constexpr auto cr = enum_cast<Color>("RED");
     REQUIRE(cr.value() == Color::RED);
-    REQUIRE(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
-    REQUIRE(magic_enum::enum_cast<Color>("BLUE").value() == Color::BLUE);
-    REQUIRE_FALSE(magic_enum::enum_cast<Color>("None").has_value());
+    REQUIRE(enum_cast<Color>("GREEN").value() == Color::GREEN);
+    REQUIRE(enum_cast<Color>("BLUE").value() == Color::BLUE);
+    REQUIRE_FALSE(enum_cast<Color>("None").has_value());
 
-    constexpr auto no = magic_enum::enum_cast<Numbers>("one");
+    constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
-    REQUIRE(magic_enum::enum_cast<Numbers>("two").value() == Numbers::two);
-    REQUIRE(magic_enum::enum_cast<Numbers>("three").value() == Numbers::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>("many").has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>("None").has_value());
+    REQUIRE(enum_cast<Numbers>("two").value() == Numbers::two);
+    REQUIRE(enum_cast<Numbers>("three").value() == Numbers::three);
+    REQUIRE_FALSE(enum_cast<Numbers>("many").has_value());
+    REQUIRE_FALSE(enum_cast<Numbers>("None").has_value());
 
-    constexpr auto dr = magic_enum::enum_cast<Directions>("Right");
-    REQUIRE(magic_enum::enum_cast<Directions>("Up").value() == Directions::Up);
-    REQUIRE(magic_enum::enum_cast<Directions>("Down").value() == Directions::Down);
+    constexpr auto dr = enum_cast<Directions>("Right");
+    REQUIRE(enum_cast<Directions>("Up").value() == Directions::Up);
+    REQUIRE(enum_cast<Directions>("Down").value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(magic_enum::enum_cast<Directions>("Left").value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>("None").has_value());
+    REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
+    REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
 
-    constexpr auto nt = magic_enum::enum_cast<number>("three");
-    REQUIRE(magic_enum::enum_cast<number>("one").value() == number::one);
-    REQUIRE(magic_enum::enum_cast<number>("two").value() == number::two);
+    constexpr auto nt = enum_cast<number>("three");
+    REQUIRE(enum_cast<number>("one").value() == number::one);
+    REQUIRE(enum_cast<number>("two").value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>("four").has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<number>("None").has_value());
+    REQUIRE_FALSE(enum_cast<number>("four").has_value());
+    REQUIRE_FALSE(enum_cast<number>("None").has_value());
 
 #undef constexpr
   }
 
   SECTION("integer") {
-    constexpr auto cr = magic_enum::enum_cast<Color>(-12);
+    constexpr auto cr = enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
-    REQUIRE(magic_enum::enum_cast<Color>(7).value() == Color::GREEN);
-    REQUIRE(magic_enum::enum_cast<Color>(15).value() == Color::BLUE);
-    REQUIRE_FALSE(magic_enum::enum_cast<Color>(0).has_value());
+    REQUIRE(enum_cast<Color>(7).value() == Color::GREEN);
+    REQUIRE(enum_cast<Color>(15).value() == Color::BLUE);
+    REQUIRE_FALSE(enum_cast<Color>(0).has_value());
 
-    constexpr auto no = magic_enum::enum_cast<Numbers>(10);
+    constexpr auto no = enum_cast<Numbers>(10);
     REQUIRE(no.value() == Numbers::one);
-    REQUIRE(magic_enum::enum_cast<Numbers>(20).value() == Numbers::two);
-    REQUIRE(magic_enum::enum_cast<Numbers>(30).value() == Numbers::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(127).has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<Numbers>(0).has_value());
+    REQUIRE(enum_cast<Numbers>(20).value() == Numbers::two);
+    REQUIRE(enum_cast<Numbers>(30).value() == Numbers::three);
+    REQUIRE_FALSE(enum_cast<Numbers>(127).has_value());
+    REQUIRE_FALSE(enum_cast<Numbers>(0).has_value());
 
-    constexpr auto dr = magic_enum::enum_cast<Directions>(120);
-    REQUIRE(magic_enum::enum_cast<Directions>(85).value() == Directions::Up);
-    REQUIRE(magic_enum::enum_cast<Directions>(-42).value() == Directions::Down);
+    constexpr auto dr = enum_cast<Directions>(120);
+    REQUIRE(enum_cast<Directions>(85).value() == Directions::Up);
+    REQUIRE(enum_cast<Directions>(-42).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(magic_enum::enum_cast<Directions>(-120).value() == Directions::Left);
-    REQUIRE_FALSE(magic_enum::enum_cast<Directions>(0).has_value());
+    REQUIRE(enum_cast<Directions>(-120).value() == Directions::Left);
+    REQUIRE_FALSE(enum_cast<Directions>(0).has_value());
 
-    constexpr auto nt = magic_enum::enum_cast<number>(300);
-    REQUIRE(magic_enum::enum_cast<number>(100).value() == number::one);
-    REQUIRE(magic_enum::enum_cast<number>(200).value() == number::two);
+    constexpr auto nt = enum_cast<number>(300);
+    REQUIRE(enum_cast<number>(100).value() == number::one);
+    REQUIRE(enum_cast<number>(200).value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(magic_enum::enum_cast<number>(400).has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<number>(0).has_value());
+    REQUIRE_FALSE(enum_cast<number>(400).has_value());
+    REQUIRE_FALSE(enum_cast<number>(0).has_value());
   }
 }
 
 TEST_CASE("enum_integer") {
-  constexpr auto cr = magic_enum::enum_integer(Color::RED);
+  constexpr auto cr = enum_integer(Color::RED);
   REQUIRE(cr == -12);
-  REQUIRE(magic_enum::enum_integer(Color::GREEN) == 7);
-  REQUIRE(magic_enum::enum_integer(Color::BLUE) == 15);
-  REQUIRE(magic_enum::enum_integer(static_cast<Color>(0)) == 0);
+  REQUIRE(enum_integer(Color::GREEN) == 7);
+  REQUIRE(enum_integer(Color::BLUE) == 15);
+  REQUIRE(enum_integer(static_cast<Color>(0)) == 0);
 
-  constexpr auto no = magic_enum::enum_integer(Numbers::one);
+  constexpr auto no = enum_integer(Numbers::one);
   REQUIRE(no == 10);
-  REQUIRE(magic_enum::enum_integer(Numbers::two) == 20);
-  REQUIRE(magic_enum::enum_integer(Numbers::three) == 30);
-  REQUIRE(magic_enum::enum_integer(Numbers::many) == 127);
-  REQUIRE(magic_enum::enum_integer(static_cast<Numbers>(0)) == 0);
+  REQUIRE(enum_integer(Numbers::two) == 20);
+  REQUIRE(enum_integer(Numbers::three) == 30);
+  REQUIRE(enum_integer(Numbers::many) == 127);
+  REQUIRE(enum_integer(static_cast<Numbers>(0)) == 0);
 
-  constexpr auto dr = magic_enum::enum_integer(Directions::Right);
-  REQUIRE(magic_enum::enum_integer(Directions::Left) == -120);
-  REQUIRE(magic_enum::enum_integer(Directions::Down) == -42);
-  REQUIRE(magic_enum::enum_integer(Directions::Up) == 85);
+  constexpr auto dr = enum_integer(Directions::Right);
+  REQUIRE(enum_integer(Directions::Left) == -120);
+  REQUIRE(enum_integer(Directions::Down) == -42);
+  REQUIRE(enum_integer(Directions::Up) == 85);
   REQUIRE(dr == 120);
-  REQUIRE(magic_enum::enum_integer(static_cast<Directions>(0)) == 0);
+  REQUIRE(enum_integer(static_cast<Directions>(0)) == 0);
 
-  constexpr auto nt = magic_enum::enum_integer(number::three);
-  REQUIRE(magic_enum::enum_integer(number::one) == 100);
-  REQUIRE(magic_enum::enum_integer(number::two) == 200);
+  constexpr auto nt = enum_integer(number::three);
+  REQUIRE(enum_integer(number::one) == 100);
+  REQUIRE(enum_integer(number::two) == 200);
   REQUIRE(nt == 300);
-  REQUIRE(magic_enum::enum_integer(number::four) == 400);
-  REQUIRE(magic_enum::enum_integer(static_cast<number>(0)) == 0);
+  REQUIRE(enum_integer(number::four) == 400);
+  REQUIRE(enum_integer(static_cast<number>(0)) == 0);
 }
 
 TEST_CASE("enum_value") {
-  constexpr auto cr = magic_enum::enum_value<Color>(0);
+  constexpr auto cr = enum_value<Color>(0);
   REQUIRE(cr == Color::RED);
-  REQUIRE(magic_enum::enum_value<Color>(1) == Color::GREEN);
-  REQUIRE(magic_enum::enum_value<Color>(2) == Color::BLUE);
+  REQUIRE(enum_value<Color>(1) == Color::GREEN);
+  REQUIRE(enum_value<Color>(2) == Color::BLUE);
 
-  constexpr auto no = magic_enum::enum_value<Numbers>(0);
+  constexpr auto no = enum_value<Numbers>(0);
   REQUIRE(no == Numbers::one);
-  REQUIRE(magic_enum::enum_value<Numbers>(1) == Numbers::two);
-  REQUIRE(magic_enum::enum_value<Numbers>(2) == Numbers::three);
+  REQUIRE(enum_value<Numbers>(1) == Numbers::two);
+  REQUIRE(enum_value<Numbers>(2) == Numbers::three);
 
-  constexpr auto dr = magic_enum::enum_value<Directions>(3);
-  REQUIRE(magic_enum::enum_value<Directions>(0) == Directions::Left);
-  REQUIRE(magic_enum::enum_value<Directions>(1) == Directions::Down);
-  REQUIRE(magic_enum::enum_value<Directions>(2) == Directions::Up);
+  constexpr auto dr = enum_value<Directions>(3);
+  REQUIRE(enum_value<Directions>(0) == Directions::Left);
+  REQUIRE(enum_value<Directions>(1) == Directions::Down);
+  REQUIRE(enum_value<Directions>(2) == Directions::Up);
   REQUIRE(dr == Directions::Right);
 
-  constexpr auto nt = magic_enum::enum_value<number>(2);
-  REQUIRE(magic_enum::enum_value<number>(0) == number::one);
-  REQUIRE(magic_enum::enum_value<number>(1) == number::two);
+  constexpr auto nt = enum_value<number>(2);
+  REQUIRE(enum_value<number>(0) == number::one);
+  REQUIRE(enum_value<number>(1) == number::two);
   REQUIRE(nt == number::three);
 }
 
 TEST_CASE("enum_values") {
-  constexpr auto s1 = magic_enum::enum_values<Color>();
+  constexpr auto s1 = enum_values<Color>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
-  constexpr auto s2 = magic_enum::enum_values<Numbers>();
+  constexpr auto s2 = enum_values<Numbers>();
   REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
 
-  constexpr auto s3 = magic_enum::enum_values<Directions>();
+  constexpr auto s3 = enum_values<Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
-  constexpr auto s4 = magic_enum::enum_values<number>();
+  constexpr auto s4 = enum_values<number>();
   REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
 }
 
 TEST_CASE("enum_count") {
-  constexpr auto s1 = magic_enum::enum_count<Color>();
+  constexpr auto s1 = enum_count<Color>();
   REQUIRE(s1 == 3);
 
-  constexpr auto s2 = magic_enum::enum_count<Numbers>();
+  constexpr auto s2 = enum_count<Numbers>();
   REQUIRE(s2 == 3);
 
-  constexpr auto s3 = magic_enum::enum_count<Directions>();
+  constexpr auto s3 = enum_count<Directions>();
   REQUIRE(s3 == 4);
 
-  constexpr auto s4 = magic_enum::enum_count<number>();
+  constexpr auto s4 = enum_count<number>();
   REQUIRE(s4 == 3);
 }
 
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
     constexpr Color cr = Color::RED;
-    constexpr auto cr_name = magic_enum::enum_name(cr);
+    constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     REQUIRE(cr_name == "RED");
-    REQUIRE(magic_enum::enum_name(Color::BLUE) == "BLUE");
-    REQUIRE(magic_enum::enum_name(cm[1]) == "GREEN");
-    REQUIRE(magic_enum::enum_name(static_cast<Color>(0)).empty());
+    REQUIRE(enum_name(Color::BLUE) == "BLUE");
+    REQUIRE(enum_name(cm[1]) == "GREEN");
+    REQUIRE(enum_name(static_cast<Color>(0)).empty());
 
     constexpr Numbers no = Numbers::one;
-    constexpr auto no_name = magic_enum::enum_name(no);
+    constexpr auto no_name = enum_name(no);
     REQUIRE(no_name == "one");
-    REQUIRE(magic_enum::enum_name(Numbers::two) == "two");
-    REQUIRE(magic_enum::enum_name(Numbers::three) == "three");
-    REQUIRE(magic_enum::enum_name(Numbers::many).empty());
-    REQUIRE(magic_enum::enum_name(static_cast<Numbers>(0)).empty());
+    REQUIRE(enum_name(Numbers::two) == "two");
+    REQUIRE(enum_name(Numbers::three) == "three");
+    REQUIRE(enum_name(Numbers::many).empty());
+    REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
 
     constexpr Directions dr = Directions::Right;
-    constexpr auto dr_name = magic_enum::enum_name(dr);
-    REQUIRE(magic_enum::enum_name(Directions::Up) == "Up");
-    REQUIRE(magic_enum::enum_name(Directions::Down) == "Down");
+    constexpr auto dr_name = enum_name(dr);
+    REQUIRE(enum_name(Directions::Up) == "Up");
+    REQUIRE(enum_name(Directions::Down) == "Down");
     REQUIRE(dr_name == "Right");
-    REQUIRE(magic_enum::enum_name(Directions::Left) == "Left");
-    REQUIRE(magic_enum::enum_name(static_cast<Directions>(0)).empty());
+    REQUIRE(enum_name(Directions::Left) == "Left");
+    REQUIRE(enum_name(static_cast<Directions>(0)).empty());
 
     constexpr number nt = number::three;
-    constexpr auto nt_name = magic_enum::enum_name(nt);
-    REQUIRE(magic_enum::enum_name(number::one) == "one");
-    REQUIRE(magic_enum::enum_name(number::two) == "two");
+    constexpr auto nt_name = enum_name(nt);
+    REQUIRE(enum_name(number::one) == "one");
+    REQUIRE(enum_name(number::two) == "two");
     REQUIRE(nt_name == "three");
-    REQUIRE(magic_enum::enum_name(number::four).empty());
-    REQUIRE(magic_enum::enum_name(static_cast<number>(0)).empty());
+    REQUIRE(enum_name(number::four).empty());
+    REQUIRE(enum_name(static_cast<number>(0)).empty());
   }
 
   SECTION("static storage") {
     constexpr Color cr = Color::RED;
-    constexpr auto cr_name = magic_enum::enum_name<cr>();
+    constexpr auto cr_name = enum_name<cr>();
     constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     REQUIRE(cr_name == "RED");
-    REQUIRE(magic_enum::enum_name<Color::BLUE>() == "BLUE");
-    REQUIRE(magic_enum::enum_name<cm[1]>() == "GREEN");
-    REQUIRE(magic_enum::enum_name<static_cast<Color>(0)>().empty());
+    REQUIRE(enum_name<Color::BLUE>() == "BLUE");
+    REQUIRE(enum_name<cm[1]>() == "GREEN");
+    REQUIRE(enum_name<static_cast<Color>(0)>().empty());
 
     constexpr Numbers no = Numbers::one;
-    constexpr auto no_name = magic_enum::enum_name<no>();
+    constexpr auto no_name = enum_name<no>();
     REQUIRE(no_name == "one");
-    REQUIRE(magic_enum::enum_name<Numbers::two>() == "two");
-    REQUIRE(magic_enum::enum_name<Numbers::three>() == "three");
-    REQUIRE(magic_enum::enum_name<Numbers::many>() == "many");
-    REQUIRE(magic_enum::enum_name<static_cast<Numbers>(0)>().empty());
+    REQUIRE(enum_name<Numbers::two>() == "two");
+    REQUIRE(enum_name<Numbers::three>() == "three");
+    REQUIRE(enum_name<Numbers::many>() == "many");
+    REQUIRE(enum_name<static_cast<Numbers>(0)>().empty());
 
     constexpr Directions dr = Directions::Right;
-    constexpr auto dr_name = magic_enum::enum_name<dr>();
-    REQUIRE(magic_enum::enum_name<Directions::Up>() == "Up");
-    REQUIRE(magic_enum::enum_name<Directions::Down>() == "Down");
+    constexpr auto dr_name = enum_name<dr>();
+    REQUIRE(enum_name<Directions::Up>() == "Up");
+    REQUIRE(enum_name<Directions::Down>() == "Down");
     REQUIRE(dr_name == "Right");
-    REQUIRE(magic_enum::enum_name<Directions::Left>() == "Left");
-    REQUIRE(magic_enum::enum_name<static_cast<Directions>(0)>().empty());
+    REQUIRE(enum_name<Directions::Left>() == "Left");
+    REQUIRE(enum_name<static_cast<Directions>(0)>().empty());
 
     constexpr number nt = number::three;
-    constexpr auto nt_name = magic_enum::enum_name<nt>();
-    REQUIRE(magic_enum::enum_name<number::one>() == "one");
-    REQUIRE(magic_enum::enum_name<number::two>() == "two");
+    constexpr auto nt_name = enum_name<nt>();
+    REQUIRE(enum_name<number::one>() == "one");
+    REQUIRE(enum_name<number::two>() == "two");
     REQUIRE(nt_name == "three");
-    REQUIRE(magic_enum::enum_name<number::four>() == "four");
-    REQUIRE(magic_enum::enum_name<static_cast<number>(0)>().empty());
+    REQUIRE(enum_name<number::four>() == "four");
+    REQUIRE(enum_name<static_cast<number>(0)>().empty());
   }
 }
 
 TEST_CASE("enum_names") {
-  constexpr auto s1 = magic_enum::enum_names<Color>();
+  constexpr auto s1 = enum_names<Color>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
-  constexpr auto s2 = magic_enum::enum_names<Numbers>();
+  constexpr auto s2 = enum_names<Numbers>();
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 
-  constexpr auto s3 = magic_enum::enum_names<Directions>();
+  constexpr auto s3 = enum_names<Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
-  constexpr auto s4 = magic_enum::enum_names<number>();
+  constexpr auto s4 = enum_names<number>();
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
 TEST_CASE("enum_entries") {
-  constexpr auto s1 = magic_enum::enum_entries<Color>();
+  constexpr auto s1 = enum_entries<Color>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
-  constexpr auto s2 = magic_enum::enum_entries<Numbers>();
+  constexpr auto s2 = enum_entries<Numbers>();
   REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
 
-  constexpr auto s3 = magic_enum::enum_entries<Directions>();
+  constexpr auto s3 = enum_entries<Directions>();
   REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
 
-  constexpr auto s4 = magic_enum::enum_entries<number>();
+  constexpr auto s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
 }
 
@@ -328,21 +330,104 @@ TEST_CASE("ostream_operators") {
 }
 
 TEST_CASE("bitwise_operators") {
+  using namespace magic_enum::bitwise_operators;
+
+  SECTION("operator^") {
+    REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
+    REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
+    REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
+    REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
+  }
+
+  SECTION("operator|") {
+    REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SECTION("operator&") {
+    REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SECTION("operator^") {
+    REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+
+  SECTION("operator|=") {
+    Color x1 = Color::RED;
+    x1 |= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 |= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 |= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 |= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SECTION("operator&=") {
+    Color x1 = Color::RED;
+    x1 &= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 &= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 &= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 &= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SECTION("operator^=") {
+    Color x1 = Color::RED;
+    x1 ^= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 ^= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 ^= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 ^= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
 }
 
 TEST_CASE("type_traits") {
-  REQUIRE_FALSE(magic_enum::is_unscoped_enum_v<Color>);
-  REQUIRE_FALSE(magic_enum::is_unscoped_enum_v<Numbers>);
-  REQUIRE(magic_enum::is_unscoped_enum_v<Directions>);
-  REQUIRE(magic_enum::is_unscoped_enum_v<number>);
+  REQUIRE_FALSE(is_unscoped_enum_v<Color>);
+  REQUIRE_FALSE(is_unscoped_enum_v<Numbers>);
+  REQUIRE(is_unscoped_enum_v<Directions>);
+  REQUIRE(is_unscoped_enum_v<number>);
 
-  REQUIRE(magic_enum::is_scoped_enum_v<Color>);
-  REQUIRE(magic_enum::is_scoped_enum_v<Numbers>);
-  REQUIRE_FALSE(magic_enum::is_scoped_enum_v<Directions>);
-  REQUIRE_FALSE(magic_enum::is_scoped_enum_v<number>);
+  REQUIRE(is_scoped_enum_v<Color>);
+  REQUIRE(is_scoped_enum_v<Numbers>);
+  REQUIRE_FALSE(is_scoped_enum_v<Directions>);
+  REQUIRE_FALSE(is_scoped_enum_v<number>);
 
-  REQUIRE(magic_enum::is_fixed_enum_v<Color>);
-  REQUIRE(magic_enum::is_fixed_enum_v<Numbers>);
-  REQUIRE_FALSE(magic_enum::is_fixed_enum_v<Directions>);
-  REQUIRE(magic_enum::is_fixed_enum_v<number>);
+  REQUIRE(is_fixed_enum_v<Color>);
+  REQUIRE(is_fixed_enum_v<Numbers>);
+  REQUIRE_FALSE(is_fixed_enum_v<Directions>);
+  REQUIRE(is_fixed_enum_v<number>);
 }
