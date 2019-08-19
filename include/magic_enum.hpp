@@ -441,7 +441,7 @@ constexpr E& operator|=(E& lhs, E rhs) {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator|= requires enum type.");
   using U = std::underlying_type_t<D>;
 
-  return lhs = static_cast<E>(static_cast<U>(lhs) | static_cast<U>(rhs));
+  return lhs = lhs | rhs;
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
@@ -449,7 +449,7 @@ constexpr E& operator&=(E& lhs, E rhs) {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator%= requires enum type.");
   using U = std::underlying_type_t<D>;
 
-  return lhs = static_cast<E>(static_cast<U>(lhs) & static_cast<U>(rhs));
+  return lhs = lhs & rhs;
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
@@ -457,7 +457,7 @@ constexpr E& operator^=(E& lhs, E rhs) {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^= requires enum type.");
   using U = std::underlying_type_t<D>;
 
-  return lhs = static_cast<E>(static_cast<U>(lhs) ^ static_cast<U>(rhs));
+  return lhs = lhs ^ rhs;
 }
 
 } // namespace magic_enum::bitwise_operators
