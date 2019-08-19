@@ -300,7 +300,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 
 // Returns integer value from enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_integer(E value) noexcept {
+[[nodiscard]] constexpr std::underlying_type_t<D> enum_integer(E value) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_integer requires enum type.");
 
   return static_cast<std::underlying_type_t<D>>(value);
@@ -309,7 +309,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_value(std::size_t index) {
+[[nodiscard]] constexpr D enum_value(std::size_t index) {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_value requires enum type.");
   constexpr auto values = detail::values_v<D>;
 
