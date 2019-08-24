@@ -1,7 +1,5 @@
 version: "{branch} #{build}"
 
-shallow_clone: true
-
 image:
   - Visual Studio 2017
 

@@ -4,9 +4,6 @@ sudo: required
 
 language: cpp
 
-git:
-  depth: 1
-
 matrix:
   include:
     - os: linux
@@ -70,7 +67,13 @@ matrix:
 
     - os: osx
       compiler: clang++
-      osx_image: xcode10.2
+      osx_image: xcode10.3
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode11
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
@@ -91,7 +94,7 @@ install:
       elif [[ "${CXX}" == "clang++-5.0" ]]; then LLVM_VERSION="5.0.2";
       elif [[ "${CXX}" == "clang++-6.0" ]]; then LLVM_VERSION="6.0.1";
       elif [[ "${CXX}" == "clang++-7" ]]; then LLVM_VERSION="7.0.1";
-      elif [[ "${CXX}" == "clang++-8" ]]; then LLVM_VERSION="8.0.0";
+      elif [[ "${CXX}" == "clang++-8" ]]; then LLVM_VERSION="8.0.1";
       fi
       LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
       LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
