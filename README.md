@@ -10,6 +10,7 @@
 ```
 
 [![Github releases](https://img.shields.io/github/release/Neargye/magic_enum.svg)](https://github.com/Neargye/magic_enum/releases)
+[![Conan package](https://img.shields.io/badge/Conan-package-blueviolet)](https://bintray.com/neargye/conan-packages/magic_enum:neargye)
 [![Vcpkg package](https://img.shields.io/badge/Vcpkg-package-blueviolet)](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum)
 [![License](https://img.shields.io/github/license/Neargye/magic_enum.svg)](LICENSE)
 [![Build status](https://travis-ci.org/Neargye/magic_enum.svg?branch=master)](https://travis-ci.org/Neargye/magic_enum)
@@ -249,6 +250,10 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 ## Integration
 
 You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
+
+If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic_enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
+
+If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z@neargye/stable` to your `conanfile.py`'s requires, where `x.y.z` is the release version you want to use.
 
 ## Compiler compatibility
 
