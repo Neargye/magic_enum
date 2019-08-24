@@ -171,13 +171,13 @@ TEST_CASE("enum_values") {
   constexpr auto s1 = enum_values<Color>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
-  constexpr auto s2 = enum_values<Numbers>();
+  auto s2 = enum_values<Numbers>();
   REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
 
   constexpr auto s3 = enum_values<Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
-  constexpr auto s4 = enum_values<number>();
+  auto s4 = enum_values<number>();
   REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
 }
 
@@ -185,13 +185,13 @@ TEST_CASE("enum_count") {
   constexpr auto s1 = enum_count<Color>();
   REQUIRE(s1 == 3);
 
-  constexpr auto s2 = enum_count<Numbers>();
+  auto s2 = enum_count<Numbers>();
   REQUIRE(s2 == 3);
 
   constexpr auto s3 = enum_count<Directions>();
   REQUIRE(s3 == 4);
 
-  constexpr auto s4 = enum_count<number>();
+  auto s4 = enum_count<number>();
   REQUIRE(s4 == 3);
 }
 
@@ -269,13 +269,13 @@ TEST_CASE("enum_names") {
   constexpr auto s1 = enum_names<Color>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
-  constexpr auto s2 = enum_names<Numbers>();
+  auto s2 = enum_names<Numbers>();
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 
   constexpr auto s3 = enum_names<Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
-  constexpr auto s4 = enum_names<number>();
+  auto s4 = enum_names<number>();
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
@@ -283,13 +283,13 @@ TEST_CASE("enum_entries") {
   constexpr auto s1 = enum_entries<Color>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
-  constexpr auto s2 = enum_entries<Numbers>();
+  auto s2 = enum_entries<Numbers>();
   REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
 
   constexpr auto s3 = enum_entries<Directions>();
   REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
 
-  constexpr auto s4 = enum_entries<number>();
+  auto s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
 }
 
