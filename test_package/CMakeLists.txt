@@ -6,5 +6,5 @@ conan_basic_setup(TARGETS)
 
 add_executable(test_package test_package.cpp)
 target_link_libraries(test_package PRIVATE CONAN_PKG::magic_enum)
-set_target_properties(example PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(test_package PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_features(test_package PRIVATE cxx_std_17)
