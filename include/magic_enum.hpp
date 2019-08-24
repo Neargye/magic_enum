@@ -132,6 +132,7 @@ template <typename E, E V>
 #elif defined(_MSC_VER)
   return pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
+#  error "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility)."
   return {}; // Unsupported compiler.
 #endif
 }
