@@ -122,18 +122,19 @@ inline constexpr auto range_v = range_impl<E>();
   return {}; // Invalid name.
 }
 
+template <typename T>
+struct always_false final : std::false_type {};
+
 template <typename E, E V>
-[[nodiscard]] constexpr std::string_view name_impl() noexcept {
+[[nodiscard]] constexpr auto name_impl() noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name_impl requires enum type.");
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9
   return pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#elif defined(__GNUC__) && __GNUC__ >= 9
-  return pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 51});
 #elif defined(_MSC_VER)
   return pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-#  error "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility)."
-  return {}; // Unsupported compiler.
+  static_assert(always_false<E>{}, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  return std::string_view{}; // Unsupported compiler.
 #endif
 }
 
