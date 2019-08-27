@@ -160,7 +160,7 @@ inline constexpr auto range_v = range<E>();
 
 template <typename E, E V>
 [[nodiscard]] constexpr auto n() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::name requires enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 #if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9
   constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
