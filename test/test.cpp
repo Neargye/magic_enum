@@ -49,6 +49,8 @@ struct enum_range<number> {
 
 using namespace magic_enum;
 
+static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+
 TEST_CASE("enum_cast") {
   SECTION("string") {
 #if defined(_MSC_VER) && _MSC_VER < 1920

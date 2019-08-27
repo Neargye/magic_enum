@@ -274,7 +274,7 @@ struct underlying_type<T, true> : std::underlying_type<T> {};
 } // namespace magic_enum::detail
 
 // Checks is magic_enum supported compiler.
-inline constexpr auto is_magic_enum_supported = detail::magic_enum_supported<void>::value;
+inline constexpr bool is_magic_enum_supported = detail::magic_enum_supported<void>::value;
 
 // Checks whether T is an Unscoped enumeration type.
 // Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
