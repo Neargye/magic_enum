@@ -98,7 +98,7 @@ struct static_string final {
 
   constexpr std::size_t size() const noexcept { return chars.size(); }
 
-  constexpr operator std::string_view() const noexcept { return {chars.data(), chars.size()}; }
+  constexpr operator std::string_view() const noexcept { return {data(), size()}; }
 
  private:
   template <std::size_t... I>
@@ -119,9 +119,14 @@ struct static_string<0> final {
 };
 
 template <typename E>
-inline constexpr auto min_v = enum_range<E>::min > (std::numeric_limits<std::underlying_type_t<E>>::min)()
-                                  ? enum_range<E>::min
-                                  : (std::numeric_limits<std::underlying_type_t<E>>::min)();
+inline constexpr int min_v = static_cast<int>(enum_range<E>::min > (std::numeric_limits<std::underlying_type_t<E>>::min)()
+                                                  ? enum_range<E>::min
+                                                  : (std::numeric_limits<std::underlying_type_t<E>>::min)());
+
+template <typename E>
+inline constexpr int max_v = static_cast<int>(enum_range<E>::max < (std::numeric_limits<std::underlying_type_t<E>>::max)()
+                                                  ? enum_range<E>::max
+                                                  : (std::numeric_limits<std::underlying_type_t<E>>::max)());
 
 template <typename E>
 [[nodiscard]] constexpr auto range() {
@@ -129,10 +134,8 @@ template <typename E>
   static_assert(enum_range<E>::min > (std::numeric_limits<int>::min)(), "magic_enum::enum_range requires min must be greater than INT_MIN.");
   static_assert(enum_range<E>::max < (std::numeric_limits<int>::max)(), "magic_enum::enum_range requires max must be less than INT_MAX.");
   static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
-  using U = std::underlying_type_t<E>;
-  constexpr auto max = enum_range<E>::max < (std::numeric_limits<U>::max)() ? enum_range<E>::max : (std::numeric_limits<U>::max)();
 
-  return std::make_integer_sequence<int, max - min_v<E> + 1>{};
+  return std::make_integer_sequence<int, max_v<E> - min_v<E> + 1>{};
 }
 
 template <typename E>
@@ -187,9 +190,14 @@ template <typename E, int... I>
 template <typename E>
 [[nodiscard]] constexpr std::string_view name(E value) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name requires enum type.");
+  using U = std::underlying_type_t<E>;
   constexpr auto names = strings<E>(range_v<E>);
 
-  if (auto i = static_cast<std::size_t>(static_cast<int>(value) - min_v<E>); i < names.size()) {
+  if (static_cast<U>(value) > static_cast<U>(max_v<E>) || static_cast<U>(value) < static_cast<U>(min_v<E>)) {
+    return {}; // Value out of range.
+  }
+
+  if (auto i = static_cast<std::size_t>(static_cast<U>(value) - min_v<E>); i < names.size()) {
     return names[i];
   }
 
@@ -199,7 +207,7 @@ template <typename E>
 template <typename E, int... I>
 [[nodiscard]] constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr std::array<bool, sizeof...(I)> valid{{(name_v<E, static_cast<E>(I + min_v<E>)>.size() != 0 )...}};
+  constexpr std::array<bool, sizeof...(I)> valid{{(name_v<E, static_cast<E>(I + min_v<E>)>.size() != 0)...}};
   constexpr auto num_valid = ((valid[I] ? 1 : 0) + ...);
 
   std::array<E, num_valid> values{};
@@ -216,7 +224,7 @@ template <typename E>
 inline constexpr auto values_v = values<E>(range_v<E>);
 
 template <typename E>
-inline constexpr auto count_v = values_v<E>.size();
+inline constexpr std::size_t count_v = values_v<E>.size();
 
 template <typename E, std::size_t... I>
 [[nodiscard]] constexpr auto names(std::integer_sequence<std::size_t, I...>) noexcept {
