@@ -254,7 +254,7 @@ You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
 
 If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic_enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
 
-If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z@neargye/stable` to your `conanfile.py`'s requires, where `x.y.z` is the release version you want to use.
+If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z@neargye/stable` to your conan's requires, where `x.y.z` is the release version you want to use.
 
 ## Compiler compatibility
 
