@@ -84,7 +84,7 @@ namespace detail {
 
 template <typename T>
 struct magic_enum_supported final
-#if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER)
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER) || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
     : std::true_type {};
 #else
     : std::false_type {};
