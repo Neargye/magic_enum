@@ -83,7 +83,7 @@ static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN,
 namespace detail {
 
 template <typename T>
-struct magic_enum_supported final
+struct supported final
 #if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER) || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
     : std::true_type {};
 #else
@@ -282,7 +282,7 @@ struct underlying_type<T, true> : std::underlying_type<T> {};
 } // namespace magic_enum::detail
 
 // Checks is magic_enum supported compiler.
-inline constexpr bool is_magic_enum_supported = detail::magic_enum_supported<void>::value;
+inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
 
 // Checks whether T is an Unscoped enumeration type.
 // Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
@@ -320,7 +320,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 // Returns std::optional with enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::optional<D> enum_cast(std::string_view value) noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_cast requires enum type.");
   constexpr auto values = detail::values_v<D>;
   constexpr auto count = detail::count_v<D>;
@@ -339,7 +339,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns std::optional with enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::optional<D> enum_cast(std::underlying_type_t<D> value) noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_cast requires enum type.");
 
   if (detail::name<D>(static_cast<D>(value)).empty()) {
@@ -352,7 +352,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns integer value from enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::underlying_type_t<D> enum_integer(E value) noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_integer requires enum type.");
 
   return static_cast<std::underlying_type_t<D>>(value);
@@ -362,7 +362,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr D enum_value(std::size_t index) {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_value requires enum type.");
   constexpr auto values = detail::values_v<D>;
 
@@ -373,7 +373,7 @@ template<typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns std::array with enum values, sorted by enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_values() noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_values requires enum type.");
   constexpr auto values = detail::values_v<D>;
 
@@ -383,7 +383,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns number of enum values.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::size_t enum_count() noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_count requires enum type.");
   constexpr auto count = detail::count_v<D>;
 
@@ -394,7 +394,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V, typename D = detail::enable_if_enum_t<decltype(V)>>
 [[nodiscard]] constexpr std::string_view enum_name() noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<decltype(V), D>, "magic_enum::enum_name requires enum type.");
 
   return detail::name_v<D, V>;
@@ -403,7 +403,7 @@ template <auto V, typename D = detail::enable_if_enum_t<decltype(V)>>
 // Returns string enum name from enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_name requires enum type.");
 
   return detail::name<D>(value);
@@ -413,7 +413,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns std::array with string enum names, sorted by enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_names() noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_names requires enum type.");
   constexpr auto names = detail::names_v<D>;
 
@@ -424,7 +424,7 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 // Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
 template <typename E, typename D = detail::enable_if_enum_t<E>>
 [[nodiscard]] constexpr auto enum_entries() noexcept {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_entries requires enum type.");
   constexpr auto entries = detail::entries_v<D>;
 
@@ -433,9 +433,9 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 
 namespace ostream_operators {
 
-template <class Char, class Traits, typename E, typename D = detail::enable_if_enum_t<E>>
+template <typename Char, typename Traits, typename E, typename D = detail::enable_if_enum_t<E>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (auto name = detail::name<D>(value); !name.empty()) {
@@ -449,9 +449,9 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   return os;
 }
 
-template <class Char, class Traits, typename E, typename D = detail::enable_if_enum_t<E>>
+template <typename Char, typename Traits, typename E, typename D = detail::enable_if_enum_t<E>>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
-  static_assert(detail::magic_enum_supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
 
   if (value.has_value()) {
