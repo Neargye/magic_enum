@@ -466,7 +466,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 namespace bitwise_operators {
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator~(E rhs) {
+constexpr E operator~(E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator~ requires enum type.");
   using U = std::underlying_type_t<D>;
 
@@ -474,7 +474,7 @@ constexpr E operator~(E rhs) {
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator|(E lhs, E rhs) {
+constexpr E operator|(E lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator| requires enum type.");
   using U = std::underlying_type_t<D>;
 
@@ -482,7 +482,7 @@ constexpr E operator|(E lhs, E rhs) {
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator&(E lhs, E rhs) {
+constexpr E operator&(E lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator& requires enum type.");
   using U = std::underlying_type_t<D>;
 
@@ -490,7 +490,7 @@ constexpr E operator&(E lhs, E rhs) {
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator^(E lhs, E rhs) {
+constexpr E operator^(E lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^ requires enum type.");
   using U = std::underlying_type_t<D>;
 
@@ -498,21 +498,21 @@ constexpr E operator^(E lhs, E rhs) {
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator|=(E& lhs, E rhs) {
+constexpr E& operator|=(E& lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator|= requires enum type.");
 
   return lhs = lhs | rhs;
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator&=(E& lhs, E rhs) {
+constexpr E& operator&=(E& lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator%= requires enum type.");
 
   return lhs = lhs & rhs;
 }
 
 template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator^=(E& lhs, E rhs) {
+constexpr E& operator^=(E& lhs, E rhs) noexcept {
   static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^= requires enum type.");
 
   return lhs = lhs ^ rhs;
