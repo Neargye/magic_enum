@@ -188,17 +188,20 @@ template <typename E, int... I>
 }
 
 template <typename E>
+inline constexpr auto strings_v = strings<E>(range_v<E>);
+
+template <typename E>
 [[nodiscard]] constexpr std::string_view name(E value) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::name requires enum type.");
   using U = std::underlying_type_t<E>;
-  constexpr auto names = strings<E>(range_v<E>);
 
   if (static_cast<U>(value) > static_cast<U>(max_v<E>) || static_cast<U>(value) < static_cast<U>(min_v<E>)) {
     return {}; // Value out of range.
   }
 
+  constexpr auto& names = strings_v<E>;
   if (auto i = static_cast<std::size_t>(static_cast<U>(value) - min_v<E>); i < names.size()) {
-    return names[i];
+    return strings_v<E>[i];
   }
 
   return {}; // Value out of range.
