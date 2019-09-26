@@ -33,7 +33,6 @@
 #define NEARGYE_MAGIC_ENUM_HPP
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <iosfwd>
 #include <limits>
@@ -62,23 +61,18 @@ namespace magic_enum {
 template <typename E>
 struct enum_range final {
   static_assert(std::is_enum_v<E>, "magic_enum::enum_range requires enum type.");
-  static constexpr int min = MAGIC_ENUM_RANGE_MIN;
-  static constexpr int max = MAGIC_ENUM_RANGE_MAX;
+  inline static constexpr int min = MAGIC_ENUM_RANGE_MIN;
+  inline static constexpr int max = MAGIC_ENUM_RANGE_MAX;
   static_assert(max > min, "magic_enum::enum_range requires max > min.");
 };
 
-static_assert(MAGIC_ENUM_RANGE_MIN <= 0,
-              "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
-static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<int>::min)(),
-              "MAGIC_ENUM_RANGE_MIN must be greater than INT_MIN.");
+static_assert(MAGIC_ENUM_RANGE_MIN <= 0, "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
+static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<std::int16_t>::min)(), "MAGIC_ENUM_RANGE_MIN must be greater than INT16_MIN.");
 
-static_assert(MAGIC_ENUM_RANGE_MAX > 0,
-              "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
-static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<int>::max)(),
-              "MAGIC_ENUM_RANGE_MAX must be less than INT_MAX.");
+static_assert(MAGIC_ENUM_RANGE_MAX > 0, "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
+static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<std::int16_t>::max)(), "MAGIC_ENUM_RANGE_MAX must be less than INT16_MAX.");
 
-static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN,
-              "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
+static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 
 namespace detail {
 
@@ -90,9 +84,12 @@ struct supported final
     : std::false_type {};
 #endif
 
+template <typename E>
+inline constexpr bool is_enum_v = std::is_enum_v<E> && std::is_same_v<E, std::decay_t<E>>;
+
 template <std::size_t N>
 struct static_string final {
-  constexpr static_string(std::string_view str) noexcept : static_string(str, std::make_index_sequence<N>{}) {}
+  constexpr static_string(std::string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {}
 
   constexpr const char* data() const noexcept { return chars.data(); }
 
@@ -118,30 +115,7 @@ struct static_string<0> final {
   constexpr operator std::string_view() const noexcept { return {}; }
 };
 
-template <typename E>
-inline constexpr int min_v = static_cast<int>(enum_range<E>::min > (std::numeric_limits<std::underlying_type_t<E>>::min)()
-                                                  ? enum_range<E>::min
-                                                  : (std::numeric_limits<std::underlying_type_t<E>>::min)());
-
-template <typename E>
-inline constexpr int max_v = static_cast<int>(enum_range<E>::max < (std::numeric_limits<std::underlying_type_t<E>>::max)()
-                                                  ? enum_range<E>::max
-                                                  : (std::numeric_limits<std::underlying_type_t<E>>::max)());
-
-template <typename E>
-[[nodiscard]] constexpr auto range() {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::range requires enum type.");
-  static_assert(enum_range<E>::min > (std::numeric_limits<int>::min)(), "magic_enum::enum_range requires min must be greater than INT_MIN.");
-  static_assert(enum_range<E>::max < (std::numeric_limits<int>::max)(), "magic_enum::enum_range requires max must be less than INT_MAX.");
-  static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
-
-  return std::make_integer_sequence<int, max_v<E> - min_v<E> + 1>{};
-}
-
-template <typename E>
-inline constexpr auto range_v = range<E>();
-
-[[nodiscard]] constexpr std::string_view pretty_name(std::string_view name) noexcept {
+constexpr std::string_view pretty_name(std::string_view name) noexcept {
   for (std::size_t i = name.size(); i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
@@ -161,57 +135,132 @@ inline constexpr auto range_v = range<E>();
   return {}; // Invalid name.
 }
 
+template <typename E>
+constexpr auto n() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+#if defined(__clang__)
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+#elif defined(__GNUC__) && __GNUC__ >= 9
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 49, sizeof(__PRETTY_FUNCTION__) - 51};
+#elif defined(_MSC_VER)
+  constexpr std::string_view name{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
+#endif
+
+  if constexpr (supported<E>::value) {
+    return static_string<name.size()>{name};
+  } else {
+    static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+    return std::string_view{}; // Unsupported compiler.
+  }
+}
+
+template <typename E>
+inline constexpr auto type_name_v = n<E>();
+
 template <typename E, E V>
-[[nodiscard]] constexpr auto n() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+constexpr auto n() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 #if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9
   constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
   constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#else
-  return std::string_view{}; // Unsupported compiler.
 #endif
 
-#if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER)
-  return static_string<name.size()>{name};
-#endif
+  if constexpr (supported<E>::value) {
+    return static_string<name.size()>{name};
+  } else {
+    static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+    return std::string_view{}; // Unsupported compiler.
+  }
 }
 
 template <typename E, E V>
 inline constexpr auto name_v = n<E, V>();
 
-template <typename E, int... I>
-[[nodiscard]] constexpr auto strings(std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::strings requires enum type.");
+template <typename E>
+inline constexpr int reflected_min_v = static_cast<int>(enum_range<E>::min > (std::numeric_limits<std::underlying_type_t<E>>::min)()
+                                                            ? enum_range<E>::min
+                                                            : (std::numeric_limits<std::underlying_type_t<E>>::min)());
 
-  return std::array<std::string_view, sizeof...(I)>{{name_v<E, static_cast<E>(I + min_v<E>)>...}};
+template <typename E>
+inline constexpr int reflected_max_v = static_cast<int>(enum_range<E>::max < (std::numeric_limits<std::underlying_type_t<E>>::max)()
+                                                            ? enum_range<E>::max
+                                                            : (std::numeric_limits<std::underlying_type_t<E>>::max)());
+
+template <typename E>
+constexpr std::size_t reflected_size() {
+  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
+  static_assert(reflected_min_v<E> > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
+  static_assert(reflected_max_v<E> < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
+  static_assert(reflected_max_v<E> > reflected_min_v<E>, "magic_enum::enum_range requires max > min.");
+  constexpr auto size = reflected_max_v<E> - reflected_min_v<E> + 1;
+  static_assert(size > 0, "magic_enum::enum_range requires valid size.");
+
+  return static_cast<std::size_t>(size);
+}
+
+template <typename E, int... I>
+constexpr int range_min(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::range_min requires enum type.");
+
+  int r = 0;
+  (void)(((n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0) ? (r = I + reflected_min_v<E>, false) : true) && ...);
+  return r;
+}
+
+template <typename E, int... I>
+constexpr int range_max(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::range_max requires enum type.");
+
+  int r = 0;
+  (void)(((n<E, static_cast<E>(reflected_max_v<E> - I)>().size() != 0) ? (r = reflected_max_v<E> - I, false) : true) && ...);
+  return r;
 }
 
 template <typename E>
-[[nodiscard]] constexpr std::string_view name(E value) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::name requires enum type.");
-  using U = std::underlying_type_t<E>;
-  constexpr auto names = strings<E>(range_v<E>);
+inline constexpr int min_v = range_min<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
 
-  if (static_cast<U>(value) > static_cast<U>(max_v<E>) || static_cast<U>(value) < static_cast<U>(min_v<E>)) {
-    return {}; // Value out of range.
-  }
+template <typename E>
+inline constexpr int max_v = range_max<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
 
-  if (auto i = static_cast<std::size_t>(static_cast<U>(value) - min_v<E>); i < names.size()) {
-    return names[i];
-  }
+template <typename E>
+constexpr std::size_t range_size() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
+  constexpr auto size = max_v<E> - min_v<E> + 1;
+  static_assert(size > 0, "magic_enum::enum_range requires valid size.");
 
-  return {}; // Value out of range.
+  return static_cast<std::size_t>(size);
 }
 
-template <typename E, int... I>
-[[nodiscard]] constexpr auto values(std::integer_sequence<int, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr std::array<bool, sizeof...(I)> valid{{(name_v<E, static_cast<E>(I + min_v<E>)>.size() != 0)...}};
-  constexpr auto num_valid = ((valid[I] ? 1 : 0) + ...);
+template <typename E>
+inline constexpr std::size_t size_v = range_size<E>();
 
-  std::array<E, num_valid> values{};
-  for (std::size_t i = 0, v = 0; i < valid.size() && v < num_valid; ++i) {
+template <typename E>
+inline constexpr auto range_v = std::make_integer_sequence<int, size_v<E>>{};
+
+template <typename E, int... I>
+constexpr std::size_t count(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::count requires enum type.");
+
+  return (((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? 1 : 0) + ...);
+}
+
+template <typename E>
+inline constexpr std::size_t count_v = count<E>(range_v<E>);
+
+template <typename E>
+inline constexpr auto sequence_v = std::make_index_sequence<count_v<E>>{};
+
+template <typename E>
+inline constexpr bool sparsity_v = count_v<E> != size_v<E>;
+
+template <typename E, int... I>
+constexpr auto values(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
+  constexpr std::array<bool, size_v<E>> valid{{(n<E, static_cast<E>(I + min_v<E>)>().size() != 0)...}};
+
+  std::array<E, count_v<E>> values{};
+  for (std::size_t i = 0, v = 0; v < count_v<E>; ++i) {
     if (valid[i]) {
       values[v++] = static_cast<E>(static_cast<int>(i) + min_v<E>);
     }
@@ -221,39 +270,37 @@ template <typename E, int... I>
 }
 
 template <typename E>
-inline constexpr auto values_v = values<E>(range_v<E>);
+using index_t = std::conditional_t<size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
 
 template <typename E>
-inline constexpr std::size_t count_v = values_v<E>.size();
+inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E>>::max)();
 
-template <typename E, std::size_t... I>
-[[nodiscard]] constexpr auto names(std::integer_sequence<std::size_t, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::names requires enum type.");
+template <typename E, int... I>
+constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::indexes requires enum type.");
+  index_t<E> i = 0;
 
-  return std::array<std::string_view, sizeof...(I)>{{name_v<E, values_v<E>[I]>...}};
+  return std::array<index_t<E>, size_v<E>>{{((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? i++ : invalid_index_v<E>)...}};
 }
 
-template <typename E>
-inline constexpr auto names_v = names<E>(std::make_index_sequence<count_v<E>>{});
-
 template <typename E, std::size_t... I>
-[[nodiscard]] constexpr auto entries(std::integer_sequence<std::size_t, I...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
+constexpr auto names(std::index_sequence<I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
+  constexpr auto vals = values<E>(range_v<E>);
 
-  return std::array<std::pair<E, std::string_view>, sizeof...(I)>{{{values_v<E>[I], names_v<E>[I]}...}};
+  return std::array<std::string_view, count_v<E>>{{name_v<E, vals[I]>...}};
 }
 
-template <typename E>
-inline constexpr auto entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
+template <typename E, std::size_t... I>
+constexpr auto entries(std::index_sequence<I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
+  constexpr auto vals = values<E>(range_v<E>);
 
-template <typename T>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+  return std::array<std::pair<E, std::string_view>, count_v<E>>{{{vals[I], name_v<E, vals[I]>}...}};
+}
 
-template <typename T>
-using enable_if_enum_t = std::enable_if_t<std::is_enum_v<remove_cvref_t<T>>, remove_cvref_t<T>>;
-
-template <typename E, typename D>
-inline constexpr bool check_enum_v = std::is_same_v<remove_cvref_t<E>, D> && std::is_enum_v<D>;
+template <typename T, typename R>
+using enable_if_enum_t = std::enable_if_t<std::is_enum_v<T>, R>;
 
 template <typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum : std::false_type {};
@@ -316,19 +363,79 @@ struct underlying_type : detail::underlying_type<T> {};
 template <typename T>
 using underlying_type_t = typename underlying_type<T>::type;
 
+template <typename E, typename EnableIfEnum = void>
+struct enum_traits {};
+
+template <typename E>
+struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
+  using type = E;
+  using underlying_type = std::underlying_type_t<E>;
+
+  inline static constexpr std::string_view type_name = detail::type_name_v<E>;
+
+  inline static constexpr bool is_unscoped_enum = is_unscoped_enum_v<E>;
+  inline static constexpr bool is_scoped_enum = is_scoped_enum_v<E>;
+  inline static constexpr bool is_fixed_enum = is_fixed_enum_v<E>;
+
+  inline static constexpr std::size_t count = detail::count_v<E>;
+  inline static constexpr std::array<E, count> values = detail::values<E>(detail::range_v<E>);
+  inline static constexpr std::array<std::string_view, count> names = detail::names<E>(detail::sequence_v<E>);
+
+  [[nodiscard]] static constexpr bool reflected(E value) noexcept {
+    return static_cast<U>(value) >= static_cast<U>(detail::reflected_min_v<E>) && static_cast<U>(value) <= static_cast<U>(detail::reflected_max_v<E>);
+  }
+
+  [[nodiscard]] static constexpr int index(E value) noexcept {
+    if (static_cast<U>(value) >= static_cast<U>(detail::min_v<E>) && static_cast<U>(value) <= static_cast<U>(detail::max_v<E>)) {
+      if constexpr (detail::sparsity_v<E>) {
+          if (auto i = indexes[static_cast<U>(value) - detail::min_v<E>]; i != detail::invalid_index_v<E>) {
+            return i;
+          }
+      } else {
+        return static_cast<U>(value) - detail::min_v<E>;
+      }
+    }
+
+    return -1; // Value out of range.
+  }
+
+  [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
+    return values[index];
+  }
+
+  [[nodiscard]] static constexpr std::string_view name(E value) noexcept {
+    if (auto i = index(value); i != -1) {
+      return names[i];
+    }
+
+    return {}; // Value out of range.
+  }
+
+ private:
+  static_assert(enum_range<E>::min > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
+  static_assert(enum_range<E>::max < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
+  static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
+  using U = underlying_type;
+  inline static constexpr auto indexes = detail::indexes<E>(detail::range_v<E>);
+};
+
 // Obtains enum value from enum string name.
 // Returns std::optional with enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::optional<D> enum_cast(std::string_view value) noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_cast requires enum type.");
-  constexpr auto values = detail::values_v<D>;
-  constexpr auto count = detail::count_v<D>;
-  constexpr auto names = detail::names_v<D>;
+template <typename E>
+[[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+  using D = std::decay_t<E>;
 
-  for (std::size_t i = 0; i < count; ++i) {
-    if (names[i] == value) {
-      return values[i];
+  if constexpr (detail::size_v<D> > detail::count_v<D> * 2) {
+    for (std::size_t i = 0; i < enum_traits<D>::count; ++i) {
+      if (value == enum_traits<D>::names[i]) {
+        return enum_traits<D>::values[i];
+      }
+    }
+  } else {
+    for (auto i = detail::min_v<D>; i <= detail::max_v<D>; ++i) {
+      if (value == enum_traits<D>::name(static_cast<D>(i))) {
+        return static_cast<D>(i);
+      }
     }
   }
 
@@ -337,123 +444,101 @@ template <typename E, typename D = detail::enable_if_enum_t<E>>
 
 // Obtains enum value from integer value.
 // Returns std::optional with enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::optional<D> enum_cast(std::underlying_type_t<D> value) noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_cast requires enum type.");
+template <typename E>
+[[nodiscard]] constexpr auto enum_cast(std::underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+  using D = std::decay_t<E>;
 
-  if (detail::name<D>(static_cast<D>(value)).empty()) {
-    return std::nullopt; // Invalid value or out of range.
+  if (enum_traits<D>::index(static_cast<D>(value)) != -1) {
+    return static_cast<D>(value);
   }
 
-  return static_cast<D>(value);
+  return std::nullopt; // Invalid value or out of range.
 }
 
 // Returns integer value from enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::underlying_type_t<D> enum_integer(E value) noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_integer requires enum type.");
+template <typename E>
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, std::underlying_type_t<E>> {
+  return static_cast<std::underlying_type_t<E>>(value);
+}
 
-  return static_cast<std::underlying_type_t<D>>(value);
+// Obtains index in enum value sequence from enum value.
+// Returns std::optional with index.
+template <typename E>
+[[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
+  if (auto i = enum_traits<std::decay_t<E>>::index(value); i != -1) {
+    return i;
+  }
+
+  return std::nullopt; // Value out of range.
 }
 
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
-template<typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr D enum_value(std::size_t index) {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_value requires enum type.");
-  constexpr auto values = detail::values_v<D>;
-
-  return assert(index < values.size()), values[index];
+template<typename E>
+[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+  return enum_traits<std::decay_t<E>>::value(index);
 }
 
 // Obtains value enum sequence.
 // Returns std::array with enum values, sorted by enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_values() noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_values requires enum type.");
-  constexpr auto values = detail::values_v<D>;
-
-  return values;
+template <typename E>
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::values)&> {
+  return enum_traits<std::decay_t<E>>::values;
 }
 
 // Returns number of enum values.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::size_t enum_count() noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_count requires enum type.");
-  constexpr auto count = detail::count_v<D>;
-
-  return count;
+template <typename E>
+[[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
+  return enum_traits<std::decay_t<E>>::count;
 }
 
 // Returns string enum name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
-template <auto V, typename D = detail::enable_if_enum_t<decltype(V)>>
-[[nodiscard]] constexpr std::string_view enum_name() noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<decltype(V), D>, "magic_enum::enum_name requires enum type.");
-
-  return detail::name_v<D, V>;
+template <auto V>
+[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
+  return detail::name_v<std::decay_t<decltype(V)>, V>;
 }
 
 // Returns string enum name from enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr std::string_view enum_name(E value) noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_name requires enum type.");
-
-  return detail::name<D>(value);
+// If enum value does not have name or value out of range, returns empty string.
+template <typename E>
+[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
+  return enum_traits<std::decay_t<E>>::name(value);
 }
 
 // Obtains string enum name sequence.
 // Returns std::array with string enum names, sorted by enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_names() noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_names requires enum type.");
-  constexpr auto names = detail::names_v<D>;
-
-  return names;
+template <typename E>
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::names)&> {
+  return enum_traits<std::decay_t<E>>::names;
 }
 
 // Obtains pair (value enum, string enum name) sequence.
 // Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-[[nodiscard]] constexpr auto enum_entries() noexcept {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::enum_entries requires enum type.");
-  constexpr auto entries = detail::entries_v<D>;
+template <typename E>
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, std::array<std::pair<std::decay_t<E>, std::string_view>, enum_count<E>()>> {
+  using D = std::decay_t<E>;
 
-  return entries;
+  return detail::entries<D>(detail::sequence_v<D>);
 }
 
 namespace ostream_operators {
 
-template <typename Char, typename Traits, typename E, typename D = detail::enable_if_enum_t<E>>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
-
-  if (auto name = detail::name<D>(value); !name.empty()) {
+template <typename Char, typename Traits, typename E>
+auto operator<<(std::basic_ostream<Char, Traits>& os, E value) -> detail::enable_if_enum_t<E, std::basic_ostream<Char, Traits>&> {
+  if (auto name = enum_traits<std::decay_t<E>>::name(value); !name.empty()) {
     for (auto c : name) {
       os.put(c);
     }
   } else {
-    os << static_cast<std::underlying_type_t<D>>(value);
+    os << static_cast<std::underlying_type_t<E>>(value);
   }
 
   return os;
 }
 
-template <typename Char, typename Traits, typename E, typename D = detail::enable_if_enum_t<E>>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
-  static_assert(detail::supported<D>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::ostream_operators::operator<< requires enum type.");
-
+template <typename Char, typename Traits, typename E>
+auto operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) -> detail::enable_if_enum_t<E, std::basic_ostream<Char, Traits>&> {
   if (value.has_value()) {
     os << value.value();
   }
@@ -465,56 +550,38 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 namespace bitwise_operators {
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator~(E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator~ requires enum type.");
-  using U = std::underlying_type_t<D>;
-
-  return static_cast<E>(~static_cast<U>(rhs));
+template <typename E>
+constexpr auto operator~(E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
+  return static_cast<E>(~static_cast<std::underlying_type_t<E>>(rhs));
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator|(E lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator| requires enum type.");
-  using U = std::underlying_type_t<D>;
-
-  return static_cast<E>(static_cast<U>(lhs) | static_cast<U>(rhs));
+template <typename E>
+constexpr auto operator|(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
+  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) | static_cast<std::underlying_type_t<E>>(rhs));
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator&(E lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator& requires enum type.");
-  using U = std::underlying_type_t<D>;
-
-  return static_cast<E>(static_cast<U>(lhs) & static_cast<U>(rhs));
+template <typename E>
+constexpr auto operator&(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
+  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) & static_cast<std::underlying_type_t<E>>(rhs));
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E operator^(E lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^ requires enum type.");
-  using U = std::underlying_type_t<D>;
-
-  return static_cast<E>(static_cast<U>(lhs) ^ static_cast<U>(rhs));
+template <typename E>
+constexpr auto operator^(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
+  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) ^ static_cast<std::underlying_type_t<E>>(rhs));
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator|=(E& lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator|= requires enum type.");
-
+template <typename E>
+constexpr auto operator|=(E& lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E&> {
   return lhs = lhs | rhs;
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator&=(E& lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator%= requires enum type.");
-
+template <typename E>
+constexpr auto operator&=(E& lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E&> {
   return lhs = lhs & rhs;
 }
 
-template <typename E, typename D = detail::enable_if_enum_t<E>>
-constexpr E& operator^=(E& lhs, E rhs) noexcept {
-  static_assert(detail::check_enum_v<E, D>, "magic_enum::bitwise_operators::operator^= requires enum type.");
-
+template <typename E>
+constexpr auto operator^=(E& lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E&> {
   return lhs = lhs ^ rhs;
 }
 
