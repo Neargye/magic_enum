@@ -97,9 +97,11 @@ int main() {
   static_assert(magic_enum::is_scoped_enum_v<Flags>);
 
   // Checks whether type is an Fixed enumeration.
+#if defined(_MSC_VER) && _MSC_VER != 1923 // MSVC bug, we can not check is enum fixed
   static_assert(!magic_enum::is_fixed_enum_v<color>);
   static_assert(magic_enum::is_fixed_enum_v<Color>);
   static_assert(magic_enum::is_fixed_enum_v<Flags>);
+#endif
 
   // Enum pair (value enum, string enum name) sequence.
   constexpr auto color_entries = magic_enum::enum_entries<Color>();

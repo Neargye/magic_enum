@@ -454,10 +454,12 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_scoped_enum_v<Directions>);
   REQUIRE_FALSE(is_scoped_enum_v<number>);
 
+#if defined(_MSC_VER) && _MSC_VER != 1923 // MSVC bug, we can not check is enum fixed
   REQUIRE(is_fixed_enum_v<Color>);
   REQUIRE(is_fixed_enum_v<Numbers>);
   REQUIRE_FALSE(is_fixed_enum_v<Directions>);
   REQUIRE(is_fixed_enum_v<number>);
+#endif
 }
 
 TEST_CASE("enum_traits") {
