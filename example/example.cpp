@@ -33,7 +33,7 @@ int main() {
   std::cout << c1_name << std::endl; // RED
 
   // String enum name sequence.
-  constexpr auto color_names = magic_enum::enum_names<Color>();
+  constexpr auto& color_names = magic_enum::enum_names<Color>();
   std::cout << "Color names:";
   for (auto n : color_names) {
     std::cout << " " << n;
@@ -70,7 +70,7 @@ int main() {
   std::cout << "Color[0] = " << magic_enum::enum_value<Color>(0) << std::endl; // Color[0] = RED
 
   // Enum value sequence.
-  constexpr auto colors = magic_enum::enum_values<Color>();
+  constexpr auto& colors = magic_enum::enum_values<Color>();
   std::cout << "Colors sequence:";
   for (Color c : colors) {
     std::cout << " " << c; // ostream operator for enum.
