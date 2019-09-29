@@ -5,7 +5,7 @@ from conans.errors import ConanInvalidConfiguration
 
 class MagicEnumConan(ConanFile):
     name = "magic_enum"
-    version = "0.6.0"
+    version = "0.6.1"
     description = "Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code."
     topics = (
         "conan",
