@@ -251,9 +251,6 @@ inline constexpr std::size_t count_v = count<E>(range_v<E>);
 template <typename E>
 inline constexpr auto sequence_v = std::make_index_sequence<count_v<E>>{};
 
-template <typename E>
-inline constexpr bool sparsity_v = count_v<E> != size_v<E>;
-
 template <typename E, int... I>
 constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
@@ -387,7 +384,7 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
 
   [[nodiscard]] static constexpr int index(E value) noexcept {
     if (static_cast<U>(value) >= static_cast<U>(detail::min_v<E>) && static_cast<U>(value) <= static_cast<U>(detail::max_v<E>)) {
-      if constexpr (detail::sparsity_v<E>) {
+      if constexpr (detail::size_v<E> != detail::count_v<E>) {
           if (auto i = indexes[static_cast<U>(value) - detail::min_v<E>]; i != detail::invalid_index_v<E>) {
             return i;
           }
