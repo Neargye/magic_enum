@@ -33,6 +33,7 @@
 #define NEARGYE_MAGIC_ENUM_HPP
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <iosfwd>
 #include <limits>
@@ -397,7 +398,11 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
   }
 
   [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
-    return values[index];
+    if constexpr (detail::size_v<E> != detail::count_v<E>) {
+      return assert(index < count), values[index];
+    } else {
+      return assert(index < count), static_cast<E>(detail::min_v<E> + index);
+    }
   }
 
   [[nodiscard]] static constexpr std::string_view name(E value) noexcept {
