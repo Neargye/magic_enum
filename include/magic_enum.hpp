@@ -140,7 +140,7 @@ constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 #if defined(__clang__)
   constexpr std::string_view name{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
-#elif defined(__GNUC__) && __GNUC__ >= 9
+#elif defined(__GNUC__)
   constexpr std::string_view name{__PRETTY_FUNCTION__ + 49, sizeof(__PRETTY_FUNCTION__) - 51};
 #elif defined(_MSC_VER)
   constexpr std::string_view name{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
@@ -160,7 +160,7 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9
+#if defined(__clang__) || defined(__GNUC__)
   constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
   constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
