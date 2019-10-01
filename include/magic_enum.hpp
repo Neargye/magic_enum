@@ -378,6 +378,7 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
   inline static constexpr std::size_t count = detail::count_v<E>;
   inline static constexpr std::array<E, count> values = detail::values<E>(detail::range_v<E>);
   inline static constexpr std::array<std::string_view, count> names = detail::names<E>(detail::sequence_v<E>);
+  inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(detail::sequence_v<E>);
 
   [[nodiscard]] static constexpr bool reflected(E value) noexcept {
     return static_cast<U>(value) >= static_cast<U>(detail::reflected_min_v<E>) && static_cast<U>(value) <= static_cast<U>(detail::reflected_max_v<E>);
@@ -519,10 +520,8 @@ template <typename E>
 // Obtains pair (value enum, string enum name) sequence.
 // Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, std::array<std::pair<std::decay_t<E>, std::string_view>, enum_count<E>()>> {
-  using D = std::decay_t<E>;
-
-  return detail::entries<D>(detail::sequence_v<D>);
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::entries)&> {
+  return enum_traits<std::decay_t<E>>::entries;
 }
 
 namespace ostream_operators {
