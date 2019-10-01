@@ -417,6 +417,7 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
   static_assert(enum_range<E>::min > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
   static_assert(enum_range<E>::max < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
   static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
+  static_assert(count > 0, "magic_enum::enum_range requires enum implementation or valid max and min.");
   using U = underlying_type;
   inline static constexpr auto indexes = detail::indexes<E>(detail::range_v<E>);
 };
