@@ -56,6 +56,10 @@
 
 namespace magic_enum {
 
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER)
+#  define MAGIC_ENUM_SUPPORTED 1
+#endif
+
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
 // If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
 // If need another range for specific enum type, add specialization enum_range for necessary enum type.
@@ -79,7 +83,7 @@ namespace detail {
 
 template <typename T>
 struct supported final
-#if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER) || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
     : std::true_type {};
 #else
     : std::false_type {};
@@ -139,20 +143,19 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
 template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(__clang__)
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
+#  if defined(__clang__)
   constexpr std::string_view name{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
-#elif defined(__GNUC__)
+#  elif defined(__GNUC__)
   constexpr std::string_view name{__PRETTY_FUNCTION__ + 49, sizeof(__PRETTY_FUNCTION__) - 51};
-#elif defined(_MSC_VER)
+#  elif defined(_MSC_VER)
   constexpr std::string_view name{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
+#  endif
+  return static_string<name.size()>{name};
+#else
+  static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  return std::string_view{}; // Unsupported compiler.
 #endif
-
-  if constexpr (supported<E>::value) {
-    return static_string<name.size()>{name};
-  } else {
-    static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-    return std::string_view{}; // Unsupported compiler.
-  }
 }
 
 template <typename E>
@@ -161,18 +164,17 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
+#  if defined(__clang__) || defined(__GNUC__)
   constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#elif defined(_MSC_VER)
+#  elif defined(_MSC_VER)
   constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+#  endif
+  return static_string<name.size()>{name};
+#else
+  static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  return std::string_view{}; // Unsupported compiler.
 #endif
-
-  if constexpr (supported<E>::value) {
-    return static_string<name.size()>{name};
-  } else {
-    static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-    return std::string_view{}; // Unsupported compiler.
-  }
 }
 
 template <typename E, E V>
