@@ -34,7 +34,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_index` obtains index in enum value sequence from enum value.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
-* `is_fixed_enum` checks whether type is an [Fixed enumeration](https://en.cppreference.com/w/cpp/language/enum).
 * `underlying_type` improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
 * `using namespace magic_enum::ostream_operators;` ostream operators for enums.
 * `using namespace magic_enum::bitwise_operators;` bitwise operators for enums.
