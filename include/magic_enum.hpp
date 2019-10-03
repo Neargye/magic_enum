@@ -437,7 +437,7 @@ template <typename E>
 // Obtains enum value from integer value.
 // Returns std::optional with enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_cast(std::underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(std::underlying_type_t<std::decay_t<E>> value) noexcept -> detail::enable_if_enum_t<std::decay_t<E>, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
   if (enum_traits<D>::index(static_cast<D>(value)) != -1) {
