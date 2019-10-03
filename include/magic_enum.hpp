@@ -301,7 +301,11 @@ constexpr auto entries(std::index_sequence<I...>) noexcept {
 }
 
 template <typename T, typename R>
-using enable_if_enum_t = std::enable_if_t<std::is_enum_v<T>, R>;
+using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>, R>;
+
+} // namespace magic_enum::detail
+
+namespace traits {
 
 template <typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum : std::false_type {};
@@ -315,42 +319,13 @@ struct is_unscoped_enum : std::false_type {};
 template <typename T>
 struct is_unscoped_enum<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
-template <typename T, bool = std::is_enum_v<T>>
+template <typename T, bool = std::is_enum_v<std::decay_t<T>>>
 struct underlying_type {};
 
 template <typename T>
-struct underlying_type<T, true> : std::underlying_type<T> {};
+struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
-} // namespace magic_enum::detail
-
-// Checks is magic_enum supported compiler.
-inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
-
-// Checks whether T is an Unscoped enumeration type.
-// Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
-template <typename T>
-struct is_unscoped_enum : detail::is_unscoped_enum<T> {};
-
-template <typename T>
-inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
-
-// Checks whether T is an Scoped enumeration type.
-// Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
-template <typename T>
-struct is_scoped_enum : detail::is_scoped_enum<T> {};
-
-template <typename T>
-inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
-
-// If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
-// Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
-template <typename T>
-struct underlying_type : detail::underlying_type<T> {};
-
-template <typename T>
-using underlying_type_t = typename underlying_type<T>::type;
-
-template <typename E, typename EnableIfEnum = void>
+template <typename E, typename = void>
 struct enum_traits {};
 
 template <typename E>
@@ -360,8 +335,8 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
 
   inline static constexpr std::string_view type_name = detail::type_name_v<E>;
 
-  inline static constexpr bool is_unscoped_enum = is_unscoped_enum_v<E>;
-  inline static constexpr bool is_scoped_enum = is_scoped_enum_v<E>;
+  inline static constexpr bool is_unscoped_enum = traits::is_unscoped_enum<E>::value;
+  inline static constexpr bool is_scoped_enum = traits::is_scoped_enum<E>::value;
 
   inline static constexpr std::size_t count = detail::count_v<E>;
   inline static constexpr std::array<E, count> values = detail::values<E>(detail::range_v<E>);
@@ -375,9 +350,9 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
   [[nodiscard]] static constexpr int index(E value) noexcept {
     if (static_cast<U>(value) >= static_cast<U>(detail::min_v<E>) && static_cast<U>(value) <= static_cast<U>(detail::max_v<E>)) {
       if constexpr (detail::size_v<E> != detail::count_v<E>) {
-          if (auto i = indexes[static_cast<U>(value) - detail::min_v<E>]; i != detail::invalid_index_v<E>) {
-            return i;
-          }
+        if (auto i = indexes[static_cast<U>(value) - detail::min_v<E>]; i != detail::invalid_index_v<E>) {
+          return i;
+        }
       } else {
         return static_cast<U>(value) - detail::min_v<E>;
       }
@@ -411,6 +386,39 @@ struct enum_traits<E, std::enable_if_t<detail::is_enum_v<E>>> {
   inline static constexpr auto indexes = detail::indexes<E>(detail::range_v<E>);
 };
 
+} // namespace magic_enum::traits
+
+// Checks is magic_enum supported compiler.
+inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
+
+// Checks whether T is an Unscoped enumeration type.
+// Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
+template <typename T>
+struct is_unscoped_enum : traits::is_unscoped_enum<T> {};
+
+template <typename T>
+inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
+
+// Checks whether T is an Scoped enumeration type.
+// Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
+template <typename T>
+struct is_scoped_enum : traits::is_scoped_enum<T> {};
+
+template <typename T>
+inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
+
+// If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
+// Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
+template <typename T>
+struct underlying_type : traits::underlying_type<T> {};
+
+template <typename T>
+using underlying_type_t = typename underlying_type<T>::type;
+
+// Enum traits defines a compile-time template-based interface to query the properties of enum.
+template <typename E>
+using enum_traits = traits::enum_traits<std::decay_t<E>>;
+
 // Obtains enum value from enum string name.
 // Returns std::optional with enum value.
 template <typename E>
@@ -437,7 +445,7 @@ template <typename E>
 // Obtains enum value from integer value.
 // Returns std::optional with enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_cast(std::underlying_type_t<std::decay_t<E>> value) noexcept -> detail::enable_if_enum_t<std::decay_t<E>, std::optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
   if (enum_traits<D>::index(static_cast<D>(value)) != -1) {
@@ -449,15 +457,15 @@ template <typename E>
 
 // Returns integer value from enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, std::underlying_type_t<E>> {
-  return static_cast<std::underlying_type_t<E>>(value);
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
+  return static_cast<underlying_type_t<E>>(value);
 }
 
 // Obtains index in enum value sequence from enum value.
 // Returns std::optional with index.
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
-  if (auto i = enum_traits<std::decay_t<E>>::index(value); i != -1) {
+  if (auto i = enum_traits<E>::index(value); i != -1) {
     return i;
   }
 
@@ -468,20 +476,20 @@ template <typename E>
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template<typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
-  return enum_traits<std::decay_t<E>>::value(index);
+  return enum_traits<E>::value(index);
 }
 
 // Obtains value enum sequence.
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::values)&> {
-  return enum_traits<std::decay_t<E>>::values;
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::values)&> {
+  return enum_traits<E>::values;
 }
 
 // Returns number of enum values.
 template <typename E>
 [[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
-  return enum_traits<std::decay_t<E>>::count;
+  return enum_traits<E>::count;
 }
 
 // Returns string enum name from static storage enum variable.
@@ -495,33 +503,33 @@ template <auto V>
 // If enum value does not have name or value out of range, returns empty string.
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
-  return enum_traits<std::decay_t<E>>::name(value);
+  return enum_traits<E>::name(value);
 }
 
 // Obtains string enum name sequence.
 // Returns std::array with string enum names, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::names)&> {
-  return enum_traits<std::decay_t<E>>::names;
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::names)&> {
+  return enum_traits<E>::names;
 }
 
 // Obtains pair (value enum, string enum name) sequence.
 // Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, const decltype(enum_traits<std::decay_t<E>>::entries)&> {
-  return enum_traits<std::decay_t<E>>::entries;
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::entries)&> {
+  return enum_traits<E>::entries;
 }
 
 namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E>
 auto operator<<(std::basic_ostream<Char, Traits>& os, E value) -> detail::enable_if_enum_t<E, std::basic_ostream<Char, Traits>&> {
-  if (auto name = enum_traits<std::decay_t<E>>::name(value); !name.empty()) {
+  if (auto name = enum_name(value); !name.empty()) {
     for (auto c : name) {
       os.put(c);
     }
   } else {
-    os << static_cast<std::underlying_type_t<E>>(value);
+    os << enum_integer(value);
   }
 
   return os;
@@ -542,22 +550,22 @@ namespace bitwise_operators {
 
 template <typename E>
 constexpr auto operator~(E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
-  return static_cast<E>(~static_cast<std::underlying_type_t<E>>(rhs));
+  return static_cast<E>(~static_cast<underlying_type_t<E>>(rhs));
 }
 
 template <typename E>
 constexpr auto operator|(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
-  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) | static_cast<std::underlying_type_t<E>>(rhs));
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) | static_cast<underlying_type_t<E>>(rhs));
 }
 
 template <typename E>
 constexpr auto operator&(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
-  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) & static_cast<std::underlying_type_t<E>>(rhs));
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) & static_cast<underlying_type_t<E>>(rhs));
 }
 
 template <typename E>
 constexpr auto operator^(E lhs, E rhs) noexcept -> detail::enable_if_enum_t<E, E> {
-  return static_cast<E>(static_cast<std::underlying_type_t<E>>(lhs) ^ static_cast<std::underlying_type_t<E>>(rhs));
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) ^ static_cast<underlying_type_t<E>>(rhs));
 }
 
 template <typename E>
