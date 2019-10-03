@@ -57,7 +57,7 @@ constexpr optional<E> enum_cast(underlying_type_t<E> value) noexcept;
 ## `enum_value`
 ```cpp
 template <typename E>
-constexpr E enum_value(std::size_t index) noexcept;
+constexpr E enum_value(size_t index) noexcept;
 ```
 
 * Returns enum value at specified index.
@@ -118,10 +118,10 @@ constexpr underlying_type_t<E> enum_integer(E value) noexcept;
 ## `enum_name`
 ```cpp
 template <typename E>
-constexpr std::string_view enum_name(E value) noexcept;
+constexpr string_view enum_name(E value) noexcept;
 
 template <auto V>
-constexpr std::string_view enum_name() noexcept;
+constexpr string_view enum_name() noexcept;
 ```
 
 * Returns `std::string_view`. If enum value does not have name, returns empty string.
@@ -147,7 +147,7 @@ constexpr std::string_view enum_name() noexcept;
 ## `enum_names`
 ```cpp
 template <typename E>
-constexpr array<std::string_view, N> enum_names() noexcept;
+constexpr array<string_view, N> enum_names() noexcept;
 ```
 
 * Returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
@@ -162,7 +162,7 @@ constexpr array<std::string_view, N> enum_names() noexcept;
 ## `enum_entries`
 ```cpp
 template <typename E>
-constexpr array<std::pair<E, std::string_view>, N> enum_entries() noexcept;
+constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 ```
 
 * Returns `std::array<std::pair<E, std::string_view>, N>` with all `std::pair` (value enum, string enum name) where `N = number of enum values`, sorted by enum value.
@@ -244,10 +244,10 @@ using underlying_type_t = typename underlying_type<T>::type;
 ## `ostream_operators`
 ```cpp
 template <typename Char, typename Traits, typename E>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value);
+basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, E value);
 
 template <typename Char, typename Traits, typename E>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value);
+basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optional<E> value);
 
 ```
 * Out-of-the-box ostream operators for enums.
