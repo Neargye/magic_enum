@@ -86,6 +86,7 @@ TEST_CASE("enum_cast") {
     constexpr auto cr = enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color>(7).value() == Color::GREEN);
+    REQUIRE(enum_cast<Color&>(7).value() == Color::GREEN);
     REQUIRE(enum_cast<Color>((int)cm[2]).value() == Color::BLUE);
     REQUIRE_FALSE(enum_cast<Color>(0).has_value());
 
