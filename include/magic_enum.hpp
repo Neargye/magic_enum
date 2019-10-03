@@ -193,12 +193,13 @@ inline constexpr int reflected_max_v = static_cast<int>(enum_range<E>::max < (st
 
 template <typename E>
 constexpr std::size_t reflected_size() {
-  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
+  static_assert(is_enum_v<E>, "magic_enum::detail::reflected_size requires enum type.");
   static_assert(reflected_min_v<E> > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
   static_assert(reflected_max_v<E> < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
   static_assert(reflected_max_v<E> > reflected_min_v<E>, "magic_enum::enum_range requires max > min.");
   constexpr auto size = reflected_max_v<E> - reflected_min_v<E> + 1;
   static_assert(size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(size < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return static_cast<std::size_t>(size);
 }
@@ -232,6 +233,7 @@ constexpr std::size_t range_size() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
   constexpr auto size = max_v<E> - min_v<E> + 1;
   static_assert(size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(size < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return static_cast<std::size_t>(size);
 }
@@ -263,7 +265,7 @@ constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   std::array<E, count_v<E>> values{};
   for (std::size_t i = 0, v = 0; v < count_v<E>; ++i) {
     if (valid[i]) {
-      values[v++] = static_cast<E>(i + min_v<E>);
+      values[v++] = static_cast<E>(static_cast<int>(i) + min_v<E>);
     }
   }
 
@@ -361,7 +363,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
     if constexpr (size_v<E> != count_v<E>) {
       return assert(index < count), values[index];
     } else {
-      return assert(index < count), static_cast<E>(index + min_v<E>);
+      return assert(index < count), static_cast<E>(static_cast<int>(index) + min_v<E>);
     }
   }
 
@@ -374,6 +376,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   }
 
  private:
+  static_assert(is_enum_v<E>, "magic_enum::enum_traits requires enum type.");
   static_assert(enum_range<E>::min > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
   static_assert(enum_range<E>::max < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
   static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
