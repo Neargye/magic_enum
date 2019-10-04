@@ -20,6 +20,7 @@
 * Before use, read the [limitations](limitations.md) of functionality.
 
 * To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.
+If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
 
 ## `enum_cast`
 ```cpp

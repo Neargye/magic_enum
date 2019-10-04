@@ -84,7 +84,7 @@ namespace detail {
 
 template <typename T>
 struct supported final
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
     : std::true_type {};
 #else
     : std::false_type {};
