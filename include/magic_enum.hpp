@@ -141,6 +141,34 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
   return {}; // Invalid name.
 }
 
+template<typename L, typename R>
+constexpr bool mixed_sign_less(L left, R right) noexcept {
+  static_assert(std::is_integral_v<L>, "L must be an integral value");
+  static_assert(std::is_integral_v<R>, "R must be an integral value");
+  if constexpr(std::is_signed_v<L> == std::is_signed_v<R>) {
+    // If same signedness (both signed or both unsigned)
+    return left < right;
+  }
+  else if constexpr(std::is_signed_v<L>) {
+    // if 'left' is negative, then result is 'true', otherwise cast & compare
+    return left < 0 || static_cast<std::make_unsigned_t<L>>(left) < right;
+  }
+  else { // std::is_signed_v<R>
+    // if 'right' is negative, then result is 'false', otherwise cast & compare
+    return right >= 0 && left < static_cast<std::make_unsigned_t<R>>(right);
+  }
+}
+
+template<typename L, typename R>
+constexpr int mixed_sign_min_as_int(L left, R right) noexcept {
+  return mixed_sign_less(left, right) ? static_cast<int>(left) : static_cast<int>(right);
+}
+
+template<typename L, typename R>
+constexpr int mixed_sign_max_as_int(L left, R right) noexcept {
+  return mixed_sign_less(left, right) ? static_cast<int>(right) : static_cast<int>(left);
+}
+
 template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
@@ -182,14 +210,10 @@ template <typename E, E V>
 inline constexpr auto name_v = n<E, V>();
 
 template <typename E>
-inline constexpr int reflected_min_v = static_cast<int>(enum_range<E>::min > (std::numeric_limits<std::underlying_type_t<E>>::min)()
-                                                            ? enum_range<E>::min
-                                                            : (std::numeric_limits<std::underlying_type_t<E>>::min)());
+inline constexpr int reflected_min_v = mixed_sign_max_as_int(enum_range<E>::min, std::numeric_limits<std::underlying_type_t<E>>::min());
 
 template <typename E>
-inline constexpr int reflected_max_v = static_cast<int>(enum_range<E>::max < (std::numeric_limits<std::underlying_type_t<E>>::max)()
-                                                            ? enum_range<E>::max
-                                                            : (std::numeric_limits<std::underlying_type_t<E>>::max)());
+inline constexpr int reflected_max_v = mixed_sign_min_as_int(enum_range<E>::max, std::numeric_limits<std::underlying_type_t<E>>::max());
 
 template <typename E>
 constexpr std::size_t reflected_size() {
