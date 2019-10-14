@@ -482,11 +482,13 @@ TEST_CASE("extrema") {
     // leading to a value of 18446744073709551615 (numeric_limit_max of uint64_t).
     NONE = std::numeric_limits<uint64_t>::max(),
   };
+
   SECTION("min") {
     REQUIRE(magic_enum::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<BadColor> == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor> == 0);
   }
+
   SECTION("max") {
     REQUIRE(magic_enum::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<BadColor> == MAGIC_ENUM_RANGE_MAX);
@@ -507,8 +509,8 @@ TEST_CASE("mixed_sign_less") {
   constexpr int32_t int32_t_max = std::numeric_limits<int32_t>::max();
   constexpr int64_t int64_t_max = std::numeric_limits<int64_t>::max();
 
-  // Also testing with offset to avoid corner cases
-  // Two variables to avoid hidden casts
+  // Also testing with offset to avoid corner cases.
+  // Two variables to avoid hidden casts:
   constexpr int64_t offset_int64_t = 17;
   constexpr int32_t offset_int32_t = 17;
 
@@ -516,40 +518,45 @@ TEST_CASE("mixed_sign_less") {
     REQUIRE(mixed_sign_less(-5, -3));
     REQUIRE(mixed_sign_less(27U, 49U));
   }
+
   SECTION("same signedness, different width") {
     REQUIRE(mixed_sign_less(uint32_t_max, uint64_t_max));
-    REQUIRE(!mixed_sign_less(uint64_t_max, uint32_t_max));
+    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, uint32_t_max));
     REQUIRE(mixed_sign_less(int64_t_min, int32_t_min));
-    REQUIRE(!mixed_sign_less(int32_t_min, int64_t_min));
+    REQUIRE_FALSE(mixed_sign_less(int32_t_min, int64_t_min));
     REQUIRE(mixed_sign_less(int64_t_min + offset_int64_t, int32_t_min + offset_int32_t));
-    REQUIRE(!mixed_sign_less(int32_t_min + offset_int32_t, int64_t_min + offset_int64_t));
+    REQUIRE_FALSE(mixed_sign_less(int32_t_min + offset_int32_t, int64_t_min + offset_int64_t));
   }
+
   SECTION("left signed, right unsigned") {
     REQUIRE(mixed_sign_less(-5, 3U));
     REQUIRE(mixed_sign_less(3, 5U));
   }
+
   SECTION("left signed, right unsigned, different width") {
     REQUIRE(mixed_sign_less(int32_t_max, uint64_t_max));
-    REQUIRE(!mixed_sign_less(int64_t_max, uint32_t_max));
+    REQUIRE_FALSE(mixed_sign_less(int64_t_max, uint32_t_max));
     REQUIRE(mixed_sign_less(int32_t_min, uint64_t_min));
     REQUIRE(mixed_sign_less(int64_t_min, uint32_t_min));
     REQUIRE(mixed_sign_less(int32_t_max - offset_int32_t, uint64_t_max));
-    REQUIRE(!mixed_sign_less(int64_t_max - offset_int64_t, uint32_t_max));
+    REQUIRE_FALSE(mixed_sign_less(int64_t_max - offset_int64_t, uint32_t_max));
     REQUIRE(mixed_sign_less(int32_t_min + offset_int32_t, uint64_t_min));
     REQUIRE(mixed_sign_less(int64_t_min + offset_int64_t, uint32_t_min));
   }
+
   SECTION("left unsigned, right signed") {
-    REQUIRE(!mixed_sign_less(3U, -5));
+    REQUIRE_FALSE(mixed_sign_less(3U, -5));
     REQUIRE(mixed_sign_less(3U, 5));
   }
+
   SECTION("left unsigned, right signed, different width") {
     REQUIRE(mixed_sign_less(uint32_t_max, int64_t_max));
-    REQUIRE(!mixed_sign_less(uint64_t_max, int32_t_max));
-    REQUIRE(!mixed_sign_less(uint32_t_min, int64_t_min));
-    REQUIRE(!mixed_sign_less(uint64_t_min, int32_t_min));
+    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, int32_t_max));
+    REQUIRE_FALSE(mixed_sign_less(uint32_t_min, int64_t_min));
+    REQUIRE_FALSE(mixed_sign_less(uint64_t_min, int32_t_min));
     REQUIRE(mixed_sign_less(uint32_t_max, int64_t_max - offset_int32_t));
-    REQUIRE(!mixed_sign_less(uint64_t_max, int32_t_max - offset_int64_t));
-    REQUIRE(!mixed_sign_less(uint32_t_min, int64_t_min + offset_int32_t));
-    REQUIRE(!mixed_sign_less(uint64_t_min, int32_t_min + offset_int64_t));
+    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, int32_t_max - offset_int64_t));
+    REQUIRE_FALSE(mixed_sign_less(uint32_t_min, int64_t_min + offset_int32_t));
+    REQUIRE_FALSE(mixed_sign_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
 }
