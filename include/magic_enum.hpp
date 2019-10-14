@@ -145,15 +145,15 @@ template <typename L, typename R>
 constexpr bool mixed_sign_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_less requires integral type.");
 
-  if constexpr(std::is_signed_v<L> == std::is_signed_v<R>) {
-    // If same signedness (both signed or both unsigned).
-    return lhs < rhs;
-  } else if constexpr(std::is_signed_v<L>) {
+  if constexpr (std::is_signed_v<L> && std::is_unsigned_v<R>) {
     // If 'left' is negative, then result is 'true', otherwise cast & compare.
     return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
-  } else { // std::is_signed_v<R>
+  } else if constexpr (std::is_unsigned_v<L> && std::is_signed_v<R>) {
     // If 'right' is negative, then result is 'false', otherwise cast & compare.
     return rhs >= 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
+  } else {
+    // If same signedness (both signed or both unsigned).
+    return lhs < rhs;
   }
 }
 
