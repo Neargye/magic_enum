@@ -141,7 +141,7 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
   return {}; // Invalid name.
 }
 
-template<typename L, typename R>
+template <typename L, typename R>
 constexpr bool mixed_sign_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_less requires integral type.");
 
@@ -157,14 +157,14 @@ constexpr bool mixed_sign_less(L lhs, R rhs) noexcept {
   }
 }
 
-template<typename L, typename R>
+template <typename L, typename R>
 constexpr int mixed_sign_min_as_int(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_min_as_int requires integral type.");
 
   return mixed_sign_less(lhs, rhs) ? static_cast<int>(lhs) : static_cast<int>(rhs);
 }
 
-template<typename L, typename R>
+template <typename L, typename R>
 constexpr int mixed_sign_max_as_int(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_max_as_int requires integral type.");
 
@@ -246,7 +246,7 @@ constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   return values;
 }
 
-template<typename E>
+template <typename E>
 inline constexpr auto values_v = values<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
 
 template <typename E>
@@ -269,16 +269,10 @@ constexpr std::size_t range_size() noexcept {
 }
 
 template <typename E>
-inline constexpr std::size_t size_v = range_size<E>();
+inline constexpr std::size_t range_size_v = range_size<E>();
 
 template <typename E>
-inline constexpr auto range_v = std::make_integer_sequence<int, size_v<E>>{};
-
-template <typename E>
-inline constexpr auto sequence_v = std::make_index_sequence<count_v<E>>{};
-
-template <typename E>
-using index_t = std::conditional_t<size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
+using index_t = std::conditional_t<range_size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
 
 template <typename E>
 inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E>>::max)();
@@ -288,21 +282,21 @@ constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::indexes requires enum type.");
   index_t<E> i = 0;
 
-  return std::array<index_t<E>, size_v<E>>{{((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? i++ : invalid_index_v<E>)...}};
+  return std::array<index_t<E>, sizeof...(I)>{{((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? i++ : invalid_index_v<E>)...}};
 }
 
 template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
 
-  return std::array<std::string_view, count_v<E>>{{name_v<E, values_v<E>[I]>...}};
+  return std::array<std::string_view, sizeof...(I)>{{name_v<E, values_v<E>[I]>...}};
 }
 
 template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
-  return std::array<std::pair<E, std::string_view>, count_v<E>>{{{values_v<E>[I], name_v<E, values_v<E>[I]>}...}};
+  return std::array<std::pair<E, std::string_view>, sizeof...(I)>{{{values_v<E>[I], name_v<E, values_v<E>[I]>}...}};
 }
 
 template <typename T, typename R>
@@ -341,8 +335,8 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
 
   inline static constexpr std::size_t count = detail::count_v<E>;
   inline static constexpr std::array<E, count> values = detail::values_v<E>;
-  inline static constexpr std::array<std::string_view, count> names = detail::names<E>(sequence_v<E>);
-  inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(sequence_v<E>);
+  inline static constexpr std::array<std::string_view, count> names = detail::names<E>(std::make_index_sequence<count_v<E>>{});
+  inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(std::make_index_sequence<count_v<E>>{});
 
   [[nodiscard]] static constexpr bool reflected(E value) noexcept {
     return static_cast<U>(value) >= static_cast<U>(reflected_min_v<E>) && static_cast<U>(value) <= static_cast<U>(reflected_max_v<E>);
@@ -350,7 +344,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
 
   [[nodiscard]] static constexpr int index(E value) noexcept {
     if (static_cast<U>(value) >= static_cast<U>(min_v<E>) && static_cast<U>(value) <= static_cast<U>(max_v<E>)) {
-      if constexpr (size_v<E> != count_v<E>) {
+      if constexpr (range_size_v<E> != count_v<E>) {
         if (auto i = indexes[static_cast<U>(value) - min_v<E>]; i != invalid_index_v<E>) {
           return i;
         }
@@ -363,7 +357,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   }
 
   [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
-    if constexpr (size_v<E> != count_v<E>) {
+    if constexpr (range_size_v<E> != count_v<E>) {
       return assert(index < count), values[index];
     } else {
       return assert(index < count), static_cast<E>(static_cast<int>(index) + min_v<E>);
@@ -385,7 +379,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   static_assert(enum_range<E>::max > enum_range<E>::min, "magic_enum::enum_range requires max > min.");
   static_assert(count > 0, "magic_enum::enum_range requires enum implementation or valid max and min.");
   using U = underlying_type;
-  inline static constexpr auto indexes = detail::indexes<E>(range_v<E>);
+  inline static constexpr auto indexes = detail::indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
 };
 
 } // namespace magic_enum::detail
@@ -427,7 +421,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
-  if constexpr (detail::size_v<D> > detail::count_v<D> * 2) {
+  if constexpr (detail::range_size_v<D> > detail::count_v<D> * 2) {
     for (std::size_t i = 0; i < enum_traits<D>::count; ++i) {
       if (value == enum_traits<D>::names[i]) {
         return enum_traits<D>::values[i];
@@ -476,7 +470,7 @@ template <typename E>
 
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
-template<typename E>
+template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   return enum_traits<E>::value(index);
 }
