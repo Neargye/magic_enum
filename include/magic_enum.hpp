@@ -142,31 +142,33 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
 }
 
 template<typename L, typename R>
-constexpr bool mixed_sign_less(L left, R right) noexcept {
-  static_assert(std::is_integral_v<L>, "L must be an integral value");
-  static_assert(std::is_integral_v<R>, "R must be an integral value");
+constexpr bool mixed_sign_less(L lhs, R rhs) noexcept {
+  static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_less requires integral type.");
+
   if constexpr(std::is_signed_v<L> == std::is_signed_v<R>) {
-    // If same signedness (both signed or both unsigned)
-    return left < right;
-  }
-  else if constexpr(std::is_signed_v<L>) {
-    // if 'left' is negative, then result is 'true', otherwise cast & compare
-    return left < 0 || static_cast<std::make_unsigned_t<L>>(left) < right;
-  }
-  else { // std::is_signed_v<R>
-    // if 'right' is negative, then result is 'false', otherwise cast & compare
-    return right >= 0 && left < static_cast<std::make_unsigned_t<R>>(right);
+    // If same signedness (both signed or both unsigned).
+    return lhs < rhs;
+  } else if constexpr(std::is_signed_v<L>) {
+    // If 'left' is negative, then result is 'true', otherwise cast & compare.
+    return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
+  } else { // std::is_signed_v<R>
+    // If 'right' is negative, then result is 'false', otherwise cast & compare.
+    return rhs >= 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
   }
 }
 
 template<typename L, typename R>
-constexpr int mixed_sign_min_as_int(L left, R right) noexcept {
-  return mixed_sign_less(left, right) ? static_cast<int>(left) : static_cast<int>(right);
+constexpr int mixed_sign_min_as_int(L lhs, R rhs) noexcept {
+  static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_min_as_int requires integral type.");
+
+  return mixed_sign_less(lhs, rhs) ? static_cast<int>(lhs) : static_cast<int>(rhs);
 }
 
 template<typename L, typename R>
-constexpr int mixed_sign_max_as_int(L left, R right) noexcept {
-  return mixed_sign_less(left, right) ? static_cast<int>(right) : static_cast<int>(left);
+constexpr int mixed_sign_max_as_int(L lhs, R rhs) noexcept {
+  static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_max_as_int requires integral type.");
+
+  return mixed_sign_less(lhs, rhs) ? static_cast<int>(rhs) : static_cast<int>(lhs);
 }
 
 template <typename E>
@@ -210,10 +212,10 @@ template <typename E, E V>
 inline constexpr auto name_v = n<E, V>();
 
 template <typename E>
-inline constexpr int reflected_min_v = mixed_sign_max_as_int(enum_range<E>::min, std::numeric_limits<std::underlying_type_t<E>>::min());
+inline constexpr int reflected_min_v = mixed_sign_max_as_int(enum_range<E>::min, (std::numeric_limits<std::underlying_type_t<E>>::min)());
 
 template <typename E>
-inline constexpr int reflected_max_v = mixed_sign_min_as_int(enum_range<E>::max, std::numeric_limits<std::underlying_type_t<E>>::max());
+inline constexpr int reflected_max_v = mixed_sign_min_as_int(enum_range<E>::max, (std::numeric_limits<std::underlying_type_t<E>>::max)());
 
 template <typename E>
 constexpr std::size_t reflected_size() {
@@ -228,49 +230,33 @@ constexpr std::size_t reflected_size() {
   return static_cast<std::size_t>(size);
 }
 
-template <typename E>
-inline constexpr std::size_t reflected_size_v = reflected_size<E>();
-
 template <typename E, int... I>
-constexpr std::array<bool, reflected_size_v<E>> reflected_set_v_helper(std::integer_sequence<int, I...>) {
-  return {{(n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0)...}};
+constexpr auto values(std::integer_sequence<int, I...>) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
+  constexpr std::array<bool, sizeof...(I)> valid{{(n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0)...}};
+  constexpr std::size_t count = ((valid[I] ? 1 : 0) + ...);
+
+  std::array<E, count> values{};
+  for (std::size_t i = 0, v = 0; v < count; ++i) {
+    if (valid[i]) {
+      values[v++] = static_cast<E>(static_cast<int>(i) + reflected_min_v<E>);
+    }
+  }
+
+  return values;
 }
+
 template<typename E>
-inline constexpr std::array<bool, reflected_size_v<E>> reflected_set_v = reflected_set_v_helper<E>(std::make_integer_sequence<int, reflected_size_v<E>>{});
+inline constexpr auto values_v = values<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
 
 template <typename E>
-constexpr int range_min() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::range_min requires enum type.");
-
-  // Find leftmost value.
-  for (int i = 0; i < static_cast<int>(reflected_size_v<E>); ++i) {
-    if (reflected_set_v<E>[i]) {
-      return i + reflected_min_v<E>;
-    }
-  }
-
-  return reflected_max_v<E>;
-}
+inline constexpr std::size_t count_v = values_v<E>.size();
 
 template <typename E>
-constexpr int range_max() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::range_max requires enum type.");
-
-  // Find rightmost value
-  for (int i = static_cast<int>(reflected_size_v<E>) - 1; i >= 0; --i) {
-    if (reflected_set_v<E>[i]) {
-      return i + reflected_min_v<E>;
-    }
-  }
-
-  return reflected_min_v<E>;
-}
+inline constexpr int min_v = values_v<E>.empty() ? 0 : static_cast<int>(values_v<E>.front());
 
 template <typename E>
-inline constexpr int min_v = range_min<E>();
-
-template <typename E>
-inline constexpr int max_v = range_max<E>();
+inline constexpr int max_v = values_v<E>.empty() ? 0 : static_cast<int>(values_v<E>.back());
 
 template <typename E>
 constexpr std::size_t range_size() noexcept {
@@ -288,33 +274,8 @@ inline constexpr std::size_t size_v = range_size<E>();
 template <typename E>
 inline constexpr auto range_v = std::make_integer_sequence<int, size_v<E>>{};
 
-template <typename E, int... I>
-constexpr std::size_t count(std::integer_sequence<int, I...>) noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::count requires enum type.");
-
-  return (((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? 1 : 0) + ...);
-}
-
-template <typename E>
-inline constexpr std::size_t count_v = count<E>(range_v<E>);
-
 template <typename E>
 inline constexpr auto sequence_v = std::make_index_sequence<count_v<E>>{};
-
-template <typename E, int... I>
-constexpr auto values(std::integer_sequence<int, I...>) noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr std::array<bool, size_v<E>> valid{{(n<E, static_cast<E>(I + min_v<E>)>().size() != 0)...}};
-
-  std::array<E, count_v<E>> values{};
-  for (std::size_t i = 0, v = 0; v < count_v<E>; ++i) {
-    if (valid[i]) {
-      values[v++] = static_cast<E>(static_cast<int>(i) + min_v<E>);
-    }
-  }
-
-  return values;
-}
 
 template <typename E>
 using index_t = std::conditional_t<size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
@@ -333,17 +294,15 @@ constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
 template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
-  constexpr auto vals = values<E>(range_v<E>);
 
-  return std::array<std::string_view, count_v<E>>{{name_v<E, vals[I]>...}};
+  return std::array<std::string_view, count_v<E>>{{name_v<E, values_v<E>[I]>...}};
 }
 
 template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
-  constexpr auto vals = values<E>(range_v<E>);
 
-  return std::array<std::pair<E, std::string_view>, count_v<E>>{{{vals[I], name_v<E, vals[I]>}...}};
+  return std::array<std::pair<E, std::string_view>, count_v<E>>{{{values_v<E>[I], name_v<E, values_v<E>[I]>}...}};
 }
 
 template <typename T, typename R>
@@ -381,7 +340,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   inline static constexpr bool is_scoped_enum = detail::is_scoped_enum<E>::value;
 
   inline static constexpr std::size_t count = detail::count_v<E>;
-  inline static constexpr std::array<E, count> values = detail::values<E>(range_v<E>);
+  inline static constexpr std::array<E, count> values = detail::values_v<E>;
   inline static constexpr std::array<std::string_view, count> names = detail::names<E>(sequence_v<E>);
   inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(sequence_v<E>);
 
