@@ -228,29 +228,49 @@ constexpr std::size_t reflected_size() {
   return static_cast<std::size_t>(size);
 }
 
+template <typename E>
+inline constexpr std::size_t reflected_size_v = reflected_size<E>();
+
 template <typename E, int... I>
-constexpr int range_min(std::integer_sequence<int, I...>) noexcept {
+constexpr std::array<bool, reflected_size_v<E>> reflected_set_v_helper(std::integer_sequence<int, I...>) {
+  return {{(n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0)...}};
+}
+template<typename E>
+inline constexpr std::array<bool, reflected_size_v<E>> reflected_set_v = reflected_set_v_helper<E>(std::make_integer_sequence<int, reflected_size_v<E>>{});
+
+template <typename E>
+constexpr int range_min() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::range_min requires enum type.");
 
-  int r = 0;
-  (void)(((n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0) ? (r = I + reflected_min_v<E>, false) : true) && ...);
-  return r;
+  // Find leftmost value.
+  for (int i = 0; i < static_cast<int>(reflected_size_v<E>); ++i) {
+    if (reflected_set_v<E>[i]) {
+      return i + reflected_min_v<E>;
+    }
+  }
+
+  return reflected_max_v<E>;
 }
 
-template <typename E, int... I>
-constexpr int range_max(std::integer_sequence<int, I...>) noexcept {
+template <typename E>
+constexpr int range_max() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::range_max requires enum type.");
 
-  int r = 0;
-  (void)(((n<E, static_cast<E>(reflected_max_v<E> - I)>().size() != 0) ? (r = reflected_max_v<E> - I, false) : true) && ...);
-  return r;
+  // Find rightmost value
+  for (int i = static_cast<int>(reflected_size_v<E>) - 1; i >= 0; --i) {
+    if (reflected_set_v<E>[i]) {
+      return i + reflected_min_v<E>;
+    }
+  }
+
+  return reflected_min_v<E>;
 }
 
 template <typename E>
-inline constexpr int min_v = range_min<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
+inline constexpr int min_v = range_min<E>();
 
 template <typename E>
-inline constexpr int max_v = range_max<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
+inline constexpr int max_v = range_max<E>();
 
 template <typename E>
 constexpr std::size_t range_size() noexcept {
