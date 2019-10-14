@@ -471,16 +471,15 @@ TEST_CASE("enum_traits") {
 }
 
 TEST_CASE("extrema") {
-  enum class BadColor : uint64_t
-  {
+  enum class BadColor : std::uint64_t {
     RED,
     GREEN,
     YELLOW,
     // The value NONE is ignored (out of range).
-    // However, it affects the value of min_v. When reflected_min_v was incorrect, the
-    // presence of NONE caused miv_v to be equal to -1, which was then cast to unsigned,
+    // However, it affects the value of min_v. When reflected_min_v was incorrect,
+    // the presence of NONE caused miv_v to be equal to -1, which was then cast to unsigned,
     // leading to a value of 18446744073709551615 (numeric_limit_max of uint64_t).
-    NONE = std::numeric_limits<uint64_t>::max(),
+    NONE = std::numeric_limits<std::uint64_t>::max(),
   };
 
   SECTION("min") {
@@ -499,20 +498,20 @@ TEST_CASE("extrema") {
 TEST_CASE("mixed_sign_less") {
   using magic_enum::detail::mixed_sign_less;
 
-  constexpr uint64_t uint64_t_min = std::numeric_limits<uint64_t>::min();
-  constexpr uint32_t uint32_t_min = std::numeric_limits<uint32_t>::min();
-  constexpr uint32_t uint32_t_max = std::numeric_limits<uint32_t>::max();
-  constexpr uint64_t uint64_t_max = std::numeric_limits<uint64_t>::max();
+  constexpr std::uint64_t uint64_t_min = std::numeric_limits<std::uint64_t>::min();
+  constexpr std::uint32_t uint32_t_min = std::numeric_limits<std::uint32_t>::min();
+  constexpr std::uint32_t uint32_t_max = std::numeric_limits<std::uint32_t>::max();
+  constexpr std::uint64_t uint64_t_max = std::numeric_limits<std::uint64_t>::max();
 
-  constexpr int64_t int64_t_min = std::numeric_limits<int64_t>::min();
-  constexpr int32_t int32_t_min = std::numeric_limits<int32_t>::min();
-  constexpr int32_t int32_t_max = std::numeric_limits<int32_t>::max();
-  constexpr int64_t int64_t_max = std::numeric_limits<int64_t>::max();
+  constexpr std::int64_t int64_t_min = std::numeric_limits<std::int64_t>::min();
+  constexpr std::int32_t int32_t_min = std::numeric_limits<std::int32_t>::min();
+  constexpr std::int32_t int32_t_max = std::numeric_limits<std::int32_t>::max();
+  constexpr std::int64_t int64_t_max = std::numeric_limits<std::int64_t>::max();
 
   // Also testing with offset to avoid corner cases.
   // Two variables to avoid hidden casts:
-  constexpr int64_t offset_int64_t = 17;
-  constexpr int32_t offset_int32_t = 17;
+  constexpr std::int64_t offset_int64_t = 17;
+  constexpr std::int32_t offset_int32_t = 17;
 
   SECTION("same signedness") {
     REQUIRE(mixed_sign_less(-5, -3));
