@@ -479,19 +479,51 @@ TEST_CASE("extrema") {
     // However, it affects the value of min_v. When reflected_min_v was incorrect,
     // the presence of NONE caused miv_v to be equal to -1, which was then cast to unsigned,
     // leading to a value of 18446744073709551615 (numeric_limit_max of uint64_t).
-    NONE = std::numeric_limits<std::uint64_t>::max(),
+    NONE = std::numeric_limits<std::uint64_t>::max()
   };
 
   SECTION("min") {
     REQUIRE(magic_enum::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<BadColor> == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor> == 0);
+
+    REQUIRE(magic_enum::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Color> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Color> == -12);
+
+    REQUIRE(magic_enum::enum_range<Numbers>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Numbers> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Numbers> == 1);
+
+    REQUIRE(magic_enum::enum_range<Directions>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Directions> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Directions> == -120);
+
+    REQUIRE(magic_enum::enum_range<number>::min == 100);
+    REQUIRE(magic_enum::detail::reflected_min_v<number> == 100);
+    REQUIRE(magic_enum::detail::min_v<number> == 100);
   }
 
   SECTION("max") {
     REQUIRE(magic_enum::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<BadColor> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<BadColor> == 2);
+
+    REQUIRE(magic_enum::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Color> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Color> == 15);
+
+    REQUIRE(magic_enum::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Numbers> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Numbers> == 3);
+
+    REQUIRE(magic_enum::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Directions> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Directions> == 120);
+
+    REQUIRE(magic_enum::enum_range<number>::max == 300);
+    REQUIRE(magic_enum::detail::reflected_max_v<number> == 300);
+    REQUIRE(magic_enum::detail::max_v<number> == 300);
   }
 }
 
