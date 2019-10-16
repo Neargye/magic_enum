@@ -23,10 +23,11 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-5.0
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-5.0
             - g++-7
+            - clang-5.0
       env:
         - CXX_COMPILER=clang++-5.0 CC_COMPILER=clang-5.0
 
@@ -36,10 +37,11 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-6.0
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-6.0
             - g++-7
+            - clang-6.0
       env:
         - CXX_COMPILER=clang++-6.0 CC_COMPILER=clang-6.0
 
@@ -49,10 +51,11 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-7
             - g++-7
+            - clang-7
       env:
         - CXX_COMPILER=clang++-7 CC_COMPILER=clang-7
 
@@ -62,12 +65,27 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-8
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-8
             - g++-7
+            - clang-8
       env:
         - CXX_COMPILER=clang++-8 CC_COMPILER=clang-8
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - g++-7
+            - clang-9
+      env:
+        - CXX_COMPILER=clang++-9 CC_COMPILER=clang-9
 
     - os: osx
       compiler: clang++
@@ -77,7 +95,7 @@ matrix:
 
     - os: osx
       compiler: clang++
-      osx_image: xcode11
+      osx_image: xcode11.2
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
