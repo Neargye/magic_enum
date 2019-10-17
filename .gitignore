@@ -1,5 +1,6 @@
 build/
 .vscode/
+.vs/
 
 ### C++ gitignore ###
 # Prerequisites
