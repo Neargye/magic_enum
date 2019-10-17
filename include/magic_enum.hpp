@@ -229,7 +229,7 @@ constexpr std::size_t reflected_size() noexcept {
   static_assert(reflected_max_v<E> > reflected_min_v<E>, "magic_enum::enum_range requires max > min.");
   constexpr auto size = reflected_max_v<E> - reflected_min_v<E> + 1;
   static_assert(size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(size < (std::numeric_limits<int>::max)(), "magic_enum::enum_range requires valid size.");
+  static_assert(size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return static_cast<std::size_t>(size);
 }
@@ -330,12 +330,14 @@ struct enum_traits {};
 template <typename E>
 struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   using type = E;
-  using underlying_type = std::underlying_type_t<E>;
+  using underlying_type = typename detail::underlying_type<E>::type;
 
   inline static constexpr std::string_view type_name = detail::type_name_v<E>;
 
-  inline static constexpr bool is_unscoped_enum = detail::is_unscoped_enum<E>::value;
-  inline static constexpr bool is_scoped_enum = detail::is_scoped_enum<E>::value;
+  inline static constexpr bool is_unscoped = detail::is_unscoped_enum<E>::value;
+  inline static constexpr bool is_scoped = detail::is_scoped_enum<E>::value;
+  inline static constexpr bool is_dense = detail::range_size_v<E> == detail::count_v<E>;
+  inline static constexpr bool is_sparse = detail::range_size_v<E> != detail::count_v<E>;
 
   inline static constexpr std::size_t count = detail::count_v<E>;
   inline static constexpr std::array<E, count> values = detail::values_v<E>;
@@ -348,7 +350,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
 
   [[nodiscard]] static constexpr int index(E value) noexcept {
     if (static_cast<U>(value) >= static_cast<U>(min_v<E>) && static_cast<U>(value) <= static_cast<U>(max_v<E>)) {
-      if constexpr (range_size_v<E> != count_v<E>) {
+      if constexpr (is_sparse) {
         if (auto i = indexes[static_cast<U>(value) - min_v<E>]; i != invalid_index_v<E>) {
           return i;
         }
@@ -361,7 +363,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   }
 
   [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
-    if constexpr (range_size_v<E> != count_v<E>) {
+    if constexpr (is_sparse) {
       return assert(index < count), values[index];
     } else {
       return assert(index < count), static_cast<E>(index + min_v<E>);
