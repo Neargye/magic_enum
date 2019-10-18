@@ -34,6 +34,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstdint>
 #include <cstddef>
 #include <iosfwd>
 #include <limits>
