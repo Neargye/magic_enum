@@ -59,7 +59,7 @@ int main() {
     std::cout << "RED = " << color_integer << std::endl; // RED = -10
   }
 
-  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for enums.
+  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for all enums.
   // ostream operator for enum.
   std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
 
@@ -78,10 +78,10 @@ int main() {
   std::cout << std::endl;
   // Color sequence: RED BLUE GREEN
 
-  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
+  enum class Flags { A = 1, B = 2, C = 4, D = 8 };
+  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
-  Flags flags = Flags::A & ~Flags::C;
+  Flags flags = Flags::A | Flags::C;
   std::cout << flags << std::endl;
 
   enum color { red, green, blue };

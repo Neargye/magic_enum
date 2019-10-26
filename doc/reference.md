@@ -251,7 +251,7 @@ template <typename Char, typename Traits, typename E>
 basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optional<E> value);
 
 ```
-* Out-of-the-box ostream operators for enums.
+* Out-of-the-box ostream operators for all enums.
 
 * Examples
   ```cpp
@@ -284,7 +284,7 @@ template <typename E>
 constexpr E& operator^=(E& lhs, E rhs) noexcept;
 ```
 
-* Out-of-the-box bitwise operators for enums.
+* Out-of-the-box bitwise operators for all enums.
 
 * Examples
   ```cpp
