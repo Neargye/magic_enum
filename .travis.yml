@@ -108,11 +108,15 @@ before_script:
   - rm -rf build
   - mkdir -p build
   - cd build
-  - cmake -G "Unix Makefiles" ..
 
 script:
-  - cmake --build . -- -j${JOBS}
-  - ctest --output-on-failure -j${JOBS}
+  - cmake -G "Unix Makefiles" ..
+  - cmake --build . --config Debug -- -j${JOBS}
+  - ctest --output-on-failure -C Debug -j${JOBS}
+  - rm -rf ./*
+  - cmake -G "Unix Makefiles" ..
+  - cmake --build . --config Release -- -j${JOBS}
+  - ctest --output-on-failure -C Release -j${JOBS}
 
 notifications:
   email: false
