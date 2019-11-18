@@ -26,6 +26,12 @@
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
+template <typename E>
+auto to_integer(magic_enum::Enum<E> value) {
+  // magic_enum::Enum<E> - C++17 Concept for enum type.
+  return static_cast<std::underlying_type_t<E>>(value);
+}
+
 int main() {
   // Enum variable to string name.
   Color c1 = Color::RED;
@@ -44,7 +50,7 @@ int main() {
   // String name to enum value.
   auto c2 = magic_enum::enum_cast<Color>("BLUE");
   if (c2.has_value() && c2.value() == Color::BLUE) {
-    std::cout << "BLUE = " << static_cast<int>(c2.value()) << std::endl; // BLUE = 0
+    std::cout << "BLUE = " << to_integer(c2.value()) << std::endl; // BLUE = 0
   }
 
   // Integer value to enum value.
@@ -55,7 +61,7 @@ int main() {
 
   // Enum value to integer value.
   auto color_integer = magic_enum::enum_integer(Color::RED);
-  if (color_integer == static_cast<std::underlying_type_t<Color>>(Color::RED)) {
+  if (color_integer == to_integer(Color::RED)) {
     std::cout << "RED = " << color_integer << std::endl; // RED = -10
   }
 

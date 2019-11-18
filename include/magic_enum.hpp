@@ -97,7 +97,9 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 
 template <std::size_t N>
 struct static_string {
-  constexpr static_string(std::string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {}
+  constexpr static_string(std::string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
+    assert(str.size() == N);
+  }
 
   constexpr const char* data() const noexcept { return chars.data(); }
 
@@ -109,7 +111,7 @@ struct static_string {
   template <std::size_t... I>
   constexpr static_string(std::string_view str, std::index_sequence<I...>) noexcept : chars{{str[I]...}} {}
 
-  const std::array<char, N> chars;
+  const std::array<const char, N> chars;
 };
 
 template <>
@@ -308,6 +310,9 @@ constexpr auto entries(std::index_sequence<I...>) noexcept {
 template <typename T, typename R>
 using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>, R>;
 
+template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
+using enum_concept = T;
+
 template <typename T, bool = std::is_enum_v<T>>
 struct is_scoped_enum : std::false_type {};
 
@@ -391,6 +396,9 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
 
 // Checks is magic_enum supported compiler.
 inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
+
+template <typename T>
+using Enum = detail::enum_concept<T>;
 
 // Checks whether T is an Unscoped enumeration type.
 // Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
