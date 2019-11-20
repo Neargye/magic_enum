@@ -8,10 +8,6 @@ platform:
   - Win32
   - x64
 
-configuration:
-  - Debug
-  - Release
-
 build:
   parallel: true
 
@@ -19,10 +15,12 @@ before_build:
   - if exist build RMDIR /S /Q build
   - if not exist build mkdir build
   - cd build
-  - cmake -A %PLATFORM% ..
 
 build_script:
-  - cmake --build . --config %CONFIGURATION%
+  - cmake -A %PLATFORM% ..
+  - cmake --build . --config Debug
+  - cmake --build . --config Release
 
 test_script:
-  - ctest --output-on-failure -C %CONFIGURATION%
+  - ctest --output-on-failure -C Debug
+  - ctest --output-on-failure -C Release
