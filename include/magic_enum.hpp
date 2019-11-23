@@ -111,7 +111,7 @@ struct static_string {
   template <std::size_t... I>
   constexpr static_string(std::string_view str, std::index_sequence<I...>) noexcept : chars{{str[I]...}} {}
 
-  const std::array<const char, N> chars;
+  const std::array<char, N> chars;
 };
 
 template <>
