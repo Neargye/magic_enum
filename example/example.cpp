@@ -60,7 +60,7 @@ int main() {
   }
 
   // Enum value to integer value.
-  auto color_integer = magic_enum::enum_integer(Color::RED);
+  auto color_integer = magic_enum::enum_integer(c1);
   if (color_integer == to_integer(Color::RED)) {
     std::cout << "RED = " << color_integer << std::endl; // RED = -10
   }
