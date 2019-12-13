@@ -43,6 +43,12 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 26495) // Variable 'magic_enum::detail::static_string<N>::chars' is uninitialized.
+#  pragma warning(disable : 26451) // Arithmetic overflow: 'indexes[static_cast<U>(value) - min_v<E>]' using operator '-' on a 4 byte value and then casting the result to a 8 byte value.
+#endif
+
 // Checks magic_enum compiler compatibility.
 #if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER)
 #  undef MAGIC_ENUM_SUPPORTED
@@ -595,5 +601,9 @@ constexpr auto operator^=(E& lhs, E rhs) noexcept -> detail::enable_if_enum_t<E,
 } // namespace magic_enum::bitwise_operators
 
 } // namespace magic_enum
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_HPP
