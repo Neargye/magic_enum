@@ -103,7 +103,7 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 
 template <std::size_t N>
 struct static_string {
-  constexpr static_string(std::string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
+  constexpr explicit static_string(std::string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
     assert(str.size() == N);
   }
 
@@ -122,7 +122,7 @@ struct static_string {
 
 template <>
 struct static_string<0> {
-  constexpr static_string(std::string_view) noexcept {}
+  constexpr explicit static_string(std::string_view) noexcept {}
 
   constexpr const char* data() const noexcept { return nullptr; }
 
