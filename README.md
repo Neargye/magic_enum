@@ -188,8 +188,8 @@ If you are using [Conan](https://www.conan.io/) to manage your dependencies, mer
 ## Compiler compatibility
 
 * Clang/LLVM >= 5
-* Visual C++ >= 15.3 / Visual Studio >= 2017
-* Xcode >= 10.2
+* MSVC++ >= 14.11 / Visual Studio >= 2017
+* Xcode >= 10
 * GCC >= 9
 
 ## Licensed under the [MIT License](LICENSE)
