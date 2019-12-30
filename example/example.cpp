@@ -29,7 +29,7 @@ enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 template <typename E>
 auto to_integer(magic_enum::Enum<E> value) {
   // magic_enum::Enum<E> - C++17 Concept for enum type.
-  return static_cast<std::underlying_type_t<E>>(value);
+  return static_cast<magic_enum::underlying_type_t<E>>(value);
 }
 
 int main() {
