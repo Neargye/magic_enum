@@ -364,7 +364,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   [[nodiscard]] static constexpr int index(E value) noexcept {
     if (static_cast<U>(value) >= static_cast<U>(min_v<E>) && static_cast<U>(value) <= static_cast<U>(max_v<E>)) {
       if constexpr (is_sparse) {
-        if (auto i = indexes[static_cast<U>(value) - min_v<E>]; i != invalid_index_v<E>) {
+        if (const auto i = indexes[static_cast<U>(value) - min_v<E>]; i != invalid_index_v<E>) {
           return i;
         }
       } else {
@@ -384,7 +384,7 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
   }
 
   [[nodiscard]] static constexpr std::string_view name(E value) noexcept {
-    if (auto i = index(value); i != -1) {
+    if (const auto i = index(value); i != -1) {
       return names[i];
     }
 
@@ -480,7 +480,7 @@ template <typename E>
 // Returns std::optional with index.
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
-  if (auto i = enum_traits<E>::index(value); i != -1) {
+  if (const auto i = enum_traits<E>::index(value); i != -1) {
     return i;
   }
 
@@ -539,8 +539,8 @@ namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E>
 auto operator<<(std::basic_ostream<Char, Traits>& os, E value) -> detail::enable_if_enum_t<E, std::basic_ostream<Char, Traits>&> {
-  if (auto name = enum_name(value); !name.empty()) {
-    for (auto c : name) {
+  if (const auto name = enum_name(value); !name.empty()) {
+    for (const auto c : name) {
       os.put(c);
     }
   } else {
