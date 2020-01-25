@@ -19,8 +19,8 @@
 
 * Before use, read the [limitations](limitations.md) of functionality.
 
-* To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.
-If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
+* To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.</br>
+  If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
 
 ## `enum_cast`
 
@@ -139,7 +139,11 @@ template <auto V>
 constexpr string_view enum_name() noexcept;
 ```
 
-* Returns `std::string_view`. If enum value does not have name, returns empty string.
+* Returns `std::string_view`.
+  * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
+  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
+
+* `enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range [limitation](limitations.md).
 
 * Examples
 
@@ -152,7 +156,6 @@ constexpr string_view enum_name() noexcept;
     ```
 
   * Static storage enum variable to string.
-    This version is much lighter on the compile times and is not restricted to the enum_range [limitation](doc/limitations.md).
 
     ```cpp
     constexpr Color color = Color::BLUE;
@@ -209,7 +212,8 @@ inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
 
 * Checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 
-* Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
+* Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type.</br>
+  Otherwise, value is equal to false.
 
 * Examples
 
@@ -233,7 +237,8 @@ inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 * Checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 
-* Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
+* Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type.</br>
+  Otherwise, value is equal to false.
 
 * Examples
 
@@ -257,7 +262,9 @@ using underlying_type_t = typename underlying_type<T>::type;
 
 * Improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
 
-* If T is a complete enumeration type, provides a member typedef type that names the underlying type of T. Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
+* If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.</br>
+  Otherwise, if T is not an enumeration type, there is no member type.</br>
+  Otherwise (T is an incomplete enumeration type), the program is ill-formed.
 
 * Examples
 

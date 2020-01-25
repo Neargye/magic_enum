@@ -6,7 +6,9 @@
 
 * Enum can't reflect if the enum is a forward declaration.
 
-* Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
+* Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
+
+  * By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
   * `MAGIC_ENUM_RANGE_MIN` must be less or equals than `0` and must be greater than `INT16_MIN`.
 
