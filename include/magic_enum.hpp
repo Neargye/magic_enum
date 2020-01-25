@@ -511,7 +511,10 @@ template <typename E>
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
-  return detail::name_v<std::decay_t<decltype(V)>, V>;
+  constexpr std::string_view name = detail::name_v<std::decay_t<decltype(V)>, V>;
+  static_assert(name.size() > 0, "Enum value does not have a name.");
+
+  return name;
 }
 
 // Returns string enum name from enum value.

@@ -271,7 +271,6 @@ TEST_CASE("enum_name") {
     REQUIRE(cr_name == "RED");
     REQUIRE(enum_name<Color::BLUE>() == "BLUE");
     REQUIRE(enum_name<cm[1]>() == "GREEN");
-    REQUIRE(enum_name<static_cast<Color>(0)>().empty());
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name<no>();
@@ -279,7 +278,6 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<Numbers::two>() == "two");
     REQUIRE(enum_name<Numbers::three>() == "three");
     REQUIRE(enum_name<Numbers::many>() == "many");
-    REQUIRE(enum_name<static_cast<Numbers>(0)>().empty());
 
     constexpr Directions dr = Directions::Right;
     constexpr auto dr_name = enum_name<dr>();
@@ -287,7 +285,6 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<Directions::Down>() == "Down");
     REQUIRE(dr_name == "Right");
     REQUIRE(enum_name<Directions::Left>() == "Left");
-    REQUIRE(enum_name<static_cast<Directions>(0)>().empty());
 
     constexpr number nt = number::three;
     constexpr auto nt_name = enum_name<nt>();
@@ -295,7 +292,6 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<number::two>() == "two");
     REQUIRE(nt_name == "three");
     REQUIRE(enum_name<number::four>() == "four");
-    REQUIRE(enum_name<static_cast<number>(0)>().empty());
   }
 }
 
