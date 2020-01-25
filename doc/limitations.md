@@ -8,29 +8,48 @@
 
 * Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`. By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
-  If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
-  ```cpp
-  #define MAGIC_ENUM_RANGE_MIN 0
-  #define MAGIC_ENUM_RANGE_MAX 256
-  #include <magic_enum.hpp>
+  * `MAGIC_ENUM_RANGE_MAX` must be greater than `0` and must be less than `INT16_MAX`.
+
+  * `MAGIC_ENUM_RANGE_MIN` must be less or equals than `0` and must be greater than `INT16_MIN`.
+
+  * If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
+
+    ```cpp
+    #define MAGIC_ENUM_RANGE_MIN 0
+    #define MAGIC_ENUM_RANGE_MAX 256
+    #include <magic_enum.hpp>
+    ```
+
+    If need another range for specific enum type, add specialization `enum_range` for necessary enum type.
+
+    ```cpp
+    #include <magic_enum.hpp>
+
+    enum number { one = 100, two = 200, three = 300 };
+
+    namespace magic_enum {
+    template <>
+    struct enum_range<number> {
+      static constexpr int min = 100; // Must be greater than `INT16_MIN`.
+      static constexpr int max = 300; // Must be less than `INT16_MAX`.
+    };
+    }
+    ```
+
+* If you hit a message like this:
+
+  ```text
+  [...]
+  note: constexpr evaluation hit maximum step limit; possible infinite loop?
   ```
 
-  If need another range for specific enum type, add specialization `enum_range` for necessary enum type.
-  ```cpp
-  #include <magic_enum.hpp>
-
-  enum number { one = 100, two = 200, three = 300 };
-
-  namespace magic_enum {
-  template <>
-  struct enum_range<number> {
-    static constexpr int min = 100;
-    static constexpr int max = 300;
-  };
-  }
-  ```
+  Change the limit for the number of constexpr evaluated:
+  * MSVC `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
+  * Clang `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
+  * GCC `-fconstexpr-depth=n`, `-fconstexpr-loop-limit=n`, `-fconstexpr-ops-limit=n` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
 * `magic_enum` obtains the first defined value enums, and won't work if value are aliased.
+
   ```cpp
   enum ShapeKind {
     ConvexBegin = 0,
@@ -44,7 +63,9 @@
   // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt
   // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
   ```
+
   Work around the issue:
+
   ```cpp
   enum ShapeKind {
     // Convex shapes, see ConvexBegin and ConvexEnd below.

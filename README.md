@@ -62,6 +62,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 ```
 
 * Enum value to string
+
   ```cpp
   Color color = Color::RED;
   auto color_name = magic_enum::enum_name(color);
@@ -69,6 +70,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * String to enum value
+
   ```cpp
   std::string color_name{"GREEN"};
   auto color = magic_enum::enum_cast<Color>(color_name);
@@ -78,6 +80,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Integer to enum value
+
   ```cpp
   int color_integer = 2;
   auto color = magic_enum::enum_cast<Color>(color_integer);
@@ -87,6 +90,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Indexed access to enum value
+
   ```cpp
   int i = 1;
   Color color = magic_enum::enum_value<Color>(i);
@@ -94,6 +98,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Enum value sequence
+
   ```cpp
   constexpr auto colors = magic_enum::enum_values<Color>();
   // colors -> {Color::RED, Color::BLUE, Color::GREEN}
@@ -101,12 +106,14 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Number of enum elements
+
   ```cpp
   constexpr std::size_t color_count = magic_enum::enum_count<Color>();
   // color_count -> 3
   ```
 
 * Enum value to integer
+
   ```cpp
   Color color = Color::RED;
   auto color_integer = magic_enum::enum_integer(color);
@@ -114,6 +121,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Enum names sequence
+
   ```cpp
   constexpr auto color_names = magic_enum::enum_names<Color>();
   // color_names -> {"RED", "BLUE", "GREEN"}
@@ -121,6 +129,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Enum entries sequence
+
   ```cpp
   constexpr auto color_entries = magic_enum::enum_entries<Color>();
   // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
@@ -129,6 +138,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Ostream operator for enum
+
   ```cpp
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
@@ -136,6 +146,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Bitwise operator for enum
+
   ```cpp
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
@@ -144,6 +155,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
+
   ```cpp
   enum color { red, green, blue };
   enum class direction { left, right };
@@ -157,6 +169,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
+
   ```cpp
   enum color { red, green, blue };
   enum class direction { left, right };
@@ -171,11 +184,18 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Static storage enum variable to string
   This version is much lighter on the compile times and is not restricted to the enum_range [limitation](doc/limitations.md).
+
   ```cpp
   constexpr Color color = Color::BLUE;
   constexpr auto color_name = magic_enum::enum_name<color>();
   // color_name -> "BLUE"
   ```
+
+## Remarks
+
+* `magic_enum` does not pretend to be a silver bullet for reflection for enums, it was originally designed for small enum.
+
+* Before use, read the [limitations](limitations.md) of functionality.
 
 ## Integration
 
