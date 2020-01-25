@@ -195,7 +195,7 @@ enum Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * `magic_enum` does not pretend to be a silver bullet for reflection for enums, it was originally designed for small enum.
 
-* Before use, read the [limitations](limitations.md) of functionality.
+* Before use, read the [limitations](doc/limitations.md) of functionality.
 
 ## Integration
 
