@@ -163,8 +163,6 @@ constexpr string_view enum_name() noexcept;
     // color_name -> "BLUE"
     ```
 
-* `magic_enum::enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range [limitation](limitation.md).
-
 ## `enum_names`
 
 ```cpp
