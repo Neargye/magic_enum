@@ -50,7 +50,7 @@
 #endif
 
 // Checks magic_enum compiler compatibility.
-#if defined(__clang__) || defined(__GNUC__) && __GNUC__>= 9 || defined(_MSC_VER)
+#if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER)
 #  undef MAGIC_ENUM_SUPPORTED
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
