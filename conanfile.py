@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from conans import ConanFile
+from conans import ConanFile, tools
 from conans.errors import ConanInvalidConfiguration
 
 class MagicEnumConan(ConanFile):
@@ -29,7 +29,7 @@ class MagicEnumConan(ConanFile):
     @property
     def supported_compiler(self):
         compiler = str(self.settings.compiler)
-        version = str(self.settings.compiler.version)
+        version = tools.Version(self.settings.compiler.version)
         if compiler == "Visual Studio" and version >= "15":
             return True
         if compiler == "gcc" and version >= "9":
