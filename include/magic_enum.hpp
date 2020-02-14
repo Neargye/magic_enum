@@ -51,7 +51,7 @@
 
 // Checks magic_enum compiler compatibility.
 #if defined(__clang__) || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER)
-#  undef MAGIC_ENUM_SUPPORTED
+#  undef  MAGIC_ENUM_SUPPORTED
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
 
@@ -180,7 +180,6 @@ constexpr auto n() noexcept {
 #  endif
   return static_string<name.size()>{name};
 #else
-  static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   return std::string_view{}; // Unsupported compiler.
 #endif
 }
@@ -199,7 +198,6 @@ constexpr auto n() noexcept {
 #  endif
   return static_string<name.size()>{name};
 #else
-  static_assert(supported<E>::value, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   return std::string_view{}; // Unsupported compiler.
 #endif
 }
@@ -337,11 +335,11 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
-template <typename E, typename = void>
+template <typename E, bool = is_enum_v<E>>
 struct enum_traits {};
 
 template <typename E>
-struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
+struct enum_traits<E, true> {
   using type = E;
   using underlying_type = typename detail::underlying_type<E>::type;
 
@@ -393,7 +391,8 @@ struct enum_traits<E, std::enable_if_t<is_enum_v<E>>> {
 
  private:
   static_assert(is_enum_v<E>, "magic_enum::enum_traits requires enum type.");
-  static_assert(count > 0, "magic_enum::enum_range requires enum implementation or valid max and min.");
+  static_assert(supported<E>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(count > 0, "magic_enum::enum_range requires enum implementation and valid max and min.");
   using U = underlying_type;
   inline static constexpr auto indexes = detail::indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
 };
