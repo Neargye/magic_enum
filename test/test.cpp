@@ -45,7 +45,7 @@ struct enum_range<number> {
   static constexpr int min = 100;
   static constexpr int max = 300;
 };
-}
+} // namespace magic_enum
 
 using namespace magic_enum;
 
