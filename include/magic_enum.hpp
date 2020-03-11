@@ -490,6 +490,12 @@ template <typename E>
   return std::nullopt; // Value out of range.
 }
 
+// Returns true if enum contains enumerator with such value and false otherwise
+template <typename E>
+[[nodiscard]] constexpr auto contains_value(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
+  return enum_traits<E>::index(value) != -1;
+}
+
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template <typename E>

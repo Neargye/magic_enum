@@ -176,6 +176,38 @@ TEST_CASE("enum_index") {
   REQUIRE_FALSE(enum_index(static_cast<number>(0)).has_value());
 }
 
+TEST_CASE("contains_value") {
+  REQUIRE(contains_value<Color>(-12));
+  REQUIRE(contains_value<Color>(7));
+  REQUIRE(contains_value<Color>(15));
+  REQUIRE_FALSE(contains_value<Color>(42));
+  REQUIRE_FALSE(contains_value<Color>(-120));
+  REQUIRE_FALSE(contains_value<Color>(0));
+
+  constexpr auto no = enum_integer(Numbers::one);
+  REQUIRE(contains_value<Numbers>(no));
+  REQUIRE(contains_value<Numbers>(enum_integer(Numbers::two)));
+  REQUIRE(contains_value<Numbers>(enum_integer(Numbers::three)));
+  REQUIRE_FALSE(contains_value<Numbers>(enum_integer(Numbers::many)));
+
+  constexpr auto dr = enum_integer(Directions::Right);
+  REQUIRE(contains_value<Directions&>(dr));
+  REQUIRE(contains_value<Directions>(Directions::Down));
+  REQUIRE(contains_value<Directions>(Directions::Up));
+  REQUIRE_FALSE(contains_value<Directions>(static_cast<Directions>(0)));
+
+  constexpr auto nt = contains_value<number>(number::three);
+  REQUIRE(contains_value<number>(number::one));
+  REQUIRE(contains_value<number>(100));
+  REQUIRE(contains_value<number>(200));
+  REQUIRE(contains_value<number>(300));
+  REQUIRE(contains_value<number>(number::two));
+  REQUIRE(nt);
+  REQUIRE_FALSE(contains_value<number>(number::four));
+  REQUIRE_FALSE(contains_value<number>(111));
+  REQUIRE_FALSE(contains_value<number>(0));
+}
+
 TEST_CASE("enum_value") {
   constexpr auto cr = enum_value<Color>(0);
   REQUIRE(cr == Color::RED);
