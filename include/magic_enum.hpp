@@ -359,18 +359,22 @@ struct enum_traits<E, true> {
     return static_cast<U>(value) >= static_cast<U>(reflected_min_v<E>) && static_cast<U>(value) <= static_cast<U>(reflected_max_v<E>);
   }
 
-  [[nodiscard]] static constexpr int index(E value) noexcept {
-    if (static_cast<U>(value) >= static_cast<U>(min_v<E>) && static_cast<U>(value) <= static_cast<U>(max_v<E>)) {
+  [[nodiscard]] static constexpr int index(underlying_type value) noexcept {
+    if (value >= min_v<E> && value <= max_v<E>) {
       if constexpr (is_sparse) {
-        if (const auto i = indexes[static_cast<U>(value) - min_v<E>]; i != invalid_index_v<E>) {
+        if (const auto i = indexes[value - min_v<E>]; i != invalid_index_v<E>) {
           return i;
         }
       } else {
-        return static_cast<U>(value) - min_v<E>;
+        return value - min_v<E>;
       }
     }
 
     return -1; // Value out of range.
+  }
+
+  [[nodiscard]] static constexpr int index(E value) noexcept {
+      return index(static_cast<U>(value));
   }
 
   [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
