@@ -68,7 +68,7 @@ TEST_CASE("enum_cast") {
 
     constexpr auto dr = enum_cast<Directions>("Right");
     REQUIRE(enum_cast<Directions&>("Up").value() == Directions::Up);
-    REQUIRE(enum_cast<Directions>("Down").value() == Directions::Down);
+    REQUIRE(enum_cast<const Directions>("Down").value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
@@ -98,7 +98,7 @@ TEST_CASE("enum_cast") {
 
     constexpr auto dr = enum_cast<Directions>(120);
     REQUIRE(enum_cast<Directions&>(85).value() == Directions::Up);
-    REQUIRE(enum_cast<Directions>(-42).value() == Directions::Down);
+    REQUIRE(enum_cast<const Directions>(-42).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>(-120).value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>(0).has_value());
@@ -131,7 +131,7 @@ TEST_CASE("enum_integer") {
   constexpr auto dr = enum_integer(Directions::Right);
   Directions dl = Directions::Left;
   REQUIRE(enum_integer<Directions&>(dl) == -120);
-  REQUIRE(enum_integer(Directions::Down) == -42);
+  REQUIRE(enum_integer<const Directions>(Directions::Down) == -42);
   REQUIRE(enum_integer(Directions::Up) == 85);
   REQUIRE(dr == 120);
   REQUIRE(enum_integer(static_cast<Directions>(0)) == 0);
@@ -163,7 +163,7 @@ TEST_CASE("enum_index") {
   constexpr auto dr = enum_index(Directions::Right);
   Directions dl = Directions::Left;
   REQUIRE(enum_index<Directions&>(dl).value() == 0);
-  REQUIRE(enum_index(Directions::Down).value() == 1);
+  REQUIRE(enum_index<const Directions>(Directions::Down).value() == 1);
   REQUIRE(enum_index(Directions::Up).value() == 2);
   REQUIRE(dr.value() == 3);
   REQUIRE_FALSE(enum_index(static_cast<Directions>(0)).has_value());
@@ -176,36 +176,99 @@ TEST_CASE("enum_index") {
   REQUIRE_FALSE(enum_index(static_cast<number>(0)).has_value());
 }
 
-TEST_CASE("contains_value") {
-  REQUIRE(contains_value<Color>(-12));
-  REQUIRE(contains_value<Color>(7));
-  REQUIRE(contains_value<Color>(15));
-  REQUIRE_FALSE(contains_value<Color>(42));
-  REQUIRE_FALSE(contains_value<Color>(-120));
-  REQUIRE_FALSE(contains_value<Color>(0));
+TEST_CASE("enum_contains") {
+  SECTION("value") {
+    Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
+    constexpr auto cr = enum_contains(Color::RED);
+    Color cg = Color::GREEN;
+    REQUIRE(cr);
+    REQUIRE(enum_contains<Color&>(cg));
+    REQUIRE(enum_contains(cm[2]));
+    REQUIRE_FALSE(enum_contains(static_cast<Color>(0)));
 
-  constexpr auto no = enum_integer(Numbers::one);
-  REQUIRE(contains_value<Numbers>(no));
-  REQUIRE(contains_value<Numbers>(enum_integer(Numbers::two)));
-  REQUIRE(contains_value<Numbers>(enum_integer(Numbers::three)));
-  REQUIRE_FALSE(contains_value<Numbers>(enum_integer(Numbers::many)));
+    constexpr auto no = enum_contains(Numbers::one);
+    REQUIRE(no);
+    REQUIRE(enum_contains(Numbers::two));
+    REQUIRE(enum_contains(Numbers::three));
+    REQUIRE_FALSE(enum_contains(Numbers::many));
+    REQUIRE_FALSE(enum_contains(static_cast<Numbers>(0)));
 
-  constexpr auto dr = enum_integer(Directions::Right);
-  REQUIRE(contains_value<Directions&>(dr));
-  REQUIRE(contains_value<Directions>(Directions::Down));
-  REQUIRE(contains_value<Directions>(Directions::Up));
-  REQUIRE_FALSE(contains_value<Directions>(static_cast<Directions>(0)));
+    constexpr auto dr = enum_contains(Directions::Right);
+    Directions dl = Directions::Left;
+    REQUIRE(enum_contains<Directions&>(dl));
+    REQUIRE(enum_contains<const Directions>(Directions::Down));
+    REQUIRE(enum_contains(Directions::Up));
+    REQUIRE(dr);
+    REQUIRE_FALSE(enum_contains(static_cast<Directions>(0)));
 
-  constexpr auto nt = contains_value<number>(number::three);
-  REQUIRE(contains_value<number>(number::one));
-  REQUIRE(contains_value<number>(100));
-  REQUIRE(contains_value<number>(200));
-  REQUIRE(contains_value<number>(300));
-  REQUIRE(contains_value<number>(number::two));
-  REQUIRE(nt);
-  REQUIRE_FALSE(contains_value<number>(number::four));
-  REQUIRE_FALSE(contains_value<number>(111));
-  REQUIRE_FALSE(contains_value<number>(0));
+    constexpr auto nt = enum_contains(number::three);
+    REQUIRE(enum_contains(number::one));
+    REQUIRE(enum_contains<number&>(number::two));
+    REQUIRE(nt);
+    REQUIRE_FALSE(enum_contains(number::four));
+    REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
+  }
+
+  SECTION("integer") {
+    REQUIRE(enum_contains<Color>(-12));
+    REQUIRE(enum_contains<Color&>(7));
+    REQUIRE(enum_contains<Color>(15));
+    REQUIRE_FALSE(enum_contains<Color>(42));
+    REQUIRE_FALSE(enum_contains<Color>(-120));
+    REQUIRE_FALSE(enum_contains<Color>(0));
+
+    constexpr auto no = enum_integer(Numbers::one);
+    REQUIRE(enum_contains<Numbers>(no));
+    REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::two)));
+    REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::three)));
+    REQUIRE_FALSE(enum_contains<Numbers>(enum_integer(Numbers::many)));
+
+    constexpr auto dr = enum_integer(Directions::Right);
+    REQUIRE(enum_contains<Directions&>(dr));
+    REQUIRE(enum_contains<const Directions>(Directions::Down));
+    REQUIRE(enum_contains<Directions>(Directions::Up));
+    REQUIRE_FALSE(enum_contains<Directions>(static_cast<Directions>(0)));
+
+    constexpr auto nt = enum_contains<number>(number::three);
+    REQUIRE(enum_contains<number>(number::one));
+    REQUIRE(enum_contains<number>(100));
+    REQUIRE(enum_contains<number>(200));
+    REQUIRE(enum_contains<number>(300));
+    REQUIRE(enum_contains<number>(number::two));
+    REQUIRE(nt);
+    REQUIRE_FALSE(enum_contains<number>(number::four));
+    REQUIRE_FALSE(enum_contains<number>(111));
+    REQUIRE_FALSE(enum_contains<number>(0));
+  }
+
+  SECTION("string") {
+    constexpr auto cr = "RED";
+    REQUIRE(enum_contains<Color>(cr));
+    REQUIRE(enum_contains<Color&>("GREEN"));
+    REQUIRE(enum_contains<Color>("BLUE"));
+    REQUIRE_FALSE(enum_contains<Color>("None"));
+
+    constexpr auto no = std::string_view{"one"};
+    REQUIRE(enum_contains<Numbers>(no));
+    REQUIRE(enum_contains<Numbers>("two"));
+    REQUIRE(enum_contains<Numbers>("three"));
+    REQUIRE_FALSE(enum_contains<Numbers>("many"));
+    REQUIRE_FALSE(enum_contains<Numbers>("None"));
+
+    auto dr = std::string{"Right"};
+    REQUIRE(enum_contains<Directions&>("Up"));
+    REQUIRE(enum_contains<Directions>("Down"));
+    REQUIRE(enum_contains<const Directions>(dr));
+    REQUIRE(enum_contains<Directions>("Left"));
+    REQUIRE_FALSE(enum_contains<Directions>("None"));
+
+    constexpr auto nt = enum_contains<number>("three");
+    REQUIRE(enum_contains<number>("one"));
+    REQUIRE(enum_contains<number>("two"));
+    REQUIRE(nt);
+    REQUIRE_FALSE(enum_contains<number>("four"));
+    REQUIRE_FALSE(enum_contains<number>("None"));
+  }
 }
 
 TEST_CASE("enum_value") {
@@ -221,7 +284,7 @@ TEST_CASE("enum_value") {
 
   constexpr auto dr = enum_value<Directions>(3);
   REQUIRE(enum_value<Directions&>(0) == Directions::Left);
-  REQUIRE(enum_value<Directions>(1) == Directions::Down);
+  REQUIRE(enum_value<const Directions>(1) == Directions::Down);
   REQUIRE(enum_value<Directions>(2) == Directions::Up);
   REQUIRE(dr == Directions::Right);
 
@@ -238,7 +301,7 @@ TEST_CASE("enum_values") {
   auto s2 = enum_values<Numbers>();
   REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
 
-  constexpr auto s3 = enum_values<Directions&>();
+  constexpr auto s3 = enum_values<const Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
   auto s4 = enum_values<number>();
@@ -252,7 +315,7 @@ TEST_CASE("enum_count") {
   auto s2 = enum_count<Numbers>();
   REQUIRE(s2 == 3);
 
-  constexpr auto s3 = enum_count<Directions&>();
+  constexpr auto s3 = enum_count<const Directions>();
   REQUIRE(s3 == 4);
 
   auto s4 = enum_count<number>();
@@ -282,7 +345,7 @@ TEST_CASE("enum_name") {
     constexpr auto dr_name = enum_name(dr);
     Directions du = Directions::Up;
     REQUIRE(enum_name<Directions&>(du) == "Up");
-    REQUIRE(enum_name(Directions::Down) == "Down");
+    REQUIRE(enum_name<const Directions>(Directions::Down) == "Down");
     REQUIRE(dr_name == "Right");
     REQUIRE(enum_name(Directions::Left) == "Left");
     REQUIRE(enum_name(static_cast<Directions>(0)).empty());
@@ -334,7 +397,7 @@ TEST_CASE("enum_names") {
   auto s2 = enum_names<Numbers>();
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 
-  constexpr auto s3 = enum_names<Directions&>();
+  constexpr auto s3 = enum_names<const Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
   auto s4 = enum_names<number>();
