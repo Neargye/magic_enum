@@ -44,7 +44,7 @@ constexpr optional<E> enum_cast(underlying_type_t<E> value) noexcept;
   * String to enum value.
 
     ```cpp
-    std::string color_name{"GREEN"};
+    string color_name{"GREEN"};
     auto color = magic_enum::enum_cast<Color>(color_name);
     if (color.has_value()) {
         // color.value() -> Color::GREEN
@@ -109,7 +109,7 @@ constexpr size_t enum_count() noexcept;
 * Examples
 
   ```cpp
-  constexpr std::size_t color_count = magic_enum::enum_count<Color>();
+  constexpr auto color_count = magic_enum::enum_count<Color>();
   // color_count -> 3
   ```
 
@@ -203,12 +203,12 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 
 ```cpp
 template <typename E>
-constexpr std::optional<std::size_t> enum_index() noexcept;
+constexpr optional<size_t> enum_index() noexcept;
 ```
 
 * Obtains index in enum value sequence from enum value.
 
-* Returns std::optional with index.
+* Returns `std::optional<std::size_t>` with index.
 
 * Examples
 
@@ -224,7 +224,7 @@ constexpr std::optional<std::size_t> enum_index() noexcept;
 template <typename E>
 constexpr bool enum_contains(E value) noexcept;
 constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
-constexpr bool enum_contains(std::string_view value) noexcept;
+constexpr bool enum_contains(string_view value) noexcept;
 ```
 
 * Checks whether enum contains enumerator with such value.
