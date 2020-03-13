@@ -356,25 +356,11 @@ struct enum_traits<E, true> {
   inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(std::make_index_sequence<count_v<E>>{});
 
   [[nodiscard]] static constexpr bool reflected(E value) noexcept {
-    return static_cast<U>(value) >= static_cast<U>(reflected_min_v<E>) && static_cast<U>(value) <= static_cast<U>(reflected_max_v<E>);
-  }
-
-  [[nodiscard]] static constexpr int index(underlying_type value) noexcept {
-    if (value >= min_v<E> && value <= max_v<E>) {
-      if constexpr (is_sparse) {
-        if (const auto i = indexes[value - min_v<E>]; i != invalid_index_v<E>) {
-          return i;
-        }
-      } else {
-        return value - min_v<E>;
-      }
-    }
-
-    return -1; // Value out of range.
+    return reflected(static_cast<U>(value));
   }
 
   [[nodiscard]] static constexpr int index(E value) noexcept {
-      return index(static_cast<U>(value));
+    return index(static_cast<U>(value));
   }
 
   [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
@@ -399,6 +385,24 @@ struct enum_traits<E, true> {
   static_assert(count > 0, "magic_enum::enum_range requires enum implementation and valid max and min.");
   using U = underlying_type;
   inline static constexpr auto indexes = detail::indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
+
+  static constexpr bool reflected(U value) noexcept {
+    return value >= static_cast<U>(reflected_min_v<E>) && value <= static_cast<U>(reflected_max_v<E>);
+  }
+
+  static constexpr int index(U value) noexcept {
+    if (value >= static_cast<U>(min_v<E>) && value <= static_cast<U>(max_v<E>)) {
+      if constexpr (is_sparse) {
+        if (const auto i = indexes[value - min_v<E>]; i != invalid_index_v<E>) {
+          return i;
+        }
+      } else {
+        return value - min_v<E>;
+      }
+    }
+
+    return -1; // Value out of range.
+  }
 };
 
 } // namespace magic_enum::detail
@@ -490,10 +494,22 @@ template <typename E>
   return std::nullopt; // Value out of range.
 }
 
-// Checks whether enum contains enumerator with such value
+// Checks whether enum contains enumerator with such value.
 template <typename E>
-[[nodiscard]] constexpr auto contains_value(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
+[[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
   return enum_traits<E>::index(value) != -1;
+}
+
+// Checks whether enum contains enumerator with such integer value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
+  return enum_cast<E>(value).has_value();
+}
+
+// Checks whether enum contains enumerator with such string enum name.
+template <typename E>
+[[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
+  return enum_cast<E>(value).has_value();
 }
 
 // Returns enum value at specified index.
