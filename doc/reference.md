@@ -9,6 +9,7 @@
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
+* [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" std::underlying_type.](#underlying_type)
@@ -196,6 +197,48 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
   // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"
+  ```
+
+## `enum_index`
+
+```cpp
+template <typename E>
+constexpr std::optional<std::size_t> enum_index() noexcept;
+```
+
+* Obtains index in enum value sequence from enum value.
+
+* Returns std::optional with index.
+
+* Examples
+
+  ```cpp
+  constexpr auto color_index = magic_enum::enum_index(Color::BLUE);
+  // color_index -> color_index.value() -> 1
+  // color_index -> color_index.has_value() -> true
+  ```
+
+## `enum_contains`
+
+```cpp
+template <typename E>
+constexpr bool enum_contains(E value) noexcept;
+constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
+constexpr bool enum_contains(std::string_view value) noexcept;
+```
+
+* Checks whether enum contains enumerator with such value.
+
+* Returns true is enum contains value, otherwise false.
+
+* Examples
+
+  ```cpp
+  magic_enum::enum_contains(Color::GREEN); // -> true
+  magic_enum::enum_contains<Color>(2); // -> true
+  magic_enum::enum_contains<Color>(123); // -> false
+  magic_enum::enum_contains<Color>("GREEN"); // -> true
+  magic_enum::enum_contains<Color>("fda"); // -> false
   ```
 
 ## `is_unscoped_enum`
