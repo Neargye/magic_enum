@@ -162,12 +162,14 @@ constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredi
   if (lhs.size() != rhs.size()) {
     return false;
   }
+
   const auto size = lhs.size();
   for (std::size_t i = 0; i < size; ++i) {
     if (!p(lhs[i], rhs[i])) {
       return false;
     }
   }
+
   return true;
 }
 
