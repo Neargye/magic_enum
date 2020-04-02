@@ -131,6 +131,12 @@ struct static_string<0> {
   constexpr operator std::string_view() const noexcept { return {}; }
 };
 
+struct char_equal {
+  constexpr bool operator()(char lhs, char rhs) const noexcept {
+    return lhs == rhs;
+  }
+};
+
 constexpr std::string_view pretty_name(std::string_view name) noexcept {
   for (std::size_t i = name.size(); i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
@@ -151,19 +157,33 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
   return {}; // Invalid name.
 }
 
-template <typename L, typename R>
-constexpr bool mixed_sign_less(L lhs, R rhs) noexcept {
-  static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::mixed_sign_less requires integral type.");
+template <typename BinaryPredicate>
+constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+  const auto size = lhs.size();
+  for (std::size_t i = 0; i < size; ++i) {
+    if (!p(lhs[i], rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
 
-  if constexpr (std::is_signed_v<L> && std::is_unsigned_v<R>) {
-    // If 'left' is negative, then result is 'true', otherwise cast & compare.
-    return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
-  } else if constexpr (std::is_unsigned_v<L> && std::is_signed_v<R>) {
-    // If 'right' is negative, then result is 'false', otherwise cast & compare.
-    return rhs >= 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
-  } else {
+template <typename L, typename R>
+constexpr bool cmp_less(L lhs, R rhs) noexcept {
+  static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::cmp_less requires integral type.");
+
+  if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     // If same signedness (both signed or both unsigned).
     return lhs < rhs;
+  } else if constexpr (std::is_signed_v<R>) {
+    // If 'right' is negative, then result is 'false', otherwise cast & compare.
+    return rhs > 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
+  } else {
+    // If 'left' is negative, then result is 'true', otherwise cast & compare.
+    return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
   }
 }
 
@@ -212,7 +232,7 @@ constexpr int reflected_min() noexcept {
   static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
   constexpr auto rhs = (std::numeric_limits<std::underlying_type_t<E>>::min)();
 
-  return mixed_sign_less(lhs, rhs) ? rhs : lhs;
+  return cmp_less(lhs, rhs) ? rhs : lhs;
 }
 
 template <typename E>
@@ -222,7 +242,7 @@ constexpr int reflected_max() noexcept {
   static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
   constexpr auto rhs = (std::numeric_limits<std::underlying_type_t<E>>::max)();
 
-  return mixed_sign_less(lhs, rhs) ? lhs : rhs;
+  return cmp_less(lhs, rhs) ? lhs : rhs;
 }
 
 template <typename E>
@@ -443,25 +463,31 @@ using enum_traits = detail::enum_traits<std::decay_t<E>>;
 
 // Obtains enum value from enum string name.
 // Returns std::optional with enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+template <typename E, typename BinaryPredicate>
+[[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
   if constexpr (detail::range_size_v<D> > detail::count_v<D> * 2) {
     for (std::size_t i = 0; i < enum_traits<D>::count; ++i) {
-      if (value == enum_traits<D>::names[i]) {
+      if (detail::cmp_equal(value, enum_traits<D>::names[i], p)) {
         return enum_traits<D>::values[i];
       }
     }
   } else {
     for (auto i = detail::min_v<D>; i <= detail::max_v<D>; ++i) {
-      if (value == enum_traits<D>::name(static_cast<D>(i))) {
+      if (detail::cmp_equal(value, enum_traits<D>::name(static_cast<D>(i)), p)) {
         return static_cast<D>(i);
       }
     }
   }
 
   return std::nullopt; // Invalid value or out of range.
+}
+
+template <typename E>
+[[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+  return enum_cast<E>(value, detail::char_equal{});
 }
 
 // Obtains enum value from integer value.

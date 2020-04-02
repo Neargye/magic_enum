@@ -28,6 +28,7 @@
 #include <magic_enum.hpp>
 
 #include <array>
+#include <cctype>
 #include <string_view>
 #include <sstream>
 
@@ -56,7 +57,7 @@ TEST_CASE("enum_cast") {
     constexpr auto cr = enum_cast<Color>("RED");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
-    REQUIRE(enum_cast<Color>("BLUE").value() == Color::BLUE);
+    REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
     REQUIRE_FALSE(enum_cast<Color>("None").has_value());
 
     constexpr auto no = enum_cast<Numbers>("one");
@@ -626,8 +627,8 @@ TEST_CASE("extrema") {
   }
 }
 
-TEST_CASE("mixed_sign_less") {
-  using magic_enum::detail::mixed_sign_less;
+TEST_CASE("cmp_less") {
+  using magic_enum::detail::cmp_less;
 
   constexpr std::uint64_t uint64_t_min = std::numeric_limits<std::uint64_t>::min();
   constexpr std::uint32_t uint32_t_min = std::numeric_limits<std::uint32_t>::min();
@@ -645,48 +646,48 @@ TEST_CASE("mixed_sign_less") {
   constexpr std::int32_t offset_int32_t = 17;
 
   SECTION("same signedness") {
-    REQUIRE(mixed_sign_less(-5, -3));
-    REQUIRE(mixed_sign_less(27U, 49U));
+    REQUIRE(cmp_less(-5, -3));
+    REQUIRE(cmp_less(27U, 49U));
   }
 
   SECTION("same signedness, different width") {
-    REQUIRE(mixed_sign_less(uint32_t_max, uint64_t_max));
-    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, uint32_t_max));
-    REQUIRE(mixed_sign_less(int64_t_min, int32_t_min));
-    REQUIRE_FALSE(mixed_sign_less(int32_t_min, int64_t_min));
-    REQUIRE(mixed_sign_less(int64_t_min + offset_int64_t, int32_t_min + offset_int32_t));
-    REQUIRE_FALSE(mixed_sign_less(int32_t_min + offset_int32_t, int64_t_min + offset_int64_t));
+    REQUIRE(cmp_less(uint32_t_max, uint64_t_max));
+    REQUIRE_FALSE(cmp_less(uint64_t_max, uint32_t_max));
+    REQUIRE(cmp_less(int64_t_min, int32_t_min));
+    REQUIRE_FALSE(cmp_less(int32_t_min, int64_t_min));
+    REQUIRE(cmp_less(int64_t_min + offset_int64_t, int32_t_min + offset_int32_t));
+    REQUIRE_FALSE(cmp_less(int32_t_min + offset_int32_t, int64_t_min + offset_int64_t));
   }
 
   SECTION("left signed, right unsigned") {
-    REQUIRE(mixed_sign_less(-5, 3U));
-    REQUIRE(mixed_sign_less(3, 5U));
+    REQUIRE(cmp_less(-5, 3U));
+    REQUIRE(cmp_less(3, 5U));
   }
 
   SECTION("left signed, right unsigned, different width") {
-    REQUIRE(mixed_sign_less(int32_t_max, uint64_t_max));
-    REQUIRE_FALSE(mixed_sign_less(int64_t_max, uint32_t_max));
-    REQUIRE(mixed_sign_less(int32_t_min, uint64_t_min));
-    REQUIRE(mixed_sign_less(int64_t_min, uint32_t_min));
-    REQUIRE(mixed_sign_less(int32_t_max - offset_int32_t, uint64_t_max));
-    REQUIRE_FALSE(mixed_sign_less(int64_t_max - offset_int64_t, uint32_t_max));
-    REQUIRE(mixed_sign_less(int32_t_min + offset_int32_t, uint64_t_min));
-    REQUIRE(mixed_sign_less(int64_t_min + offset_int64_t, uint32_t_min));
+    REQUIRE(cmp_less(int32_t_max, uint64_t_max));
+    REQUIRE_FALSE(cmp_less(int64_t_max, uint32_t_max));
+    REQUIRE(cmp_less(int32_t_min, uint64_t_min));
+    REQUIRE(cmp_less(int64_t_min, uint32_t_min));
+    REQUIRE(cmp_less(int32_t_max - offset_int32_t, uint64_t_max));
+    REQUIRE_FALSE(cmp_less(int64_t_max - offset_int64_t, uint32_t_max));
+    REQUIRE(cmp_less(int32_t_min + offset_int32_t, uint64_t_min));
+    REQUIRE(cmp_less(int64_t_min + offset_int64_t, uint32_t_min));
   }
 
   SECTION("left unsigned, right signed") {
-    REQUIRE_FALSE(mixed_sign_less(3U, -5));
-    REQUIRE(mixed_sign_less(3U, 5));
+    REQUIRE_FALSE(cmp_less(3U, -5));
+    REQUIRE(cmp_less(3U, 5));
   }
 
   SECTION("left unsigned, right signed, different width") {
-    REQUIRE(mixed_sign_less(uint32_t_max, int64_t_max));
-    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, int32_t_max));
-    REQUIRE_FALSE(mixed_sign_less(uint32_t_min, int64_t_min));
-    REQUIRE_FALSE(mixed_sign_less(uint64_t_min, int32_t_min));
-    REQUIRE(mixed_sign_less(uint32_t_max, int64_t_max - offset_int32_t));
-    REQUIRE_FALSE(mixed_sign_less(uint64_t_max, int32_t_max - offset_int64_t));
-    REQUIRE_FALSE(mixed_sign_less(uint32_t_min, int64_t_min + offset_int32_t));
-    REQUIRE_FALSE(mixed_sign_less(uint64_t_min, int32_t_min + offset_int64_t));
+    REQUIRE(cmp_less(uint32_t_max, int64_t_max));
+    REQUIRE_FALSE(cmp_less(uint64_t_max, int32_t_max));
+    REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min));
+    REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min));
+    REQUIRE(cmp_less(uint32_t_max, int64_t_max - offset_int32_t));
+    REQUIRE_FALSE(cmp_less(uint64_t_max, int32_t_max - offset_int64_t));
+    REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min + offset_int32_t));
+    REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
 }
