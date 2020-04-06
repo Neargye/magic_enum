@@ -206,6 +206,16 @@ If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project fo
 
 If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z@neargye/stable` to your conan's requires, where `x.y.z` is the release version you want to use.
 
+Alternatively, you can use something like [CPM](https://github.com/TheLartians/CPM) which is based on CMake's `Fetch_Content` module.
+
+```cmake
+CPMAddPackage(
+    NAME magic_enum
+    GITHUB_REPOSITORY Neargye/magic_enum
+    GIT_TAG 0.6.5 # Where `x.y.z` is the release version you want to use.
+)
+```
+
 ## Compiler compatibility
 
 * Clang/LLVM >= 5
