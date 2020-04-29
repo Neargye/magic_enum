@@ -227,6 +227,16 @@ constexpr auto n() noexcept {
 template <typename E, E V>
 inline constexpr auto name_v = n<E, V>();
 
+template <typename E, int Min, int Max>
+constexpr std::size_t range_size() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
+  constexpr auto size = Max - Min + 1;
+  static_assert(size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
+
+  return static_cast<std::size_t>(size);
+}
+
 template <typename E>
 constexpr int reflected_min() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::reflected_min requires enum type.");
@@ -253,17 +263,6 @@ inline constexpr int reflected_min_v = reflected_min<E>();
 template <typename E>
 inline constexpr int reflected_max_v = reflected_max<E>();
 
-template <typename E>
-constexpr std::size_t reflected_size() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::reflected_size requires enum type.");
-  static_assert(reflected_max_v<E> > reflected_min_v<E>, "magic_enum::enum_range requires max > min.");
-  constexpr auto size = reflected_max_v<E> - reflected_min_v<E> + 1;
-  static_assert(size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-
-  return static_cast<std::size_t>(size);
-}
-
 template <typename E, int... I>
 constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
@@ -281,7 +280,7 @@ constexpr auto values(std::integer_sequence<int, I...>) noexcept {
 }
 
 template <typename E>
-inline constexpr auto values_v = values<E>(std::make_integer_sequence<int, reflected_size<E>()>{});
+inline constexpr auto values_v = values<E>(std::make_integer_sequence<int, range_size<E, reflected_min_v<E>, reflected_max_v<E>>()>{});
 
 template <typename E>
 inline constexpr std::size_t count_v = values_v<E>.size();
@@ -293,17 +292,7 @@ template <typename E>
 inline constexpr int max_v = values_v<E>.empty() ? 0 : static_cast<int>(values_v<E>.back());
 
 template <typename E>
-constexpr std::size_t range_size() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
-  constexpr auto size = max_v<E> - min_v<E> + 1;
-  static_assert(size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-
-  return static_cast<std::size_t>(size);
-}
-
-template <typename E>
-inline constexpr std::size_t range_size_v = range_size<E>();
+inline constexpr std::size_t range_size_v = range_size<E, min_v<E>, max_v<E>>();
 
 template <typename E>
 using index_t = std::conditional_t<range_size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
