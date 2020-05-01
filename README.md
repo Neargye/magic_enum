@@ -212,7 +212,7 @@ Alternatively, you can use something like [CPM](https://github.com/TheLartians/C
 CPMAddPackage(
     NAME magic_enum
     GITHUB_REPOSITORY Neargye/magic_enum
-    GIT_TAG 0.6.5 # Where `x.y.z` is the release version you want to use.
+    GIT_TAG x.y.z # Where `x.y.z` is the release version you want to use.
 )
 ```
 
