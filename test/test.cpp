@@ -38,7 +38,16 @@ enum class Numbers : int { one = 1, two, three, many = 127 };
 
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
-enum number : unsigned long { one = 100, two = 200, three = 300, four = 400 };
+enum number : unsigned long {
+  one = 100,
+  two = 200,
+  three = 300,
+  four = 400,
+  _1 = one,
+  _2 = two,
+  _3 = three,
+  _4 = four
+};
 
 namespace magic_enum {
 template <>
@@ -554,12 +563,44 @@ TEST_CASE("type_traits") {
 }
 
 TEST_CASE("enum_traits") {
-  SECTION("type_name") {
-    REQUIRE(enum_traits<Color&>::type_name == "Color");
-    REQUIRE(enum_traits<Numbers>::type_name == "Numbers");
-    REQUIRE(enum_traits<Directions&>::type_name == "Directions");
-    REQUIRE(enum_traits<number>::type_name == "number");
-  }
+  REQUIRE(enum_traits<Color&>::type_name == "Color");
+  REQUIRE(enum_traits<Numbers>::type_name == "Numbers");
+  REQUIRE(enum_traits<Directions&>::type_name == "Directions");
+  REQUIRE(enum_traits<number>::type_name == "number");
+
+  REQUIRE_FALSE(enum_traits<Color&>::is_unscoped);
+  REQUIRE_FALSE(enum_traits<Numbers>::is_unscoped);
+  REQUIRE(enum_traits<Directions&>::is_unscoped);
+  REQUIRE(enum_traits<number>::is_unscoped);
+
+  REQUIRE(enum_traits<Color&>::is_scoped);
+  REQUIRE(enum_traits<Numbers>::is_scoped);
+  REQUIRE_FALSE(enum_traits<Directions&>::is_scoped);
+  REQUIRE_FALSE(enum_traits<number>::is_scoped);
+
+  REQUIRE_FALSE(enum_traits<Color&>::is_dense);
+  REQUIRE(enum_traits<Numbers>::is_dense);
+  REQUIRE_FALSE(enum_traits<Directions&>::is_dense);
+  REQUIRE_FALSE(enum_traits<number>::is_dense);
+
+  REQUIRE(enum_traits<Color&>::is_sparse);
+  REQUIRE_FALSE(enum_traits<Numbers>::is_sparse);
+  REQUIRE(enum_traits<Directions&>::is_sparse);
+  REQUIRE(enum_traits<number>::is_sparse);
+}
+
+TEST_CASE("aliases") {
+  REQUIRE(enum_count<number>() == 3);
+
+  REQUIRE(enum_name(number::one) == enum_name(number::_1));
+  REQUIRE(enum_name(number::two) == enum_name(number::_2));
+  REQUIRE(enum_name(number::three) == enum_name(number::_3));
+  REQUIRE(enum_name(number::four) == enum_name(number::_4));
+
+  REQUIRE(enum_integer(number::one) == enum_integer(number::_1));
+  REQUIRE(enum_integer(number::two) == enum_integer(number::_2));
+  REQUIRE(enum_integer(number::three) == enum_integer(number::_3));
+  REQUIRE(enum_integer(number::four) == enum_integer(number::_4));
 }
 
 TEST_CASE("extrema") {
