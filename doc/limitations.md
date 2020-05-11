@@ -38,18 +38,6 @@
     } // namespace magic_enum
     ```
 
-* If you hit a message like this:
-
-  ```text
-  [...]
-  note: constexpr evaluation hit maximum step limit; possible infinite loop?
-  ```
-
-  Change the limit for the number of constexpr evaluated:
-  * MSVC `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
-  * Clang `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
-  * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
-
 * `magic_enum` won't work if a value is aliased, work with enum-aliases is compiler-implementation-defined.
 
   ```cpp
@@ -91,3 +79,19 @@
   // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> std::nullopt
   // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
   ```
+
+* If you hit a message like this:
+
+  ```text
+  [...]
+  note: constexpr evaluation hit maximum step limit; possible infinite loop?
+  ```
+
+  Change the limit for the number of constexpr evaluated:
+  * MSVC `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
+  * Clang `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
+  * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
+
+* Intellisense Visual Studio may have some problems analyzing `magic_enum`.
+  * [Intellisense hangs forever when using `magic_enum` since 0.6.1 on x86 projects.](https://github.com/Neargye/magic_enum/issues/34)
+  * [Intellisense incorrect analysis constexpr.](https://github.com/Neargye/magic_enum/issues/26)

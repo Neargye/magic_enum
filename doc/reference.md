@@ -140,7 +140,7 @@ template <auto V>
 constexpr string_view enum_name() noexcept;
 ```
 
-* Returns `std::string_view`.
+* Returns `std::string_view` with null-terminated string enum name from enum value.
   * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
   * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
 
