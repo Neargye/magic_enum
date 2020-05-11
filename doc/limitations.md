@@ -50,8 +50,8 @@
     Banana = 3,
     COUNT = 4,
   };
-  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt
-  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
+  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt or ShapeKind::Box
+  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin" or ""
   ```
 
   One of the possible workaround the issue:
