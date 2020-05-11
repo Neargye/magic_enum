@@ -109,15 +109,15 @@ struct static_string {
 
   constexpr const char* data() const noexcept { return chars.data(); }
 
-  constexpr std::size_t size() const noexcept { return chars.size(); }
+  constexpr std::size_t size() const noexcept { return N; }
 
   constexpr operator std::string_view() const noexcept { return {data(), size()}; }
 
  private:
   template <std::size_t... I>
-  constexpr static_string(std::string_view str, std::index_sequence<I...>) noexcept : chars{{str[I]...}} {}
+  constexpr static_string(std::string_view str, std::index_sequence<I...>) noexcept : chars{{str[I]..., '\0'}} {}
 
-  const std::array<char, N> chars;
+  const std::array<char, N + 1> chars;
 };
 
 template <>
