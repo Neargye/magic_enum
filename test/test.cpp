@@ -43,10 +43,15 @@ enum number : unsigned long {
   two = 200,
   three = 300,
   four = 400,
+
+#if defined(_MSC_VER) && _MSC_VER >= 1920
+  // Aliases won't work on vs2017.
+
   _1 = one,
   _2 = two,
   _3 = three,
   _4 = four
+#endif
 };
 
 namespace magic_enum {
@@ -589,6 +594,8 @@ TEST_CASE("enum_traits") {
   REQUIRE(enum_traits<number>::is_sparse);
 }
 
+#if defined(_MSC_VER) && _MSC_VER >= 1920
+// Aliases won't work on vs2017.
 TEST_CASE("aliases") {
   REQUIRE(enum_count<number>() == 3);
 
@@ -601,7 +608,13 @@ TEST_CASE("aliases") {
   REQUIRE(enum_integer(number::two) == enum_integer(number::_2));
   REQUIRE(enum_integer(number::three) == enum_integer(number::_3));
   REQUIRE(enum_integer(number::four) == enum_integer(number::_4));
+
+  REQUIRE_FALSE(enum_cast<number>("_1").has_value());
+  REQUIRE_FALSE(enum_cast<number>("_2").has_value());
+  REQUIRE_FALSE(enum_cast<number>("_3").has_value());
+  REQUIRE_FALSE(enum_cast<number>("_4").has_value());
 }
+#endif
 
 TEST_CASE("extrema") {
   enum class BadColor : std::uint64_t {
