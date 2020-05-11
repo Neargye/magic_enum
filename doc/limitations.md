@@ -50,7 +50,7 @@
   * Clang `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
   * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
-* `magic_enum` obtains the first defined value enums, and won't work if value are aliased.
+* `magic_enum` won't work if a value is aliased, work with enum-aliases is compiler-implementation-defined.
 
   ```cpp
   enum ShapeKind {
@@ -66,7 +66,7 @@
   // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
   ```
 
-  Work around the issue:
+  One of the possible workaround the issue:
 
   ```cpp
   enum ShapeKind {
