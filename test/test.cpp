@@ -567,31 +567,12 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_scoped_enum_v<number>);
 }
 
-TEST_CASE("enum_traits") {
-  REQUIRE(enum_traits<Color&>::type_name == "Color");
-  REQUIRE(enum_traits<Numbers>::type_name == "Numbers");
-  REQUIRE(enum_traits<Directions&>::type_name == "Directions");
-  REQUIRE(enum_traits<number>::type_name == "number");
 
-  REQUIRE_FALSE(enum_traits<Color&>::is_unscoped);
-  REQUIRE_FALSE(enum_traits<Numbers>::is_unscoped);
-  REQUIRE(enum_traits<Directions&>::is_unscoped);
-  REQUIRE(enum_traits<number>::is_unscoped);
-
-  REQUIRE(enum_traits<Color&>::is_scoped);
-  REQUIRE(enum_traits<Numbers>::is_scoped);
-  REQUIRE_FALSE(enum_traits<Directions&>::is_scoped);
-  REQUIRE_FALSE(enum_traits<number>::is_scoped);
-
-  REQUIRE_FALSE(enum_traits<Color&>::is_dense);
-  REQUIRE(enum_traits<Numbers>::is_dense);
-  REQUIRE_FALSE(enum_traits<Directions&>::is_dense);
-  REQUIRE_FALSE(enum_traits<number>::is_dense);
-
-  REQUIRE(enum_traits<Color&>::is_sparse);
-  REQUIRE_FALSE(enum_traits<Numbers>::is_sparse);
-  REQUIRE(enum_traits<Directions&>::is_sparse);
-  REQUIRE(enum_traits<number>::is_sparse);
+TEST_CASE("enum_type_name") {
+  REQUIRE(enum_type_name<Color&>() == "Color");
+  REQUIRE(enum_type_name<Numbers>() == "Numbers");
+  REQUIRE(enum_type_name<Directions&>() == "Directions");
+  REQUIRE(enum_type_name<number>() == "number");
 }
 
 #if defined(_MSC_VER) && _MSC_VER >= 1920

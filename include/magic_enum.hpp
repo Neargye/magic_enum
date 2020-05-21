@@ -308,6 +308,9 @@ constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
   return std::array<index_t<E>, sizeof...(I)>{{((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? i++ : invalid_index_v<E>)...}};
 }
 
+template <typename E>
+inline constexpr auto indexes_v = indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
+
 template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
@@ -315,12 +318,50 @@ constexpr auto names(std::index_sequence<I...>) noexcept {
   return std::array<std::string_view, sizeof...(I)>{{name_v<E, values_v<E>[I]>...}};
 }
 
+template <typename E>
+inline constexpr auto names_v = names<E>(std::make_index_sequence<count_v<E>>{});
+
 template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
   return std::array<std::pair<E, std::string_view>, sizeof...(I)>{{{values_v<E>[I], name_v<E, values_v<E>[I]>}...}};
 }
+
+template <typename E>
+inline constexpr auto entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
+
+// ___
+template <typename E>
+inline static constexpr bool is_dense = range_size_v<E> == count_v<E>;
+
+template <typename E>
+inline static constexpr bool is_sparse = range_size_v<E> != count_v<E>;
+
+template <typename E, typename U = std::underlying_type_t<E>>
+constexpr int undex(U value) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::undex requires enum type.");
+
+  if (value >= static_cast<U>(min_v<E>) && value <= static_cast<U>(max_v<E>)) {
+    if constexpr (is_sparse<E>) {
+      if (const auto i = indexes_v<E>[value - min_v<E>]; i != invalid_index_v<E>) {
+        return i;
+      }
+    } else {
+      return value - min_v<E>;
+    }
+  }
+
+  return -1; // Value out of range.
+}
+
+template <typename E>
+constexpr int endex(E value) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::endex requires enum type.");
+
+  return undex<E>(static_cast<std::underlying_type_t<E>>(value));
+}
+// ___
 
 template <typename T, typename R>
 using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>, R>;
@@ -345,76 +386,6 @@ struct underlying_type {};
 
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
-
-template <typename E, bool = is_enum_v<E>>
-struct enum_traits {};
-
-template <typename E>
-struct enum_traits<E, true> {
-  using type = E;
-  using underlying_type = typename detail::underlying_type<E>::type;
-
-  inline static constexpr std::string_view type_name = detail::type_name_v<E>;
-
-  inline static constexpr bool is_unscoped = detail::is_unscoped_enum<E>::value;
-  inline static constexpr bool is_scoped = detail::is_scoped_enum<E>::value;
-  inline static constexpr bool is_dense = detail::range_size_v<E> == detail::count_v<E>;
-  inline static constexpr bool is_sparse = detail::range_size_v<E> != detail::count_v<E>;
-
-  inline static constexpr std::size_t count = detail::count_v<E>;
-  inline static constexpr std::array<E, count> values = detail::values_v<E>;
-  inline static constexpr std::array<std::string_view, count> names = detail::names<E>(std::make_index_sequence<count_v<E>>{});
-  inline static constexpr std::array<std::pair<E, std::string_view>, count> entries = detail::entries<E>(std::make_index_sequence<count_v<E>>{});
-
-  [[nodiscard]] static constexpr bool reflected(E value) noexcept {
-    return reflected(static_cast<U>(value));
-  }
-
-  [[nodiscard]] static constexpr int index(E value) noexcept {
-    return index(static_cast<U>(value));
-  }
-
-  [[nodiscard]] static constexpr E value(std::size_t index) noexcept {
-    if constexpr (is_sparse) {
-      return assert(index < count), values[index];
-    } else {
-      return assert(index < count), static_cast<E>(index + min_v<E>);
-    }
-  }
-
-  [[nodiscard]] static constexpr std::string_view name(E value) noexcept {
-    if (const auto i = index(value); i != -1) {
-      return names[i];
-    }
-
-    return {}; // Value out of range.
-  }
-
- private:
-  static_assert(is_enum_v<E>, "magic_enum::enum_traits requires enum type.");
-  static_assert(supported<E>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(count > 0, "magic_enum::enum_range requires enum implementation and valid max and min.");
-  using U = underlying_type;
-  inline static constexpr auto indexes = detail::indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
-
-  static constexpr bool reflected(U value) noexcept {
-    return value >= static_cast<U>(reflected_min_v<E>) && value <= static_cast<U>(reflected_max_v<E>);
-  }
-
-  static constexpr int index(U value) noexcept {
-    if (value >= static_cast<U>(min_v<E>) && value <= static_cast<U>(max_v<E>)) {
-      if constexpr (is_sparse) {
-        if (const auto i = indexes[value - min_v<E>]; i != invalid_index_v<E>) {
-          return i;
-        }
-      } else {
-        return value - min_v<E>;
-      }
-    }
-
-    return -1; // Value out of range.
-  }
-};
 
 } // namespace magic_enum::detail
 
@@ -448,9 +419,79 @@ struct underlying_type : detail::underlying_type<T> {};
 template <typename T>
 using underlying_type_t = typename underlying_type<T>::type;
 
-// Enum traits defines a compile-time template-based interface to query the properties of enum.
 template <typename E>
-using enum_traits = detail::enum_traits<std::decay_t<E>>;
+[[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, std::string_view> {
+  constexpr std::string_view name = detail::type_name_v<std::decay_t<E>>;
+  static_assert(name.size() > 0, "Enum type does not have a name.");
+
+  return name;
+}
+
+// Returns number of enum values.
+template <typename E>
+[[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
+  return detail::count_v<std::decay_t<E>>;
+}
+
+// Returns enum value at specified index.
+// No bounds checking is performed: the behavior is undefined if index >= number of enum values.
+template <typename E>
+[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+
+  if constexpr (detail::is_sparse<D>) {
+    return assert(index < detail::count_v<D>), detail::values_v<D>[index];
+  } else {
+    return assert(index < detail::count_v<D>), static_cast<D>(index + detail::min_v<D>);
+  }
+}
+
+// Obtains value enum sequence.
+// Returns std::array with enum values, sorted by enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, decltype(detail::values_v<std::decay_t<E>>)&> {
+  return detail::values_v<std::decay_t<E>>;
+}
+
+// Returns string enum name from static storage enum variable.
+// This version is much lighter on the compile times and is not restricted to the enum_range limitation.
+template <auto V>
+[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
+  constexpr std::string_view name = detail::name_v<std::decay_t<decltype(V)>, V>;
+  static_assert(name.size() > 0, "Enum value does not have a name.");
+
+  return name;
+}
+
+// Returns string enum name from enum value.
+// If enum value does not have name or value out of range, returns empty string.
+template <typename E>
+[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
+  using D = std::decay_t<E>;
+
+  if (const auto i = detail::endex<D>(value); i != -1) {
+    return detail::names_v<D>[i];
+  }
+
+  return {}; // Value out of range.
+}
+
+// Obtains string enum name sequence.
+// Returns std::array with string enum names, sorted by enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, decltype(detail::names_v<std::decay_t<E>>)&> {
+  static_assert(detail::supported<E>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(detail::count_v<std::decay_t<E>> > 0, "magic_enum requires enum implementation and valid max and min.");
+
+  return detail::names_v<std::decay_t<E>>;
+}
+
+// Obtains pair (value enum, string enum name) sequence.
+// Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, decltype(detail::entries_v<std::decay_t<E>>)&> {
+  return detail::entries_v<std::decay_t<E>>;
+}
 
 // Obtains enum value from enum string name.
 // Returns std::optional with enum value.
@@ -460,14 +501,14 @@ template <typename E, typename BinaryPredicate>
   using D = std::decay_t<E>;
 
   if constexpr (detail::range_size_v<D> > detail::count_v<D> * 2) {
-    for (std::size_t i = 0; i < enum_traits<D>::count; ++i) {
-      if (detail::cmp_equal(value, enum_traits<D>::names[i], p)) {
-        return enum_traits<D>::values[i];
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+      if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
+        return detail::values_v<D>[i];
       }
     }
   } else {
     for (auto i = detail::min_v<D>; i <= detail::max_v<D>; ++i) {
-      if (detail::cmp_equal(value, enum_traits<D>::name(static_cast<D>(i)), p)) {
+      if (detail::cmp_equal(value, enum_name(static_cast<D>(i)), p)) {
         return static_cast<D>(i);
       }
     }
@@ -487,7 +528,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
-  if (enum_traits<D>::index(static_cast<D>(value)) != -1) {
+  if (detail::undex<D>(value) != -1) {
     return static_cast<D>(value);
   }
 
@@ -504,7 +545,7 @@ template <typename E>
 // Returns std::optional with index.
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
-  if (const auto i = enum_traits<E>::index(value); i != -1) {
+  if (const auto i = detail::endex<std::decay_t<E>>(value); i != -1) {
     return i;
   }
 
@@ -514,70 +555,19 @@ template <typename E>
 // Checks whether enum contains enumerator with such value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  return enum_traits<E>::index(value) != -1;
+  return detail::endex<std::decay_t<E>>(value) != -1;
 }
 
 // Checks whether enum contains enumerator with such integer value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  return enum_cast<E>(value).has_value();
+  return detail::undex<std::decay_t<E>>(value) != -1;
 }
 
 // Checks whether enum contains enumerator with such string enum name.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
   return enum_cast<E>(value).has_value();
-}
-
-// Returns enum value at specified index.
-// No bounds checking is performed: the behavior is undefined if index >= number of enum values.
-template <typename E>
-[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
-  return enum_traits<E>::value(index);
-}
-
-// Obtains value enum sequence.
-// Returns std::array with enum values, sorted by enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::values)&> {
-  return enum_traits<E>::values;
-}
-
-// Returns number of enum values.
-template <typename E>
-[[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
-  return enum_traits<E>::count;
-}
-
-// Returns string enum name from static storage enum variable.
-// This version is much lighter on the compile times and is not restricted to the enum_range limitation.
-template <auto V>
-[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
-  constexpr std::string_view name = detail::name_v<std::decay_t<decltype(V)>, V>;
-  static_assert(name.size() > 0, "Enum value does not have a name.");
-
-  return name;
-}
-
-// Returns string enum name from enum value.
-// If enum value does not have name or value out of range, returns empty string.
-template <typename E>
-[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
-  return enum_traits<E>::name(value);
-}
-
-// Obtains string enum name sequence.
-// Returns std::array with string enum names, sorted by enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::names)&> {
-  return enum_traits<E>::names;
-}
-
-// Obtains pair (value enum, string enum name) sequence.
-// Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, decltype(enum_traits<E>::entries)&> {
-  return enum_traits<E>::entries;
 }
 
 namespace ostream_operators {
