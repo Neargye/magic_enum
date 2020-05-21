@@ -609,6 +609,11 @@ TEST_CASE("extrema") {
     NONE = std::numeric_limits<std::uint64_t>::max()
   };
 
+  REQUIRE(magic_enum::enum_name<BadColor>(BadColor::NONE).empty());
+  REQUIRE_FALSE(magic_enum::enum_cast<BadColor>(std::numeric_limits<std::uint64_t>::max()).has_value());
+  REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(std::numeric_limits<std::uint64_t>::max()));
+  REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(BadColor::NONE));
+
   SECTION("min") {
     REQUIRE(magic_enum::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<BadColor> == 0);
