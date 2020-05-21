@@ -10,6 +10,7 @@
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
+* [`enum_type_name` returns string name of enum type.](#enum_type_name)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" std::underlying_type.](#underlying_type)
@@ -239,6 +240,23 @@ constexpr bool enum_contains(string_view value) noexcept;
   magic_enum::enum_contains<Color>(123); // -> false
   magic_enum::enum_contains<Color>("GREEN"); // -> true
   magic_enum::enum_contains<Color>("fda"); // -> false
+  ```
+
+## `enum_type_name`
+
+```cpp
+template <typename E>
+constexpr string_view enum_type_name() noexcept;
+```
+
+* Returns `std::string_view` with null-terminated string name of enum type.
+
+* Examples
+
+  ```cpp
+  Color color = Color::RED;
+  auto type_name = magic_enum::enum_type_name<decltype(color)>();
+  // color_name -> "Color"
   ```
 
 ## `is_unscoped_enum`
