@@ -46,7 +46,6 @@
 #if defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable : 26495) // Variable 'magic_enum::detail::static_string<N>::chars' is uninitialized.
-#  pragma warning(disable : 26451) // Arithmetic overflow: 'indexes[value - min_v<E>]' using operator '-' on a 4 byte value and then casting the result to a 8 byte value.
 #endif
 
 // Checks magic_enum compiler compatibility.
@@ -338,13 +337,13 @@ template <typename E, typename U = std::underlying_type_t<E>>
 constexpr int undex(U value) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::undex requires enum type.");
 
-  if (value >= static_cast<U>(min_v<E>) && value <= static_cast<U>(max_v<E>)) {
+  if (const auto i = static_cast<int>(value) - min_v<E>; value >= static_cast<U>(min_v<E>) && value <= static_cast<U>(max_v<E>)) {
     if constexpr (is_sparse<E>) {
-      if (const auto i = indexes_v<E>[value - min_v<E>]; i != invalid_index_v<E>) {
-        return i;
+      if (const auto idx = indexes_v<E>[i]; idx != invalid_index_v<E>) {
+        return idx;
       }
     } else {
-      return value - min_v<E>;
+      return i;
     }
   }
 
@@ -414,6 +413,7 @@ struct underlying_type : detail::underlying_type<T> {};
 template <typename T>
 using underlying_type_t = typename underlying_type<T>::type;
 
+// Returns string name of enum type.
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, std::string_view> {
   constexpr std::string_view name = detail::type_name_v<std::decay_t<E>>;
