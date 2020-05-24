@@ -93,5 +93,3 @@
   * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
 * Intellisense Visual Studio may have some problems analyzing `magic_enum`.
-  * [Intellisense hangs forever when using `magic_enum` since 0.6.1 on x86 projects.](https://github.com/Neargye/magic_enum/issues/34)
-  * [Intellisense incorrect analysis constexpr.](https://github.com/Neargye/magic_enum/issues/26)
