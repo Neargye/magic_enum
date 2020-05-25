@@ -130,12 +130,6 @@ struct static_string<0> {
   constexpr operator std::string_view() const noexcept { return {}; }
 };
 
-struct char_equal {
-  constexpr bool operator()(char lhs, char rhs) const noexcept {
-    return lhs == rhs;
-  }
-};
-
 constexpr std::string_view pretty_name(std::string_view name) noexcept {
   for (std::size_t i = name.size(); i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
@@ -515,17 +509,9 @@ template <typename E, typename BinaryPredicate>
   static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
 
-  if constexpr (detail::range_size_v<D> > detail::count_v<D> * 2) {
-    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-      if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
-        return detail::values_v<D>[i];
-      }
-    }
-  } else {
-    for (auto i = detail::min_v<D>; i <= detail::max_v<D>; ++i) {
-      if (detail::cmp_equal(value, enum_name(static_cast<D>(i)), p)) {
-        return static_cast<D>(i);
-      }
+  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+    if (detail::cmp_equal(value, detail::names_v<D>[i], std::move(p))) {
+      return enum_value<D>(i);
     }
   }
 
@@ -538,7 +524,13 @@ template <typename E>
   static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
   static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
-  return enum_cast<D>(value, detail::char_equal{});
+  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+    if (value == detail::names_v<D>[i]) {
+      return enum_value<D>(i);
+    }
+  }
+
+  return std::nullopt; // Invalid value or out of range.
 }
 
 // Obtains enum value from integer value.
