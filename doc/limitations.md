@@ -80,6 +80,9 @@
   // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
   ```
 
+  On some compiler enum-aliases not supported:
+  * <https://github.com/Neargye/magic_enum/issues/36>
+
 * If you hit a message like this:
 
   ```text
