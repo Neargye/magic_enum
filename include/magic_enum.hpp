@@ -220,6 +220,11 @@ constexpr auto n() noexcept {
 template <typename E, E V>
 inline constexpr auto name_v = n<E, V>();
 
+template <typename E, auto V>
+constexpr bool is_valid() noexcept {
+  return n<E, static_cast<E>(V)>().size() != 0;
+}
+
 template <typename E, int Min, int Max>
 constexpr std::size_t range_size() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
@@ -259,7 +264,7 @@ inline constexpr int reflected_max_v = reflected_max<E>();
 template <typename E, int... I>
 constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr std::array<bool, sizeof...(I)> valid{{(n<E, static_cast<E>(I + reflected_min_v<E>)>().size() != 0)...}};
+  constexpr std::array<bool, sizeof...(I)> valid{{is_valid<E, I + reflected_min_v<E>>()...}};
   constexpr int count = ((valid[I] ? 1 : 0) + ...);
 
   std::array<E, count> values{};
@@ -296,9 +301,9 @@ inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E>>::max)()
 template <typename E, int... I>
 constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::indexes requires enum type.");
-  index_t<E> i = 0;
+  [[maybe_unused]] index_t<E> i = 0;
 
-  return std::array<index_t<E>, sizeof...(I)>{{((n<E, static_cast<E>(I + min_v<E>)>().size() != 0) ? i++ : invalid_index_v<E>)...}};
+  return std::array<index_t<E>, sizeof...(I)>{{(is_valid<E, I + min_v<E>>() ? i++ : invalid_index_v<E>)...}};
 }
 
 template <typename E>
@@ -457,7 +462,9 @@ template <typename E>
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
-  constexpr std::string_view name = detail::name_v<std::decay_t<decltype(V)>, V>;
+  using D = std::decay_t<decltype(V)>;
+  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  constexpr std::string_view name = detail::name_v<std::decay_t<D>, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
