@@ -222,6 +222,8 @@ inline constexpr auto name_v = n<E, V>();
 
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
+
   return n<E, static_cast<E>(V)>().size() != 0;
 }
 
