@@ -286,10 +286,10 @@ template <typename E>
 inline constexpr std::size_t count_v = values_v<E>.size();
 
 template <typename E>
-inline constexpr int min_v = values_v<E>.empty() ? 0 : static_cast<int>(values_v<E>.front());
+inline constexpr int min_v = static_cast<int>(values_v<E>.front());
 
 template <typename E>
-inline constexpr int max_v = values_v<E>.empty() ? 0 : static_cast<int>(values_v<E>.back());
+inline constexpr int max_v = static_cast<int>(values_v<E>.back());
 
 template <typename E>
 inline constexpr std::size_t range_size_v = range_size<E, min_v<E>, max_v<E>>();
