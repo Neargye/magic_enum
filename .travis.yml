@@ -87,6 +87,20 @@ matrix:
       env:
         - CXX_COMPILER=clang++-9 CC_COMPILER=clang-9
 
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - g++-7
+            - clang-10
+      env:
+        - CXX_COMPILER=clang++-10 CC_COMPILER=clang-10
+
     - os: osx
       compiler: clang++
       osx_image: xcode10.3
@@ -95,7 +109,7 @@ matrix:
 
     - os: osx
       compiler: clang++
-      osx_image: xcode11.3
+      osx_image: xcode11.6
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
