@@ -43,9 +43,15 @@
 #include <type_traits>
 #include <utility>
 
-#if defined(_MSC_VER)
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wsign-conversion" // Implicit conversion changes signedness: 'int' to 'size_t'.
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wsign-conversion" // Implicit conversion changes signedness: 'int' to 'size_t'.
+#elif defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable : 26495) // Variable 'magic_enum::detail::static_string<N>::chars' is uninitialized.
+#  pragma warning(disable : 26495) // Variable 'static_string<N>::chars' is uninitialized.
 #endif
 
 // Checks magic_enum compiler compatibility.
@@ -675,7 +681,11 @@ constexpr auto operator^=(E& lhs, E rhs) noexcept -> detail::enable_if_enum_t<E,
 
 } // namespace magic_enum
 
-#if defined(_MSC_VER)
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
 
