@@ -60,7 +60,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
 ```cpp
 // For example color enum.
-enum Color { RED = 2, BLUE = 4, GREEN = 8 };
+enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 ```
 
 * Enum value to string
