@@ -157,7 +157,7 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
 }
 
 template <typename BinaryPredicate>
-constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
+constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
   if (lhs.size() != rhs.size()) {
     return false;
   }
@@ -525,7 +525,7 @@ template <typename E, typename BinaryPredicate>
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
 
   for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-    if (detail::cmp_equal(value, detail::names_v<D>[i], std::move(p))) {
+    if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
       return enum_value<D>(i);
     }
   }
