@@ -1,5 +1,5 @@
 os: linux # Use linux unless specified otherwise.
-dist: xenial
+dist: bionic
 sudo: required
 
 language: cpp
@@ -22,39 +22,9 @@ matrix:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main'
+            - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-7 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-7
-            - clang-5.0
-      env:
-        - CXX_COMPILER=clang++-5.0 CC_COMPILER=clang-5.0
-
-    - os: linux
-      compiler: clang++
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - g++-7
-            - clang-6.0
-      env:
-        - CXX_COMPILER=clang++-6.0 CC_COMPILER=clang-6.0
-
-    - os: linux
-      compiler: clang++
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - g++-7
             - clang-7
       env:
         - CXX_COMPILER=clang++-7 CC_COMPILER=clang-7
@@ -64,11 +34,9 @@ matrix:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main'
+            - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-7
             - clang-8
       env:
         - CXX_COMPILER=clang++-8 CC_COMPILER=clang-8
@@ -78,11 +46,9 @@ matrix:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+            - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-9 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-7
             - clang-9
       env:
         - CXX_COMPILER=clang++-9 CC_COMPILER=clang-9
@@ -92,11 +58,9 @@ matrix:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+            - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-7
             - clang-10
       env:
         - CXX_COMPILER=clang++-10 CC_COMPILER=clang-10
@@ -110,6 +74,12 @@ matrix:
     - os: osx
       compiler: clang++
       osx_image: xcode11.6
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode12
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
