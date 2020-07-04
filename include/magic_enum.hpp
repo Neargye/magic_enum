@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_HPP
 #define NEARGYE_MAGIC_ENUM_HPP
 
+#define MAGIC_ENUM_VERSION_MAJOR 0
+#define MAGIC_ENUM_VERSION_MINOR 6
+#define MAGIC_ENUM_VERSION_PATCH 6
+
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -188,14 +192,16 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   }
 }
 
-template <typename E>
+#if defined(NEARGYE_NAMEOF_HPP)
+using ::nameof::detail::type_name_v;
+#else
+template <typename... T>
 constexpr auto n() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
+#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 7 || defined(_MSC_VER) && _MSC_VER >= 1910
 #  if defined(__clang__)
-  constexpr std::string_view name{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 35, sizeof(__PRETTY_FUNCTION__) - 38};
 #  elif defined(__GNUC__)
-  constexpr std::string_view name{__PRETTY_FUNCTION__ + 49, sizeof(__PRETTY_FUNCTION__) - 51};
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 50, sizeof(__PRETTY_FUNCTION__) - 53};
 #  elif defined(_MSC_VER)
   constexpr std::string_view name{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
 #  endif
@@ -205,9 +211,13 @@ constexpr auto n() noexcept {
 #endif
 }
 
-template <typename E>
-inline constexpr auto type_name_v = n<E>();
+template <typename... T>
+inline constexpr auto type_name_v = n<T...>();
+#endif
 
+#if defined(NEARGYE_NAMEOF_HPP)
+using ::nameof::detail::enum_name_v;
+#else
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
@@ -224,7 +234,8 @@ constexpr auto n() noexcept {
 }
 
 template <typename E, E V>
-inline constexpr auto name_v = n<E, V>();
+inline constexpr auto enum_name_v = n<E, V>();
+#endif
 
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
@@ -321,7 +332,7 @@ template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
 
-  return std::array<std::string_view, sizeof...(I)>{{name_v<E, values_v<E>[I]>...}};
+  return std::array<std::string_view, sizeof...(I)>{{enum_name_v<E, values_v<E>[I]>...}};
 }
 
 template <typename E>
@@ -331,7 +342,7 @@ template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
-  return std::array<std::pair<E, std::string_view>, sizeof...(I)>{{{values_v<E>[I], name_v<E, values_v<E>[I]>}...}};
+  return std::array<std::pair<E, std::string_view>, sizeof...(I)>{{{values_v<E>[I], enum_name_v<E, values_v<E>[I]>}...}};
 }
 
 template <typename E>
@@ -472,7 +483,7 @@ template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
   using D = std::decay_t<decltype(V)>;
   static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  constexpr std::string_view name = detail::name_v<std::decay_t<D>, V>;
+  constexpr std::string_view name = detail::enum_name_v<std::decay_t<D>, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
