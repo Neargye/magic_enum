@@ -299,6 +299,9 @@ constexpr auto values(std::integer_sequence<int, I...>) noexcept {
 template <typename E>
 inline constexpr auto values_v = values<E>(std::make_integer_sequence<int, range_size<E, reflected_min_v<E>, reflected_max_v<E>>()>{});
 
+template <typename T, typename D = std::decay_t<T>>
+using values_t = decltype((values_v<D>));
+
 template <typename E>
 inline constexpr std::size_t count_v = values_v<E>.size();
 
@@ -338,6 +341,9 @@ constexpr auto names(std::index_sequence<I...>) noexcept {
 template <typename E>
 inline constexpr auto names_v = names<E>(std::make_index_sequence<count_v<E>>{});
 
+template <typename T, typename D = std::decay_t<T>>
+using names_t = decltype((names_v<D>));
+
 template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
@@ -347,6 +353,9 @@ constexpr auto entries(std::index_sequence<I...>) noexcept {
 
 template <typename E>
 inline constexpr auto entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
+
+template <typename T, typename D = std::decay_t<T>>
+using entries_t = decltype((entries_v<D>));
 
 template <typename E>
 inline constexpr bool is_sparse_v = range_size_v<E> != count_v<E>;
@@ -375,8 +384,19 @@ constexpr int endex(E value) noexcept {
   return undex<E>(static_cast<std::underlying_type_t<E>>(value));
 }
 
+template <bool, typename T, typename R>
+struct enable_if_enum {};
+
 template <typename T, typename R>
-using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>, R>;
+struct enable_if_enum<true, T, R> {
+  using type = R;
+  using D = std::decay_t<T>;
+  static_assert(supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+};
+
+template <typename T, typename R = void>
+using enable_if_enum_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>>, T, R>::type;
 
 template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 using enum_concept = T;
@@ -433,8 +453,9 @@ using underlying_type_t = typename underlying_type<T>::type;
 
 // Returns string name of enum type.
 template <typename E>
-[[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, std::string_view> {
+[[nodiscard]] constexpr std::string_view enum_type_name() noexcept {
   using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "Requires enum type.");
   constexpr std::string_view name = detail::type_name_v<D>;
   static_assert(name.size() > 0, "Enum type does not have a name.");
 
@@ -445,8 +466,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::count_v<D>;
 }
@@ -456,8 +475,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert(index < detail::count_v<D>), detail::values_v<D>[index];
@@ -469,10 +486,8 @@ template <typename E>
 // Obtains value enum sequence.
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, decltype(detail::values_v<std::decay_t<E>>)&> {
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::values_v<D>;
 }
@@ -480,9 +495,9 @@ template <typename E>
 // Returns string enum name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
-[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), std::string_view> {
+[[nodiscard]] constexpr std::string_view enum_name() noexcept {
   using D = std::decay_t<decltype(V)>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+  static_assert(std::is_enum_v<D>, "Requires enum type.");
   constexpr std::string_view name = detail::enum_name_v<std::decay_t<D>, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
@@ -494,8 +509,6 @@ template <auto V>
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if (const auto i = detail::endex<D>(value); i != -1) {
     return detail::names_v<D>[i];
@@ -507,10 +520,8 @@ template <typename E>
 // Obtains string enum name sequence.
 // Returns std::array with string enum names, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, decltype(detail::names_v<std::decay_t<E>>)&> {
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::names_v<D>;
 }
@@ -518,10 +529,8 @@ template <typename E>
 // Obtains pair (value enum, string enum name) sequence.
 // Returns std::array with std::pair (value enum, string enum name), sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, decltype(detail::entries_v<std::decay_t<E>>)&> {
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::entries_v<D>;
 }
@@ -531,8 +540,6 @@ template <typename E>
 template <typename E, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
 
   for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
@@ -547,8 +554,6 @@ template <typename E, typename BinaryPredicate>
 template <typename E>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
     if (value == detail::names_v<D>[i]) {
@@ -564,8 +569,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if (detail::undex<D>(value) != -1) {
     return static_cast<D>(value);
@@ -585,8 +588,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if (const auto i = detail::endex<D>(value); i != -1) {
     return i;
@@ -599,8 +600,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::endex<D>(value) != -1;
 }
@@ -609,8 +608,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::undex<D>(value) != -1;
 }
@@ -619,8 +616,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return enum_cast<D>(value).has_value();
 }

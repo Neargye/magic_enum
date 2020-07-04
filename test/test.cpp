@@ -310,6 +310,8 @@ TEST_CASE("enum_value") {
 }
 
 TEST_CASE("enum_values") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_values<Color>()), const std::array<Color, 3>&>);
+
   constexpr auto s1 = enum_values<Color&>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
@@ -406,6 +408,8 @@ TEST_CASE("enum_name") {
 }
 
 TEST_CASE("enum_names") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
+
   constexpr auto s1 = enum_names<Color&>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
@@ -420,6 +424,8 @@ TEST_CASE("enum_names") {
 }
 
 TEST_CASE("enum_entries") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
+
   constexpr auto s1 = enum_entries<Color&>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
