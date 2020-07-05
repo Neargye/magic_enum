@@ -70,7 +70,7 @@ int main() {
   std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
 
   // Number of enum values.
-  std::cout << "Color enum size: " << magic_enum::enum_count<Color>() << std::endl; // Color enum size: 3
+  std::cout << "Color enum size: " << magic_enum::enum_count<Color>() << std::endl; // Color size: 3
 
   // Indexed access to enum value.
   std::cout << "Color[0] = " << magic_enum::enum_value<Color>(0) << std::endl; // Color[0] = RED
@@ -88,7 +88,7 @@ int main() {
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flag = Flags::A | Flags::C;
-  std::cout << flag << std::endl;
+  std::cout << flag << std::endl; // 5
 
   enum color { red, green, blue };
 
