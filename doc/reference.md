@@ -88,7 +88,7 @@ template <typename E>
 constexpr array<E, N> enum_values() noexcept;
 ```
 
-* Returns `std::array<E, N>` with all enum value where `N = number of enum values`, sorted by enum value.
+* Returns `std::array<E, N>` with all enum values where `N = number of enum values`, sorted by enum value.
 
 * Examples
 
@@ -141,7 +141,7 @@ template <auto V>
 constexpr string_view enum_name() noexcept;
 ```
 
-* Returns `std::string_view` with null-terminated string enum name from enum value.
+* Returns `std::string_view` with null-terminated string name from enum value.
   * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
   * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
 
@@ -172,7 +172,7 @@ template <typename E>
 constexpr array<string_view, N> enum_names() noexcept;
 ```
 
-* Returns `std::array<std::string_view, N>` with all string enum name where `N = number of enum values`, sorted by enum value.
+* Returns `std::array<std::string_view, N>` with all string names where `N = number of enum values`, sorted by enum value.
 
 * Examples
 
@@ -189,7 +189,7 @@ template <typename E>
 constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 ```
 
-* Returns `std::array<std::pair<E, std::string_view>, N>` with all `std::pair` (value enum, string enum name) where `N = number of enum values`, sorted by enum value.
+* Returns `std::array<std::pair<E, std::string_view>, N>` with all pairs (enum value, string name) where `N = number of enum values`, sorted by enum value.
 
 * Examples
 
@@ -207,7 +207,7 @@ template <typename E>
 constexpr optional<size_t> enum_index() noexcept;
 ```
 
-* Obtains index in enum value sequence from enum value.
+* Obtains index in enum values from enum value.
 
 * Returns `std::optional<std::size_t>` with index.
 
