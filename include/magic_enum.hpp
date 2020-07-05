@@ -49,10 +49,8 @@
 
 #if defined(__clang__)
 #  pragma clang diagnostic push
-#  pragma clang diagnostic ignored "-Wsign-conversion" // Implicit conversion changes signedness: 'int' to 'size_t'.
 #elif defined(__GNUC__)
 #  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wsign-conversion" // Implicit conversion changes signedness: 'int' to 'size_t'.
 #elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable : 26495) // Variable 'static_string<N>::chars' is uninitialized.
@@ -293,7 +291,11 @@ constexpr int reflected_min() noexcept {
     static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
-    return cmp_less(lhs, rhs) ? rhs : lhs;
+    if constexpr (cmp_less(lhs, rhs)) {
+      return rhs;
+    } else {
+      return lhs;
+    }
   }
 }
 
@@ -309,7 +311,11 @@ constexpr int reflected_max() noexcept {
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
-    return cmp_less(lhs, rhs) ? lhs : rhs;
+    if constexpr (cmp_less(lhs, rhs)) {
+      return lhs;
+    } else {
+      return rhs;
+    }
   }
 }
 
@@ -320,13 +326,13 @@ template <typename E, bool IsFlags = false>
 inline constexpr auto reflected_max_v = reflected_max<E, IsFlags>();
 
 template <typename E, int O, bool IsFlags = false, typename U = std::underlying_type_t<E>>
-constexpr auto value(std::size_t i) noexcept {
+constexpr E value(std::size_t i) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
 
   if constexpr (IsFlags) {
-    return static_cast<E>(static_cast<U>(1) << static_cast<U>(i + O));
+    return static_cast<E>(static_cast<U>(1) << static_cast<U>(static_cast<int>(i) + O));
   } else {
-    return static_cast<E>(i + O);
+    return static_cast<E>(static_cast<int>(i) + O);
   }
 }
 
@@ -453,10 +459,10 @@ template <typename E, bool IsFlags = false>
 inline constexpr bool is_sparse_v = is_sparse<E, IsFlags>();
 
 template <typename E, typename U = std::underlying_type_t<E>>
-constexpr int undex(U value) noexcept {
+constexpr std::size_t undex(U value) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::undex requires enum type.");
 
-  if (const auto i = static_cast<int>(value - min_v<E>); value >= min_v<E> && value <= max_v<E>) {
+  if (const auto i = static_cast<std::size_t>(value - min_v<E>); value >= min_v<E> && value <= max_v<E>) {
     if constexpr (is_sparse_v<E>) {
       if (const auto idx = indexes_v<E>[i]; idx != invalid_index_v<E>) {
         return idx;
@@ -466,11 +472,11 @@ constexpr int undex(U value) noexcept {
     }
   }
 
-  return -1; // Value out of range.
+  return invalid_index_v<E>; // Value out of range.
 }
 
 template <typename E, typename U = std::underlying_type_t<E>>
-constexpr int endex(E value) noexcept {
+constexpr std::size_t endex(E value) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::endex requires enum type.");
 
   return undex<E>(static_cast<U>(value));
@@ -590,12 +596,11 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  constexpr auto count = detail::count_v<D>;
 
   if constexpr (detail::is_sparse_v<D>) {
-    return assert(index < count), detail::values_v<D>[index];
+    return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
   } else {
-    return assert(index < count), detail::value<D, detail::min_v<D>>(index);
+    return assert((index < detail::count_v<D>)), detail::value<D, detail::min_v<D>>(index);
   }
 }
 
@@ -625,7 +630,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, std::string_view> {
   using D = std::decay_t<E>;
 
-  if (const auto i = detail::endex<D>(value); i != -1) {
+  if (const auto i = detail::endex<D>(value); i != detail::invalid_index_v<D>) {
     return detail::names_v<D>[i];
   }
 
@@ -685,7 +690,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
-  if (detail::undex<D>(value) != -1) {
+  if (detail::undex<D>(value) != detail::invalid_index_v<D>) {
     return static_cast<D>(value);
   }
 
@@ -704,7 +709,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::size_t>> {
   using D = std::decay_t<E>;
 
-  if (const auto i = detail::endex<D>(value); i != -1) {
+  if (const auto i = detail::endex<D>(value); i != detail::invalid_index_v<D>) {
     return i;
   }
 
@@ -716,7 +721,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
 
-  return detail::endex<D>(value) != -1;
+  return detail::endex<D>(value) != detail::invalid_index_v<D>;
 }
 
 // Checks whether enum contains enumerator with such integer value.
@@ -724,7 +729,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
 
-  return detail::undex<D>(value) != -1;
+  return detail::undex<D>(value) != detail::invalid_index_v<D>;
 }
 
 // Checks whether enum contains enumerator with such string name.
@@ -821,14 +826,13 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_flags_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  constexpr auto count = detail::count_v<D, true>;
 
   if constexpr (detail::is_sparse_v<D, true>) {
-    return assert(index < count), detail::values_v<D, true>[index];
+    return assert((index < detail::count_v<D, true>)), detail::values_v<D, true>[index];
   } else {
     constexpr auto min = detail::log2(detail::min_v<D, true>) - 1;
 
-    return assert(index < count), detail::value<D, min, true>(index);
+    return assert((index < detail::count_v<D, true>)), detail::value<D, min, true>(index);
   }
 }
 
@@ -913,7 +917,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   // TODO: impl
-  static_assert(sizeof(E) == 0, "not implemented");
+  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
   return {};
 }
 
@@ -936,7 +940,7 @@ template <typename E, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_cast requires bool(char, char) invocable predicate.");
   // TODO: impl
-  static_assert(sizeof(E) == 0, "not implemented");
+  static_assert(sizeof(decltype(value)) + sizeof(decltype(p)) == sizeof(E) * 0, "not implemented");
   return {};
 }
 
@@ -945,7 +949,7 @@ template <typename E, typename BinaryPredicate>
 template <typename E>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   // TODO: impl
-  static_assert(sizeof(E) == 0, "not implemented");
+  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
   return {};
 }
 
