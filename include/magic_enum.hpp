@@ -326,7 +326,7 @@ constexpr auto value(std::size_t i) noexcept {
   if constexpr (IsFlags) {
     return static_cast<E>(static_cast<U>(1) << static_cast<U>(i + O));
   } else {
-    return static_cast<E>(static_cast<int>(i) + O);
+    return static_cast<E>(i + O);
   }
 }
 
@@ -456,7 +456,7 @@ template <typename E, typename U = std::underlying_type_t<E>>
 constexpr int undex(U value) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::undex requires enum type.");
 
-  if (const auto i = static_cast<int>(value) - static_cast<int>(min_v<E>); value >= min_v<E> && value <= max_v<E>) {
+  if (const auto i = static_cast<int>(value - min_v<E>); value >= min_v<E> && value <= max_v<E>) {
     if constexpr (is_sparse_v<E>) {
       if (const auto idx = indexes_v<E>[i]; idx != invalid_index_v<E>) {
         return idx;
@@ -613,7 +613,7 @@ template <auto V>
 [[nodiscard]] constexpr std::string_view enum_name() noexcept {
   using D = std::decay_t<decltype(V)>;
   static_assert(std::is_enum_v<D>, "Requires enum type.");
-  constexpr std::string_view name = detail::enum_name_v<std::decay_t<D>, V>;
+  constexpr std::string_view name = detail::enum_name_v<D, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
@@ -737,10 +737,11 @@ template <typename E>
 
 namespace ostream_operators {
 
-template <typename Char, typename Traits, typename E, typename = detail::enable_if_enum_t<E>>
+template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  using namespace magic_enum;
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using D = std::decay_t<E>;
+  using namespace magic_enum;
 
   if (const auto name = enum_name<D>(value); !name.empty()) {
     for (const auto c : name) {
@@ -749,14 +750,14 @@ auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   } else {
     os << enum_integer<D>(value);
   }
-
+#else
+  os << static_cast<std::underlying_type_t<E>>(value);
+#endif
   return os;
 }
 
-template <typename Char, typename Traits, typename E, typename = detail::enable_if_enum_t<E>>
+template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 auto& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
-  using namespace magic_enum;
-
   if (value.has_value()) {
     os << value.value();
   }
@@ -970,7 +971,7 @@ using magic_enum::enum_integer; // TODO: impl
 
 namespace ostream_operators {
 
-template <typename Char, typename Traits, typename E, typename = detail::enable_if_enum_flags_t<E>>
+template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
 auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using namespace magic_enum::flags;
   using D = std::decay_t<E>;
@@ -986,10 +987,8 @@ auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   return os;
 }
 
-template <typename Char, typename Traits, typename E, typename = detail::enable_if_enum_flags_t<E>>
+template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
 auto& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
-  using namespace magic_enum::flags;
-
   if (value.has_value()) {
     os << value.value();
   }
