@@ -210,7 +210,7 @@ constexpr std::uint8_t log2(T value) noexcept {
     return log2<U>(static_cast<U>(value));
   } else {
     auto ret = std::uint8_t{0};
-    for (; value > static_cast<T>(1U); value >>= static_cast<T>(1U), ++ret) {};
+    for (; value > static_cast<T>(1); value >>= static_cast<T>(1), ++ret) {};
 
     return ret;
   }
