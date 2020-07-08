@@ -105,18 +105,6 @@ struct supported
     : std::false_type {};
 #endif
 
-template <typename E, typename = void>
-struct has_min : std::false_type {};
-
-template <typename E>
-struct has_min<E, std::void_t<decltype(enum_range<E>::min)>> : std::true_type {};
-
-template <typename E, typename = void>
-struct has_max : std::false_type {};
-
-template <typename E>
-struct has_max<E, std::void_t<decltype(enum_range<E>::max)>> : std::true_type {};
-
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
@@ -286,7 +274,6 @@ constexpr int reflected_min() noexcept {
   if constexpr (IsFlags) {
     return 0;
   } else {
-    static_assert(has_min<E>::value, "magic_enum::enum_range requires min.");
     constexpr auto lhs = enum_range<E>::min;
     static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
     constexpr auto rhs = (std::numeric_limits<U>::min)();
@@ -306,7 +293,6 @@ constexpr int reflected_max() noexcept {
   if constexpr (IsFlags) {
     return (std::numeric_limits<U>::max)();
   } else {
-    static_assert(has_max<E>::value, "magic_enum::enum_range requires max.");
     constexpr auto lhs = enum_range<E>::max;
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
     constexpr auto rhs = (std::numeric_limits<U>::max)();
@@ -744,8 +730,8 @@ namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using D = std::decay_t<E>;
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using namespace magic_enum;
 
   if (const auto name = enum_name<D>(value); !name.empty()) {
@@ -756,7 +742,7 @@ auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
     os << enum_integer<D>(value);
   }
 #else
-  os << static_cast<std::underlying_type_t<E>>(value);
+  os << static_cast<D>(value);
 #endif
   return os;
 }
@@ -885,14 +871,9 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   using D = std::decay_t<E>;
-  using U = std::underlying_type_t<D>;
 
   if constexpr (detail::is_sparse_v<D, true>) {
-    constexpr auto min = detail::min_v<D, true>;
-    constexpr auto max = detail::value_ors<D>();
-
-    return value >= min && value <= max;
-  } else {
+    using U = std::underlying_type_t<D>;
     auto check_value = U{0};
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
       if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
@@ -901,6 +882,11 @@ template <typename E>
     }
 
     return check_value == value;
+  } else {
+    constexpr auto min = detail::min_v<D, true>;
+    constexpr auto max = detail::value_ors<D>();
+
+    return value >= min && value <= max;
   }
 }
 
