@@ -82,6 +82,8 @@
 
   On some compiler enum-aliases not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36).
 
+  It is possible to check whether enum-aliases supported using a macro `MAGIC_ENUM_SUPPORTED_ALIASES`.
+
 * If you hit a message like this:
 
   ```text

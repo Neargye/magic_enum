@@ -27,10 +27,6 @@
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
 
-#if defined(_MSC_VER) && _MSC_VER >= 1920  || defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9
-#  define MAGIC_ENUM_SUPPORTED_ALIASES
-#endif
-
 #include <array>
 #include <cctype>
 #include <string_view>
