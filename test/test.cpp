@@ -27,6 +27,10 @@
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
 
+#if defined(_MSC_VER) && _MSC_VER >= 1920  || defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9
+#  define MAGIC_ENUM_SUPPORTED_ALIASES
+#endif
+
 #include <array>
 #include <cctype>
 #include <string_view>
@@ -44,9 +48,7 @@ enum number : unsigned long {
   three = 300,
   four = 400,
 
-#if defined(_MSC_VER) && _MSC_VER >= 1920
-  // Aliases won't work on vs2017.
-
+#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
   _1 = one,
   _2 = two,
   _3 = three,
@@ -260,7 +262,7 @@ TEST_CASE("enum_contains") {
     constexpr auto cr = "RED";
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
-    REQUIRE(enum_contains<Color>("BLUE"));
+    REQUIRE(enum_contains<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE_FALSE(enum_contains<Color>("None"));
 
     constexpr auto no = std::string_view{"one"};
@@ -310,6 +312,8 @@ TEST_CASE("enum_value") {
 }
 
 TEST_CASE("enum_values") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_values<Color>()), const std::array<Color, 3>&>);
+
   constexpr auto s1 = enum_values<Color&>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
@@ -406,6 +410,8 @@ TEST_CASE("enum_name") {
 }
 
 TEST_CASE("enum_names") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
+
   constexpr auto s1 = enum_names<Color&>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
@@ -420,6 +426,8 @@ TEST_CASE("enum_names") {
 }
 
 TEST_CASE("enum_entries") {
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
+
   constexpr auto s1 = enum_entries<Color&>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
@@ -567,16 +575,16 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_scoped_enum_v<number>);
 }
 
-
+/* TODO: https://github.com/Neargye/nameof/issues/22
 TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<Color&>() == "Color");
   REQUIRE(enum_type_name<Numbers>() == "Numbers");
   REQUIRE(enum_type_name<Directions&>() == "Directions");
   REQUIRE(enum_type_name<number>() == "number");
 }
+*/
 
-#if defined(_MSC_VER) && _MSC_VER >= 1920
-// Aliases won't work on vs2017.
+#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
 TEST_CASE("aliases") {
   REQUIRE(enum_count<number>() == 3);
 
