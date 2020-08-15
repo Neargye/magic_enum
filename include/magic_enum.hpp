@@ -74,39 +74,14 @@
 #  define MAGIC_ENUM_RANGE_MAX 128
 #endif
 
-namespace magic_enum {
+#if !defined(NEARGYE_DETAIL_N)
+#  define NEARGYE_DETAIL_N 1
+namespace neargye::detail {
 
-// Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
-// If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
-// If need another range for specific enum type, add specialization enum_range for necessary enum type.
-template <typename E>
-struct enum_range {
-  static_assert(std::is_enum_v<E>, "magic_enum::enum_range requires enum type.");
-  inline static constexpr int min = MAGIC_ENUM_RANGE_MIN;
-  inline static constexpr int max = MAGIC_ENUM_RANGE_MAX;
-  static_assert(max > min, "magic_enum::enum_range requires max > min.");
+template <typename T>
+struct identity {
+  using type = T;
 };
-
-static_assert(MAGIC_ENUM_RANGE_MIN <= 0, "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
-static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<std::int16_t>::min)(), "MAGIC_ENUM_RANGE_MIN must be greater than INT16_MIN.");
-
-static_assert(MAGIC_ENUM_RANGE_MAX > 0, "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
-static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<std::int16_t>::max)(), "MAGIC_ENUM_RANGE_MAX must be less than INT16_MAX.");
-
-static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
-
-namespace detail {
-
-template <typename T>
-struct supported
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
-    : std::true_type {};
-#else
-    : std::false_type {};
-#endif
-
-template <typename T>
-inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
 template <std::size_t N>
 struct static_string {
@@ -138,7 +113,7 @@ struct static_string<0> {
   constexpr operator std::string_view() const noexcept { return {}; }
 };
 
-constexpr std::string_view pretty_name(std::string_view name) noexcept {
+constexpr std::string_view enum_name(std::string_view name) noexcept {
   for (std::size_t i = name.size(); i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
@@ -157,6 +132,91 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
 
   return {}; // Invalid name.
 }
+
+template <typename... T>
+constexpr auto n() noexcept {
+#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 7 || defined(_MSC_VER) && _MSC_VER >= 1910
+#  if defined(__clang__)
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 32, sizeof(__PRETTY_FUNCTION__) - 35};
+#  elif defined(__GNUC__)
+  constexpr std::string_view name{__PRETTY_FUNCTION__ + 47, sizeof(__PRETTY_FUNCTION__) - 50};
+#  elif defined(_MSC_VER)
+  constexpr std::string_view name{__FUNCSIG__ + 65, sizeof(__FUNCSIG__) - 83 - (__FUNCSIG__[sizeof(__FUNCSIG__) - 19] == ' ' ? 1 : 0)};
+#  endif
+
+  return static_string<name.size()>{name};
+#else
+  return std::string_view{}; // Unsupported compiler.
+#endif
+}
+
+#if defined(_MSC_VER)
+template <typename T, typename U = identity<T>>
+#else
+template <typename T, typename U = T>
+#endif
+inline constexpr auto type_name_v = n<U>();
+
+template <typename E, E V>
+constexpr auto n() noexcept {
+  static_assert(std::is_enum_v<E> && std::is_same_v<E, std::decay_t<E>>);
+#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1910
+#  if defined(__clang__) || defined(__GNUC__)
+  constexpr auto name = enum_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#  elif defined(_MSC_VER)
+  constexpr auto name = enum_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+#  endif
+  return static_string<name.size()>{name};
+#else
+  return std::string_view{}; // Unsupported compiler.
+#endif
+}
+
+template <typename E, E V>
+inline constexpr auto enum_name_v = n<E, V>();
+
+} // namespace neargye::detail
+#endif
+
+namespace magic_enum {
+
+// Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
+// If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
+// If need another range for specific enum type, add specialization enum_range for necessary enum type.
+template <typename E>
+struct enum_range {
+  static_assert(std::is_enum_v<E>, "magic_enum::enum_range requires enum type.");
+  inline static constexpr int min = MAGIC_ENUM_RANGE_MIN;
+  inline static constexpr int max = MAGIC_ENUM_RANGE_MAX;
+  static_assert(max > min, "magic_enum::enum_range requires max > min.");
+};
+
+static_assert(MAGIC_ENUM_RANGE_MIN <= 0, "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
+static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<std::int16_t>::min)(), "MAGIC_ENUM_RANGE_MIN must be greater than INT16_MIN.");
+
+static_assert(MAGIC_ENUM_RANGE_MAX > 0, "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
+static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<std::int16_t>::max)(), "MAGIC_ENUM_RANGE_MAX must be less than INT16_MAX.");
+
+static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
+
+namespace detail {
+
+using ::neargye::detail::identity;
+using ::neargye::detail::static_string;
+using ::neargye::detail::n;
+using ::neargye::detail::type_name_v;
+using ::neargye::detail::enum_name_v;
+
+template <typename T>
+struct supported
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
+    : std::true_type {};
+#else
+    : std::false_type {};
+#endif
+
+template <typename T>
+inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
 struct char_equal_to {
   constexpr bool operator()(char lhs, char rhs) const noexcept {
@@ -225,51 +285,6 @@ constexpr bool is_pow2(T x) noexcept {
     return x != 0 && (x & (x - 1)) == 0;
   }
 }
-
-#if defined(NEARGYE_NAMEOF_HPP)
-using ::nameof::detail::type_name_v;
-#else
-template <typename... T>
-constexpr auto n() noexcept {
-#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 7 || defined(_MSC_VER) && _MSC_VER >= 1910
-#  if defined(__clang__)
-  constexpr std::string_view name{__PRETTY_FUNCTION__ + 35, sizeof(__PRETTY_FUNCTION__) - 38};
-#  elif defined(__GNUC__)
-  constexpr std::string_view name{__PRETTY_FUNCTION__ + 50, sizeof(__PRETTY_FUNCTION__) - 53};
-#  elif defined(_MSC_VER)
-  constexpr std::string_view name{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
-#  endif
-  return static_string<name.size()>{name};
-#else
-  return std::string_view{}; // Unsupported compiler.
-#endif
-}
-
-template <typename... T>
-inline constexpr auto type_name_v = n<T...>();
-#endif
-
-#if defined(NEARGYE_NAMEOF_HPP)
-using ::nameof::detail::enum_name_v;
-#else
-template <typename E, E V>
-constexpr auto n() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-#  if defined(__clang__) || defined(__GNUC__)
-  constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#  elif defined(_MSC_VER)
-  constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#  endif
-  return static_string<name.size()>{name};
-#else
-  return std::string_view{}; // Unsupported compiler.
-#endif
-}
-
-template <typename E, E V>
-inline constexpr auto enum_name_v = n<E, V>();
-#endif
 
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
@@ -736,6 +751,7 @@ namespace ostream_operators {
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using namespace magic_enum;
 
@@ -746,7 +762,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
     return os;
   }
 #endif
-  return os << static_cast<D>(value);
+  return os << static_cast<U>(value);
 }
 
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
@@ -972,6 +988,7 @@ namespace ostream_operators {
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using namespace magic_enum::flags;
   if (const auto name = enum_name<D>(value); !name.empty()) {
@@ -981,7 +998,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
     return os;
   }
 #endif
-  return os << static_cast<D>(value);
+  return os << static_cast<U>(value);
 }
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
