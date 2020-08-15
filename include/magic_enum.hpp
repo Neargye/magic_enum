@@ -859,26 +859,34 @@ template <typename E>
 
 // Returns string name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
-template <typename E>
-[[nodiscard]] auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::string> {
+template <typename E, bool Strict = false>
+[[nodiscard]] auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::conditional_t<Strict, std::string_view, std::string>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  std::string name;
-  auto check_value = U{0};
-  for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-    if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
-      check_value |= static_cast<U>(v);
-      const auto n = detail::names_v<D, true>[i];
-      if (!name.empty()) {
-        name.append(1, '|');
+  if constexpr (Strict) {
+    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+      if (enum_value<D>(i) == value) {
+        return detail::names_v<D, true>[i];
       }
-      name.append(n.data(), n.size());
     }
-  }
+  } else {
+    std::string name;
+    auto check_value = U{0};
+    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+      if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
+        check_value |= static_cast<U>(v);
+        const auto n = detail::names_v<D, true>[i];
+        if (!name.empty()) {
+          name.append(1, '|');
+        }
+        name.append(n.data(), n.size());
+      }
+    }
 
-  if (check_value == static_cast<U>(value)) {
-    return name;
+    if (check_value == static_cast<U>(value)) {
+      return name;
+    }
   }
 
   return {}; // Invalid value or out of range.
@@ -901,35 +909,47 @@ template <typename E>
 }
 
 // Checks whether enum-flags contains enumerator with such integer value.
-template <typename E>
+template <typename E, bool Strict = false>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   using D = std::decay_t<E>;
 
-  if constexpr (detail::is_sparse_v<D, true>) {
-    using U = underlying_type_t<D>;
-    auto check_value = U{0};
-    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-      if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
-        check_value |= v;
+  if constexpr(Strict) {
+    if constexpr (detail::is_sparse_v<D, true>) {
+      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+        if (value == enum_value<D>(i)) {
+          return true;
+        }
       }
+
+      return false;
     }
-
-    return check_value == value;
   } else {
-    constexpr auto min = detail::min_v<D, true>;
-    constexpr auto max = detail::value_ors<D>();
+    if constexpr (detail::is_sparse_v<D, true>) {
+      using U = underlying_type_t<D>;
+      auto check_value = U{0};
+      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+        if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
+          check_value |= v;
+        }
+      }
 
-    return value >= min && value <= max;
+      return check_value == value;
+    } else {
+      constexpr auto min = detail::min_v<D, true>;
+      constexpr auto max = detail::value_ors<D>();
+
+      return value >= min && value <= max;
+    }
   }
 }
 
 // Checks whether enum-flags contains enumerator with such enum-flags value.
-template <typename E>
+template <typename E, bool Strict = false>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  return enum_contains<D>(static_cast<U>(value));
+  return enum_contains<D, Strict>(static_cast<U>(value));
 }
 
 // Checks whether enum-flags contains enumerator with such string name.
@@ -942,7 +962,6 @@ template <typename E, typename BinaryPredicate>
   return {};
 }
 
-
 // Checks whether enum-flags contains enumerator with such string name.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
@@ -953,11 +972,11 @@ template <typename E>
 
 // Obtains enum-flags value from integer value.
 // Returns std::optional with enum-flags value.
-template <typename E>
+template <typename E, bool Strict = false>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
-  if (enum_contains<D>(value)) {
+  if (enum_contains<D, Strict>(value)) {
     return static_cast<D>(value);
   }
 
