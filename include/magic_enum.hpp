@@ -158,20 +158,31 @@ constexpr std::string_view pretty_name(std::string_view name) noexcept {
   return {}; // Invalid name.
 }
 
+struct char_equal_to {
+  constexpr bool operator()(char lhs, char rhs) const noexcept {
+    return lhs == rhs;
+  }
+};
+
 template <typename BinaryPredicate>
 constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  const auto size = lhs.size();
-  for (std::size_t i = 0; i < size; ++i) {
-    if (!p(lhs[i], rhs[i])) {
+  if constexpr (std::is_same_v<BinaryPredicate, char_equal_to>) {
+    static_cast<void>(p);
+    return lhs == rhs;
+  } else {
+    if (lhs.size() != rhs.size()) {
       return false;
     }
-  }
 
-  return true;
+    const auto size = lhs.size();
+    for (std::size_t i = 0; i < size; ++i) {
+      if (!p(lhs[i], rhs[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 
 template <typename L, typename R>
@@ -620,7 +631,7 @@ template <typename E>
     return detail::names_v<D>[i];
   }
 
-  return {}; // Value out of range.
+  return {}; // Invalid value or out of range.
 }
 
 // Returns std::array with string names, sorted by enum value.
@@ -661,13 +672,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
 
-  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-    if (value == detail::names_v<D>[i]) {
-      return enum_value<D>(i);
-    }
-  }
-
-  return std::nullopt; // Invalid value or out of range.
+  return enum_cast<D>(value, detail::char_equal_to{});
 }
 
 // Obtains enum value from integer value.
@@ -729,7 +734,7 @@ template <typename E>
 namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
-auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
   using namespace magic_enum;
@@ -738,17 +743,14 @@ auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
     for (const auto c : name) {
       os.put(c);
     }
-  } else {
-    os << enum_integer<D>(value);
+    return os;
   }
-#else
-  os << static_cast<D>(value);
 #endif
-  return os;
+  return os << static_cast<D>(value);
 }
 
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
-auto& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
   if (value.has_value()) {
     os << value.value();
   }
@@ -835,11 +837,13 @@ template <typename E>
 template <typename E>
 [[nodiscard]] auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::string> {
   using D = std::decay_t<E>;
-  using U = std::underlying_type_t<D>;
+  using U = underlying_type_t<D>;
 
   std::string name;
+  auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
     if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
+      check_value |= static_cast<U>(v);
       const auto n = detail::names_v<D, true>[i];
       if (!name.empty()) {
         name.append(1, '|');
@@ -848,7 +852,11 @@ template <typename E>
     }
   }
 
-  return name;
+  if (check_value == static_cast<U>(value)) {
+    return name;
+  }
+
+  return {}; // Invalid value or out of range.
 }
 
 // Returns std::array with string names, sorted by enum-flags value.
@@ -873,7 +881,7 @@ template <typename E>
   using D = std::decay_t<E>;
 
   if constexpr (detail::is_sparse_v<D, true>) {
-    using U = std::underlying_type_t<D>;
+    using U = underlying_type_t<D>;
     auto check_value = U{0};
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
       if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
@@ -894,7 +902,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   using D = std::decay_t<E>;
-  using U = std::underlying_type_t<D>;
+  using U = underlying_type_t<D>;
 
   return enum_contains<D>(static_cast<U>(value));
 }
@@ -962,23 +970,22 @@ using magic_enum::enum_integer; // TODO: impl
 namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-auto& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  using namespace magic_enum::flags;
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
-
+#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
+  using namespace magic_enum::flags;
   if (const auto name = enum_name<D>(value); !name.empty()) {
     for (const auto c : name) {
       os.put(c);
     }
-  } else {
-    os << enum_integer<D>(value);
+    return os;
   }
-
-  return os;
+#endif
+  return os << static_cast<D>(value);
 }
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-auto& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
   if (value.has_value()) {
     os << value.value();
   }
@@ -990,7 +997,40 @@ auto& operator<<(std::basic_ostream<Char, Traits>& os, std::optional<E> value) {
 
 namespace bitwise_operators {
 
-using namespace magic_enum::bitwise_operators;
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E operator~(E rhs) noexcept {
+  return static_cast<E>(~static_cast<underlying_type_t<E>>(rhs));
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E operator|(E lhs, E rhs) noexcept {
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) | static_cast<underlying_type_t<E>>(rhs));
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E operator&(E lhs, E rhs) noexcept {
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) & static_cast<underlying_type_t<E>>(rhs));
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E operator^(E lhs, E rhs) noexcept {
+  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) ^ static_cast<underlying_type_t<E>>(rhs));
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E& operator|=(E& lhs, E rhs) noexcept {
+  return lhs = lhs | rhs;
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E& operator&=(E& lhs, E rhs) noexcept {
+  return lhs = lhs & rhs;
+}
+
+template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
+constexpr E& operator^=(E& lhs, E rhs) noexcept {
+  return lhs = lhs ^ rhs;
+}
 
 } // namespace magic_enum::flags::bitwise_operators
 
