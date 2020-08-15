@@ -39,9 +39,9 @@ int main() {
   std::cout << c1_name << std::endl; // RED
 
   // String enum name sequence.
-  constexpr auto names = magic_enum::enum_names<Color>();
+  constexpr auto& names = magic_enum::enum_names<Color>();
   std::cout << "Color names:";
-  for (auto n : names) {
+  for (const auto& n : names) {
     std::cout << " " << n;
   }
   std::cout << std::endl;
@@ -49,21 +49,19 @@ int main() {
 
   // String name to enum value.
   auto c2 = magic_enum::enum_cast<Color>("BLUE");
-  if (c2.has_value() && c2.value() == Color::BLUE) {
+  if (c2.has_value()) {
     std::cout << "BLUE = " << to_integer(c2.value()) << std::endl; // BLUE = 0
   }
 
   // Integer value to enum value.
   auto c3 = magic_enum::enum_cast<Color>(10);
-  if (c3.has_value() && c3.value() == Color::GREEN) {
+  if (c3.has_value()) {
     std::cout << "GREEN = " << magic_enum::enum_integer(c3.value()) << std::endl; // GREEN = 10
   }
 
   // Enum value to integer value.
   auto c4_integer = magic_enum::enum_integer(Color::RED);
-  if (c4_integer == static_cast<std::underlying_type_t<Color>>(Color::RED)) {
-    std::cout << "RED = " << c4_integer << std::endl; // RED = -10
-  }
+  std::cout << "RED = " << c4_integer << std::endl; // RED = -10
 
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for all enums.
   // ostream operator for enum.
@@ -76,9 +74,9 @@ int main() {
   std::cout << "Color[0] = " << magic_enum::enum_value<Color>(0) << std::endl; // Color[0] = RED
 
   // Enum value sequence.
-  constexpr auto values = magic_enum::enum_values<Color>();
+  constexpr auto& values = magic_enum::enum_values<Color>();
   std::cout << "Colors values:";
-  for (Color c : values) {
+  for (const auto& c : values) {
     std::cout << " " << c; // ostream operator for enum.
   }
   std::cout << std::endl;
@@ -103,9 +101,9 @@ int main() {
   static_assert(magic_enum::is_scoped_enum_v<Flags>);
 
   // Enum pair (value enum, string enum name) sequence.
-  constexpr auto entries = magic_enum::enum_entries<Color>();
+  constexpr auto& entries = magic_enum::enum_entries<Color>();
   std::cout << "Colors entries:";
-  for (auto e : entries) {
+  for (const auto& e : entries) {
     std::cout << " "  << e.second << " = " << static_cast<int>(e.first);
   }
   std::cout << std::endl;

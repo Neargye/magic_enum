@@ -665,6 +665,19 @@ template <typename E>
   return detail::entries_v<D>;
 }
 
+// Obtains enum value from integer value.
+// Returns std::optional with enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
+  using D = std::decay_t<E>;
+
+  if (detail::undex<D>(value) != detail::invalid_index_v<D>) {
+    return static_cast<D>(value);
+  }
+
+  return std::nullopt; // Invalid value or out of range.
+}
+
 // Obtains enum value from string name.
 // Returns std::optional with enum value.
 template <typename E, typename BinaryPredicate>
@@ -688,19 +701,6 @@ template <typename E>
   using D = std::decay_t<E>;
 
   return enum_cast<D>(value, detail::char_equal_to{});
-}
-
-// Obtains enum value from integer value.
-// Returns std::optional with enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
-  using D = std::decay_t<E>;
-
-  if (detail::undex<D>(value) != detail::invalid_index_v<D>) {
-    return static_cast<D>(value);
-  }
-
-  return std::nullopt; // Invalid value or out of range.
 }
 
 // Returns integer value from enum value.
@@ -744,7 +744,7 @@ template <typename E, typename BinaryPredicate>
   using D = std::decay_t<E>;
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
 
-  return enum_cast<D>(value, std::move(p)).has_value();
+  return enum_cast<D>(value, std::move_if_noexcept(p)).has_value();
 }
 
 // Checks whether enum contains enumerator with such string name.
@@ -825,6 +825,9 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 } // namespace magic_enum::bitwise_operators
 
 namespace flags {
+
+// Returns string name of enum type.
+using magic_enum::enum_type_name;
 
 // Returns number of enum-flags values.
 template <typename E>
@@ -908,99 +911,90 @@ template <typename E>
   return detail::entries_v<D, true>;
 }
 
-// Checks whether enum-flags contains enumerator with such integer value.
-template <typename E, bool Strict = false>
-[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
-  using D = std::decay_t<E>;
-
-  if constexpr(Strict) {
-    if constexpr (detail::is_sparse_v<D, true>) {
-      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-        if (value == enum_value<D>(i)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-  } else {
-    if constexpr (detail::is_sparse_v<D, true>) {
-      using U = underlying_type_t<D>;
-      auto check_value = U{0};
-      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-        if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
-          check_value |= v;
-        }
-      }
-
-      return check_value == value;
-    } else {
-      constexpr auto min = detail::min_v<D, true>;
-      constexpr auto max = detail::value_ors<D>();
-
-      return value >= min && value <= max;
-    }
-  }
-}
-
-// Checks whether enum-flags contains enumerator with such enum-flags value.
-template <typename E, bool Strict = false>
-[[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
-  using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
-
-  return enum_contains<D, Strict>(static_cast<U>(value));
-}
-
-// Checks whether enum-flags contains enumerator with such string name.
-template <typename E, typename BinaryPredicate>
-[[nodiscard]] constexpr auto enum_contains(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, bool> {
-  using D = std::decay_t<E>;
-  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_contains requires bool(char, char) invocable predicate.");
-  // TODO: impl
-  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
-  return {};
-}
-
-// Checks whether enum-flags contains enumerator with such string name.
-template <typename E>
-[[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
-  // TODO: impl
-  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
-  return {};
-}
-
 // Obtains enum-flags value from integer value.
 // Returns std::optional with enum-flags value.
 template <typename E, bool Strict = false>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-  if (enum_contains<D, Strict>(value)) {
-    return static_cast<D>(value);
+  if constexpr(Strict) {
+    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+      if (value == static_cast<U>(enum_value<D>(i))) {
+        return static_cast<D>(value);
+      }
+    }
+  } else {
+    if constexpr (detail::is_sparse_v<D, true>) {
+      auto check_value = U{0};
+      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+        if (const auto v = static_cast<U>(enum_value<D>(i)); (value & v) != 0) {
+          check_value |= v;
+        }
+      }
+
+      if (check_value == value) {
+        return static_cast<D>(value);
+      }
+    } else {
+      constexpr auto min = detail::min_v<D, true>;
+      constexpr auto max = detail::value_ors<D>();
+
+      if (value >= min && value <= max) {
+        return static_cast<D>(value);
+      }
+    }
   }
 
-  return std::nullopt; // Invalid value or out of range.
+  return std::nullopt;
 }
 
 // Obtains enum-flags value from string name.
 // Returns std::optional with enum-flags value.
-template <typename E, typename BinaryPredicate>
+template <typename E, bool Strict = false, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_cast requires bool(char, char) invocable predicate.");
-  // TODO: impl
-  static_assert(sizeof(decltype(value)) + sizeof(decltype(p)) == sizeof(E) * 0, "not implemented");
-  return {};
+  using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
+
+  auto result = U{0};
+  while (!value.empty()) {
+    const auto d = value.find_first_of('|');
+    const auto s = (d == std::string_view::npos) ? value : value.substr(0, d);
+    auto f = U{0};
+    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+      if (detail::cmp_equal(s, detail::names_v<D, true>[i], p)) {
+        f = static_cast<U>(enum_value<D>(i));
+        result |= f;
+        break;
+      }
+    }
+    if (f == 0) {
+      return std::nullopt;
+    } else {
+      result |= f;
+    }
+    value.remove_prefix((d == std::string_view::npos) ? value.size() : d + 1);
+  }
+
+  if (result == 0) {
+    return std::nullopt;
+  } else {
+    return static_cast<D>(result);
+  }
 }
 
 // Obtains enum-flags value from string name.
 // Returns std::optional with enum-flags value.
-template <typename E>
+template <typename E, bool Strict = false>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
-  // TODO: impl
-  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
-  return {};
+  using D = std::decay_t<E>;
+
+  return enum_cast<D, Strict>(value, detail::char_equal_to{});
 }
+
+// Returns integer value from enum value.
+using magic_enum::enum_integer;
 
 // Obtains index in enum-flags values from enum-flags value.
 // Returns std::optional with index.
@@ -1019,11 +1013,39 @@ template <typename E>
   return std::nullopt; // Value out of range.
 }
 
-// Returns string name of enum type.
-using magic_enum::enum_type_name;
+// Checks whether enum-flags contains enumerator with such enum-flags value.
+template <typename E, bool Strict = false>
+[[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
+  using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-// Returns integer value from enum value.
-using magic_enum::enum_integer;
+  return enum_cast<D, Strict>(static_cast<U>(value));
+}
+
+// Checks whether enum-flags contains enumerator with such integer value.
+template <typename E, bool Strict = false>
+[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
+  using D = std::decay_t<E>;
+
+  return enum_cast<D, Strict>(value).has_value();
+}
+
+// Checks whether enum-flags contains enumerator with such string name.
+template <typename E, bool Strict = false, typename BinaryPredicate>
+[[nodiscard]] constexpr auto enum_contains(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, bool> {
+  using D = std::decay_t<E>;
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_contains requires bool(char, char) invocable predicate.");
+
+  return enum_cast<D, Strict>(value, std::move_if_noexcept(p)).has_value();
+}
+
+// Checks whether enum-flags contains enumerator with such string name.
+template <typename E, bool Strict = false>
+[[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
+  using D = std::decay_t<E>;
+
+  return enum_cast<D, Strict>(value).has_value();
+}
 
 namespace ostream_operators {
 
@@ -1056,40 +1078,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 namespace bitwise_operators {
 
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E operator~(E rhs) noexcept {
-  return static_cast<E>(~static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E operator|(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) | static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E operator&(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) & static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E operator^(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) ^ static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E& operator|=(E& lhs, E rhs) noexcept {
-  return lhs = lhs | rhs;
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E& operator&=(E& lhs, E rhs) noexcept {
-  return lhs = lhs & rhs;
-}
-
-template <typename E, detail::enable_if_enum_flags_t<E, int> = 0>
-constexpr E& operator^=(E& lhs, E rhs) noexcept {
-  return lhs = lhs ^ rhs;
-}
+using namespace magic_enum::bitwise_operators;
 
 } // namespace magic_enum::flags::bitwise_operators
 
