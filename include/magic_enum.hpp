@@ -739,6 +739,15 @@ template <typename E>
 }
 
 // Checks whether enum contains enumerator with such string name.
+template <typename E, typename BinaryPredicate>
+[[nodiscard]] constexpr auto enum_contains(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
+  using D = std::decay_t<E>;
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
+
+  return enum_cast<D>(value, std::move(p)).has_value();
+}
+
+// Checks whether enum contains enumerator with such string name.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
   using D = std::decay_t<E>;
@@ -980,8 +989,11 @@ template <typename E>
   return std::nullopt; // Value out of range.
 }
 
-using magic_enum::enum_type_name; // TODO: impl
-using magic_enum::enum_integer; // TODO: impl
+// Returns string name of enum type.
+using magic_enum::enum_type_name;
+
+// Returns integer value from enum value.
+using magic_enum::enum_integer;
 
 namespace ostream_operators {
 

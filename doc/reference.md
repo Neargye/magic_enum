@@ -24,14 +24,19 @@
 * To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.</br>
   If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
 
+* For the small enum use the API from the namespace `magic_enum`, and for enum-flags use the API from the namespace `magic_enum::flags`.
+
 ## `enum_cast`
 
 ```cpp
 template <typename E>
-constexpr optional<E> enum_cast(string_view value) noexcept;
+constexpr optional<E> enum_cast(underlying_type_t<E> value) noexcept;
 
 template <typename E>
-constexpr optional<E> enum_cast(underlying_type_t<E> value) noexcept;
+constexpr optional<E> enum_cast(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
 ```
 
 * Obtains enum value from string or integer.
@@ -224,8 +229,15 @@ constexpr optional<size_t> enum_index() noexcept;
 ```cpp
 template <typename E>
 constexpr bool enum_contains(E value) noexcept;
+
+template <typename E>
 constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
+
+template <typename E>
 constexpr bool enum_contains(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
 ```
 
 * Checks whether enum contains enumerator with such value.
