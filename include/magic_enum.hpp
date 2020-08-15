@@ -933,6 +933,17 @@ template <typename E>
 }
 
 // Checks whether enum-flags contains enumerator with such string name.
+template <typename E, typename BinaryPredicate>
+[[nodiscard]] constexpr auto enum_contains(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, bool> {
+  using D = std::decay_t<E>;
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_contains requires bool(char, char) invocable predicate.");
+  // TODO: impl
+  static_assert(sizeof(decltype(value)) == sizeof(E) * 0, "not implemented");
+  return {};
+}
+
+
+// Checks whether enum-flags contains enumerator with such string name.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value) noexcept -> detail::enable_if_enum_flags_t<E, bool> {
   // TODO: impl
