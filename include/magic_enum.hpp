@@ -918,7 +918,7 @@ template <typename E, bool Strict = false>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  if constexpr(Strict) {
+  if constexpr (Strict) {
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
       if (value == static_cast<U>(enum_value<D>(i))) {
         return static_cast<D>(value);
@@ -1047,7 +1047,9 @@ template <typename E, bool Strict = false>
   return enum_cast<D, Strict>(value).has_value();
 }
 
-namespace ostream_operators {
+} // namespace magic_enum::flags
+
+namespace flags::ostream_operators {
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
@@ -1076,13 +1078,11 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 } // namespace magic_enum::flags::ostream_operators
 
-namespace bitwise_operators {
+namespace flags::bitwise_operators {
 
 using namespace magic_enum::bitwise_operators;
 
 } // namespace magic_enum::flags::bitwise_operators
-
-} // namespace magic_enum::flags
 
 } // namespace magic_enum
 
