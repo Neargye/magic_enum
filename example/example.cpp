@@ -64,7 +64,7 @@ int main() {
   std::cout << "RED = " << c4_integer << std::endl; // RED = -10
 
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for all enums.
-  // ostream operator for enum.
+  // Ostream operator for enum.
   std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
 
   // Number of enum values.
@@ -77,7 +77,7 @@ int main() {
   constexpr auto& values = magic_enum::enum_values<Color>();
   std::cout << "Colors values:";
   for (const auto& c : values) {
-    std::cout << " " << c; // ostream operator for enum.
+    std::cout << " " << c; // Ostream operator for enum.
   }
   std::cout << std::endl;
   // Color sequence: RED BLUE GREEN
