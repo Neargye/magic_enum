@@ -556,48 +556,6 @@ TEST_CASE("enum_name") {
     REQUIRE(nto_name == "one|three");
     REQUIRE(enum_name(static_cast<number>(0)).empty());
   }
-
-  SECTION("strict automatic storage") {
-    constexpr Color cr = Color::RED;
-    constexpr auto cr_name = enum_name<Color, true>(cr);
-    Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-    Color cb = Color::BLUE;
-    REQUIRE(cr_name == "RED");
-    REQUIRE(enum_name<Color&, true>(cb) == "BLUE");
-    REQUIRE(enum_name<Color, true>(cm[1]) == "GREEN");
-    REQUIRE(enum_name<Color, true>(Color::RED | Color{0}) == "RED");
-    REQUIRE(enum_name<Color, true>(Color::RED | Color::GREEN).empty());
-    REQUIRE(enum_name<Color, true>(Color::RED | Color{8}).empty());
-    REQUIRE(enum_name<Color, true>(static_cast<Color>(0)).empty());
-
-    constexpr Numbers no = Numbers::one;
-    constexpr auto no_name = enum_name<Numbers, true>(no);
-    REQUIRE(no_name == "one");
-    REQUIRE(enum_name<Numbers, true>(Numbers::two) == "two");
-    REQUIRE(enum_name<Numbers, true>(Numbers::three) == "three");
-    REQUIRE(enum_name<Numbers, true>(Numbers::many) == "many");
-    REQUIRE(enum_name<Numbers, true>(Numbers::many | Numbers::two).empty());
-    REQUIRE(enum_name<Numbers, true>(static_cast<Numbers>(0)).empty());
-
-    constexpr Directions dr = Directions::Right;
-    constexpr auto dr_name = enum_name<Directions, true>(dr);
-    Directions du = Directions::Up;
-    REQUIRE(enum_name<Directions&, true>(du) == "Up");
-    REQUIRE(enum_name<const Directions, true>(Directions::Down) == "Down");
-    REQUIRE(dr_name == "Right");
-    REQUIRE(enum_name<Directions, true>(Directions::Left) == "Left");
-    REQUIRE(enum_name<Directions, true>(Directions::Right | Directions::Up | Directions::Left | Directions::Down).empty());
-    REQUIRE(enum_name<Directions, true>(static_cast<Directions>(0)).empty());
-
-    constexpr number nto = number::three | number::one;
-    auto nto_name = enum_name<number, true>(nto);
-    REQUIRE(enum_name<number, true>(number::one) == "one");
-    REQUIRE(enum_name<number, true>(number::two) == "two");
-    REQUIRE(enum_name<number, true>(number::three) == "three");
-    REQUIRE(enum_name<number, true>(number::four) == "four");
-    REQUIRE(nto_name.empty());
-    REQUIRE(enum_name<number, true>(static_cast<number>(0)).empty());
-  }
 }
 
 TEST_CASE("enum_names") {

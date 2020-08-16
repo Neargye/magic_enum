@@ -876,34 +876,26 @@ template <typename E>
 
 // Returns string name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
-template <typename E, bool Strict = false>
-[[nodiscard]] constexpr auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::conditional_t<Strict, std::string_view, std::string>> {
+template <typename E>
+[[nodiscard]] auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  if constexpr (Strict) {
-    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-      if (enum_value<D>(i) == value) {
-        return detail::names_v<D, true>[i];
+  std::string name;
+  auto check_value = U{0};
+  for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+    if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
+      check_value |= static_cast<U>(v);
+      const auto n = detail::names_v<D, true>[i];
+      if (!name.empty()) {
+        name.append(1, '|');
       }
+      name.append(n.data(), n.size());
     }
-  } else {
-    std::string name;
-    auto check_value = U{0};
-    for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-      if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
-        check_value |= static_cast<U>(v);
-        const auto n = detail::names_v<D, true>[i];
-        if (!name.empty()) {
-          name.append(1, '|');
-        }
-        name.append(n.data(), n.size());
-      }
-    }
+  }
 
-    if (check_value == static_cast<U>(value)) {
-      return name;
-    }
+  if (check_value == static_cast<U>(value)) {
+    return name;
   }
 
   return {}; // Invalid value or out of range.
