@@ -710,8 +710,8 @@ template <typename E>
 // Returns std::optional with enum value.
 template <typename E, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, std::optional<std::decay_t<E>>> {
-  using D = std::decay_t<E>;
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
+  using D = std::decay_t<E>;
 
   for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
     if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
@@ -1063,8 +1063,8 @@ template <typename E, bool Strict = false>
 // Checks whether enum-flags contains enumerator with such string name.
 template <typename E, bool Strict = false, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_contains(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, bool> {
-  using D = std::decay_t<E>;
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_contains requires bool(char, char) invocable predicate.");
+  using D = std::decay_t<E>;
 
   return enum_cast<D, Strict>(value, std::move_if_noexcept(p)).has_value();
 }
@@ -1107,12 +1107,6 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 }
 
 } // namespace magic_enum::flags::ostream_operators
-
-namespace flags::bitwise_operators {
-
-using namespace magic_enum::bitwise_operators;
-
-} // namespace magic_enum::flags::bitwise_operators
 
 } // namespace magic_enum
 
