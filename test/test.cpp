@@ -571,14 +571,12 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_scoped_enum_v<number>);
 }
 
-/* TODO: https://github.com/Neargye/nameof/issues/22
 TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<Color&>() == "Color");
   REQUIRE(enum_type_name<Numbers>() == "Numbers");
   REQUIRE(enum_type_name<Directions&>() == "Directions");
   REQUIRE(enum_type_name<number>() == "number");
 }
-*/
 
 #if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
 TEST_CASE("aliases") {

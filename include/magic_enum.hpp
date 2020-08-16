@@ -274,6 +274,7 @@ constexpr std::uint8_t log2(T value) noexcept {
 
     return log2<U>(static_cast<U>(value));
   } else {
+    static_assert(std::is_integral_v<T>, "magic_enum::detail::log2 requires integral type.");
     auto ret = std::uint8_t{0};
     for (; value > static_cast<T>(1); value >>= static_cast<T>(1), ++ret) {};
 
@@ -288,6 +289,8 @@ constexpr bool is_pow2(T x) noexcept {
 
     return is_pow2<U>(static_cast<U>(x));
   } else {
+    static_assert(std::is_integral_v<T>, "magic_enum::detail::is_pow2 requires integral type.");
+
     return x != 0 && (x & (x - 1)) == 0;
   }
 }
@@ -595,7 +598,12 @@ template <typename E>
 [[nodiscard]] constexpr std::string_view enum_type_name() noexcept {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "Requires enum type.");
+#if defined(_MSC_VER)
+  // TODO: https://github.com/Neargye/nameof/issues/22
+  constexpr std::string_view name = std::string_view{detail::type_name_v<D>}.substr(5, detail::type_name_v<D>.size() - 5);
+#else
   constexpr std::string_view name = detail::type_name_v<D>;
+#endif
   static_assert(name.size() > 0, "Enum type does not have a name.");
 
   return name;
