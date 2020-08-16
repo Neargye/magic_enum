@@ -23,7 +23,9 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
+#undef  MAGIC_ENUM_RANGE_MIN
 #define MAGIC_ENUM_RANGE_MIN -120
+#undef  MAGIC_ENUM_RANGE_MAX
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
 
@@ -310,16 +312,16 @@ TEST_CASE("enum_value") {
 TEST_CASE("enum_values") {
   REQUIRE(std::is_same_v<decltype(magic_enum::enum_values<Color>()), const std::array<Color, 3>&>);
 
-  constexpr auto s1 = enum_values<Color&>();
+  constexpr auto& s1 = enum_values<Color&>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
-  auto s2 = enum_values<Numbers>();
+  constexpr auto& s2 = enum_values<Numbers>();
   REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
 
-  constexpr auto s3 = enum_values<const Directions>();
+  constexpr auto& s3 = enum_values<const Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
-  auto s4 = enum_values<number>();
+  constexpr auto& s4 = enum_values<number>();
   REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
 }
 
@@ -327,13 +329,13 @@ TEST_CASE("enum_count") {
   constexpr auto s1 = enum_count<Color&>();
   REQUIRE(s1 == 3);
 
-  auto s2 = enum_count<Numbers>();
+  constexpr auto s2 = enum_count<Numbers>();
   REQUIRE(s2 == 3);
 
   constexpr auto s3 = enum_count<const Directions>();
   REQUIRE(s3 == 4);
 
-  auto s4 = enum_count<number>();
+  constexpr auto s4 = enum_count<number>();
   REQUIRE(s4 == 3);
 }
 
@@ -408,32 +410,32 @@ TEST_CASE("enum_name") {
 TEST_CASE("enum_names") {
   REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
 
-  constexpr auto s1 = enum_names<Color&>();
+  constexpr auto& s1 = enum_names<Color&>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
-  auto s2 = enum_names<Numbers>();
+  constexpr auto& s2 = enum_names<Numbers>();
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 
-  constexpr auto s3 = enum_names<const Directions>();
+  constexpr auto& s3 = enum_names<const Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
-  auto s4 = enum_names<number>();
+  constexpr auto& s4 = enum_names<number>();
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
 TEST_CASE("enum_entries") {
   REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
 
-  constexpr auto s1 = enum_entries<Color&>();
+  constexpr auto& s1 = enum_entries<Color&>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
-  auto s2 = enum_entries<Numbers>();
+  constexpr auto& s2 = enum_entries<Numbers>();
   REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
 
-  constexpr auto s3 = enum_entries<Directions&>();
+  constexpr auto& s3 = enum_entries<Directions&>();
   REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
 
-  auto s4 = enum_entries<number>();
+  constexpr auto& s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
 }
 

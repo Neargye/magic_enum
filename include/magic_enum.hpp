@@ -226,6 +226,7 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 
 constexpr std::size_t find(std::string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__)
+// https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
   for (std::size_t i = 0; i < str.size(); ++i) {
     if (str[i] == c) {
       return i;
