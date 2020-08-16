@@ -224,6 +224,19 @@ struct supported
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
+constexpr std::size_t find(std::string_view str, char c) noexcept {
+#if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__)
+  for (std::size_t i = 0; i < str.size(); ++i) {
+    if (str[i] == c) {
+      return i;
+    }
+  }
+  return std::string_view::npos;
+#else
+  return str.find_first_of(c);
+#endif
+}
+
 struct char_equal_to {
   constexpr bool operator()(char lhs, char rhs) const noexcept {
     return lhs == rhs;
@@ -276,7 +289,7 @@ constexpr std::uint8_t log2(T value) noexcept {
   } else {
     static_assert(std::is_integral_v<T>, "magic_enum::detail::log2 requires integral type.");
     auto ret = std::uint8_t{0};
-    for (; value > static_cast<T>(1); value >>= static_cast<T>(1), ++ret) {};
+    for (; value > T{1}; value >>= T{1}, ++ret) {};
 
     return ret;
   }
@@ -351,7 +364,7 @@ constexpr E value(std::size_t i) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
 
   if constexpr (IsFlags) {
-    return static_cast<E>(static_cast<U>(1) << static_cast<U>(static_cast<int>(i) + O));
+    return static_cast<E>(U{1} << static_cast<U>(static_cast<int>(i) + O));
   } else {
     return static_cast<E>(static_cast<int>(i) + O);
   }
@@ -361,7 +374,7 @@ template <typename E, bool IsFlags, int Min, int... I>
 constexpr auto values(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
   constexpr std::array<bool, sizeof...(I)> valid{{is_valid<E, value<E, Min, IsFlags>(I)>()...}};
-  constexpr std::size_t count = ((valid[I] ? 1 : 0) + ...);
+  constexpr std::size_t count = ((valid[I] ? std::size_t{1} : std::size_t{0}) + ...);
 
   std::array<E, count> values{};
   for (std::size_t i = 0, v = 0; v < count; ++i) {
@@ -409,7 +422,7 @@ constexpr std::size_t range_size() noexcept {
   if constexpr (IsFlags) {
     return std::numeric_limits<U>::digits;
   } else {
-    constexpr auto range_size = max_v<E> - min_v<E> + 1;
+    constexpr auto range_size = max_v<E> - min_v<E> + U{1};
     static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
     static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
     return static_cast<std::size_t>(range_size);
@@ -468,7 +481,7 @@ constexpr bool is_sparse() noexcept {
 
   if constexpr (IsFlags) {
     auto range_count = std::size_t{1};
-    for (auto i = min_v<E, true>; i != max_v<E, true>; i <<= static_cast<U>(1), ++range_count) {};
+    for (auto i = min_v<E, true>; i != max_v<E, true>; i <<= U{1}, ++range_count) {};
 
     return range_count != count_v<E, true>;
   } else {
@@ -973,7 +986,7 @@ template <typename E, bool Strict = false, typename BinaryPredicate>
     using U = underlying_type_t<D>;
     auto result = U{0};
     while (!value.empty()) {
-      const auto d = value.find_first_of('|');
+      const auto d = detail::find(value, '|');
       const auto s = (d == std::string_view::npos) ? value : value.substr(0, d);
       auto f = U{0};
       for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
@@ -983,7 +996,7 @@ template <typename E, bool Strict = false, typename BinaryPredicate>
           break;
         }
       }
-      if (f == 0) {
+      if (f == U{0}) {
         return std::nullopt;
       } else {
         result |= f;
@@ -991,7 +1004,7 @@ template <typename E, bool Strict = false, typename BinaryPredicate>
       value.remove_prefix((d == std::string_view::npos) ? value.size() : d + 1);
     }
 
-    if (result == 0) {
+    if (result == U{0}) {
       return std::nullopt;
     } else {
       return static_cast<D>(result);
