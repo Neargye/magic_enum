@@ -69,7 +69,7 @@ struct enum_range<number> {
 } // namespace magic_enum
 
 using namespace magic_enum::flags;
-using namespace magic_enum::flags::bitwise_operators;
+using namespace magic_enum::bitwise_operators;
 
 TEST_CASE("enum_cast") {
   SECTION("string") {
