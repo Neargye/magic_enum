@@ -573,8 +573,8 @@ TEST_CASE("type_traits") {
 
 TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<Color&>() == "Color");
-  REQUIRE(enum_type_name<Numbers>() == "Numbers");
-  REQUIRE(enum_type_name<Directions&>() == "Directions");
+  REQUIRE(enum_type_name<const Numbers>() == "Numbers");
+  REQUIRE(enum_type_name<const Directions&>() == "Directions");
   REQUIRE(enum_type_name<number>() == "number");
 }
 

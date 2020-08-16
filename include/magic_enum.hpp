@@ -467,8 +467,8 @@ constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
 
   if constexpr (IsFlags) {
-    auto range_count = std::size_t{0};
-    for (auto i = max_v<E, true>; i != max_v<E, true>; i <<= static_cast<U>(1), ++range_count) {};
+    auto range_count = std::size_t{1};
+    for (auto i = min_v<E, true>; i != max_v<E, true>; i <<= static_cast<U>(1), ++range_count) {};
 
     return range_count != count_v<E, true>;
   } else {
@@ -860,7 +860,7 @@ template <typename E>
   if constexpr (detail::is_sparse_v<D, true>) {
     return assert((index < detail::count_v<D, true>)), detail::values_v<D, true>[index];
   } else {
-    constexpr auto min = detail::log2(detail::min_v<D, true>) - 1;
+    constexpr auto min = detail::log2(detail::min_v<D, true>);
 
     return assert((index < detail::count_v<D, true>)), detail::value<D, min, true>(index);
   }
@@ -877,7 +877,7 @@ template <typename E>
 // Returns string name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E, bool Strict = false>
-[[nodiscard]] auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::conditional_t<Strict, std::string_view, std::string>> {
+[[nodiscard]] constexpr auto enum_name(E value) -> detail::enable_if_enum_flags_t<E, std::conditional_t<Strict, std::string_view, std::string>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -947,7 +947,7 @@ template <typename E, bool Strict = false>
         }
       }
 
-      if (check_value == value) {
+      if (check_value != 0 && check_value == value) {
         return static_cast<D>(value);
       }
     } else {
@@ -969,32 +969,41 @@ template <typename E, bool Strict = false, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_cast(std::string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_flags_t<E, std::optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::flags::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
 
-  auto result = U{0};
-  while (!value.empty()) {
-    const auto d = value.find_first_of('|');
-    const auto s = (d == std::string_view::npos) ? value : value.substr(0, d);
-    auto f = U{0};
+  if constexpr (Strict) {
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-      if (detail::cmp_equal(s, detail::names_v<D, true>[i], p)) {
-        f = static_cast<U>(enum_value<D>(i));
-        result |= f;
-        break;
+      if (detail::cmp_equal(value, detail::names_v<D, true>[i], p)) {
+        return enum_value<D>(i);
       }
     }
-    if (f == 0) {
-      return std::nullopt;
-    } else {
-      result |= f;
-    }
-    value.remove_prefix((d == std::string_view::npos) ? value.size() : d + 1);
-  }
-
-  if (result == 0) {
     return std::nullopt;
   } else {
-    return static_cast<D>(result);
+    using U = underlying_type_t<D>;
+    auto result = U{0};
+    while (!value.empty()) {
+      const auto d = value.find_first_of('|');
+      const auto s = (d == std::string_view::npos) ? value : value.substr(0, d);
+      auto f = U{0};
+      for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
+        if (detail::cmp_equal(s, detail::names_v<D, true>[i], p)) {
+          f = static_cast<U>(enum_value<D>(i));
+          result |= f;
+          break;
+        }
+      }
+      if (f == 0) {
+        return std::nullopt;
+      } else {
+        result |= f;
+      }
+      value.remove_prefix((d == std::string_view::npos) ? value.size() : d + 1);
+    }
+
+    if (result == 0) {
+      return std::nullopt;
+    } else {
+      return static_cast<D>(result);
+    }
   }
 }
 
@@ -1018,7 +1027,8 @@ template <typename E>
 
   if (detail::is_pow2<D>(value)) {
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-      if (enum_value<D>(i) == value) {
+      auto v = enum_value<D>(i);
+      if (v == value) {
         return i;
       }
     }
@@ -1033,7 +1043,7 @@ template <typename E, bool Strict = false>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  return enum_cast<D, Strict>(static_cast<U>(value));
+  return enum_cast<D, Strict>(static_cast<U>(value)).has_value();
 }
 
 // Checks whether enum-flags contains enumerator with such integer value.
