@@ -246,7 +246,7 @@ struct char_equal_to {
 
 template <typename BinaryPredicate>
 constexpr bool cmp_equal(std::string_view lhs, std::string_view rhs, BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
-  if constexpr (std::is_same_v<BinaryPredicate, char_equal_to>) {
+  if constexpr (std::is_same_v<std::decay_t<BinaryPredicate>, char_equal_to>) {
     static_cast<void>(p);
     return lhs == rhs;
   } else {
