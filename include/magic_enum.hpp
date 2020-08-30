@@ -44,6 +44,7 @@
 #include <limits>
 #include <type_traits>
 #include <utility>
+
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #include <optional>
 #endif
@@ -261,30 +262,19 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
 
 template <typename T>
 constexpr std::uint8_t log2(T value) noexcept {
-  if constexpr (std::is_enum_v<T>) {
-    using U = std::underlying_type_t<T>;
+  static_assert(std::is_integral_v<T>, "magic_enum::detail::log2 requires integral type.");
 
-    return log2<U>(static_cast<U>(value));
-  } else {
-    static_assert(std::is_integral_v<T>, "magic_enum::detail::log2 requires integral type.");
-    auto ret = std::uint8_t{0};
-    for (; value > T{1}; value >>= T{1}, ++ret) {};
+  auto ret = std::uint8_t{0};
+  for (; value > T{1}; value >>= T{1}, ++ret) {};
 
-    return ret;
-  }
+  return ret;
 }
 
 template <typename T>
 constexpr bool is_pow2(T x) noexcept {
-  if constexpr (std::is_enum_v<T>) {
-    using U = std::underlying_type_t<T>;
+  static_assert(std::is_integral_v<T>, "magic_enum::detail::is_pow2 requires integral type.");
 
-    return is_pow2<U>(static_cast<U>(x));
-  } else {
-    static_assert(std::is_integral_v<T>, "magic_enum::detail::is_pow2 requires integral type.");
-
-    return x != 0 && (x & (x - 1)) == 0;
-  }
+  return x != 0 && (x & (x - 1)) == 0;
 }
 
 template <typename T>
@@ -416,6 +406,7 @@ constexpr auto values() noexcept {
     constexpr auto range_size = reflected_max_v<E> - reflected_min_v<E> + 1;
     static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
     static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
+
     return values<E, false, reflected_min_v<E>>(std::make_integer_sequence<int, range_size>{});
   }
 }
@@ -445,6 +436,7 @@ constexpr std::size_t range_size() noexcept {
     constexpr auto range_size = max_v<E> - min_v<E> + U{1};
     static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
     static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
+
     return static_cast<std::size_t>(range_size);
   }
 }
@@ -500,8 +492,8 @@ constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
 
   if constexpr (IsFlags) {
-    auto range_count = std::size_t{1};
-    for (auto i = min_v<E, true>; i != max_v<E, true>; i <<= U{1}, ++range_count) {};
+    auto range_count = std::size_t{0};
+    for (auto i = max_v<E, true>; i >= min_v<E, true>; i >>= U{1}, ++range_count) {};
 
     return range_count != count_v<E, true>;
   } else {
@@ -914,7 +906,7 @@ template <typename E>
     }
   }
 
-  if (check_value != U{0} && check_value == static_cast<U>(value)) {
+  if (check_value != 0 && check_value == static_cast<U>(value)) {
     return name;
   }
 
@@ -952,7 +944,7 @@ template <typename E>
       }
     }
 
-    if (check_value != U{0} && check_value == value) {
+    if (check_value != 0 && check_value == value) {
       return static_cast<D>(value);
     }
   } else {
@@ -1017,8 +1009,9 @@ using magic_enum::enum_integer;
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_flags_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-  if (detail::is_pow2<D>(value)) {
+  if (detail::is_pow2(static_cast<U>(value))) {
     for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
       if (enum_value<D>(i) == value) {
         return i;
