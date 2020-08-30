@@ -19,3 +19,4 @@ endfunction()
 
 make_example(example)
 make_example(enum_flag_example)
+make_example(example_custom_name)
