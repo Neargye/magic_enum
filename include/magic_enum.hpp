@@ -628,9 +628,8 @@ using underlying_type_t = typename underlying_type<T>::type;
 
 // Returns string name of enum type.
 template <typename E>
-[[nodiscard]] constexpr string_view enum_type_name() noexcept {
+[[nodiscard]] constexpr auto enum_type_name() noexcept -> std::enable_if_t<std::is_enum_v<std::decay_t<E>>, string_view> {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "Requires enum type.");
   constexpr string_view name = detail::type_name_v<D>;
   static_assert(name.size() > 0, "Enum type does not have a name.");
 
@@ -669,9 +668,8 @@ template <typename E>
 // Returns string name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
-[[nodiscard]] constexpr string_view enum_name() noexcept {
+[[nodiscard]] constexpr auto enum_name() noexcept -> std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>, string_view> {
   using D = std::decay_t<decltype(V)>;
-  static_assert(std::is_enum_v<D>, "Requires enum type.");
   constexpr string_view name = detail::enum_name_v<D, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
@@ -747,7 +745,7 @@ template <typename E>
 
 // Returns integer value from enum value.
 template <typename E>
-[[nodiscard]] constexpr underlying_type_t<E> enum_integer(E value) noexcept {
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> std::enable_if_t<std::is_enum_v<std::decay_t<E>>, underlying_type_t<E>> {
   return static_cast<underlying_type_t<E>>(value);
 }
 
@@ -804,25 +802,19 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-  using namespace magic_enum;
-
-  if (const auto name = enum_name<D>(value); !name.empty()) {
+  if (const auto name = magic_enum::enum_name<D>(value); !name.empty()) {
     for (const auto c : name) {
       os.put(c);
     }
     return os;
   }
 #endif
-  return os << static_cast<U>(value);
+  return (os << static_cast<U>(value));
 }
 
 template <typename Char, typename Traits, typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  if (value.has_value()) {
-    os << value.value();
-  }
-
-  return os;
+  return value.has_value() ? (os << value.value()) : os;
 }
 
 } // namespace magic_enum::ostream_operators
@@ -851,17 +843,17 @@ constexpr E operator^(E lhs, E rhs) noexcept {
 
 template <typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 constexpr E& operator|=(E& lhs, E rhs) noexcept {
-  return lhs = lhs | rhs;
+  return lhs = (lhs | rhs);
 }
 
 template <typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 constexpr E& operator&=(E& lhs, E rhs) noexcept {
-  return lhs = lhs & rhs;
+  return lhs = (lhs & rhs);
 }
 
 template <typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 constexpr E& operator^=(E& lhs, E rhs) noexcept {
-  return lhs = lhs ^ rhs;
+  return lhs = (lhs ^ rhs);
 }
 
 } // namespace magic_enum::bitwise_operators
@@ -922,7 +914,7 @@ template <typename E>
     }
   }
 
-  if (check_value == static_cast<U>(value)) {
+  if (check_value != U{0} && check_value == static_cast<U>(value)) {
     return name;
   }
 
@@ -960,7 +952,7 @@ template <typename E>
       }
     }
 
-    if (check_value != 0 && check_value == value) {
+    if (check_value != U{0} && check_value == value) {
       return static_cast<D>(value);
     }
   } else {
@@ -997,8 +989,6 @@ template <typename E, typename BinaryPredicate>
     }
     if (f == U{0}) {
       return {}; // Invalid value or out of range.
-    } else {
-      result |= f;
     }
     value.remove_prefix((d == string_view::npos) ? value.size() : d + 1);
   }
@@ -1082,24 +1072,19 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-  using namespace magic_enum::flags;
-  if (const auto name = enum_name<D>(value); !name.empty()) {
+  if (const auto name = magic_enum::flags::enum_name<D>(value); !name.empty()) {
     for (const auto c : name) {
       os.put(c);
     }
     return os;
   }
 #endif
-  return os << static_cast<U>(value);
+  return (os << static_cast<U>(value));
 }
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_flags_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  if (value.has_value()) {
-    os << value.value();
-  }
-
-  return os;
+  return value.has_value() ? (os << value.value()) : os;
 }
 
 } // namespace magic_enum::flags::ostream_operators
