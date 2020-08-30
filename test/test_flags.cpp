@@ -20,6 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#elif defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
+#endif
+
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
@@ -106,40 +115,6 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<number>("None").has_value());
   }
 
-  SECTION("strict string") {
-    constexpr auto cr = enum_cast<Color, true>("RED");
-    REQUIRE(cr.value() == Color::RED);
-    REQUIRE(enum_cast<Color&, true>("GREEN").value() == Color::GREEN);
-    REQUIRE(enum_cast<Color, true>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
-    REQUIRE_FALSE(enum_cast<Color&, true>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>("GREEN|RED").has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>("GREEN|RED|RED").has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>("GREEN|RED|None").has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>("None").has_value());
-
-    constexpr auto no = enum_cast<Numbers, true>("one");
-    REQUIRE(no.value() == Numbers::one);
-    REQUIRE(enum_cast<Numbers, true>("two").value() == Numbers::two);
-    REQUIRE(enum_cast<Numbers, true>("three").value() == Numbers::three);
-    REQUIRE(enum_cast<Numbers, true>("many") == Numbers::many);
-    REQUIRE_FALSE(enum_cast<Numbers, true>("None").has_value());
-
-    constexpr auto dr = enum_cast<Directions, true>("Right");
-    REQUIRE(enum_cast<Directions&, true>("Up").value() == Directions::Up);
-    REQUIRE(enum_cast<const Directions, true>("Down").value() == Directions::Down);
-    REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(enum_cast<Directions, true>("Left").value() == Directions::Left);
-    REQUIRE_FALSE(enum_cast<Directions, true>("None").has_value());
-
-    constexpr auto nto = enum_cast<number, true>("three|one");
-    REQUIRE(enum_cast<number, true>("one").value() == number::one);
-    REQUIRE(enum_cast<number, true>("two").value() == number::two);
-    REQUIRE(enum_cast<number, true>("three").value() == number::three);
-    REQUIRE(enum_cast<number, true>("four").value() == number::four);
-    REQUIRE_FALSE(nto.has_value());
-    REQUIRE_FALSE(enum_cast<number, true>("None").has_value());
-  }
-
   SECTION("integer") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_cast<Color>(1);
@@ -173,41 +148,6 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<number>(1 << 4).value() == number::four);
     REQUIRE(nto.value() == (number::three | number::one));
     REQUIRE_FALSE(enum_cast<number>(0).has_value());
-  }
-
-  SECTION("strict integer") {
-    Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-    constexpr auto cr = enum_cast<Color, true>(1);
-    REQUIRE(cr.value() == Color::RED);
-    REQUIRE(enum_cast<Color&, true>(2).value() == Color::GREEN);
-    REQUIRE(enum_cast<Color, true>(static_cast<int>(cm[2])).value() == Color::BLUE);
-    REQUIRE_FALSE(enum_cast<Color, true>(1 | 2).has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>(1 | 2 | 1).has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>(1 | 2 | 8).has_value());
-    REQUIRE_FALSE(enum_cast<Color, true>(0).has_value());
-
-    constexpr auto no = enum_cast<Numbers, true>(2);
-    REQUIRE(no.value() == Numbers::one);
-    REQUIRE(enum_cast<Numbers, true>(4).value() == Numbers::two);
-    REQUIRE(enum_cast<Numbers, true>(8).value() == Numbers::three);
-    REQUIRE(enum_cast<Numbers, true>(1 << 30).value() == Numbers::many);
-    REQUIRE_FALSE(enum_cast<Numbers, true>(127).has_value());
-    REQUIRE_FALSE(enum_cast<Numbers, true>(0).has_value());
-
-    constexpr auto dr = enum_cast<Directions, true>(std::uint64_t{1} << 63);
-    REQUIRE(enum_cast<Directions&, true>(std::uint64_t{1} << 31).value() == Directions::Up);
-    REQUIRE(enum_cast<const Directions, true>(std::uint64_t{1} << 20).value() == Directions::Down);
-    REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(enum_cast<Directions, true>(std::uint64_t{1} << 10).value() == Directions::Left);
-    REQUIRE_FALSE(enum_cast<Directions, true>(0).has_value());
-
-    constexpr auto nto = enum_cast<number, true>(2 | 8);
-    REQUIRE(enum_cast<number, true>(1 << 1).value() == number::one);
-    REQUIRE(enum_cast<number, true>(1 << 2).value() == number::two);
-    REQUIRE(enum_cast<number, true>(1 << 3) == number::three);
-    REQUIRE(enum_cast<number, true>(1 << 4) == number::four);
-    REQUIRE_FALSE(nto.has_value());
-    REQUIRE_FALSE(enum_cast<number, true>(0).has_value());
   }
 }
 
@@ -284,77 +224,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
   }
 
-  SECTION("strict value") {
-    Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-    constexpr auto cr = enum_contains<Color, true>(Color::RED);
-    Color cg = Color::GREEN;
-    REQUIRE(cr);
-    REQUIRE(enum_contains<Color&, true>(cg));
-    REQUIRE(enum_contains<const Color, true>(cm[2]));
-    REQUIRE_FALSE(enum_contains<const Color&, true>(Color::RED | Color::GREEN));
-    REQUIRE_FALSE(enum_contains<Color, true>(Color::RED | Color::GREEN | Color::GREEN));
-    REQUIRE_FALSE(enum_contains<Color, true>(Color::RED | Color{8}));
-    REQUIRE_FALSE(enum_contains<Color, true>(static_cast<Color>(0)));
-
-    constexpr auto no = enum_contains<Numbers, true>(Numbers::one);
-    REQUIRE(no);
-    REQUIRE(enum_contains<Numbers, true>(Numbers::two));
-    REQUIRE(enum_contains<Numbers, true>(Numbers::three));
-    REQUIRE(enum_contains<Numbers, true>(Numbers::many));
-    REQUIRE_FALSE(enum_contains<Numbers, true>(static_cast<Numbers>(0)));
-
-    constexpr auto dr = enum_contains<Directions, true>(Directions::Right);
-    Directions dl = Directions::Left;
-    REQUIRE(enum_contains<Directions&, true>(dl));
-    REQUIRE(enum_contains<const Directions, true>(Directions::Down));
-    REQUIRE(enum_contains<Directions, true>(Directions::Up));
-    REQUIRE(dr);
-    REQUIRE_FALSE(enum_contains<Directions, true>(static_cast<Directions>(0)));
-
-    constexpr auto nto = enum_contains<number, true>(number::three | number::one);
-    REQUIRE(enum_contains<number, true>(number::one));
-    REQUIRE(enum_contains<number, true>(number::two));
-    REQUIRE(enum_contains<number, true>(number::one));
-    REQUIRE(enum_contains<number, true>(number::four));
-    REQUIRE_FALSE(nto);
-    REQUIRE_FALSE(enum_contains<number, true>(static_cast<number>(0)));
-  }
-
   SECTION("integer") {
-    REQUIRE(enum_contains<Color, true>(1));
-    REQUIRE(enum_contains<Color&, true>(2));
-    REQUIRE(enum_contains<Color, true>(4));
-    REQUIRE_FALSE(enum_contains<Color, true>(1 | 2));
-    REQUIRE_FALSE(enum_contains<Color, true>(1 | 2 | 1));
-    REQUIRE_FALSE(enum_contains<Color, true>(1 | 2 | 8));
-    REQUIRE_FALSE(enum_contains<Color, true>(0));
-
-    constexpr auto no = enum_contains<Numbers, true>(1 << 1);
-    REQUIRE(no);
-    REQUIRE(enum_contains<Numbers, true>(1 << 2));
-    REQUIRE(enum_contains<Numbers, true>(1 << 3));
-    REQUIRE(enum_contains<Numbers, true>(1 << 30));
-
-    constexpr auto dr = enum_contains<Directions&, true>(std::uint64_t{1} << 63);
-    REQUIRE(dr);
-    REQUIRE(enum_contains<const Directions, true>(std::uint64_t{1} << 10));
-    REQUIRE(enum_contains<Directions, true>(std::uint64_t{1} << 20));
-    REQUIRE(enum_contains<Directions, true>(std::uint64_t{1} << 31));
-    REQUIRE_FALSE(enum_contains<Directions, true>(static_cast<Directions>(0)));
-
-    constexpr auto nto = enum_contains<number, true>(8 | 2);
-    REQUIRE(enum_contains<number, true>(1 << 1));
-    REQUIRE(enum_contains<number, true>(1 << 2));
-    REQUIRE(enum_contains<number, true>(1 << 3));
-    REQUIRE(enum_contains<number, true>(1 << 4));
-    REQUIRE_FALSE(enum_contains<number, true>(8 | 2 | 16));
-    REQUIRE_FALSE(enum_contains<number, true>(8 | 16 | 16));
-    REQUIRE_FALSE(nto);
-    REQUIRE_FALSE(enum_contains<number, true>(8 | 64));
-    REQUIRE_FALSE(enum_contains<number, true>(0));
-  }
-
-  SECTION("strict integer") {
     REQUIRE(enum_contains<Color>(1));
     REQUIRE(enum_contains<Color&>(2));
     REQUIRE(enum_contains<Color>(4));
@@ -420,40 +290,6 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number>("four"));
     REQUIRE(nto);
     REQUIRE_FALSE(enum_contains<number>("None"));
-  }
-
-  SECTION("strict string") {
-    constexpr auto cr = "RED";
-    REQUIRE(enum_contains<Color, true>(cr));
-    REQUIRE(enum_contains<Color&, true>("GREEN"));
-    REQUIRE(enum_contains<Color, true>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE_FALSE(enum_contains<Color&, true>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE_FALSE(enum_contains<Color&, true>("GREEN|RED"));
-    REQUIRE_FALSE(enum_contains<Color&, true>("GREEN|RED|RED"));
-    REQUIRE_FALSE(enum_contains<Color, true>("GREEN|RED|None"));
-    REQUIRE_FALSE(enum_contains<Color, true>("None"));
-
-    constexpr auto no = std::string_view{"one"};
-    REQUIRE(enum_contains<Numbers, true>(no));
-    REQUIRE(enum_contains<Numbers, true>("two"));
-    REQUIRE(enum_contains<Numbers, true>("three"));
-    REQUIRE(enum_contains<Numbers, true>("many"));
-    REQUIRE_FALSE(enum_contains<Numbers, true>("None"));
-
-    auto dr = std::string{"Right"};
-    REQUIRE(enum_contains<Directions&, true>("Up"));
-    REQUIRE(enum_contains<Directions, true>("Down"));
-    REQUIRE(enum_contains<const Directions, true>(dr));
-    REQUIRE(enum_contains<Directions, true>("Left"));
-    REQUIRE_FALSE(enum_contains<Directions, true>("None"));
-
-    constexpr auto nto = enum_contains<number, true>("three|one");
-    REQUIRE(enum_contains<number, true>("one"));
-    REQUIRE(enum_contains<number, true>("two"));
-    REQUIRE(enum_contains<number, true>("three"));
-    REQUIRE(enum_contains<number, true>("four"));
-    REQUIRE_FALSE(nto);
-    REQUIRE_FALSE(enum_contains<number, true>("None"));
   }
 }
 
