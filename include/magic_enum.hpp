@@ -263,19 +263,19 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   }
 }
 
-template <typename T>
-constexpr std::uint8_t log2(T value) noexcept {
-  static_assert(std::is_integral_v<T>, "magic_enum::detail::log2 requires integral type.");
+template <typename I>
+constexpr I log2(I value) noexcept {
+  static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
-  auto ret = std::uint8_t{0};
-  for (; value > T{1}; value >>= T{1}, ++ret) {};
+  auto ret = I{0};
+  for (; value > I{1}; value >>= I{1}, ++ret) {};
 
   return ret;
 }
 
-template <typename T>
-constexpr bool is_pow2(T x) noexcept {
-  static_assert(std::is_integral_v<T>, "magic_enum::detail::is_pow2 requires integral type.");
+template <typename I>
+constexpr bool is_pow2(I x) noexcept {
+  static_assert(std::is_integral_v<I>, "magic_enum::detail::is_pow2 requires integral type.");
 
   return x != 0 && (x & (x - 1)) == 0;
 }
@@ -432,37 +432,34 @@ inline constexpr auto max_v = static_cast<U>(values_v<E, IsFlags>.back());
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr std::size_t range_size() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
+  constexpr auto max = IsFlags ? log2(max_v<E, IsFlags>) : max_v<E, IsFlags>;
+  constexpr auto min = IsFlags ? log2(min_v<E, IsFlags>) : min_v<E, IsFlags>;
+  constexpr auto range_size = max - min + U{1};
+  static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
-  if constexpr (IsFlags) {
-    return std::numeric_limits<U>::digits;
-  } else {
-    constexpr auto range_size = max_v<E> - min_v<E> + U{1};
-    static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-    static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-
-    return static_cast<std::size_t>(range_size);
-  }
+  return static_cast<std::size_t>(range_size);
 }
 
 template <typename E, bool IsFlags = false>
 inline constexpr auto range_size_v = range_size<E, IsFlags>();
 
-template <typename E>
-using index_t = std::conditional_t<range_size_v<E> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
+template <typename E, bool IsFlags = false>
+using index_t = std::conditional_t<range_size_v<E, IsFlags> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
 
-template <typename E>
-inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E>>::max)();
+template <typename E, bool IsFlags = false>
+inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E, IsFlags>>::max)();
 
-template <typename E, int... I>
+template <typename E, bool IsFlags, int... I>
 constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::indexes requires enum type.");
-  [[maybe_unused]] auto i = index_t<E>{0};
+  [[maybe_unused]] auto i = index_t<E, IsFlags>{0};
 
-  return std::array<index_t<E>, sizeof...(I)>{{(is_valid<E, I + min_v<E>>() ? i++ : invalid_index_v<E>)...}};
+  return std::array<index_t<E, IsFlags>, sizeof...(I)>{{(is_valid<E, I + min_v<E, IsFlags>>() ? i++ : invalid_index_v<E, IsFlags>)...}};
 }
 
-template <typename E>
-inline constexpr auto indexes_v = indexes<E>(std::make_integer_sequence<int, range_size_v<E>>{});
+template <typename E, bool IsFlags = false>
+inline constexpr auto indexes_v = indexes<E, IsFlags>(std::make_integer_sequence<int, range_size_v<E, IsFlags>>{});
 
 template <typename E, bool IsFlags, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
