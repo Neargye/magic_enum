@@ -48,6 +48,9 @@
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #include <optional>
 #endif
+#if !defined(MAGIC_ENUM_USING_ALIAS_STRING)
+#include <string>
+#endif
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 #include <string_view>
 #endif
