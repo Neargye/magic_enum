@@ -352,7 +352,7 @@ constexpr int reflected_max() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::reflected_max requires enum type.");
 
   if constexpr (IsFlags) {
-    return (std::numeric_limits<U>::max)();
+    return std::numeric_limits<U>::digits - 1;
   } else {
     constexpr auto lhs = enum_range<E>::max;
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
@@ -383,8 +383,8 @@ constexpr E value(std::size_t i) noexcept {
   }
 }
 
-template <typename E, bool IsFlags, int Min, int... I>
-constexpr auto values(std::integer_sequence<int, I...>) noexcept {
+template <typename E, bool IsFlags, int Min, std::size_t... I>
+constexpr auto values(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
   constexpr std::array<bool, sizeof...(I)> valid{{is_valid<E, value<E, Min, IsFlags>(I)>()...}};
   constexpr std::size_t count = ((valid[I] ? std::size_t{1} : std::size_t{0}) + ...);
@@ -402,16 +402,11 @@ constexpr auto values(std::integer_sequence<int, I...>) noexcept {
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr auto values() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
+  constexpr auto range_size = reflected_max_v<E, IsFlags> - reflected_min_v<E, IsFlags> + 1;
+  static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
-  if constexpr (IsFlags) {
-    return values<E, true, 0>(std::make_integer_sequence<int, std::numeric_limits<U>::digits>{});
-  } else {
-    constexpr auto range_size = reflected_max_v<E> - reflected_min_v<E> + 1;
-    static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-    static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-
-    return values<E, false, reflected_min_v<E>>(std::make_integer_sequence<int, range_size>{});
-  }
+  return values<E, IsFlags, reflected_min_v<E, IsFlags>>(std::make_index_sequence<range_size>{});
 }
 
 template <typename E, bool IsFlags = false>
@@ -450,16 +445,17 @@ using index_t = std::conditional_t<range_size_v<E, IsFlags> < (std::numeric_limi
 template <typename E, bool IsFlags = false>
 inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E, IsFlags>>::max)();
 
-template <typename E, bool IsFlags, int... I>
-constexpr auto indexes(std::integer_sequence<int, I...>) noexcept {
+template <typename E, bool IsFlags, std::size_t... I>
+constexpr auto indexes(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::indexes requires enum type.");
+  constexpr auto min = IsFlags ? log2(min_v<E, IsFlags>) : min_v<E, IsFlags>;
   [[maybe_unused]] auto i = index_t<E, IsFlags>{0};
 
-  return std::array<index_t<E, IsFlags>, sizeof...(I)>{{(is_valid<E, I + min_v<E, IsFlags>>() ? i++ : invalid_index_v<E, IsFlags>)...}};
+  return std::array<decltype(i), sizeof...(I)>{{(is_valid<E, value<E, min, IsFlags>(I)>() ? i++ : invalid_index_v<E, IsFlags>)...}};
 }
 
 template <typename E, bool IsFlags = false>
-inline constexpr auto indexes_v = indexes<E, IsFlags>(std::make_integer_sequence<int, range_size_v<E, IsFlags>>{});
+inline constexpr auto indexes_v = indexes<E, IsFlags>(std::make_index_sequence<range_size_v<E, IsFlags>>{});
 
 template <typename E, bool IsFlags, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
@@ -491,14 +487,7 @@ template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
 
-  if constexpr (IsFlags) {
-    auto range_count = std::size_t{0};
-    for (auto i = max_v<E, true>; i >= min_v<E, true>; i >>= U{1}, ++range_count) {};
-
-    return range_count != count_v<E, true>;
-  } else {
-    return range_size_v<E, false> != count_v<E, false>;
-  }
+  return range_size_v<E, IsFlags> != count_v<E, IsFlags>;
 }
 
 template <typename E, bool IsFlags = false>
@@ -896,8 +885,8 @@ template <typename E>
   string name;
   auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, true>; ++i) {
-    if (const auto v = enum_value<D>(i); (static_cast<U>(value) & static_cast<U>(v)) != 0) {
-      check_value |= static_cast<U>(v);
+    if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
+      check_value |= v;
       const auto n = detail::names_v<D, true>[i];
       if (!name.empty()) {
         name.append(1, '|');
