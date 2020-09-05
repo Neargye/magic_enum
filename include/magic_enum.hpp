@@ -317,9 +317,10 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  using namespace magic_enum::customize;
 
-  if constexpr (constexpr auto custom_name = enum_name<E>(V); custom_name.size() > 0) {
+  if constexpr (customize::enum_name<E>(V).size() > 0) {
+    constexpr auto custom_name = customize::enum_name<E>(V);
+
     return static_string<custom_name.size()>{custom_name};
   } else {
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
