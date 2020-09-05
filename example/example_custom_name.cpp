@@ -26,10 +26,23 @@
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
-// Сustom definitions of name for enum value.
+// Сustom definitions of names for enum.
+// Specialization of `enum_name` must be injected in `namespace magic_enum::customize`.
 template <>
-constexpr auto magic_enum::detail::n<Color, Color::RED>() noexcept {
-  return std::string_view{"the red color"};
+constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
+  switch (value) {
+    case Color::RED:
+      return std::string_view{"the red color"};
+
+    case Color::BLUE:
+      return std::string_view{"The BLUE"};
+
+    case Color::GREEN:
+      return std::string_view{"GREEN"};
+
+    default:
+      return std::string_view{};
+  }
 }
 
 int main() {

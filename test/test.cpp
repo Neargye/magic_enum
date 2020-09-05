@@ -54,7 +54,7 @@ enum number : unsigned long {
 #endif
 };
 
-namespace magic_enum {
+namespace magic_enum::customize {
 template <>
 struct enum_range<number> {
   static constexpr int min = 100;
