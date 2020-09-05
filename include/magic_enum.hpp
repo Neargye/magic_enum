@@ -136,9 +136,9 @@ static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX
 
 // If need cunstom names for enum type, add specialization enum_name for necessary enum type.
 template <typename E>
-constexpr string_view enum_name(E) noexcept {
+constexpr auto enum_name(E) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_name requires enum type.");
-  return {};
+  return string_view{};
 }
 
 } // namespace magic_enum::customize
@@ -317,7 +317,9 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  if constexpr (constexpr auto custom_name = customize::enum_name<E>(V); custom_name.size() > 0) {
+  using namespace magic_enum::customize;
+
+  if constexpr (constexpr auto custom_name = enum_name<E>(V); custom_name.size() > 0) {
     return static_string<custom_name.size()>{custom_name};
   } else {
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
@@ -350,7 +352,8 @@ constexpr int reflected_min() noexcept {
   if constexpr (IsFlags) {
     return 0;
   } else {
-    constexpr auto lhs = customize::enum_range<E>::min;
+    using namespace magic_enum::customize;
+    constexpr auto lhs = enum_range<E>::min;
     static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
@@ -369,7 +372,8 @@ constexpr int reflected_max() noexcept {
   if constexpr (IsFlags) {
     return std::numeric_limits<U>::digits - 1;
   } else {
-    constexpr auto lhs = customize::enum_range<E>::max;
+    using namespace magic_enum::customize;
+    constexpr auto lhs = enum_range<E>::max;
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
