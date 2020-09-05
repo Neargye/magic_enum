@@ -33,20 +33,17 @@ constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) 
   switch (value) {
     case Color::RED:
       return std::string_view{"the red color"};
-
     case Color::BLUE:
       return std::string_view{"The BLUE"};
-
-    case Color::GREEN:
-      return std::string_view{"GREEN"};
-
     default:
-      return std::string_view{};
+      return std::string_view{}; // "Empty string for default or unknow value."
   }
 }
 
 int main() {
   std::cout << magic_enum::enum_name(Color::RED) << std::endl; // "the red color"
+  std::cout << magic_enum::enum_name(Color::BLUE) << std::endl; // "The BLUE"
+  std::cout << magic_enum::enum_name(Color::GREEN) << std::endl; // "GREEN"
 
   std::cout << std::boolalpha;
   std::cout << (magic_enum::enum_cast<Color>("the red color").value() == Color::RED) << std::endl; // "true"
