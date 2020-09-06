@@ -353,8 +353,7 @@ constexpr int reflected_min() noexcept {
   if constexpr (IsFlags) {
     return 0;
   } else {
-    using namespace magic_enum::customize;
-    constexpr auto lhs = enum_range<E>::min;
+    constexpr auto lhs = customize::enum_range<E>::min;
     static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
@@ -373,8 +372,7 @@ constexpr int reflected_max() noexcept {
   if constexpr (IsFlags) {
     return std::numeric_limits<U>::digits - 1;
   } else {
-    using namespace magic_enum::customize;
-    constexpr auto lhs = enum_range<E>::max;
+    constexpr auto lhs = customize::enum_range<E>::max;
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
