@@ -136,9 +136,10 @@ static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX
 
 // If need cunstom names for enum type, add specialization enum_name for necessary enum type.
 template <typename E>
-constexpr auto enum_name(E) noexcept {
+constexpr string_view enum_name(E) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_name requires enum type.");
-  return string_view{};
+
+  return {};
 }
 
 } // namespace magic_enum::customize

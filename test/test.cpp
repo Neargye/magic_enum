@@ -63,12 +63,12 @@ struct enum_range<number> {
 } // namespace magic_enum
 
 template <>
-constexpr auto magic_enum::customize::enum_name<Color>(Color value) noexcept {
+constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
   switch (value) {
     case Color::RED:
-      return std::string_view{"red"};
+      return "red";
     default:
-      return std::string_view{};
+      return {};
   }
 }
 

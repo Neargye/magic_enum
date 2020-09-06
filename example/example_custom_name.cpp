@@ -29,16 +29,16 @@ enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 // Сustom definitions of names for enum.
 // Specialization of `enum_name` must be injected in `namespace magic_enum::customize`.
 template <>
-constexpr auto magic_enum::customize::enum_name<Color>(Color value) noexcept {
+constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
   switch (value) {
     case Color::RED:
-      return std::string_view{"the red color"};
+      return "the red color";
     case Color::BLUE:
-      return std::string_view{"The BLUE"};
+      return "The BLUE";
     case Color::GREEN:
-      return std::string_view{}; // "Empty string for default value."
+      return {}; // "Empty string for default value."
   }
-  return std::string_view{}; // "Empty string for unknow value."
+  return {}; // "Empty string for unknow value."
 }
 
 enum class Numbers : int { One, Two, Three };
@@ -46,12 +46,12 @@ enum class Numbers : int { One, Two, Three };
 // Сustom definitions of names for enum.
 // Specialization of `enum_name` must be injected in `namespace magic_enum::customize`.
 template <>
-constexpr auto magic_enum::customize::enum_name<Numbers>(Numbers value) noexcept {
+constexpr std::string_view magic_enum::customize::enum_name<Numbers>(Numbers value) noexcept {
   switch (value) {
     case Numbers::One:
-      return std::string_view{"the one"};
+      return "the one";
     default:
-      return std::string_view{}; // "Empty string for default or unknow value."
+      return {}; // "Empty string for default or unknow value."
   }
 }
 
