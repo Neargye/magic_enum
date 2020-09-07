@@ -22,14 +22,14 @@
     #include <magic_enum.hpp>
     ```
 
-  * If need another range for specific enum type, add specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum`.
+  * If need another range for specific enum type, add specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
 
     ```cpp
     #include <magic_enum.hpp>
 
     enum class number { one = 100, two = 200, three = 300 };
 
-    namespace magic_enum {
+    namespace magic_enum::customize {
     template <>
     struct enum_range<number> {
       static constexpr int min = 100; // Must be greater than `INT16_MIN`.

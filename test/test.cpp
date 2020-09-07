@@ -54,7 +54,7 @@ enum number : unsigned long {
 #endif
 };
 
-namespace magic_enum {
+namespace magic_enum::customize {
 template <>
 struct enum_range<number> {
   static constexpr int min = 100;
@@ -62,13 +62,23 @@ struct enum_range<number> {
 };
 } // namespace magic_enum
 
+template <>
+constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
+  switch (value) {
+    case Color::RED:
+      return "red";
+    default:
+      return {};
+  }
+}
+
 using namespace magic_enum;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
 TEST_CASE("enum_cast") {
   SECTION("string") {
-    constexpr auto cr = enum_cast<Color>("RED");
+    constexpr auto cr = enum_cast<Color>("red");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
     REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
@@ -257,7 +267,7 @@ TEST_CASE("enum_contains") {
   }
 
   SECTION("string") {
-    constexpr auto cr = "RED";
+    constexpr auto cr = "red";
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
     REQUIRE(enum_contains<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
@@ -345,7 +355,7 @@ TEST_CASE("enum_name") {
     constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     Color cb = Color::BLUE;
-    REQUIRE(cr_name == "RED");
+    REQUIRE(cr_name == "red");
     REQUIRE(enum_name<Color&>(cb) == "BLUE");
     REQUIRE(enum_name(cm[1]) == "GREEN");
     REQUIRE(enum_name(static_cast<Color>(0)).empty());
@@ -380,7 +390,7 @@ TEST_CASE("enum_name") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name<cr>();
     constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-    REQUIRE(cr_name == "RED");
+    REQUIRE(cr_name == "red");
     REQUIRE(enum_name<Color::BLUE>() == "BLUE");
     REQUIRE(enum_name<cm[1]>() == "GREEN");
 
@@ -411,7 +421,7 @@ TEST_CASE("enum_names") {
   REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
 
   constexpr auto& s1 = enum_names<Color&>();
-  REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
+  REQUIRE(s1 == std::array<std::string_view, 3>{{"red", "GREEN", "BLUE"}});
 
   constexpr auto& s2 = enum_names<Numbers>();
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
@@ -427,7 +437,7 @@ TEST_CASE("enum_entries") {
   REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
 
   constexpr auto& s1 = enum_entries<Color&>();
-  REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
+  REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "red"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
   constexpr auto& s2 = enum_entries<Numbers>();
   REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
@@ -447,7 +457,7 @@ TEST_CASE("ostream_operators") {
     REQUIRE(ss.str() == name);
   };
 
-  test_ostream(std::make_optional(Color::RED), "RED");
+  test_ostream(std::make_optional(Color::RED), "red");
   test_ostream(Color::GREEN, "GREEN");
   test_ostream(Color::BLUE, "BLUE");
   test_ostream(static_cast<Color>(0), "0");
@@ -619,45 +629,45 @@ TEST_CASE("extrema") {
   REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(BadColor::NONE));
 
   SECTION("min") {
-    REQUIRE(magic_enum::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<BadColor> == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor> == 0);
 
-    REQUIRE(magic_enum::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<Color> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Color> == -12);
 
-    REQUIRE(magic_enum::enum_range<Numbers>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::customize::enum_range<Numbers>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<Numbers> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Numbers> == 1);
 
-    REQUIRE(magic_enum::enum_range<Directions>::min == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::customize::enum_range<Directions>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min_v<Directions> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Directions> == -120);
 
-    REQUIRE(magic_enum::enum_range<number>::min == 100);
+    REQUIRE(magic_enum::customize::enum_range<number>::min == 100);
     REQUIRE(magic_enum::detail::reflected_min_v<number> == 100);
     REQUIRE(magic_enum::detail::min_v<number> == 100);
   }
 
   SECTION("max") {
-    REQUIRE(magic_enum::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::customize::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<BadColor> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<BadColor> == 2);
 
-    REQUIRE(magic_enum::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::customize::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<Color> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Color> == 15);
 
-    REQUIRE(magic_enum::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::customize::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<Numbers> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Numbers> == 3);
 
-    REQUIRE(magic_enum::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::customize::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<Directions> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Directions> == 120);
 
-    REQUIRE(magic_enum::enum_range<number>::max == 300);
+    REQUIRE(magic_enum::customize::enum_range<number>::max == 300);
     REQUIRE(magic_enum::detail::reflected_max_v<number> == 300);
     REQUIRE(magic_enum::detail::max_v<number> == 300);
   }
