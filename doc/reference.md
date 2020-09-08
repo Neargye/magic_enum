@@ -5,12 +5,12 @@
 * [`enum_values` obtains enum value sequence.](#enum_values)
 * [`enum_count` returns number of enum values.](#enum_count)
 * [`enum_integer` obtains integer value from enum value.](#enum_integer)
-* [`enum_name` returns string name from enum value.](#enum_name)
+* [`enum_name` returns name from enum value.](#enum_name)
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
-* [`enum_type_name` returns string name of enum type.](#enum_type_name)
+* [`enum_type_name` returns type name of enum.](#enum_type_name)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" std::underlying_type.](#underlying_type)
@@ -146,7 +146,7 @@ template <auto V>
 constexpr string_view enum_name() noexcept;
 ```
 
-* Returns `std::string_view` with null-terminated string name from enum value.
+* Returns name from enum value as `std::string_view` with null-terminated string.
   * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
   * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
 
@@ -177,7 +177,7 @@ template <typename E>
 constexpr array<string_view, N> enum_names() noexcept;
 ```
 
-* Returns `std::array<std::string_view, N>` with all string names where `N = number of enum values`, sorted by enum value.
+* Returns `std::array<std::string_view, N>` with all names where `N = number of enum values`, sorted by enum value.
 
 * Examples
 
@@ -194,7 +194,7 @@ template <typename E>
 constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 ```
 
-* Returns `std::array<std::pair<E, std::string_view>, N>` with all pairs (enum value, string name) where `N = number of enum values`, sorted by enum value.
+* Returns `std::array<std::pair<E, std::string_view>, N>` with all pairs (value, name) where `N = number of enum values`, sorted by enum value.
 
 * Examples
 
@@ -261,7 +261,7 @@ template <typename E>
 constexpr string_view enum_type_name() noexcept;
 ```
 
-* Returns `std::string_view` with null-terminated string name of enum type.
+* Returns type name of enum as `std::string_view` null-terminated string.
 
 * Examples
 

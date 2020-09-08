@@ -28,12 +28,12 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_values` obtains enum value sequence.
 * `enum_count` returns number of enum values.
 * `enum_integer` obtains integer value from enum value.
-* `enum_name` returns string name from enum value.
+* `enum_name` returns name from enum value.
 * `enum_names` obtains string enum name sequence.
 * `enum_entries` obtains pair (value enum, string enum name) sequence.
 * `enum_index` obtains index in enum value sequence from enum value.
 * `enum_contains` checks whether enum contains enumerator with such value.
-* `enum_type_name` returns string name of enum type.
+* `enum_type_name` returns name of enum type.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `underlying_type` improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
