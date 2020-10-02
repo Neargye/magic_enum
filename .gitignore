@@ -50,4 +50,4 @@ CTestTestfile.cmake
 _deps
 
 ### Bazel build artifacts ###
-bazel-*
+/bazel-*
