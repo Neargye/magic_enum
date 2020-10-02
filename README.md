@@ -219,6 +219,17 @@ CPMAddPackage(
 )
 ```
 
+Bazel is also supported, simply add to your WORKSPACE file:
+```
+git_repository(
+    name = "magic_enum",
+    commit = <>,
+    remote = "https://github.com/Neargye/magic_enum",
+)
+```
+To use bazel inside the repository it's possible to do:
+`export CC=clang ; bazel build //... ; bazel test //... ; bazel run //:example`
+
 ## Compiler compatibility
 
 * Clang/LLVM >= 5
