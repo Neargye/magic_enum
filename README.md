@@ -203,38 +203,41 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 ## Integration
 
-You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
+* You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
 
-If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic-enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
+* If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic-enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
 
-If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z` to your conan's requires, where `x.y.z` is the release version you want to use.
+* If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z` to your conan's requires, where `x.y.z` is the release version you want to use.
 
-Alternatively, you can use something like [CPM](https://github.com/TheLartians/CPM) which is based on CMake's `Fetch_Content` module.
+* Alternatively, you can use something like [CPM](https://github.com/TheLartians/CPM) which is based on CMake's `Fetch_Content` module.
 
-```cmake
-CPMAddPackage(
-    NAME magic_enum
-    GITHUB_REPOSITORY Neargye/magic_enum
-    GIT_TAG x.y.z # Where `x.y.z` is the release version you want to use.
-)
-```
+  ```cmake
+  CPMAddPackage(
+      NAME magic_enum
+      GITHUB_REPOSITORY Neargye/magic_enum
+      GIT_TAG x.y.z # Where `x.y.z` is the release version you want to use.
+  )
+  ```
 
-Bazel is also supported, simply add to your WORKSPACE file:
-```
-http_archive(
-    name = "magic_enum",
-    strip_prefix = "magic_enum-<commit>",
-    urls = ["https://github.com/Neargye/magic_enum/archive/<commit>.zip"],
-)
-```
+* Bazel is also supported, simply add to your WORKSPACE file:
 
-To use bazel inside the repository it's possible to do:
-```
-bazel build //...
-bazel test //...
-bazel run //:example
-```
-(Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
+  ```
+  http_archive(
+      name = "magic_enum",
+      strip_prefix = "magic_enum-<commit>",
+      urls = ["https://github.com/Neargye/magic_enum/archive/<commit>.zip"],
+  )
+  ```
+
+  To use bazel inside the repository it's possible to do:
+
+  ```
+  bazel build //...
+  bazel test //...
+  bazel run //:example
+  ```
+
+  (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
 
 ## Compiler compatibility
 
