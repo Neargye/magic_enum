@@ -1,0 +1,63 @@
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "magic_enum",
+    hdrs = ["include/magic_enum.hpp"],
+    includes = ["include"],
+)
+
+cc_binary(
+    name = "example",
+    srcs = ["example/example.cpp"],
+    copts = ["-std=c++17"],
+    deps = [":magic_enum"],
+)
+
+cc_binary(
+    name = "enum_flag_example",
+    srcs = ["example/enum_flag_example.cpp"],
+    copts = ["-std=c++17"],
+    deps = [":magic_enum"],
+)
+
+cc_binary(
+    name = "example_custom_name",
+    srcs = ["example/example_custom_name.cpp"],
+    copts = ["-std=c++17"],
+    deps = [":magic_enum"],
+)
+
+cc_library(
+    name = "catch",
+    srcs = [],
+    hdrs = ["test/3rdparty/Catch2/catch.hpp"],
+    strip_include_prefix = "test/3rdparty/Catch2",
+)
+
+cc_test(
+    name = "test",
+    srcs = [
+        "test/test.cpp",
+    ],
+    copts = ["-std=c++17"],
+    deps = [
+        ":catch",
+        ":magic_enum",
+    ],
+)
+
+cc_test(
+    name = "test_flags",
+    srcs = [
+        "test/test_flags.cpp",
+    ],
+    copts = ["-std=c++17"],
+    deps = [
+        ":catch",
+        ":magic_enum",
+    ],
+)
