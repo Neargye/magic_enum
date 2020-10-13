@@ -556,30 +556,15 @@ constexpr U value_ors() noexcept {
   return value;
 }
 
-template <bool, bool, typename T, typename R>
-struct enable_if_reflected_enum {};
+template <bool, typename T, typename R>
+struct enable_if_enum {};
 
 template <typename T, typename R>
-struct enable_if_reflected_enum<true, false, T, R> {
+struct enable_if_enum<true, T, R> {
   using type = R;
   using D = std::decay_t<T>;
   static_assert(supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(count_v<D, false> > 0, "magic_enum requires enum implementation and valid max and min.");
 };
-
-template <typename T, typename R>
-struct enable_if_reflected_enum<true, true, T, R> {
-  using type = R;
-  using D = std::decay_t<T>;
-  static_assert(supported<D>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
-  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
-};
-
-template <typename T, typename R = void>
-using enable_if_reflected_enum_t = typename enable_if_reflected_enum<std::is_enum_v<std::decay_t<T>>, false, T, R>::type;
-
-template <typename T, typename R = void>
-using enable_if_reflected_enum_flags_t = typename enable_if_reflected_enum<std::is_enum_v<std::decay_t<T>>, true, T, R>::type;
 
 template <typename T, typename R = void>
 using enable_if_enum_t = std::enable_if_t<std::is_enum_v<std::decay_t<T>>, R>;
@@ -658,8 +643,9 @@ template <typename E>
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template <typename E>
-[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_reflected_enum_t<E, std::decay_t<E>> {
+[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
@@ -670,8 +656,9 @@ template <typename E>
 
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_reflected_enum_t<E, detail::values_t<E>> {
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::values_v<D>;
 }
@@ -702,16 +689,18 @@ template <typename E>
 
 // Returns std::array with names, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_reflected_enum_t<E, detail::names_t<E>> {
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::names_v<D>;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_reflected_enum_t<E, detail::entries_t<E>> {
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::entries_v<D>;
 }
@@ -885,8 +874,9 @@ template <typename E>
 // Returns enum-flags value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum-flags values.
 template <typename E>
-[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_reflected_enum_flags_t<E, std::decay_t<E>> {
+[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   if constexpr (detail::is_sparse_v<D, true>) {
     return assert((index < detail::count_v<D, true>)), detail::values_v<D, true>[index];
@@ -899,8 +889,9 @@ template <typename E>
 
 // Returns std::array with enum-flags values, sorted by enum-flags value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_reflected_enum_flags_t<E, detail::values_t<E, true>> {
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E, true>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::values_v<D, true>;
 }
@@ -934,16 +925,18 @@ template <typename E>
 
 // Returns std::array with string names, sorted by enum-flags value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_reflected_enum_flags_t<E, detail::names_t<E, true>> {
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E, true>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::names_v<D, true>;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum-flags value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_reflected_enum_flags_t<E, detail::entries_t<E, true>> {
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E, true>> {
   using D = std::decay_t<E>;
+  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::entries_v<D, true>;
 }
