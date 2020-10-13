@@ -645,7 +645,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
@@ -658,7 +658,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::values_v<D>;
 }
@@ -691,7 +691,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::names_v<D>;
 }
@@ -700,7 +700,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::entries_v<D>;
 }
@@ -876,7 +876,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
+  static_assert(detail::count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   if constexpr (detail::is_sparse_v<D, true>) {
     return assert((index < detail::count_v<D, true>)), detail::values_v<D, true>[index];
@@ -891,7 +891,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E, true>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
+  static_assert(detail::count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::values_v<D, true>;
 }
@@ -927,7 +927,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E, true>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
+  static_assert(detail::count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::names_v<D, true>;
 }
@@ -936,7 +936,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E, true>> {
   using D = std::decay_t<E>;
-  static_assert(count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
+  static_assert(detail::count_v<D, true> > 0, "magic_enum::flags requires enum-flags implementation.");
 
   return detail::entries_v<D, true>;
 }
