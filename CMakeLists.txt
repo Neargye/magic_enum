@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.8)
 
-project(magic_enum VERSION "0.6.6" LANGUAGES CXX)
+project(magic_enum VERSION "0.7.0" LANGUAGES CXX)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(IS_TOPLEVEL_PROJECT TRUE)
@@ -10,7 +10,7 @@ endif()
 
 option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${IS_TOPLEVEL_PROJECT})
 option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${IS_TOPLEVEL_PROJECT})
-option(MAGIC_ENUM_OPT_INSTALL "Generate and install magic_enum target" ON)
+option(MAGIC_ENUM_OPT_INSTALL "Generate and install magic_enum target" ${IS_TOPLEVEL_PROJECT})
 
 if(MAGIC_ENUM_OPT_BUILD_EXAMPLES)
     add_subdirectory(example)
