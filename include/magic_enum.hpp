@@ -33,8 +33,8 @@
 #define NEARGYE_MAGIC_ENUM_HPP
 
 #define MAGIC_ENUM_VERSION_MAJOR 0
-#define MAGIC_ENUM_VERSION_MINOR 6
-#define MAGIC_ENUM_VERSION_PATCH 6
+#define MAGIC_ENUM_VERSION_MINOR 7
+#define MAGIC_ENUM_VERSION_PATCH 0
 
 #include <array>
 #include <cassert>
