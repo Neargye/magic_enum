@@ -12,8 +12,11 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - g++-9
+            - bazel
       env:
         - CXX_COMPILER=g++-9 CC_COMPILER=gcc-9
 
@@ -24,8 +27,11 @@ matrix:
           sources:
             - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-7 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - clang-7
+            - bazel
       env:
         - CXX_COMPILER=clang++-7 CC_COMPILER=clang-7
 
@@ -36,8 +42,11 @@ matrix:
           sources:
             - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - clang-8
+            - bazel
       env:
         - CXX_COMPILER=clang++-8 CC_COMPILER=clang-8
 
@@ -48,8 +57,11 @@ matrix:
           sources:
             - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-9 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - clang-9
+            - bazel
       env:
         - CXX_COMPILER=clang++-9 CC_COMPILER=clang-9
 
@@ -60,25 +72,40 @@ matrix:
           sources:
             - sourceline: 'deb https://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - clang-10
+            - bazel
       env:
         - CXX_COMPILER=clang++-10 CC_COMPILER=clang-10
 
     - os: osx
       compiler: clang++
+      addons:
+        homebrew:
+          packages:
+            - bazel
       osx_image: xcode10.3
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
     - os: osx
       compiler: clang++
+      addons:
+        homebrew:
+          packages:
+            - bazel
       osx_image: xcode11.6
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
     - os: osx
       compiler: clang++
+      addons:
+        homebrew:
+          packages:
+            - bazel
       osx_image: xcode12
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
@@ -101,6 +128,8 @@ script:
   - cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build . --config Release -- -j${JOBS}
   - ctest --output-on-failure -C Release -j${JOBS}
+  - cd ..
+  - bazel test //... --curses no -j ${JOBS}
 
 notifications:
   email: false
