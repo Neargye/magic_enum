@@ -106,7 +106,7 @@ matrix:
         homebrew:
           packages:
             - bazel
-      osx_image: xcode12
+      osx_image: xcode12.2
       env:
         - CXX_COMPILER=clang++ CC_COMPILER=clang
 
@@ -129,7 +129,10 @@ script:
   - cmake --build . --config Release -- -j${JOBS}
   - ctest --output-on-failure -C Release -j${JOBS}
   - cd ..
-  - bazel test //... --curses no -j ${JOBS}
+  - |
+    if command -v bazel &> /dev/null; then
+      bazel test //... --curses no -j ${JOBS}
+    fi
 
 notifications:
   email: false
