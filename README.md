@@ -245,5 +245,6 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * MSVC++ >= 14.11 / Visual Studio >= 2017
 * Xcode >= 10
 * GCC >= 9
+* MinGW >= 9
 
 ## Licensed under the [MIT License](LICENSE)
