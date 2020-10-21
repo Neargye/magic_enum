@@ -280,7 +280,7 @@ constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
   auto ret = I{0};
-  for (; value > I{1}; value >>= I{1}, ++ret) {};
+  for (; value > I{1}; value >>= I{1}, ++ret) {}
 
   return ret;
 }
