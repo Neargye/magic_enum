@@ -36,9 +36,9 @@ constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) 
     case Color::BLUE:
       return "The BLUE";
     case Color::GREEN:
-      return {}; // "Empty string for default value."
+      return {}; // Empty string for default value.
   }
-  return {}; // "Empty string for unknow value."
+  return {}; // Empty string for unknow value.
 }
 
 enum class Numbers : int { One, Two, Three };
@@ -51,21 +51,21 @@ constexpr std::string_view magic_enum::customize::enum_name<Numbers>(Numbers val
     case Numbers::One:
       return "the one";
     default:
-      return {}; // "Empty string for default or unknow value."
+      return {}; // Empty string for default or unknow value.
   }
 }
 
 int main() {
-  std::cout << magic_enum::enum_name(Color::RED) << std::endl; // "the red color"
-  std::cout << magic_enum::enum_name(Color::BLUE) << std::endl; // "The BLUE"
-  std::cout << magic_enum::enum_name(Color::GREEN) << std::endl; // "GREEN"
+  std::cout << magic_enum::enum_name(Color::RED) << std::endl; // the red color
+  std::cout << magic_enum::enum_name(Color::BLUE) << std::endl; // The BLUE
+  std::cout << magic_enum::enum_name(Color::GREEN) << std::endl; // GREEN
 
   std::cout << std::boolalpha;
-  std::cout << (magic_enum::enum_cast<Color>("the red color").value() == Color::RED) << std::endl; // "true"
+  std::cout << (magic_enum::enum_cast<Color>("the red color").value() == Color::RED) << std::endl; // true
 
-  std::cout << magic_enum::enum_name(Numbers::One) << std::endl; // "the one"
-  std::cout << magic_enum::enum_name(Numbers::Two) << std::endl; // "Two"
-  std::cout << magic_enum::enum_name(Numbers::Three) << std::endl; // "Three"
+  std::cout << magic_enum::enum_name(Numbers::One) << std::endl; // the one
+  std::cout << magic_enum::enum_name(Numbers::Two) << std::endl; // Two
+  std::cout << magic_enum::enum_name(Numbers::Three) << std::endl; // Three
 
   return 0;
 }

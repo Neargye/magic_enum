@@ -99,14 +99,14 @@ template <typename T>
 using optional = std::optional<T>;
 #endif
 
-// If need another optional type, define the macro MAGIC_ENUM_USING_ALIAS_STRING_VIEW.
+// If need another string_view type, define the macro MAGIC_ENUM_USING_ALIAS_STRING_VIEW.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 #else
 using string_view = std::string_view;
 #endif
 
-// If need another optional type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
+// If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
@@ -134,7 +134,7 @@ static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<std::int16_t>::max)(),
 
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 
-// If need cunstom names for enum type, add specialization enum_name for necessary enum type.
+// If need cunstom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
 constexpr string_view enum_name(E) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_name requires enum type.");
