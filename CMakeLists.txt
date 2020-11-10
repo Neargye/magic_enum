@@ -47,4 +47,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
 
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
             DESTINATION .)
+
+    export(EXPORT ${PROJECT_NAME}Config
+            NAMESPACE ${PROJECT_NAME}::)
 endif()
