@@ -1,10 +1,8 @@
 os: linux # Use linux unless specified otherwise.
 dist: bionic
-sudo: required
-
 language: cpp
 
-matrix:
+jobs:
   include:
     - os: linux
       compiler: g++
@@ -19,6 +17,17 @@ matrix:
             - bazel
       env:
         - CXX_COMPILER=g++-9 CC_COMPILER=gcc-9
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-10
+      env:
+        - CXX_COMPILER=g++-10 CC_COMPILER=gcc-10
 
     - os: linux
       compiler: clang++
