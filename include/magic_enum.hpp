@@ -402,22 +402,11 @@ constexpr E value(std::size_t i) noexcept {
   }
 }
 
-template <std::size_t N>
-constexpr std::size_t count_true(std::array<bool, N> valid_) noexcept {
-  auto count_ = std::size_t{0};
-  for (std::size_t i_ = 0; i_ < valid_.size(); ++i_) {
-    if (valid_[i_]) {
-      ++count_;
-    }
-  }
-  return count_;
-}
-
 template <typename E, bool IsFlags, int Min, std::size_t... I>
 constexpr auto values(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
   constexpr std::array<bool, sizeof...(I)> valid{{is_valid<E, value<E, Min, IsFlags>(I)>()...}};
-  constexpr std::size_t count = count_true(valid);
+  constexpr std::size_t count = (static_cast<std::size_t>(valid[I]) + ...);
 
   std::array<E, count> values{};
   for (std::size_t i = 0, v = 0; v < count; ++i) {
