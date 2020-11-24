@@ -1,0 +1,28 @@
+name: windows
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{matrix.config.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - { os: windows-2016, vs: "Visual Studio 2017" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2016-Readme.md#visual-studio-enterprise-2017
+        - { os: windows-2019, vs: "Visual Studio 2019" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#visual-studio-enterprise-2019
+        build: [Debug, Release]
+        platform: [Win32, x64]
+
+    name: "${{matrix.config.vs}}:${{matrix.platform}}:${{matrix.build}}"
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure CMake
+      run: cmake -A ${{matrix.platform}}
+
+    - name: Build
+      run: cmake --build . --config ${{matrix.build}}
+
+    - name: Tests
+      run: ctest --output-on-failure -C ${{matrix.build}}

@@ -24,8 +24,11 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://storage.googleapis.com/bazel-apt stable jdk1.8'
+              key_url: 'https://bazel.build/bazel-release.pub.gpg'
           packages:
             - g++-10
+            - bazel
       env:
         - CXX_COMPILER=g++-10 CC_COMPILER=gcc-10
 

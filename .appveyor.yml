@@ -11,13 +11,8 @@ platform:
 build:
   parallel: true
 
-before_build:
-  - if exist build RMDIR /S /Q build
-  - if not exist build mkdir build
-  - cd build
-
 build_script:
-  - cmake -A %PLATFORM% ..
+  - cmake -A %PLATFORM%
   - cmake --build . --config Debug
   - cmake --build . --config Release
 
