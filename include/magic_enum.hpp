@@ -1086,6 +1086,12 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 } // namespace magic_enum::flags::ostream_operators
 
+namespace flags::bitwise_operators {
+
+using namespace magic_enum::bitwise_operators;
+
+} // namespace magic_enum::flags::bitwise_operators
+
 } // namespace magic_enum
 
 #if defined(__clang__)
