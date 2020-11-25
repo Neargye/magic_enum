@@ -214,9 +214,9 @@ constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
-  constexpr auto workaroung = true;
+  constexpr bool workaroung = true;
 #else
-  constexpr auto workaroung = false;
+  constexpr bool workaroung = false;
 #endif
   if constexpr (workaroung) {
     for (std::size_t i = 0; i < str.size(); ++i) {
@@ -236,11 +236,13 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 #if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
   // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
   // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
-  constexpr auto workaroung = true;
+  constexpr bool workaroung = true;
 #else
-  constexpr auto workaroung = false;
+  constexpr bool workaroung = false;
 #endif
-  if constexpr (std::is_same_v<std::decay_t<BinaryPredicate>, char_equal_to> && !workaroung) {
+  constexpr bool default_predicate = std::is_same_v<std::decay_t<BinaryPredicate>, char_equal_to>;
+
+  if constexpr (default_predicate && !workaroung) {
     static_cast<void>(p);
     return lhs == rhs;
   } else {
@@ -773,8 +775,8 @@ template <typename E>
 // Checks whether enum contains enumerator with such name.
 template <typename E, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
-  using D = std::decay_t<E>;
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
+  using D = std::decay_t<E>;
 
   return enum_cast<D>(value, std::move_if_noexcept(p)).has_value();
 }
