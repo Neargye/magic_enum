@@ -214,11 +214,11 @@ constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
-  constexpr bool workaroung = true;
+  constexpr bool workaround = true;
 #else
-  constexpr bool workaroung = false;
+  constexpr bool workaround = false;
 #endif
-  if constexpr (workaroung) {
+  if constexpr (workaround) {
     for (std::size_t i = 0; i < str.size(); ++i) {
       if (str[i] == c) {
         return i;
@@ -236,13 +236,13 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 #if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
   // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
   // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
-  constexpr bool workaroung = true;
+  constexpr bool workaround = true;
 #else
-  constexpr bool workaroung = false;
+  constexpr bool workaround = false;
 #endif
   constexpr bool default_predicate = std::is_same_v<std::decay_t<BinaryPredicate>, char_equal_to>;
 
-  if constexpr (default_predicate && !workaroung) {
+  if constexpr (default_predicate && !workaround) {
     static_cast<void>(p);
     return lhs == rhs;
   } else {
