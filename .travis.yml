@@ -133,11 +133,11 @@ before_script:
   - cd build
 
 script:
-  - cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake -DCMAKE_BUILD_TYPE=Debug ..
   - cmake --build . --config Debug -- -j${JOBS}
   - ctest --output-on-failure -C Debug -j${JOBS}
   - rm -rf ./*
-  - cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+  - cmake -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build . --config Release -- -j${JOBS}
   - ctest --output-on-failure -C Release -j${JOBS}
   - cd ..
