@@ -48,10 +48,10 @@
     ConvexEnd = 2,
     Donut = 2, // Won't work too.
     Banana = 3,
-    COUNT = 4,
+    COUNT = 4
   };
-  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt or ShapeKind::Box
-  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin" or ""
+  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt
+  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
   ```
 
   One of the possible workaround the issue:
@@ -70,7 +70,7 @@
 
     // Non-reflected aliases.
     ConvexBegin = Box,
-    ConvexEnd = Sphere + 1,
+    ConvexEnd = Sphere + 1
   };
   // magic_enum::enum_cast<ShapeKind>("Box") -> ShapeKind::Box
   // magic_enum::enum_name(ShapeKind::Box) -> "Box"
@@ -80,9 +80,18 @@
   // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
   ```
 
-  On some compiler enum-aliases not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36).
+  On some compiler enum-aliases not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), macro `MAGIC_ENUM_SUPPORTED_ALIASES` will be undefined.
 
-  It is possible to check whether enum-aliases supported using a macro `MAGIC_ENUM_SUPPORTED_ALIASES`.
+  ```cpp
+  enum Number {
+    one = 1,
+    ONE = 1
+  };
+  // magic_enum::enum_cast<Number>("one") -> std::nullopt
+  // magic_enum::enum_name(Number::one) -> ""
+  // magic_enum::enum_cast<Number>("ONE") -> std::nullopt
+  // magic_enum::enum_name(Number::ONE) -> ""
+  ```
 
 * If you hit a message like this:
 
