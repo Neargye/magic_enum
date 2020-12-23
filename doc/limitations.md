@@ -38,7 +38,7 @@
     } // namespace magic_enum
     ```
 
-* `magic_enum` won't work if a value is aliased. Work with enum-aliases is compiler-implementation-defined.
+* `magic_enum` [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). Work with enum-aliases is compiler-implementation-defined.
 
   ```cpp
   enum ShapeKind {
