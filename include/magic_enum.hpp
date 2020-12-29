@@ -154,13 +154,20 @@ struct supported
     : std::false_type {};
 #endif
 
+struct char_equal_to {
+  constexpr bool operator()(char lhs, char rhs) const noexcept {
+    return lhs == rhs;
+  }
+};
+
 template <std::size_t N>
-struct static_string {
+class static_string {
+ public:
   constexpr explicit static_string(string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
     assert(str.size() == N);
   }
 
-  constexpr const char* data() const noexcept { return chars.data(); }
+  constexpr const char* data() const noexcept { return chars_.data(); }
 
   constexpr std::size_t size() const noexcept { return N; }
 
@@ -168,13 +175,14 @@ struct static_string {
 
  private:
   template <std::size_t... I>
-  constexpr static_string(string_view str, std::index_sequence<I...>) noexcept : chars{{str[I]..., '\0'}} {}
+  constexpr static_string(string_view str, std::index_sequence<I...>) noexcept : chars_{{str[I]..., '\0'}} {}
 
-  const std::array<char, N + 1> chars;
+  const std::array<char, N + 1> chars_;
 };
 
 template <>
-struct static_string<0> {
+class static_string<0> {
+ public:
   constexpr explicit static_string(string_view) noexcept {}
 
   constexpr const char* data() const noexcept { return nullptr; }
@@ -182,12 +190,6 @@ struct static_string<0> {
   constexpr std::size_t size() const noexcept { return 0; }
 
   constexpr operator string_view() const noexcept { return {}; }
-};
-
-struct char_equal_to {
-  constexpr bool operator()(char lhs, char rhs) const noexcept {
-    return lhs == rhs;
-  }
 };
 
 constexpr string_view pretty_name(string_view name) noexcept {

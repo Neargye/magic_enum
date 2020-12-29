@@ -50,7 +50,7 @@
     Banana = 3,
     COUNT = 4
   };
-  // magic_enum::enum_cast<ShapeKind>("Box") -> std::nullopt
+  // magic_enum::enum_cast<ShapeKind>("Box") -> nullopt
   // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
   ```
 
@@ -76,7 +76,7 @@
   // magic_enum::enum_name(ShapeKind::Box) -> "Box"
 
   // Non-reflected aliases.
-  // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> std::nullopt
+  // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> nullopt
   // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
   ```
 
@@ -87,9 +87,9 @@
     one = 1,
     ONE = 1
   };
-  // magic_enum::enum_cast<Number>("one") -> std::nullopt
+  // magic_enum::enum_cast<Number>("one") -> nullopt
   // magic_enum::enum_name(Number::one) -> ""
-  // magic_enum::enum_cast<Number>("ONE") -> std::nullopt
+  // magic_enum::enum_cast<Number>("ONE") -> nullopt
   // magic_enum::enum_name(Number::ONE) -> ""
   ```
 
