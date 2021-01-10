@@ -435,11 +435,30 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
 }
 
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
+inline static constexpr void detect_values_out_of_range()
+{
+  constexpr auto min = reflected_min_v<E, IsFlags>;
+  constexpr auto max = reflected_max_v<E, IsFlags>;
+  constexpr auto range_size = max - min + 1;
+
+  if constexpr (cmp_less((std::numeric_limits<U>::min)(), min) && !IsFlags)
+  {
+    static_assert(!is_valid<E, value<E, min - 1, IsFlags>(0)>(), "magic_enum detects enum value smaller than min range size");
+  }
+
+  if constexpr (cmp_less(range_size, (std::numeric_limits<U>::max)()) && !IsFlags)
+  {
+    static_assert(!is_valid<E, value<E, min, IsFlags>(range_size + 1)>(), "magic_enum detects enum value larger than max range size");
+  }
+}
+
+template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr auto values() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
   constexpr auto range_size = reflected_max_v<E, IsFlags> - reflected_min_v<E, IsFlags> + 1;
   static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
   static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
+  detect_values_out_of_range<E, IsFlags>();
 
   return values<E, IsFlags, reflected_min_v<E, IsFlags>>(std::make_index_sequence<range_size>{});
 }
