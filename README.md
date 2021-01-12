@@ -36,7 +36,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_type_name` returns name of enum type.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
-* `underlying_type` improved UB-free "SFINAE-friendly" [std::underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
+* `underlying_type` improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
 * `ostream_operators` ostream operators for enums.
 * `bitwise_operators` bitwise operators for enums.
 

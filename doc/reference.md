@@ -26,6 +26,19 @@
 
 * For the small enum use the API from the namespace `magic_enum`, and for enum-flags use the API from the namespace `magic_enum::flags`.
 
+* To add custom enum or type names see the [example](../example/example_custom_name.cpp).
+
+* To change the type of strings or ortional, use special macros:
+
+  ```cpp
+  #include <my_lib/string.hpp>
+  #include <my_lib/string_view.hpp>
+  #define MAGIC_ENUM_USING_ALIAS_STRING using string = my_lib::String;
+  #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = my_lib::StringView;
+  #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
+  #include <magic_enum.hpp>
+  ```
+
 ## `enum_cast`
 
 ```cpp
