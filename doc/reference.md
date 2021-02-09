@@ -75,7 +75,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     ```cpp
     int color_integer = 2;
     auto color = magic_enum::enum_cast<Color>(color_integer);
-    if (colo.has_value()) {
+    if (color.has_value()) {
         // color.value() -> Color::RED
     }
     ```
