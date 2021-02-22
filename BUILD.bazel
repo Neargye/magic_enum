@@ -34,8 +34,8 @@ cc_binary(
 cc_library(
     name = "catch",
     srcs = [],
-    hdrs = ["test/3rdparty/Catch2/catch.hpp"],
-    strip_include_prefix = "test/3rdparty/Catch2",
+    hdrs = ["test/3rdparty/Catch2/include/catch2/catch.hpp"],
+    strip_include_prefix = "test/3rdparty/Catch2/include",
 )
 
 cc_test(
