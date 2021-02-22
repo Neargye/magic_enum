@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #define CATCH_CONFIG_MAIN
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #undef  MAGIC_ENUM_RANGE_MIN
 #define MAGIC_ENUM_RANGE_MIN -120
