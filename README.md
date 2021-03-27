@@ -210,8 +210,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z` to your conan's requires, where `x.y.z` is the release version you want to use.
 
-* If you are using [Build2](https://build2.org/) to build and manage your dependencies, add `depends: magic_enum ^x.y.z`
-  to the manifest file where `x.y.z` is the release version you want to use (version 0.7.2+ is supported). You can then import the target using `magic_enum%lib{magic_enum}`.
+* If you are using [Build2](https://build2.org/) to build and manage your dependencies, add `depends: magic_enum ^x.y.z` to the manifest file where `x.y.z` is the release version you want to use. You can then import the target using `magic_enum%lib{magic_enum}`.
 
 * Alternatively, you can use something like [CPM](https://github.com/TheLartians/CPM) which is based on CMake's `Fetch_Content` module.
 
