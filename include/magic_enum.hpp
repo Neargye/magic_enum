@@ -431,14 +431,18 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
   constexpr bool valid[sizeof...(I)] = {is_valid<E, value<E, Min, IsFlags>(I)>()...};
   constexpr std::size_t count = values_count(valid);
 
-  E values[count] = {};
-  for (std::size_t i = 0, v = 0; v < count; ++i) {
-    if (valid[i]) {
-      values[v++] = value<E, Min, IsFlags>(i);
+  if constexpr (count > 0) {
+    E values[count] = {};
+    for (std::size_t i = 0, v = 0; v < count; ++i) {
+      if (valid[i]) {
+        values[v++] = value<E, Min, IsFlags>(i);
+      }
     }
-  }
 
-  return to_array(values, std::make_index_sequence<count>{});
+    return to_array(values, std::make_index_sequence<count>{});
+  } else {
+    return std::array<E, 0>{};
+  }
 }
 
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
@@ -469,10 +473,10 @@ template <typename E, bool IsFlags = false>
 inline constexpr auto count_v = values_v<E, IsFlags>.size();
 
 template <typename E, bool IsFlags = false, typename U = std::underlying_type_t<E>>
-inline constexpr auto min_v = static_cast<U>(values_v<E, IsFlags>.front());
+inline constexpr auto min_v = (count_v<E, IsFlags> > 0) ? static_cast<U>(values_v<E, IsFlags>.front()) : U{0};
 
 template <typename E, bool IsFlags = false, typename U = std::underlying_type_t<E>>
-inline constexpr auto max_v = static_cast<U>(values_v<E, IsFlags>.back());
+inline constexpr auto max_v = (count_v<E, IsFlags> >) 0 ? static_cast<U>(values_v<E, IsFlags>.back()) : U{0};
 
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr std::size_t range_size() noexcept {
