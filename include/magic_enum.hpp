@@ -476,7 +476,7 @@ template <typename E, bool IsFlags = false, typename U = std::underlying_type_t<
 inline constexpr auto min_v = (count_v<E, IsFlags> > 0) ? static_cast<U>(values_v<E, IsFlags>.front()) : U{0};
 
 template <typename E, bool IsFlags = false, typename U = std::underlying_type_t<E>>
-inline constexpr auto max_v = (count_v<E, IsFlags> >) 0 ? static_cast<U>(values_v<E, IsFlags>.back()) : U{0};
+inline constexpr auto max_v = (count_v<E, IsFlags> > 0) ? static_cast<U>(values_v<E, IsFlags>.back()) : U{0};
 
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr std::size_t range_size() noexcept {
