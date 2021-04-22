@@ -358,6 +358,17 @@ constexpr bool is_valid() noexcept {
   return n<E, static_cast<E>(V)>().size() != 0;
 }
 
+template <typename E, int O, bool IsFlags = false, typename U = std::underlying_type_t<E>>
+constexpr E value(std::size_t i) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
+
+  if constexpr (IsFlags) {
+    return static_cast<E>(U{1} << static_cast<U>(static_cast<int>(i) + O));
+  } else {
+    return static_cast<E>(static_cast<int>(i) + O);
+  }
+}
+
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr int reflected_min() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::reflected_min requires enum type.");
@@ -372,6 +383,7 @@ constexpr int reflected_min() noexcept {
     if constexpr (cmp_less(lhs, rhs)) {
       return rhs;
     } else {
+      static_assert(!is_valid<E, value<E, lhs - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
       return lhs;
     }
   }
@@ -389,6 +401,7 @@ constexpr int reflected_max() noexcept {
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
     if constexpr (cmp_less(lhs, rhs)) {
+      static_assert(!is_valid<E, value<E, lhs + 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value larger than max range size.");
       return lhs;
     } else {
       return rhs;
@@ -401,17 +414,6 @@ inline constexpr auto reflected_min_v = reflected_min<E, IsFlags>();
 
 template <typename E, bool IsFlags = false>
 inline constexpr auto reflected_max_v = reflected_max<E, IsFlags>();
-
-template <typename E, int O, bool IsFlags = false, typename U = std::underlying_type_t<E>>
-constexpr E value(std::size_t i) noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
-
-  if constexpr (IsFlags) {
-    return static_cast<E>(U{1} << static_cast<U>(static_cast<int>(i) + O));
-  } else {
-    return static_cast<E>(static_cast<int>(i) + O);
-  }
-}
 
 template <std::size_t N>
 constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
@@ -453,12 +455,6 @@ constexpr auto values() noexcept {
   constexpr auto range_size = max - min + 1;
   static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
   static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-  if constexpr (cmp_less((std::numeric_limits<U>::min)(), min) && !IsFlags) {
-    static_assert(!is_valid<E, value<E, min - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
-  }
-  if constexpr (cmp_less(range_size, (std::numeric_limits<U>::max)()) && !IsFlags) {
-    static_assert(!is_valid<E, value<E, min, IsFlags>(range_size + 1)>(), "magic_enum::enum_range detects enum value larger than max range size.");
-  }
 
   return values<E, IsFlags, reflected_min_v<E, IsFlags>>(std::make_index_sequence<range_size>{});
 }
