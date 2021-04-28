@@ -97,22 +97,21 @@ namespace magic_enum {
 #if defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 MAGIC_ENUM_USING_ALIAS_OPTIONAL
 #else
-template <typename T>
-using optional = std::optional<T>;
+using std::optional;
 #endif
 
 // If need another string_view type, define the macro MAGIC_ENUM_USING_ALIAS_STRING_VIEW.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 #else
-using string_view = std::string_view;
+using std::string_view;
 #endif
 
 // If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
-using string = std::string;
+using std::string;
 #endif
 
 namespace customize {
