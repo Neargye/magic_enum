@@ -38,6 +38,22 @@
   #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
   #include <magic_enum.hpp>
   ```
+  Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined 
+  macros or constants, for example:
+  
+  ```cpp
+  #define MAGIC_ENUM_CONFIG_FILE "my_magic_enum_cfg.hpp"
+  ```
+  my_magic_enum_cfg.hpp:
+  ```cpp
+  #include <my_lib/string.hpp>
+  #include <my_lib/string_view.hpp>
+  #define MAGIC_ENUM_USING_ALIAS_STRING using string = my_lib::String;
+  #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = my_lib::StringView;
+  #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
+  #define MAGIC_ENUM_RANGE_MIN 0
+  #define MAGIC_ENUM_RANGE_MAX 255
+  ```
 
 ## `enum_cast`
 
