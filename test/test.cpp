@@ -54,8 +54,7 @@ enum number : unsigned long {
 #endif
 };
 
-enum class Binary : bool
-{
+enum class Binary : bool {
   ONE,
   TWO
 };
@@ -339,6 +338,9 @@ TEST_CASE("enum_values") {
 
   constexpr auto& s4 = enum_values<number>();
   REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
+
+  constexpr auto& s5 = enum_values<Binary>();
+  REQUIRE(s5 == std::array<Binary, 2>{{Binary::ONE, Binary::TWO}});
 }
 
 TEST_CASE("enum_count") {
@@ -353,6 +355,9 @@ TEST_CASE("enum_count") {
 
   constexpr auto s4 = enum_count<number>();
   REQUIRE(s4 == 3);
+
+  constexpr auto s5 = enum_count<Binary>();
+  REQUIRE(s5 == 2);
 }
 
 TEST_CASE("enum_name") {
@@ -420,6 +425,8 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<number::two>() == "two");
     REQUIRE(nt_name == "three");
     REQUIRE(enum_name<number::four>() == "four");
+
+    REQUIRE(enum_name<Binary::ONE>() == "ONE");
   }
 }
 
@@ -654,6 +661,9 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::customize::enum_range<number>::min == 100);
     REQUIRE(magic_enum::detail::reflected_min_v<number> == 100);
     REQUIRE(magic_enum::detail::min_v<number> == 100);
+
+    REQUIRE(magic_enum::detail::reflected_min_v<Binary> == 0);
+    REQUIRE(magic_enum::detail::min_v<Binary> == false);
   }
 
   SECTION("max") {
@@ -676,6 +686,9 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::customize::enum_range<number>::max == 300);
     REQUIRE(magic_enum::detail::reflected_max_v<number> == 300);
     REQUIRE(magic_enum::detail::max_v<number> == 300);
+
+    REQUIRE(magic_enum::detail::reflected_max_v<Binary> == 1);
+    REQUIRE(magic_enum::detail::max_v<Binary> == true);
   }
 }
 
@@ -742,10 +755,4 @@ TEST_CASE("cmp_less") {
     REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min + offset_int32_t));
     REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
-}
-
-TEST_CASE("bool") {
-  REQUIRE(magic_enum::detail::reflected_min_v<Binary> == 0);
-  REQUIRE(magic_enum::detail::reflected_max_v<Binary> == 1);
-  REQUIRE(magic_enum::enum_values<Binary>() == std::array<Binary, 2>{{Binary::ONE, Binary::TWO}});
 }
