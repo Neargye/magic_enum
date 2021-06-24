@@ -54,6 +54,12 @@ enum number : unsigned long {
 #endif
 };
 
+enum class Binary : bool
+{
+  ONE,
+  TWO
+};
+
 namespace magic_enum::customize {
 template <>
 struct enum_range<number> {
@@ -736,4 +742,10 @@ TEST_CASE("cmp_less") {
     REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min + offset_int32_t));
     REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
+}
+
+TEST_CASE("bool") {
+  REQUIRE(magic_enum::detail::reflected_min_v<Binary> == 0);
+  REQUIRE(magic_enum::detail::reflected_max_v<Binary> == 1);
+  REQUIRE(magic_enum::enum_values<Binary>() == std::array<Binary, 2>{{Binary::ONE, Binary::TWO}});
 }
