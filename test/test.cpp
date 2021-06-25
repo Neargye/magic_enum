@@ -755,4 +755,16 @@ TEST_CASE("cmp_less") {
     REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min + offset_int32_t));
     REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
+
+  SECTION("bool, right") {
+    REQUIRE(cmp_less(true, 5));
+    REQUIRE(cmp_less(false, 1));
+    REQUIRE_FALSE(cmp_less(false, -1));
+  }
+
+  SECTION("left, bool") {
+    REQUIRE_FALSE(cmp_less(5, true));
+    REQUIRE_FALSE(cmp_less(1, false));
+    REQUIRE(cmp_less(-1, false));
+  }
 }

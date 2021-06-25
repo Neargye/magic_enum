@@ -276,10 +276,13 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 template <typename L, typename R>
 constexpr bool cmp_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::cmp_less requires integral type.");
-
   if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     // If same signedness (both signed or both unsigned).
     return lhs < rhs;
+  } else if constexpr (std::is_same_v<L, bool>) { // bool special case due to msvc's C4804, C4018
+      return static_cast<R>(lhs) < rhs;
+  } else if constexpr (std::is_same_v<R, bool>) { // bool special case due to msvc's C4804, C4018
+      return lhs < static_cast<L>(rhs);
   } else if constexpr (std::is_signed_v<R>) {
     // If 'right' is negative, then result is 'false', otherwise cast & compare.
     return rhs > 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
