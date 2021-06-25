@@ -280,6 +280,10 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     // If same signedness (both signed or both unsigned).
     return lhs < rhs;
+  } else if constexpr (std::is_same_v<L, bool>) { // bool special case due to msvc's C4804, C4018
+      return static_cast<R>(lhs) < rhs;
+  } else if constexpr (std::is_same_v<R, bool>) { // bool special case due to msvc's C4804, C4018
+      return lhs < static_cast<L>(rhs);
   } else if constexpr (std::is_signed_v<R>) {
     // If 'right' is negative, then result is 'false', otherwise cast & compare.
     return rhs > 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
@@ -383,13 +387,11 @@ constexpr int reflected_min() noexcept {
     static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
-    if constexpr (std::is_same_v<bool, U>) {
-      return static_cast<int>(rhs);
-    } else if constexpr (cmp_less(lhs, rhs)) {
-      return rhs;
-    } else {
+    if constexpr (cmp_less(rhs, lhs)) {
       static_assert(!is_valid<E, value<E, lhs - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
       return lhs;
+    } else {
+      return rhs;
     }
   }
 }
@@ -405,9 +407,7 @@ constexpr int reflected_max() noexcept {
     static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
-    if constexpr (std::is_same_v<bool, U>) {
-      return static_cast<int>(rhs);
-    } else if constexpr (cmp_less(lhs, rhs)) {
+    if constexpr (cmp_less(lhs, rhs)) {
       static_assert(!is_valid<E, value<E, lhs + 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value larger than max range size.");
       return lhs;
     } else {
