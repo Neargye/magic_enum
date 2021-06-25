@@ -54,12 +54,30 @@ enum number : unsigned long {
 #endif
 };
 
+enum class MaxUsedAsInvalid : std::uint8_t {
+    ONE,
+    TWO,
+    INVALID = std::numeric_limits<std::uint8_t>::max()
+};
+
 enum class Binary : bool {
   ONE,
   TWO
 };
 
 namespace magic_enum::customize {
+template <>
+struct enum_range<MaxUsedAsInvalid> {
+    static constexpr int min = 0;
+    static constexpr int max = 64;
+};
+
+template <>
+struct enum_range<Binary> {
+    static constexpr int min = 0;
+    static constexpr int max = 64;
+};
+
 template <>
 struct enum_range<number> {
   static constexpr int min = 100;
@@ -341,6 +359,9 @@ TEST_CASE("enum_values") {
 
   constexpr auto& s5 = enum_values<Binary>();
   REQUIRE(s5 == std::array<Binary, 2>{{Binary::ONE, Binary::TWO}});
+
+  constexpr auto& s6 = enum_values<MaxUsedAsInvalid>();
+  REQUIRE(s6 == std::array<MaxUsedAsInvalid, 2>{{MaxUsedAsInvalid::ONE, MaxUsedAsInvalid::TWO}});
 }
 
 TEST_CASE("enum_count") {
@@ -358,6 +379,9 @@ TEST_CASE("enum_count") {
 
   constexpr auto s5 = enum_count<Binary>();
   REQUIRE(s5 == 2);
+
+  constexpr auto s6 = enum_count<MaxUsedAsInvalid>();
+  REQUIRE(s6 == 2);
 }
 
 TEST_CASE("enum_name") {
@@ -427,6 +451,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<number::four>() == "four");
 
     REQUIRE(enum_name<Binary::ONE>() == "ONE");
+    REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
   }
 }
 
@@ -664,6 +689,9 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::detail::reflected_min_v<Binary> == 0);
     REQUIRE(magic_enum::detail::min_v<Binary> == false);
+
+    REQUIRE(magic_enum::detail::reflected_min_v<MaxUsedAsInvalid> == 0);
+    REQUIRE(magic_enum::detail::min_v<MaxUsedAsInvalid> == 0);
   }
 
   SECTION("max") {
@@ -689,6 +717,9 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::detail::reflected_max_v<Binary> == 1);
     REQUIRE(magic_enum::detail::max_v<Binary> == true);
+
+    REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid> == 64);
+    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 1);
   }
 }
 
