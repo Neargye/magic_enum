@@ -276,6 +276,7 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 template <typename L, typename R>
 constexpr bool cmp_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::cmp_less requires integral type.");
+
   if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     // If same signedness (both signed or both unsigned).
     return lhs < rhs;
@@ -387,7 +388,7 @@ constexpr int reflected_min() noexcept {
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
     if constexpr (cmp_less(rhs, lhs)) {
-      static_assert(!is_valid<E, value<E, lhs-1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
+      static_assert(!is_valid<E, value<E, lhs - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
       return lhs;
     } else {
       return rhs;
