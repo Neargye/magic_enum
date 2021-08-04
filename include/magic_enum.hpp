@@ -225,6 +225,7 @@ constexpr std::size_t find(string_view str, char c) noexcept {
 #else
   constexpr bool workaround = false;
 #endif
+
   if constexpr (workaround) {
     for (std::size_t i = 0; i < str.size(); ++i) {
       if (str[i] == c) {
@@ -252,12 +253,9 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 #else
   constexpr bool workaround = false;
 #endif
-  constexpr bool default_predicate = std::is_same_v<std::decay_t<BinaryPredicate>, char_equal_to>;
+  constexpr bool custom_predicate = std::negation_v<std::is_same<std::decay_t<BinaryPredicate>, char_equal_to>>;
 
-  if constexpr (default_predicate && !workaround) {
-    static_cast<void>(p);
-    return lhs == rhs;
-  } else {
+  if constexpr (custom_predicate || workaround) {
     if (lhs.size() != rhs.size()) {
       return false;
     }
@@ -270,6 +268,10 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
     }
 
     return true;
+  } else {
+    static_cast<void>(p);
+
+    return lhs == rhs;
   }
 }
 
