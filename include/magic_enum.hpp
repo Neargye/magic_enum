@@ -202,7 +202,8 @@ constexpr string_view pretty_name(string_view name) noexcept {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
           (name[i - 1] >= 'A' && name[i - 1] <= 'Z') ||
-          (name[i - 1] == '_'))) {
+          (name[i - 1] == '_') ||
+          (name[i - 1] & 0x80))) {
       name.remove_prefix(i);
       break;
     }
@@ -210,7 +211,8 @@ constexpr string_view pretty_name(string_view name) noexcept {
 
   if (name.size() > 0 && ((name.front() >= 'a' && name.front() <= 'z') ||
                           (name.front() >= 'A' && name.front() <= 'Z') ||
-                          (name.front() == '_'))) {
+                          (name.front() == '_') ||
+                          (name.front() & 0x80))) {
     return name;
   }
 
