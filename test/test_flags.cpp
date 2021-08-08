@@ -55,6 +55,15 @@ enum Directions : std::uint64_t {
   Right = std::uint64_t{1} << 63,
 };
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+enum class Language : int {
+  日本語 = 1 << 1,
+  한국어 = 1 << 2,
+  English = 1 << 3,
+  😃 = 1 << 4
+};
+#endif
+
 enum number : unsigned long {
   one = 1 << 1,
   two = 1 << 2,
@@ -106,6 +115,15 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr auto lang = enum_cast<Language>("日本語");
+    REQUIRE(enum_cast<Language&>("한국어").value() == Language::한국어);
+    REQUIRE(enum_cast<const Language>("English").value() == Language::English);
+    REQUIRE(lang.value() == Language::日本語);
+    REQUIRE(enum_cast<Language>("😃").value() == Language::😃);
+    REQUIRE_FALSE(enum_cast<Language>("None").has_value());
+#endif
+
     constexpr auto nto = enum_cast<number>("three|one");
     REQUIRE(enum_cast<number>("one").value() == number::one);
     REQUIRE(enum_cast<number>("two").value() == number::two);
@@ -140,6 +158,15 @@ TEST_CASE("enum_cast") {
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>(std::uint64_t{1} << 10).value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>(0).has_value());
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr auto lang = enum_cast<Language>(1 << 1);
+    REQUIRE(enum_cast<Language&>(1 << 2).value() == Language::한국어);
+    REQUIRE(enum_cast<const Language>(1 << 3).value() == Language::English);
+    REQUIRE(lang.value() == Language::日本語);
+    REQUIRE(enum_cast<Language>(1 << 4).value() == Language::😃);
+    REQUIRE_FALSE(enum_cast<Language>(0).has_value());
+#endif
 
     constexpr auto nto = enum_cast<number>(2 | 8);
     REQUIRE(enum_cast<number>(1 << 1).value() == number::one);
@@ -178,6 +205,16 @@ TEST_CASE("enum_index") {
   REQUIRE(dr.value() == 3);
   REQUIRE_FALSE(enum_index(static_cast<Directions>(0)).has_value());
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr auto lang = enum_index<Language>(Language::日本語);
+    Language korean = Language::한국어;
+    REQUIRE(enum_index<Language&>(korean).value() == 1);
+    REQUIRE(enum_index<const Language>(Language::English).value() == 2);
+    REQUIRE(enum_index(Language::😃).value() == 3);
+    REQUIRE(lang.value() == 0);
+    REQUIRE_FALSE(enum_index(static_cast<Language>(0)).has_value());
+#endif
+
   constexpr auto nto = enum_index(number::three | number::one);
   REQUIRE(enum_index(number::one).value() == 0);
   REQUIRE(enum_index(number::two).value() == 1);
@@ -215,6 +252,16 @@ TEST_CASE("enum_contains") {
     REQUIRE(dr);
     REQUIRE_FALSE(enum_contains(static_cast<Directions>(0)));
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr auto lang = enum_index<Language>(Language::日本語);
+    Language korean = Language::한국어;
+    REQUIRE(enum_contains<Language&>(korean));
+    REQUIRE(enum_contains<const Language>(Language::English));
+    REQUIRE(enum_contains(Language::😃));
+    REQUIRE(lang);
+    REQUIRE_FALSE(enum_contains(static_cast<Language>(0)));
+#endif
+
     constexpr auto nto = enum_contains(number::three | number::one);
     REQUIRE(enum_contains(number::one));
     REQUIRE(enum_contains<number&>(number::two));
@@ -245,6 +292,15 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Directions>(std::uint64_t{1} << 20));
     REQUIRE(enum_contains<Directions>(std::uint64_t{1} << 31));
     REQUIRE_FALSE(enum_contains<Directions>(static_cast<Directions>(0)));
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr auto lang = enum_contains<Language&>(1 << 1);
+    REQUIRE(lang);
+    REQUIRE(enum_contains<const Language>(1 << 2));
+    REQUIRE(enum_contains<Language>(1 << 3));
+    REQUIRE(enum_contains<Language>(1 << 4));
+    REQUIRE_FALSE(enum_contains(static_cast<Language>(0)));
+#endif
 
     constexpr auto nto = enum_contains<number>(8 | 2);
     REQUIRE(enum_contains<number>(1 << 1));
@@ -283,6 +339,15 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Directions>("Left"));
     REQUIRE_FALSE(enum_contains<Directions>("None"));
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    auto lang = std::string{"日本語"};
+    REQUIRE(enum_contains<Language&>("한국어"));
+    REQUIRE(enum_contains<Language>("English"));
+    REQUIRE(enum_contains<const Language>(lang));
+    REQUIRE(enum_contains<Language>("😃"));
+    REQUIRE_FALSE(enum_contains<Language>("None"));
+#endif
+
     constexpr auto nto = enum_contains<number>("three|one");
     REQUIRE(enum_contains<number>("one"));
     REQUIRE(enum_contains<number>("two"));
@@ -311,6 +376,14 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<Directions>(2) == Directions::Up);
   REQUIRE(dr == Directions::Right);
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  constexpr auto lang = enum_value<Language>(3);
+  REQUIRE(enum_value<Language&>(0) == Language::日本語);
+  REQUIRE(enum_value<const Language>(1) == Language::한국어);
+  REQUIRE(enum_value<Language>(2) == Language::English);
+  REQUIRE(lang == Language::😃);
+#endif
+
   constexpr auto nt = enum_value<number>(2);
   REQUIRE(enum_value<number>(0) == number::one);
   REQUIRE(enum_value<number>(1) == number::two);
@@ -332,6 +405,11 @@ TEST_CASE("enum_values") {
 
   constexpr auto& s4 = enum_values<number>();
   REQUIRE(s4 == std::array<number, 4>{{number::one, number::two, number::three, number::four}});
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  constexpr auto& s5 = enum_values<const Language>();
+  REQUIRE(s5 == std::array<Language, 4>{{Language::日本語, Language::한국어, Language::English, Language::😃}});
+#endif
 }
 
 TEST_CASE("enum_count") {
@@ -346,6 +424,11 @@ TEST_CASE("enum_count") {
 
   constexpr auto s4 = enum_count<number>();
   REQUIRE(s4 == 4);
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  constexpr auto s5 = enum_count<Language>();
+  REQUIRE(s5 == 4);
+#endif
 }
 
 TEST_CASE("enum_name") {
@@ -381,6 +464,17 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down) == "Left|Down|Up|Right");
     REQUIRE(enum_name(static_cast<Directions>(0)).empty());
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    constexpr Language lang = Language::日本語;
+    auto lang_name = enum_name(lang);
+    Language lk = Language::한국어;
+    REQUIRE(enum_name<Language&>(lk) == "한국어");
+    REQUIRE(enum_name<const Language>(Language::English) == "English");
+    REQUIRE(lang_name == "日本語");
+    REQUIRE(enum_name(Language::😃) == "😃");
+    REQUIRE(enum_name(static_cast<Language>(0)).empty());
+#endif
+
     constexpr number nto = number::three | number::one;
     auto nto_name = enum_name(nto);
     REQUIRE(enum_name(number::one) == "one");
@@ -406,6 +500,11 @@ TEST_CASE("enum_names") {
 
   constexpr auto& s4 = enum_names<number>();
   REQUIRE(s4 == std::array<std::string_view, 4>{{"one", "two", "three", "four"}});
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  constexpr auto& s5 = enum_names<const Language>();
+  REQUIRE(s5 == std::array<std::string_view, 4>{{"日本語", "한국어", "English", "😃"}});
+#endif
 }
 
 TEST_CASE("enum_entries") {
@@ -422,6 +521,11 @@ TEST_CASE("enum_entries") {
 
   constexpr auto& s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 4>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}, {number::four, "four"}}});
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  constexpr auto& s5 = enum_entries<const Language>();
+  REQUIRE(s5 == std::array<std::pair<Language, std::string_view>, 4>{{{Language::日本語, "日本語"}, {Language::한국어, "한국어"}, {Language::English, "English"}, {Language::😃, "😃"}}});
+#endif
 }
 
 TEST_CASE("ostream_operators") {
@@ -455,6 +559,15 @@ TEST_CASE("ostream_operators") {
   test_ostream(static_cast<Directions>(0), "0");
   test_ostream(std::make_optional(static_cast<Directions>(0)), "0");
 
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+  test_ostream(std::make_optional(Language::日本語), "日本語");
+  test_ostream(Language::한국어, "한국어");
+  test_ostream(Language::English, "English");
+  test_ostream(Language::😃, "😃");
+  test_ostream(static_cast<Language>(0), "0");
+  test_ostream(std::make_optional(static_cast<Language>(0)), "0");
+#endif
+
   test_ostream(std::make_optional(number::one), "one");
   test_ostream(number::two, "two");
   test_ostream(number::three, "three");
@@ -469,6 +582,9 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
     REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
     REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    REQUIRE(enum_integer(~Language::日本語) == ~enum_integer(Language::日本語));
+#endif
     REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
   }
 
@@ -476,6 +592,9 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    REQUIRE(enum_integer(Language::日本語 | Language::한국어) == (enum_integer(Language::日本語) | enum_integer(Language::한국어)));
+#endif
     REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
   }
 
@@ -483,6 +602,9 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    REQUIRE(enum_integer(Language::日本語 & Language::한국어) == (enum_integer(Language::日本語) & enum_integer(Language::한국어)));
+#endif
     REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
   }
 
@@ -490,6 +612,9 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    REQUIRE(enum_integer(Language::日本語 ^ Language::한국어) == (enum_integer(Language::日本語) ^ enum_integer(Language::한국어)));
+#endif
     REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
   }
 
@@ -509,6 +634,12 @@ TEST_CASE("bitwise_operators") {
     number x4 = number::one;
     x4 |= number::two;
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    Language x5 = Language::日本語;
+    x5 |= Language::한국어;
+    REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) | enum_integer(Language::한국어)));
+#endif
   }
 
   SECTION("operator&=") {
@@ -527,6 +658,12 @@ TEST_CASE("bitwise_operators") {
     number x4 = number::one;
     x4 &= number::two;
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    Language x5 = Language::日本語;
+    x5 &= Language::한국어;
+    REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) & enum_integer(Language::한국어)));
+#endif
   }
 
   SECTION("operator^=") {
@@ -545,5 +682,11 @@ TEST_CASE("bitwise_operators") {
     number x4 = number::one;
     x4 ^= number::two;
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
+
+#if defined(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    Language x5 = Language::日本語;
+    x5 ^= Language::한국어;
+    REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) ^ enum_integer(Language::한국어)));
+#endif
   }
 }

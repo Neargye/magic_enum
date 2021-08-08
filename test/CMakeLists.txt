@@ -1,4 +1,4 @@
-﻿include(CheckCXXCompilerFlag)
+include(CheckCXXCompilerFlag)
 
 set(SOURCES test.cpp)
 
@@ -16,6 +16,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
 
     check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
+endif()
+
+if(MAGIC_ENUM_OPT_ENABLE_NONASCII AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
+    set(OPTIONS ${OPTIONS} -DMAGIC_ENUM_OPT_ENABLE_NONASCII)
 endif()
 
 function(make_test src target std)
