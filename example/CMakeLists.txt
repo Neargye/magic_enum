@@ -1,9 +1,9 @@
-﻿include(CheckCXXCompilerFlag)
+include(CheckCXXCompilerFlag)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    set(OPTIONS /W4 /WX)
+    set(OPTIONS /W4 /WX /utf-8)
     if(HAS_PERMISSIVE_FLAG)
         set(OPTIONS ${OPTIONS} /permissive-)
     endif()
@@ -20,4 +20,8 @@ endfunction()
 make_example(example)
 make_example(enum_flag_example)
 make_example(example_custom_name)
-make_example(example_nonascii_name)
+if(((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0) OR
+  (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR
+  (CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
+    make_example(example_nonascii_name)
+endif()
