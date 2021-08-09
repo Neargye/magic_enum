@@ -38,7 +38,8 @@
   #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
   #include <magic_enum.hpp>
   ```
-  Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined 
+
+* Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined
   macros or constants, for example:
   
   ```cpp
