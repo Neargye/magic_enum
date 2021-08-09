@@ -55,6 +55,12 @@
   #define MAGIC_ENUM_RANGE_MAX 255
   ```
 
+* To add support for non-ASCII enumeration identifier, use special macros:
+  ```cpp
+  #define MAGIC_ENUM_ENABLE_NONASCII
+  #include <magic_enum.hpp>
+  ```
+
 ## `enum_cast`
 
 ```cpp
