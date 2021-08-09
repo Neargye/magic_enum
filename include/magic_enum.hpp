@@ -202,7 +202,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
           (name[i - 1] >= 'A' && name[i - 1] <= 'Z') ||
-#if MAGIC_ENUM_OPT_ENABLE_NONASCII
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
           (name[i - 1] & 0x80) ||
 #endif
           (name[i - 1] == '_'))) {
@@ -213,7 +213,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 
   if (name.size() > 0 && ((name.front() >= 'a' && name.front() <= 'z') ||
                           (name.front() >= 'A' && name.front() <= 'Z') ||
-#if MAGIC_ENUM_OPT_ENABLE_NONASCII
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
                           (name.front() & 0x80) ||
 #endif
                           (name.front() == '_'))) {
