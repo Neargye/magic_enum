@@ -1,4 +1,4 @@
-﻿include(CheckCXXCompilerFlag)
+include(CheckCXXCompilerFlag)
 
 set(SOURCES test.cpp)
 
@@ -16,6 +16,14 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
 
     check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
+endif()
+
+if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
+    if(((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0) OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+        set(OPTIONS ${OPTIONS} -DMAGIC_ENUM_ENABLE_NONASCII)
+    elseif((CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
+        message(WARNING "Non-ASCII feature on Windows is not supported yet")
+    endif()
 endif()
 
 function(make_test src target std)
