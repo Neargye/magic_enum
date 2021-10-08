@@ -973,3 +973,25 @@ TEST_CASE("cmp_less") {
     REQUIRE(cmp_less(-1, false));
   }
 }
+
+// from https://artificial-mind.net/blog/2020/10/31/constexpr-for
+template <auto Start, auto End, auto Inc, class F>
+constexpr void constexpr_for(F&& f) {
+  if constexpr (Start < End) {
+    f(std::integral_constant<decltype(Start), Start>());
+    constexpr_for<Start + Inc, End, Inc>(f);
+  }
+}
+
+template <typename E, E V>
+struct Foo {};
+
+TEST_CASE("constexpr_for") {
+  constexpr_for<0, magic_enum::enum_count<Color>(), 1>([](auto i) {
+    [[maybe_unused]] Foo<Color, magic_enum::enum_value<Color, i>()> bar{};
+  });
+
+  constexpr_for<0, magic_enum::enum_count<Numbers>(), 1>([](auto i) {
+    [[maybe_unused]] Foo<Numbers, magic_enum::enum_value<Numbers, i>()> bar{};
+  });
+}
