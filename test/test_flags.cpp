@@ -691,6 +691,12 @@ TEST_CASE("bitwise_operators") {
   }
 }
 
+#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
+#  define MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR 1
+#endif
+
+#if defined(MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR)
+
 // from https://artificial-mind.net/blog/2020/10/31/constexpr-for
 template <auto Start, auto End, auto Inc, class F>
 constexpr void constexpr_for(F&& f) {
@@ -708,3 +714,5 @@ TEST_CASE("constexpr_for") {
     [[maybe_unused]] Foo<Color, magic_enum::enum_value<Color, i>()> bar{};
   });
 }
+
+#endif
