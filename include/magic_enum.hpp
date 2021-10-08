@@ -692,6 +692,16 @@ template <typename E>
   }
 }
 
+// Returns enum value at specified index.
+template <typename E, std::size_t I>
+[[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(I < detail::count_v<D>, "magic_enum::enum_value out of range.");
+
+  return detail::values_v<D>[I];
+}
+
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
@@ -923,6 +933,16 @@ template <typename E>
 
     return assert((index < detail::count_v<D, true>)), detail::value<D, min, true>(index);
   }
+}
+
+// Returns enum-flags value at specified index.
+template <typename E, std::size_t I>
+[[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D> > 0, "magic_enum::flags requires enum implementation and valid max and min.");
+  static_assert(I < detail::count_v<D>, "magic_enum::flags::enum_value out of range.");
+
+  return detail::values_v<D, true>[I];
 }
 
 // Returns std::array with enum-flags values, sorted by enum-flags value.
