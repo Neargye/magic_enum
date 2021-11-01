@@ -132,10 +132,10 @@ struct enum_range {
 };
 
 static_assert(MAGIC_ENUM_RANGE_MIN <= 0, "MAGIC_ENUM_RANGE_MIN must be less or equals than 0.");
-static_assert(MAGIC_ENUM_RANGE_MIN > std::numeric_limits<std::int16_t>::min(), "MAGIC_ENUM_RANGE_MIN must be greater than INT16_MIN.");
+static_assert(MAGIC_ENUM_RANGE_MIN > (std::numeric_limits<std::int16_t>::min)(), "MAGIC_ENUM_RANGE_MIN must be greater than INT16_MIN.");
 
 static_assert(MAGIC_ENUM_RANGE_MAX > 0, "MAGIC_ENUM_RANGE_MAX must be greater than 0.");
-static_assert(MAGIC_ENUM_RANGE_MAX < std::numeric_limits<std::int16_t>::max(), "MAGIC_ENUM_RANGE_MAX must be less than INT16_MAX.");
+static_assert(MAGIC_ENUM_RANGE_MAX < (std::numeric_limits<std::int16_t>::max)(), "MAGIC_ENUM_RANGE_MAX must be less than INT16_MAX.");
 
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 
@@ -392,8 +392,8 @@ constexpr int reflected_min() noexcept {
     return 0;
   } else {
     constexpr auto lhs = customize::enum_range<E>::min;
-    static_assert(lhs > std::numeric_limits<std::int16_t>::min(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
-    constexpr auto rhs = std::numeric_limits<U>::min();
+    static_assert(lhs > (std::numeric_limits<std::int16_t>::min)(), "magic_enum::enum_range requires min must be greater than INT16_MIN.");
+    constexpr auto rhs = (std::numeric_limits<U>::min)();
 
     if constexpr (cmp_less(rhs, lhs)) {
       static_assert(!is_valid<E, value<E, lhs - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
@@ -412,8 +412,8 @@ constexpr int reflected_max() noexcept {
     return std::numeric_limits<U>::digits - 1;
   } else {
     constexpr auto lhs = customize::enum_range<E>::max;
-    static_assert(lhs < std::numeric_limits<std::int16_t>::max(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
-    constexpr auto rhs = std::numeric_limits<U>::max();
+    static_assert(lhs < (std::numeric_limits<std::int16_t>::max)(), "magic_enum::enum_range requires max must be less than INT16_MAX.");
+    constexpr auto rhs = (std::numeric_limits<U>::max)();
 
     if constexpr (cmp_less(lhs, rhs)) {
       static_assert(!is_valid<E, value<E, lhs + 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value larger than max range size.");
@@ -469,7 +469,7 @@ constexpr auto values() noexcept {
   constexpr auto max = reflected_max_v<E, IsFlags>;
   constexpr auto range_size = max - min + 1;
   static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(range_size < std::numeric_limits<std::uint16_t>::max(), "magic_enum::enum_range requires valid size.");
+  static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return values<E, IsFlags, reflected_min_v<E, IsFlags>>(std::make_index_sequence<range_size>{});
 }
@@ -496,7 +496,7 @@ constexpr std::size_t range_size() noexcept {
   constexpr auto min = IsFlags ? log2(min_v<E, IsFlags>) : min_v<E, IsFlags>;
   constexpr auto range_size = max - min + U{1};
   static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(range_size < std::numeric_limits<std::uint16_t>::max(), "magic_enum::enum_range requires valid size.");
+  static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return static_cast<std::size_t>(range_size);
 }
@@ -505,7 +505,7 @@ template <typename E, bool IsFlags = false>
 inline constexpr auto range_size_v = range_size<E, IsFlags>();
 
 template <typename E, bool IsFlags = false>
-using index_t = std::conditional_t<range_size_v<E, IsFlags> < std::numeric_limits<std::uint8_t>::max(), std::uint8_t, std::uint16_t>;
+using index_t = std::conditional_t<range_size_v<E, IsFlags> < (std::numeric_limits<std::uint8_t>::max)(), std::uint8_t, std::uint16_t>;
 
 template <typename E, bool IsFlags = false>
 inline constexpr auto invalid_index_v = (std::numeric_limits<index_t<E, IsFlags>>::max)();
