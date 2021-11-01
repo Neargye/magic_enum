@@ -126,8 +126,8 @@ namespace customize {
 template <typename E>
 struct enum_range {
   static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_range requires enum type.");
-  inline static constexpr int min = MAGIC_ENUM_RANGE_MIN;
-  inline static constexpr int max = MAGIC_ENUM_RANGE_MAX;
+  static constexpr int min = MAGIC_ENUM_RANGE_MIN;
+  static constexpr int max = MAGIC_ENUM_RANGE_MAX;
   static_assert(max > min, "magic_enum::customize::enum_range requires max > min.");
 };
 
