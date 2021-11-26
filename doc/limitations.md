@@ -11,9 +11,7 @@
 
   * By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
-  * `MAGIC_ENUM_RANGE_MIN` must be less or equals than `0` and must be greater than `INT16_MIN`.
-
-  * `MAGIC_ENUM_RANGE_MAX` must be greater than `0` and must be less than `INT16_MAX`.
+  * `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MIN`.
 
   * If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
 
@@ -33,8 +31,9 @@
     namespace magic_enum::customize {
     template <>
     struct enum_range<number> {
-      static constexpr int min = 100; // Must be greater than `INT16_MIN`.
-      static constexpr int max = 300; // Must be less than `INT16_MAX`.
+      static constexpr int min = 100;
+      static constexpr int max = 300;
+      // (max - min) must be less than UINT16_MIN.
     };
     } // namespace magic_enum
     ```
