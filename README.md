@@ -100,7 +100,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Enum value sequence
 
   ```cpp
-  constexpr auto& colors = magic_enum::enum_values<Color>();
+  constexpr auto colors = magic_enum::enum_values<Color>();
   // colors -> {Color::RED, Color::BLUE, Color::GREEN}
   // colors[0] -> Color::RED
   ```
@@ -123,7 +123,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Enum names sequence
 
   ```cpp
-  constexpr auto& color_names = magic_enum::enum_names<Color>();
+  constexpr auto color_names = magic_enum::enum_names<Color>();
   // color_names -> {"RED", "BLUE", "GREEN"}
   // color_names[0] -> "RED"
   ```
@@ -131,7 +131,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Enum entries sequence
 
   ```cpp
-  constexpr auto& color_entries = magic_enum::enum_entries<Color>();
+  constexpr auto color_entries = magic_enum::enum_entries<Color>();
   // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"

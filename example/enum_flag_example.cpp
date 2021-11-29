@@ -34,7 +34,7 @@ int main() {
   std::cout << f1_name << std::endl; // Endangered
 
   // String enum-flags name sequence.
-  constexpr auto& names = magic_enum::flags::enum_names<AnimalFlags>();
+  constexpr auto names = magic_enum::flags::enum_names<AnimalFlags>();
   std::cout << "AnimalFlags names:";
   for (const auto& n : names) {
     std::cout << " " << n;
@@ -69,9 +69,9 @@ int main() {
   std::cout << "AnimalFlags[0] = " << magic_enum::flags::enum_value<AnimalFlags>(0) << std::endl; // AnimalFlags[0] = HasClaws
 
   // Enum-flags value sequence.
-  constexpr auto& values = magic_enum::flags::enum_values<AnimalFlags>();
+  constexpr auto values = magic_enum::flags::enum_values<AnimalFlags>();
   std::cout << "AnimalFlags values:";
-  for (const auto& f : values) {
+  for (const auto f : values) {
     std::cout << " " << f; // Ostream operator for enum-flags.
   }
   std::cout << std::endl;
@@ -83,7 +83,7 @@ int main() {
   std::cout << flag << std::endl; // HasClaws|CanFly
 
   // Enum-flags pair (value, string name) sequence.
-  constexpr auto& entries = magic_enum::flags::enum_entries<AnimalFlags>();
+  constexpr auto entries = magic_enum::flags::enum_entries<AnimalFlags>();
   std::cout << "AnimalFlags entries:";
   for (const auto& e : entries) {
     std::cout << " "  << e.second << " = " << magic_enum::flags::enum_integer(e.first);
