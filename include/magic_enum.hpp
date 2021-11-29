@@ -118,6 +118,7 @@ MAGIC_ENUM_USING_ALIAS_STRING
 using std::string;
 #endif
 
+ 
 namespace customize {
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
@@ -746,6 +747,11 @@ template <typename E>
   return detail::entries_v<D>;
 }
 
+// allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
+auto case_insensitive = [](char lhs, char rhs) {
+  return std::tolower(lhs) == std::tolower(rhs);
+};
+  
 // Obtains enum value from integer value.
 // Returns optional with enum value.
 template <typename E>
