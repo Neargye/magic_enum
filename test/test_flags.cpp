@@ -364,17 +364,31 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<Color&>(1) == Color::GREEN);
   REQUIRE(enum_value<Color>(2) == Color::BLUE);
 
+  REQUIRE(enum_value<Color, 0>() == Color::RED);
+  REQUIRE(enum_value<Color, 1>() == Color::GREEN);
+  REQUIRE(enum_value<Color, 2>() == Color::BLUE);
+
   constexpr auto no = enum_value<Numbers>(0);
   REQUIRE(no == Numbers::one);
   REQUIRE(enum_value<Numbers>(1) == Numbers::two);
   REQUIRE(enum_value<Numbers>(2) == Numbers::three);
   REQUIRE(enum_value<Numbers>(3) == Numbers::many);
 
+  REQUIRE(enum_value<Numbers, 0>() == Numbers::one);
+  REQUIRE(enum_value<Numbers, 1>() == Numbers::two);
+  REQUIRE(enum_value<Numbers, 2>() == Numbers::three);
+  REQUIRE(enum_value<Numbers, 3>() == Numbers::many);
+
   constexpr auto dr = enum_value<Directions>(3);
   REQUIRE(enum_value<Directions&>(0) == Directions::Left);
   REQUIRE(enum_value<const Directions>(1) == Directions::Down);
   REQUIRE(enum_value<Directions>(2) == Directions::Up);
   REQUIRE(dr == Directions::Right);
+
+  REQUIRE(enum_value<Directions, 0>() == Directions::Left);
+  REQUIRE(enum_value<Directions, 1>() == Directions::Down);
+  REQUIRE(enum_value<Directions, 2>() == Directions::Up);
+  REQUIRE(enum_value<Directions, 3>() == Directions::Right);
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
   constexpr auto lang = enum_value<Language>(3);
@@ -389,6 +403,11 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<number>(1) == number::two);
   REQUIRE(nt == number::three);
   REQUIRE(enum_value<number>(3) == number::four);
+
+  REQUIRE(enum_value<number, 0>() == number::one);
+  REQUIRE(enum_value<number, 1>() == number::two);
+  REQUIRE(enum_value<number, 2>() == number::three);
+  REQUIRE(enum_value<number, 3>() == number::four);
 }
 
 TEST_CASE("enum_values") {
