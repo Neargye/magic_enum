@@ -932,8 +932,8 @@ template <typename E>
 template <typename E, std::size_t I>
 [[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::count_v<D> > 0, "magic_enum::flags requires enum implementation and valid max and min.");
-  static_assert(I < detail::count_v<D>, "magic_enum::flags::enum_value out of range.");
+  static_assert(detail::count_v<D, true> > 0, "magic_enum::flags requires enum implementation and valid max and min.");
+  static_assert(I < detail::count_v<D, true>, "magic_enum::flags::enum_value out of range.");
 
   return detail::values_v<D, true>[I];
 }
