@@ -485,15 +485,12 @@ constexpr bool is_flags_enum() noexcept {
   if constexpr (std::is_same_v<E, bool>) { // bool special case
     return false;
   } else if constexpr (customize::is_flags_enum<E>::value == false) {
+    if (values<E, true>().size() == 0) {
+      return false;
+    }
     constexpr auto default_values = values<E, false>();
     for (std::size_t i = 0; i < default_values.size(); ++i) {
       if (is_pow2(static_cast<U>(default_values[i])) == false) {
-        return false;
-      }
-    }
-    constexpr auto flags_values = values<E, true>();
-    for (std::size_t i = 0; i < flags_values.size(); ++i) {
-      if (is_pow2(static_cast<U>(flags_values[i])) == false) {
         return false;
       }
     }
