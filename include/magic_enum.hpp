@@ -309,17 +309,6 @@ constexpr I log2(I value) noexcept {
   return ret;
 }
 
-template <typename I>
-constexpr bool is_pow2(I x) noexcept {
-  static_assert(std::is_integral_v<I>, "magic_enum::detail::is_pow2 requires integral type.");
-
-  if constexpr (std::is_same_v<I, bool>) { // bool special case
-    return x;
-  } else {
-    return x != 0 && (x & (x - 1)) == 0;
-  }
-}
-
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
@@ -490,7 +479,8 @@ constexpr bool is_flags_enum() noexcept {
     }
     constexpr auto default_values = values<E, false>();
     for (std::size_t i = 0; i < default_values.size(); ++i) {
-      if (is_pow2(static_cast<U>(default_values[i])) == false) {
+      const auto v = static_cast<U>(default_values[i]);
+      if (v != 0 && (v & (v - 1)) != 0) {
         return false;
       }
     }
