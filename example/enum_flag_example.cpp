@@ -26,8 +26,9 @@
 #include <magic_enum.hpp>
 
 enum class AnimalFlags : std::uint64_t { HasClaws = 1 << 10, CanFly = 1 << 20, EatsFish = 1 << 30, Endangered = std::uint64_t{1} << 40 };
-template <>
-struct magic_enum::customize::is_flags_enum<AnimalFlags> : std::true_type {};
+// Add specialization `is_flags_enum` to force define that enum are flags.
+// template <>
+// struct magic_enum::customize::is_flags_enum<AnimalFlags> : std::true_type {};
 
 int main() {
   // Enum-flags variable to string name.

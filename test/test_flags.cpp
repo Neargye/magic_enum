@@ -49,8 +49,6 @@ enum class Numbers : int {
   three = 1 << 3,
   many = 1 << 30,
 };
-template <>
-struct magic_enum::customize::is_flags_enum<Numbers> : std::true_type {};
 
 enum Directions : std::uint64_t {
   Left = std::uint64_t{1} << 10,
@@ -58,8 +56,6 @@ enum Directions : std::uint64_t {
   Up = std::uint64_t{1} << 31,
   Right = std::uint64_t{1} << 63,
 };
-template <>
-struct magic_enum::customize::is_flags_enum<Directions> : std::true_type {};
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
 enum class Language : int {
@@ -68,8 +64,6 @@ enum class Language : int {
   English = 1 << 3,
   😃 = 1 << 4
 };
-template <>
-struct magic_enum::customize::is_flags_enum<Language> : std::true_type {};
 #endif
 
 enum number : unsigned long {
@@ -90,8 +84,6 @@ struct magic_enum::customize::enum_range<number> {
   static constexpr int min = 100;
   static constexpr int max = 300;
 };
-template <>
-struct magic_enum::customize::is_flags_enum<number> : std::true_type {};
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;

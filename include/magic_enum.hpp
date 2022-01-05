@@ -309,6 +309,13 @@ constexpr I log2(I value) noexcept {
   return ret;
 }
 
+template <typename I>
+constexpr bool is_pow2(I x) noexcept {
+  static_assert(std::is_integral_v<I>, "magic_enum::detail::is_pow2 requires integral type.");
+
+  return x != 0 && (x & (x - 1)) == 0;
+}
+
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
@@ -463,11 +470,25 @@ constexpr auto values() noexcept {
   return values<E, IsFlags, reflected_min_v<E, IsFlags>>(std::make_index_sequence<range_size>{});
 }
 
-template <typename E>
+template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_flags_enum() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_flags_enum requires enum type.");
 
-  return customize::is_flags_enum<E>::value;
+  if constexpr (customize::is_flags_enum<E>::value == false) {
+    constexpr auto default_values = values<E, false>();
+    for (auto v : default_values) {
+      if (is_pow2(static_cast<U>(v)) == false) {
+        return false;
+      }
+    }
+    constexpr auto flags_values = values<E, true>();
+    for (auto v : flags_values) {
+      if (is_pow2(static_cast<U>(v)) == false) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 template <typename E>
