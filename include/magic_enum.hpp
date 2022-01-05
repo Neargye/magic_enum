@@ -471,21 +471,24 @@ template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_flags_enum() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_flags_enum requires enum type.");
 
-  if constexpr (std::is_same_v<E, bool>) { // bool special case
+  if constexpr (std::is_same_v<U, bool>) { // bool special case
     return false;
-  } else if constexpr (customize::is_flags_enum<E>::value == false) {
-    if (values<E, true>().size() == 0) {
+  } else if constexpr (customize::is_flags_enum<E>::value) {
+    return true;
+  } else {
+    constexpr auto flags_values = values<E, true>();
+    constexpr auto default_values = values<E, false>();
+    if (flags_values.size() == 0 || default_values.size() > flags_values.size()) {
       return false;
     }
-    constexpr auto default_values = values<E, false>();
     for (std::size_t i = 0; i < default_values.size(); ++i) {
       const auto v = static_cast<U>(default_values[i]);
       if (v != 0 && (v & (v - 1)) != 0) {
         return false;
       }
     }
+    return flags_values.size() > 0;
   }
-  return true;
 }
 
 template <typename E>
