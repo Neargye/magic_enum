@@ -286,9 +286,9 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     // If same signedness (both signed or both unsigned).
     return lhs < rhs;
-  } else if constexpr (std::is_same_v<L, bool>) { // bool special case due to msvc's C4804, C4018
+  } else if constexpr (std::is_same_v<L, bool>) { // bool special case
       return static_cast<R>(lhs) < rhs;
-  } else if constexpr (std::is_same_v<R, bool>) { // bool special case due to msvc's C4804, C4018
+  } else if constexpr (std::is_same_v<R, bool>) { // bool special case
       return lhs < static_cast<L>(rhs);
   } else if constexpr (std::is_signed_v<R>) {
     // If 'right' is negative, then result is 'false', otherwise cast & compare.
@@ -659,14 +659,15 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  constexpr bool is_flag = detail::is_flags_v<D>;
   constexpr auto count = detail::count_v<D>;
   static_assert(count > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert(index < count), detail::values_v<D>[index];
   } else {
+    constexpr bool is_flag = detail::is_flags_v<D>;
     constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
+
     return assert(index < count), detail::value<D, min, is_flag>(index);
   }
 }
@@ -718,13 +719,11 @@ template <typename E>
 [[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_enum_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  constexpr bool is_flag = detail::is_flags_v<D>;
-  constexpr auto count = detail::count_v<D>;
 
-  if constexpr (is_flag) {
+  if constexpr (detail::is_flags_v<D>) {
     string name;
     auto check_value = U{0};
-    for (std::size_t i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
       if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
         check_value |= v;
         const auto n = detail::names_v<D>[i];
@@ -770,10 +769,9 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr bool is_flag = detail::is_flags_v<D>;
-  constexpr bool is_sparse = detail::is_sparse_v<D>;
-  constexpr auto count = detail::count_v<D>;
 
-  if constexpr (is_sparse) {
+  if constexpr (detail::is_sparse_v<D>) {
+    constexpr auto count = detail::count_v<D>;
     if constexpr (is_flag) {
       auto check_value = U{0};
       for (std::size_t i = 0; i < count; ++i) {
@@ -811,10 +809,9 @@ template <typename E, typename BinaryPredicate>
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  constexpr bool is_flag = detail::is_flags_v<D>;
   constexpr auto count = detail::count_v<D>;
 
-  if constexpr (is_flag) {
+  if constexpr (detail::is_flags_v<D>) {
     auto result = U{0};
     while (!value.empty()) {
       const auto d = detail::find(value, '|');
