@@ -28,14 +28,12 @@
 
     enum class number { one = 100, two = 200, three = 300 };
 
-    namespace magic_enum::customize {
     template <>
-    struct enum_range<number> {
+    struct magic_enum::customize::enum_range<number> {
       static constexpr int min = 100;
       static constexpr int max = 300;
       // (max - min) must be less than UINT16_MIN.
     };
-    } // namespace magic_enum
     ```
 
 * `magic_enum` [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). Work with enum-aliases is compiler-implementation-defined.

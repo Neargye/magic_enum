@@ -57,37 +57,32 @@ enum number : unsigned long {
   _4 = four
 #endif
 };
+template <>
+struct magic_enum::customize::enum_range<number> {
+  static constexpr int min = 100;
+  static constexpr int max = 300;
+};
 
 enum class MaxUsedAsInvalid : std::uint8_t {
-    ONE,
-    TWO,
-    INVALID = std::numeric_limits<std::uint8_t>::max()
+  ONE,
+  TWO,
+  INVALID = std::numeric_limits<std::uint8_t>::max()
+};
+template <>
+struct magic_enum::customize::enum_range<MaxUsedAsInvalid> {
+  static constexpr int min = 0;
+  static constexpr int max = 64;
 };
 
 enum class Binary : bool {
   ONE,
   TWO
 };
-
-namespace magic_enum::customize {
 template <>
-struct enum_range<MaxUsedAsInvalid> {
-    static constexpr int min = 0;
-    static constexpr int max = 64;
+struct magic_enum::customize::enum_range<Binary> {
+  static constexpr int min = 0;
+  static constexpr int max = 64;
 };
-
-template <>
-struct enum_range<Binary> {
-    static constexpr int min = 0;
-    static constexpr int max = 64;
-};
-
-template <>
-struct enum_range<number> {
-  static constexpr int min = 100;
-  static constexpr int max = 300;
-};
-} // namespace magic_enum
 
 template <>
 constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {

@@ -40,6 +40,8 @@
 #include <sstream>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+template <>
+struct magic_enum::customize::is_flags_enum<Color> : std::true_type {};
 
 enum class Numbers : int {
   one = 1 << 1,
@@ -47,6 +49,8 @@ enum class Numbers : int {
   three = 1 << 3,
   many = 1 << 30,
 };
+template <>
+struct magic_enum::customize::is_flags_enum<Numbers> : std::true_type {};
 
 enum Directions : std::uint64_t {
   Left = std::uint64_t{1} << 10,
@@ -54,6 +58,8 @@ enum Directions : std::uint64_t {
   Up = std::uint64_t{1} << 31,
   Right = std::uint64_t{1} << 63,
 };
+template <>
+struct magic_enum::customize::is_flags_enum<Directions> : std::true_type {};
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
 enum class Language : int {
@@ -62,6 +68,8 @@ enum class Language : int {
   English = 1 << 3,
   😃 = 1 << 4
 };
+template <>
+struct magic_enum::customize::is_flags_enum<Language> : std::true_type {};
 #endif
 
 enum number : unsigned long {
@@ -77,16 +85,15 @@ enum number : unsigned long {
   _4 = four
 #endif
 };
-
-namespace magic_enum::customize {
 template <>
-struct enum_range<number> {
+struct magic_enum::customize::enum_range<number> {
   static constexpr int min = 100;
   static constexpr int max = 300;
 };
-} // namespace magic_enum
+template <>
+struct magic_enum::customize::is_flags_enum<number> : std::true_type {};
 
-using namespace magic_enum::flags;
+using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 
 TEST_CASE("enum_cast") {
@@ -453,39 +460,39 @@ TEST_CASE("enum_count") {
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
     constexpr Color cr = Color::RED;
-    auto cr_name = enum_name(cr);
+    constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     Color cb = Color::BLUE;
     REQUIRE(cr_name == "RED");
     REQUIRE(enum_name<Color&>(cb) == "BLUE");
     REQUIRE(enum_name(cm[1]) == "GREEN");
     REQUIRE(enum_name(Color::RED | Color{0}) == "RED");
-    REQUIRE(enum_name(Color::RED | Color::GREEN) == "RED|GREEN");
+    REQUIRE(enum_name(Color::RED | Color::GREEN).empty());
     REQUIRE(enum_name(Color::RED | Color{8}).empty());
     REQUIRE(enum_name(static_cast<Color>(0)).empty());
 
     constexpr Numbers no = Numbers::one;
-    auto no_name = enum_name(no);
+    constexpr auto no_name = enum_name(no);
     REQUIRE(no_name == "one");
     REQUIRE(enum_name(Numbers::two) == "two");
     REQUIRE(enum_name(Numbers::three) == "three");
     REQUIRE(enum_name(Numbers::many) == "many");
-    REQUIRE(enum_name(Numbers::many | Numbers::two) == "two|many");
+    REQUIRE(enum_name(Numbers::many | Numbers::two).empty());
     REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
 
     constexpr Directions dr = Directions::Right;
-    auto dr_name = enum_name(dr);
+    constexpr auto dr_name = enum_name(dr);
     Directions du = Directions::Up;
     REQUIRE(enum_name<Directions&>(du) == "Up");
     REQUIRE(enum_name<const Directions>(Directions::Down) == "Down");
     REQUIRE(dr_name == "Right");
     REQUIRE(enum_name(Directions::Left) == "Left");
-    REQUIRE(enum_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down) == "Left|Down|Up|Right");
+    REQUIRE(enum_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down).empty());
     REQUIRE(enum_name(static_cast<Directions>(0)).empty());
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     constexpr Language lang = Language::日本語;
-    auto lang_name = enum_name(lang);
+    constexpr auto lang_name = enum_name(lang);
     Language lk = Language::한국어;
     REQUIRE(enum_name<Language&>(lk) == "한국어");
     REQUIRE(enum_name<const Language>(Language::English) == "English");
@@ -495,14 +502,67 @@ TEST_CASE("enum_name") {
 #endif
 
     constexpr number nto = number::three | number::one;
-    auto nto_name = enum_name(nto);
+    constexpr auto nto_name = enum_name(nto);
     REQUIRE(enum_name(number::one) == "one");
     REQUIRE(enum_name(number::two) == "two");
     REQUIRE(enum_name(number::three) == "three");
     REQUIRE(enum_name(number::four) == "four");
-    REQUIRE(nto_name == "one|three");
+    REQUIRE(nto_name.empty());
     REQUIRE(enum_name(static_cast<number>(0)).empty());
   }
+}
+
+TEST_CASE("enum_flags_name") {
+  constexpr Color cr = Color::RED;
+  auto cr_name = enum_flags_name(cr);
+  Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
+  Color cb = Color::BLUE;
+  REQUIRE(cr_name == "RED");
+  REQUIRE(enum_flags_name<Color&>(cb) == "BLUE");
+  REQUIRE(enum_flags_name(cm[1]) == "GREEN");
+  REQUIRE(enum_flags_name(Color::RED | Color{0}) == "RED");
+  REQUIRE(enum_flags_name(Color::RED | Color::GREEN) == "RED|GREEN");
+  REQUIRE(enum_flags_name(Color::RED | Color{8}).empty());
+  REQUIRE(enum_flags_name(static_cast<Color>(0)).empty());
+
+  constexpr Numbers no = Numbers::one;
+  auto no_name = enum_flags_name(no);
+  REQUIRE(no_name == "one");
+  REQUIRE(enum_flags_name(Numbers::two) == "two");
+  REQUIRE(enum_flags_name(Numbers::three) == "three");
+  REQUIRE(enum_flags_name(Numbers::many) == "many");
+  REQUIRE(enum_flags_name(Numbers::many | Numbers::two) == "two|many");
+  REQUIRE(enum_flags_name(static_cast<Numbers>(0)).empty());
+
+  constexpr Directions dr = Directions::Right;
+  auto dr_name = enum_flags_name(dr);
+  Directions du = Directions::Up;
+  REQUIRE(enum_flags_name<Directions&>(du) == "Up");
+  REQUIRE(enum_flags_name<const Directions>(Directions::Down) == "Down");
+  REQUIRE(dr_name == "Right");
+  REQUIRE(enum_flags_name(Directions::Left) == "Left");
+  REQUIRE(enum_flags_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down) == "Left|Down|Up|Right");
+  REQUIRE(enum_flags_name(static_cast<Directions>(0)).empty());
+
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+  constexpr Language lang = Language::日本語;
+  auto lang_name = enum_flags_name(lang);
+  Language lk = Language::한국어;
+  REQUIRE(enum_flags_name<Language&>(lk) == "한국어");
+  REQUIRE(enum_flags_name<const Language>(Language::English) == "English");
+  REQUIRE(lang_name == "日本語");
+  REQUIRE(enum_flags_name(Language::😃) == "😃");
+  REQUIRE(enum_flags_name(static_cast<Language>(0)).empty());
+#endif
+
+  constexpr number nto = number::three | number::one;
+  auto nto_name = enum_flags_name(nto);
+  REQUIRE(enum_flags_name(number::one) == "one");
+  REQUIRE(enum_flags_name(number::two) == "two");
+  REQUIRE(enum_flags_name(number::three) == "three");
+  REQUIRE(enum_flags_name(number::four) == "four");
+  REQUIRE(nto_name == "one|three");
+  REQUIRE(enum_flags_name(static_cast<number>(0)).empty());
 }
 
 TEST_CASE("enum_names") {
