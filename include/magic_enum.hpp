@@ -924,7 +924,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-  if (const auto name = magic_enum::enum_name<D>(value); !name.empty()) {
+  if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
     for (const auto c : name) {
       os.put(c);
     }
