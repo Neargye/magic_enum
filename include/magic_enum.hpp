@@ -364,7 +364,7 @@ constexpr bool is_valid() noexcept {
   return n<E, static_cast<E>(V)>().size() != 0;
 }
 
-template <typename E, int O, bool IsFlags = false, typename U = std::underlying_type_t<E>>
+template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr E value(std::size_t i) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
 
@@ -417,10 +417,10 @@ constexpr int reflected_max() noexcept {
   }
 }
 
-template <typename E, bool IsFlags = false>
+template <typename E, bool IsFlags>
 inline constexpr auto reflected_min_v = reflected_min<E, IsFlags>();
 
-template <typename E, bool IsFlags = false>
+template <typename E, bool IsFlags>
 inline constexpr auto reflected_max_v = reflected_max<E, IsFlags>();
 
 template <std::size_t N>
