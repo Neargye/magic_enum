@@ -197,8 +197,6 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 * Before use, read the [limitations](doc/limitations.md) of functionality.
 
-* For the small enum use the API from the namespace `magic_enum`, and for enum-flags use the API from the namespace `magic_enum::flags`.
-
 ## Integration
 
 * You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
