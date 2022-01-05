@@ -549,7 +549,7 @@ TEST_CASE("enum_entries") {
 
 TEST_CASE("ostream_operators") {
   auto test_ostream = [](auto e, std::string_view name) {
-    using namespace magic_enum::flags::ostream_operators;
+    using namespace magic_enum::ostream_operators;
     std::stringstream ss;
     ss << e;
     REQUIRE(ss.str() == name);

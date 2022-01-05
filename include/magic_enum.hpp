@@ -630,9 +630,7 @@ template <typename E>
 // Returns number of enum values.
 template <typename E>
 [[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
-  using D = std::decay_t<E>;
-
-  return detail::count_v<D>;
+  return detail::count_v<std::decay_t<E>>;
 }
 
 // Returns enum value at specified index.
@@ -648,7 +646,6 @@ template <typename E>
     return assert(index < count), detail::values_v<D>[index];
   } else {
     constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
-
     return assert(index < count), detail::value<D, min>(index);
   }
 }
