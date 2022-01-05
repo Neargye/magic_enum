@@ -313,7 +313,11 @@ template <typename I>
 constexpr bool is_pow2(I x) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::is_pow2 requires integral type.");
 
-  return x != 0 && (x & (x - 1)) == 0;
+  if constexpr (std::is_same_v<I, bool>) { // bool special case
+    return x;
+  } else {
+    return x != 0 && (x & (x - 1)) == 0;
+  }
 }
 
 template <typename T>
@@ -375,7 +379,11 @@ template <typename E, int O, bool IsFlags = false, typename U = std::underlying_
 constexpr E value(std::size_t i) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
 
-  if constexpr (IsFlags) {
+  if constexpr (std::is_same_v<U, bool>) { // bool special case
+    static_assert(O == 0, "magic_enum::detail::value requires valid offset.");
+
+    return static_cast<E>(i);
+  } else if constexpr (IsFlags) {
     return static_cast<E>(U{1} << static_cast<U>(static_cast<int>(i) + O));
   } else {
     return static_cast<E>(static_cast<int>(i) + O);
