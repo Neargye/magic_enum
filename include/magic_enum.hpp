@@ -706,7 +706,7 @@ template <typename E>
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
-      return detail::names_v<D>[static_cast<std::size_t>(v - min_v<E>)];
+      return detail::names_v<D>[static_cast<std::size_t>(v - detail::min_v<E>)];
     }
   }
 
@@ -875,7 +875,7 @@ template <typename E>
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
-      return static_cast<std::size_t>(v - min_v<E>);
+      return static_cast<std::size_t>(v - detail::min_v<E>);
     }
   }
 
