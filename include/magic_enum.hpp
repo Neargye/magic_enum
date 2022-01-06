@@ -755,11 +755,10 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  constexpr bool is_flag = detail::is_flags_v<D>;
 
   if constexpr (detail::is_sparse_v<D>) {
     constexpr auto count = detail::count_v<D>;
-    if constexpr (is_flag) {
+    if constexpr (detail::is_flags_v<D>) {
       auto check_value = U{0};
       for (std::size_t i = 0; i < count; ++i) {
         if (const auto v = static_cast<U>(enum_value<D>(i)); (value & v) != 0) {
@@ -779,7 +778,7 @@ template <typename E>
     }
   } else {
     constexpr auto min = detail::min_v<D>;
-    constexpr auto max = is_flag ? detail::values_ors<D>() : detail::max_v<D>;
+    constexpr auto max = detail::is_flags_v<D> ? detail::values_ors<D>() : detail::max_v<D>;
 
     if (value >= min && value <= max) {
       return static_cast<D>(value);
@@ -796,7 +795,6 @@ template <typename E, typename BinaryPredicate>
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  constexpr auto count = detail::count_v<D>;
 
   if constexpr (detail::is_flags_v<D>) {
     auto result = U{0};
@@ -804,7 +802,7 @@ template <typename E, typename BinaryPredicate>
       const auto d = detail::find(value, '|');
       const auto s = (d == string_view::npos) ? value : value.substr(0, d);
       auto f = U{0};
-      for (std::size_t i = 0; i < count; ++i) {
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(s, detail::names_v<D>[i], p)) {
           f = static_cast<U>(enum_value<D>(i));
           result |= f;
@@ -821,7 +819,7 @@ template <typename E, typename BinaryPredicate>
       return static_cast<D>(result);
     }
   } else {
-    for (std::size_t i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
       if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
         return enum_value<D>(i);
       }
