@@ -513,21 +513,6 @@ inline constexpr auto min_v = (count_v<E> > 0) ? static_cast<U>(values_v<E>.fron
 template <typename E, typename U = std::underlying_type_t<E>>
 inline constexpr auto max_v = (count_v<E> > 0) ? static_cast<U>(values_v<E>.back()) : U{0};
 
-template <typename E, typename U = std::underlying_type_t<E>>
-constexpr std::size_t range_size() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::range_size requires enum type.");
-  constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
-  constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
-  constexpr auto range_size = max - min + 1;
-  static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(range_size < (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
-
-  return static_cast<std::size_t>(range_size);
-}
-
-template <typename E>
-inline constexpr auto range_size_v = range_size<E>();
-
 template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
@@ -557,8 +542,11 @@ using entries_t = decltype((entries_v<D>));
 template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
+  constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
+  constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
+  constexpr auto range_size = max - min + 1;
 
-  return range_size_v<E> != count_v<E>;
+  return range_size != count_v<E>;
 }
 
 template <typename E>
@@ -707,10 +695,18 @@ template <auto V>
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-    if (enum_value<D>(i) == value) {
-      return detail::names_v<D>[i];
+  if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+      if (enum_value<D>(i) == value) {
+        return detail::names_v<D>[i];
+      }
+    }
+  } else {
+    const auto v = static_cast<U>(value);
+    if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
+      return detail::names_v<D>[static_cast<std::size_t>(v - min_v<E>)];
     }
   }
 
@@ -868,10 +864,18 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-    if (enum_value<D>(i) == value) {
-      return i;
+  if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+      if (enum_value<D>(i) == value) {
+        return i;
+      }
+    }
+  } else {
+    const auto v = static_cast<U>(value);
+    if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
+      return static_cast<std::size_t>(v - min_v<E>);
     }
   }
 
