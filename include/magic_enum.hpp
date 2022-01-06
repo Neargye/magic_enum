@@ -650,15 +650,14 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  constexpr auto count = detail::count_v<D>;
 
   if constexpr (detail::is_sparse_v<D>) {
-    return assert(index < count), detail::values_v<D>[index];
+    return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
   } else {
     constexpr bool is_flag = detail::is_flags_v<D>;
     constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
 
-    return assert(index < count), detail::value<D, min, is_flag>(index);
+    return assert((index < detail::count_v<D>)), detail::value<D, min, is_flag>(index);
   }
 }
 
