@@ -633,8 +633,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 // Returns type name of enum.
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
-  using D = std::decay_t<E>;
-  constexpr string_view name = detail::type_name_v<D>;
+  constexpr string_view name = detail::type_name_v<std::decay_t<E>>;
   static_assert(name.size() > 0, "Enum type does not have a name.");
 
   return name;
@@ -652,7 +651,6 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
   constexpr auto count = detail::count_v<D>;
-  static_assert(count > 0, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert(index < count), detail::values_v<D>[index];
@@ -673,18 +671,14 @@ template <typename E, std::size_t I>
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
-  using D = std::decay_t<E>;
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
-
-  return detail::values_v<D>;
+  return detail::values_v<std::decay_t<E>>;
 }
 
 // Returns name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
-  using D = std::decay_t<decltype(V)>;
-  constexpr string_view name = detail::enum_name_v<D, V>;
+  constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
@@ -747,19 +741,13 @@ template <typename E>
 // Returns std::array with names, sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E>> {
-  using D = std::decay_t<E>;
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
-
-  return detail::names_v<D>;
+  return detail::names_v<std::decay_t<E>>;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E>> {
-  using D = std::decay_t<E>;
-  static_assert(detail::count_v<D> > 0, "magic_enum requires enum implementation and valid max and min.");
-
-  return detail::entries_v<D>;
+  return detail::entries_v<std::decay_t<E>>;
 }
 
 // Obtains enum value from integer value.
@@ -894,26 +882,21 @@ template <typename E>
 // Checks whether enum contains enumerator with such integer value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  using D = std::decay_t<E>;
-
-  return enum_cast<D>(value).has_value();
+  return enum_cast<std::decay_t<E>>(value).has_value();
 }
 
 // Checks whether enum contains enumerator with such name.
 template <typename E, typename BinaryPredicate>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
-  using D = std::decay_t<E>;
 
-  return enum_cast<D>(value, std::move_if_noexcept(p)).has_value();
+  return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
 }
 
 // Checks whether enum contains enumerator with such name.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  using D = std::decay_t<E>;
-
-  return enum_cast<D>(value).has_value();
+  return enum_cast<std::decay_t<E>>(value).has_value();
 }
 
 namespace ostream_operators {
