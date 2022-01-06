@@ -859,7 +859,7 @@ TEST_CASE("extrema") {
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     REQUIRE(magic_enum::customize::enum_range<Language>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Language> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Language, false> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Language> == 10);
 #endif
 
