@@ -893,7 +893,7 @@ TEST_CASE("extrema") {
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     REQUIRE(magic_enum::customize::enum_range<Language>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Language> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Language, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Language> == 40);
 #endif
 
