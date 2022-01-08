@@ -24,8 +24,6 @@
 * To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.</br>
   If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
 
-* For the small enum use the API from the namespace `magic_enum`, and for enum-flags use the API from the namespace `magic_enum::flags`.
-
 * To add custom enum or type names see the [example](../example/example_custom_name.cpp).
 
 * To change the type of strings or ortional, use special macros:

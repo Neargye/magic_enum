@@ -57,37 +57,32 @@ enum number : unsigned long {
   _4 = four
 #endif
 };
+template <>
+struct magic_enum::customize::enum_range<number> {
+  static constexpr int min = 100;
+  static constexpr int max = 300;
+};
 
 enum class MaxUsedAsInvalid : std::uint8_t {
-    ONE,
-    TWO,
-    INVALID = std::numeric_limits<std::uint8_t>::max()
+  ONE,
+  TWO,
+  INVALID = std::numeric_limits<std::uint8_t>::max()
+};
+template <>
+struct magic_enum::customize::enum_range<MaxUsedAsInvalid> {
+  static constexpr int min = 0;
+  static constexpr int max = 64;
 };
 
 enum class Binary : bool {
   ONE,
   TWO
 };
-
-namespace magic_enum::customize {
 template <>
-struct enum_range<MaxUsedAsInvalid> {
-    static constexpr int min = 0;
-    static constexpr int max = 64;
+struct magic_enum::customize::enum_range<Binary> {
+  static constexpr int min = 0;
+  static constexpr int max = 64;
 };
-
-template <>
-struct enum_range<Binary> {
-    static constexpr int min = 0;
-    static constexpr int max = 64;
-};
-
-template <>
-struct enum_range<number> {
-  static constexpr int min = 100;
-  static constexpr int max = 300;
-};
-} // namespace magic_enum
 
 template <>
 constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
@@ -847,69 +842,69 @@ TEST_CASE("extrema") {
 
   SECTION("min") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<BadColor> == 0);
+    REQUIRE(magic_enum::detail::reflected_min_v<BadColor, false> == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor> == 0);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Color> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Color, false> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Color> == -12);
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Numbers> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Numbers, false> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Numbers> == 1);
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Directions> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Directions, false> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Directions> == -120);
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     REQUIRE(magic_enum::customize::enum_range<Language>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Language> == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::reflected_min_v<Language, false> == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Language> == 10);
 #endif
 
     REQUIRE(magic_enum::customize::enum_range<number>::min == 100);
-    REQUIRE(magic_enum::detail::reflected_min_v<number> == 100);
+    REQUIRE(magic_enum::detail::reflected_min_v<number, false> == 100);
     REQUIRE(magic_enum::detail::min_v<number> == 100);
 
-    REQUIRE(magic_enum::detail::reflected_min_v<Binary> == 0);
+    REQUIRE(magic_enum::detail::reflected_min_v<Binary, false> == 0);
     REQUIRE(magic_enum::detail::min_v<Binary> == false);
 
-    REQUIRE(magic_enum::detail::reflected_min_v<MaxUsedAsInvalid> == 0);
+    REQUIRE(magic_enum::detail::reflected_min_v<MaxUsedAsInvalid,false> == 0);
     REQUIRE(magic_enum::detail::min_v<MaxUsedAsInvalid> == 0);
   }
 
   SECTION("max") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<BadColor> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<BadColor, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<BadColor> == 2);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Color> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Color, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Color> == 15);
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Numbers> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Numbers, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Numbers> == 3);
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Directions> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Directions, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Directions> == 120);
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     REQUIRE(magic_enum::customize::enum_range<Language>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Language> == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::reflected_max_v<Language, false> == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Language> == 40);
 #endif
 
     REQUIRE(magic_enum::customize::enum_range<number>::max == 300);
-    REQUIRE(magic_enum::detail::reflected_max_v<number> == 300);
+    REQUIRE(magic_enum::detail::reflected_max_v<number, false> == 300);
     REQUIRE(magic_enum::detail::max_v<number> == 300);
 
-    REQUIRE(magic_enum::detail::reflected_max_v<Binary> == 1);
+    REQUIRE(magic_enum::detail::reflected_max_v<Binary, false> == 1);
     REQUIRE(magic_enum::detail::max_v<Binary> == true);
 
-    REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid> == 64);
+    REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid, false> == 64);
     REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 1);
   }
 }
