@@ -6,6 +6,7 @@
 * [`enum_count` returns number of enum values.](#enum_count)
 * [`enum_integer` obtains integer value from enum value.](#enum_integer)
 * [`enum_name` returns name from enum value.](#enum_name)
+* [`enum_flags_name` returns name from enum-flags value.](#enum_flags_name)
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
@@ -203,6 +204,25 @@ constexpr string_view enum_name() noexcept;
     constexpr auto color_name = magic_enum::enum_name<color>();
     // color_name -> "BLUE"
     ```
+
+## `enum_flags_name`
+
+```cpp
+template <typename E>
+string enum_flags_name(E value);
+```
+
+* Returns name from enum-flags value as `string` with null-terminated string.
+
+* If enum-flags value does not have name or [out of range](limitations.md),  returns empty string.
+
+* Examples
+
+  ```cpp
+  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
+  // directions_name -> "Directions::Up | Directions::Right"
+  ```
+
 
 ## `enum_names`
 
