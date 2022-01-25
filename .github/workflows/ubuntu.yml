@@ -10,8 +10,8 @@ jobs:
       matrix:
         build: [Debug, Release]
         compiler:
-        - { cc: "gcc-9",    cxx: "g++-9" }
-        - { cc: "gcc-10",   cxx: "g++-10" }
+        - { cc: "gcc-9",    cxx: "g++-9"      }
+        - { cc: "gcc-10",   cxx: "g++-10"     }
         - { cc: "clang-10", cxx: "clang++-10" }
         - { cc: "clang-11", cxx: "clang++-11" }
         - { cc: "clang-12", cxx: "clang++-12" }
