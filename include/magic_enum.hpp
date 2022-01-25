@@ -165,6 +165,7 @@ struct char_equal_to {
 
 template <std::size_t N>
 class static_string {
+static_assert(N < UINT16_MAX, "Length of static_string must be less than UINT16_MAX.");
  public:
   constexpr explicit static_string(string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
     assert(str.size() == N);
