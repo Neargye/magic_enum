@@ -160,6 +160,18 @@ struct has_is_flags : std::false_type {};
 template <typename T>
 struct has_is_flags<T, std::void_t<decltype(customize::enum_range<T>::is_flags)>> : std::bool_constant<std::is_same_v<bool, std::decay_t<decltype(customize::enum_range<T>::is_flags)>>> {};
 
+template <typename T, typename = void>
+struct range_min : std::integral_constant<int, MAGIC_ENUM_RANGE_MIN> {};
+
+template <typename T>
+struct range_min<T, std::void_t<decltype(customize::enum_range<T>::min)>> : std::integral_constant<decltype(customize::enum_range<T>::min), customize::enum_range<T>::min> {};
+
+template <typename T, typename = void>
+struct range_max : std::integral_constant<int, MAGIC_ENUM_RANGE_MAX> {};
+
+template <typename T>
+struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std::integral_constant<decltype(customize::enum_range<T>::max), customize::enum_range<T>::max> {};
+
 struct char_equal_to {
   constexpr bool operator()(char lhs, char rhs) const noexcept {
     return lhs == rhs;
@@ -390,11 +402,10 @@ constexpr int reflected_min() noexcept {
   if constexpr (IsFlags) {
     return 0;
   } else {
-    constexpr auto lhs = customize::enum_range<E>::min;
+    constexpr auto lhs = range_min<E>::value;
     constexpr auto rhs = (std::numeric_limits<U>::min)();
 
     if constexpr (cmp_less(rhs, lhs)) {
-      static_assert(!is_valid<E, value<E, lhs - 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value smaller than min range size.");
       return lhs;
     } else {
       return rhs;
@@ -409,11 +420,10 @@ constexpr int reflected_max() noexcept {
   if constexpr (IsFlags) {
     return std::numeric_limits<U>::digits - 1;
   } else {
-    constexpr auto lhs = customize::enum_range<E>::max;
+    constexpr auto lhs = range_max<E>::value;
     constexpr auto rhs = (std::numeric_limits<U>::max)();
 
     if constexpr (cmp_less(lhs, rhs)) {
-      static_assert(!is_valid<E, value<E, lhs + 1, IsFlags>(0)>(), "magic_enum::enum_range detects enum value larger than max range size.");
       return lhs;
     } else {
       return rhs;
