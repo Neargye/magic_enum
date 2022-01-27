@@ -40,8 +40,6 @@
 #include <sstream>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
-template <>
-struct magic_enum::customize::is_flags_enum<Color> : std::true_type {};
 
 enum class Numbers : int {
   one = 1 << 1,

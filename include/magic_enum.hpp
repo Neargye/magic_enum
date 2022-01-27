@@ -142,9 +142,6 @@ constexpr string_view enum_name(E) noexcept {
   return {};
 }
 
-template <typename E>
-struct is_flags_enum : std::false_type {};
-
 } // namespace magic_enum::customize
 
 namespace detail {
@@ -156,6 +153,12 @@ struct supported
 #else
     : std::false_type {};
 #endif
+
+template <typename T, typename = void>
+struct has_is_flags : std::false_type {};
+
+template <typename T>
+struct has_is_flags<T, std::void_t<decltype(customize::enum_range<T>::is_flags)>> : std::bool_constant<std::is_same_v<bool, std::decay_t<decltype(customize::enum_range<T>::is_flags)>>> {};
 
 struct char_equal_to {
   constexpr bool operator()(char lhs, char rhs) const noexcept {
@@ -472,14 +475,14 @@ template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_flags_enum() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_flags_enum requires enum type.");
 
-#if defined(MAGIC_ENUM_NO_CHECK_FLAGS)
-  return customize::is_flags_enum<E>::value;
-#else
-  if constexpr (std::is_same_v<U, bool>) { // bool special case
+  if constexpr (has_is_flags<E>::value) {
+    return customize::enum_range<E>::is_flags;
+  } else if constexpr (std::is_same_v<U, bool>) { // bool special case
     return false;
-  } else if constexpr (customize::is_flags_enum<E>::value) {
-    return true;
   } else {
+#if defined(MAGIC_ENUM_NO_CHECK_FLAGS)
+    return false;
+#else
     constexpr auto flags_values = values<E, true>();
     constexpr auto default_values = values<E, false>();
     if (flags_values.size() == 0 || default_values.size() > flags_values.size()) {
@@ -492,8 +495,8 @@ constexpr bool is_flags_enum() noexcept {
       }
     }
     return flags_values.size() > 0;
-  }
 #endif
+  }
 }
 
 template <typename E>
