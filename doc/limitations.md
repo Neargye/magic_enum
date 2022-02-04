@@ -41,7 +41,7 @@
     struct magic_enum::customize::enum_range<number> {
       static constexpr int min = 100;
       static constexpr int max = 300;
-      // (max - min) must be less than UINT16_MIN.
+      // (max - min) must be less than UINT16_MAX.
     };
     ```
 
