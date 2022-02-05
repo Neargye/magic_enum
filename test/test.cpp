@@ -1014,4 +1014,24 @@ TEST_CASE("constexpr_for") {
   });
 }
 
+static int switch_case_2d(Color color, Directions number)
+{
+  switch (magic_enum::enum_fuse(color, number))
+  {
+  case magic_enum::enum_fuse(Color::RED, Directions::Up):
+    return 1;
+  case magic_enum::enum_fuse(Color::BLUE, Directions::Down):
+    return 2;
+  default:
+    return 0;
+  }
+}
+
+TEST_CASE("pair-switch-case") {
+  REQUIRE(switch_case_2d(Color::RED, Directions::Up) == 1);
+  REQUIRE(switch_case_2d(Color::RED, Directions::Down) == 0);
+  REQUIRE(switch_case_2d(Color::BLUE, Directions::Up) == 0);
+  REQUIRE(switch_case_2d(Color::BLUE, Directions::Down) == 2);
+}
+
 #endif

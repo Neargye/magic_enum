@@ -880,6 +880,14 @@ template <typename E>
   return {}; // Invalid value or out of range.
 }
 
+template<typename E1, typename E2>
+[[nodiscard]] constexpr size_t enum_fuse(E1 value1, E2 value2) {
+  size_t v1 = enum_index(value1).value();
+  size_t v2 = enum_index(value2).value();
+  // Cantor pairing function
+  return (((v1 + v2) * (v1 + v2 + 1)) >> 1) + v2;
+}
+
 // Checks whether enum contains enumerator with such enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
