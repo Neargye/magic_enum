@@ -616,7 +616,7 @@ constexpr size_t cantor_pair(size_t v1, size_t v2) noexcept {
 }
 
 template<typename ... Ts>
-constexpr size_t cantor_pair(size_t v1, size_t head, Ts ... tail) {
+constexpr size_t cantor_pair(size_t v1, size_t head, Ts ... tail) noexcept {
   return cantor_pair(cantor_pair(v1, head), tail...);
 }
 
