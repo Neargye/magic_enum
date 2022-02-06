@@ -329,8 +329,8 @@ constexpr string_view enum_type_name() noexcept;
 ## `enum_fuse`
 
 ```cpp
-template<typename E1, typename E2>
-[[nodiscard]] constexpr size_t enum_fuse(E1 value1, E2 value2);
+template<typename ... Es>
+[[nodiscard]] constexpr size_t enum_fuse(Es ... values);
 ```
 
 * Returns a bijective mix of several enum values with [Cantor pairing function](https://en.wikipedia.org/wiki/Pairing_function). This can be used to emulate 2D switch/case statements.
