@@ -891,13 +891,14 @@ template <typename E>
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
-#ifdef __cpp_lib_is_constant_evaluated
-  if (std::is_constant_evaluated() && !(enum_index(values).has_value() && ...)) {
-    throw std::logic_error("magic_enum::enum_fuse accepts only in-range enum values");
+  const bool has_values = (enum_index(values).has_value() && ...);
+#if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
+  if (std::is_constant_evaluated() && !has_values) {
+    throw std::logic_error{"magic_enum::enum_fuse accepts only in-range enum values"};
   }
 #endif
   // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-  return assert((enum_index(values).has_value() && ...)), detail::cantor_pair((enum_index(values).value() + 1)...);
+  return assert(has_values), (has_values ? detail::cantor_pair((enum_index(values).value() + 1)...) : 0);
 }
 
 // Checks whether enum contains enumerator with such enum value.
