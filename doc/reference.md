@@ -12,6 +12,7 @@
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
 * [`enum_type_name` returns type name of enum.](#enum_type_name)
+* [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
@@ -323,6 +324,25 @@ constexpr string_view enum_type_name() noexcept;
   Color color = Color::RED;
   auto type_name = magic_enum::enum_type_name<decltype(color)>();
   // color_name -> "Color"
+  ```
+
+## `enum_fuse`
+
+```cpp
+template<typename ... Es>
+[[nodiscard]] constexpr size_t enum_fuse(Es ... values);
+```
+
+* Returns a bijective mix of several enum values with [Cantor pairing function](https://en.wikipedia.org/wiki/Pairing_function). This can be used to emulate 2D switch/case statements.
+
+* Examples
+
+  ```cpp
+  switch (magic_enum::enum_fuse(color1, color2)) {
+  case magic_enum::enum_fuse(RED, BLUE): // ...
+  case magic_enum::enum_fuse(RED, RED):  // ...
+  // ...
+  }
   ```
 
 ## `is_unscoped_enum`

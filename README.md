@@ -32,6 +32,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_index` obtains index in enum value sequence from enum value.
 * `enum_contains` checks whether enum contains enumerator with such value.
 * `enum_type_name` returns name of enum type.
+* `enum_fuse` allows multidimensional switch/cases.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `underlying_type` improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
@@ -135,6 +136,16 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"
+  ```
+  
+* Enum fusion for multi-level switch/case statements
+
+  ```cpp
+  switch (magic_enum::enum_fuse(color1, color2)) {
+  case magic_enum::enum_fuse(RED, BLUE): // ...
+  case magic_enum::enum_fuse(RED, RED):  // ...
+  // ...
+  }
   ```
 
 * Ostream operator for enum

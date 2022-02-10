@@ -609,6 +609,15 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
+constexpr size_t cantor_pair(size_t v1, size_t v2) noexcept {
+  return (((v1 + v2) * (v1 + v2 + 1)) >> 1) + v2;
+}
+
+template<typename ... Ts>
+constexpr size_t cantor_pair(size_t v1, size_t head, Ts ... tail) noexcept {
+  return cantor_pair(cantor_pair(v1, head), tail...);
+}
+
 } // namespace magic_enum::detail
 
 // Checks is magic_enum supported compiler.
@@ -876,6 +885,13 @@ template <typename E>
   }
 
   return {}; // Invalid value or out of range.
+}
+
+template<typename ... Es>
+[[nodiscard]] constexpr size_t enum_fuse(Es ... enums) {
+  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
+  // Add 1 to prevent matching 2D fusions with 3D fusions etc.
+  return detail::cantor_pair((enum_index(enums).value() + 1)...);
 }
 
 // Checks whether enum contains enumerator with such enum value.
