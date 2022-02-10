@@ -1014,32 +1014,28 @@ TEST_CASE("constexpr_for") {
   });
 }
 
-static int switch_case_2d(Color color, Directions number)
-{
-  switch (magic_enum::enum_fuse(color, number))
-  {
-  case magic_enum::enum_fuse(Color::RED, Directions::Up):
-    return 1;
-  case magic_enum::enum_fuse(Color::BLUE, Directions::Down):
-    return 2;
-  default:
-    return 0;
+static int switch_case_2d(Color color, Directions direction) {
+  switch (magic_enum::enum_fuse(color, direction)) {
+    case magic_enum::enum_fuse(Color::RED, Directions::Up):
+      return 1;
+    case magic_enum::enum_fuse(Color::BLUE, Directions::Down):
+      return 2;
+    default:
+      return 0;
   }
 }
 
 enum class Index { zero = 0, one = 1, two = 2 };
 
-static int switch_case_3d(Color color, Directions number, Index index)
-{
-  switch (magic_enum::enum_fuse(color, number, index))
-  {
-  case magic_enum::enum_fuse(Color::RED, Directions::Up, Index::zero):
-    return 1;
-  // model accidental removal of last index, must not match anything
-  case magic_enum::enum_fuse(Color::BLUE, Directions::Up):
-    return 2;
-  default:
-    return 0;
+static int switch_case_3d(Color color, Directions direction, Index index) {
+  switch (magic_enum::enum_fuse(color, direction, index)) {
+    case magic_enum::enum_fuse(Color::RED, Directions::Up, Index::zero):
+      return 1;
+    // model accidental removal of last index, must not match anything
+    case magic_enum::enum_fuse(Color::BLUE, Directions::Up):
+      return 2;
+    default:
+      return 0;
   }
 }
 
