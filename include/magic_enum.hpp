@@ -933,13 +933,14 @@ template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::size_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-  const bool has_values = (enum_index(values).has_value() && ...);
+  const std::size_t result = fusion_detail::fuse_enum(values...);
+  const bool has_values = (result != 0);
 #if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
   if (std::is_constant_evaluated() && !has_values) {
     throw std::logic_error{"magic_enum::enum_fuse accepts only in-range enum values"};
   }
 #endif
-  return assert(has_values), (has_values ? fusion_detail::fuse_enum(values...) : 0);
+  return assert(has_values), result;
 }
 
 namespace ostream_operators {
