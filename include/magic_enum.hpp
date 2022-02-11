@@ -909,10 +909,10 @@ template <typename E>
 
 namespace fusion_detail {
 
-template<typename E>
+template <typename E>
 constexpr std::size_t fuse_one_enum(std::size_t hash, E value) noexcept {
   // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-  std::size_t index = enum_index(value).has_value() ? enum_index(value).value() + 1 : 0;
+  std::size_t index = enum_index(value).has_value() ? (enum_index(value).value() + 1) : 0;
   return (hash << detail::log2(enum_count<E>() + 1)) | index;
 }
 
@@ -921,8 +921,8 @@ constexpr std::size_t fuse_enum(E value) noexcept {
   return fuse_one_enum(0, value);
 }
 
-template <typename E, typename ... Es>
-constexpr std::size_t fuse_enum(E head, Es ... tail) noexcept {
+template <typename E, typename... Es>
+constexpr std::size_t fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
@@ -932,7 +932,7 @@ constexpr std::size_t fuse_enum(E head, Es ... tail) noexcept {
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
-  static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= sizeof(std::size_t) * 8, "magic_enum::enum_fuse does not work for long enums");
+  static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::size_t) * 8), "magic_enum::enum_fuse does not work for large enums");
   const bool has_values = (enum_index(values).has_value() && ...);
 #if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
   if (std::is_constant_evaluated() && !has_values) {
