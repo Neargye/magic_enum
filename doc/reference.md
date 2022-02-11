@@ -333,7 +333,7 @@ template <typename... Es>
 [[nodiscard]] constexpr std::size_t enum_fuse(Es... values);
 ```
 
-* Returns a bijective mix of several enum values with [Cantor pairing function](https://en.wikipedia.org/wiki/Pairing_function). This can be used to emulate 2D switch/case statements.
+* Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 
 * Examples
 
