@@ -324,15 +324,6 @@ constexpr I log2(I value) noexcept {
   return ret;
 }
 
-constexpr std::size_t cantor_pair(size_t v1, size_t v2) noexcept {
-  return (((v1 + v2) * (v1 + v2 + 1)) >> 1) + v2;
-}
-
-template <typename... Ts>
-constexpr std::size_t cantor_pair(std::size_t v1, std::size_t head, Ts... tail) noexcept {
-  return cantor_pair(cantor_pair(v1, head), tail...);
-}
-
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
@@ -887,20 +878,6 @@ template <typename E>
   return {}; // Invalid value or out of range.
 }
 
-// Returns a bijective mix of several enum values with [Cantor pairing function](https://en.wikipedia.org/wiki/Pairing_function). This can be used to emulate 2D switch/case statements.
-template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
-  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
-  const bool has_values = (enum_index(values).has_value() && ...);
-#if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
-  if (std::is_constant_evaluated() && !has_values) {
-    throw std::logic_error{"magic_enum::enum_fuse accepts only in-range enum values"};
-  }
-#endif
-  // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-  return assert(has_values), (has_values ? detail::cantor_pair((enum_index(values).value() + 1)...) : 0);
-}
-
 // Checks whether enum contains enumerator with such enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
@@ -928,6 +905,41 @@ template <typename E, typename BinaryPredicate>
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
   return enum_cast<std::decay_t<E>>(value).has_value();
+}
+
+namespace fusion_detail {
+
+template<typename E>
+constexpr std::size_t fuse_one_enum(std::size_t hash, E value) noexcept {
+  // Add 1 to prevent matching 2D fusions with 3D fusions etc.
+  std::size_t index = enum_index(value).has_value() ? enum_index(value).value() + 1 : 0;
+  return (hash << detail::log2(enum_count<E>() + 1)) | index;
+}
+
+template <typename E>
+constexpr std::size_t fuse_enum(E value) noexcept {
+  return fuse_one_enum(0, value);
+}
+
+template <typename E, typename ... Es>
+constexpr std::size_t fuse_enum(E head, Es ... tail) noexcept {
+  return fuse_one_enum(fuse_enum(tail...), head);
+}
+
+} // namespace magic_enum::fusion_detail
+
+// Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
+template <typename... Es>
+[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
+  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
+  static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= sizeof(std::size_t) * 8, "magic_enum::enum_fuse does not work for long enums");
+  const bool has_values = (enum_index(values).has_value() && ...);
+#if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
+  if (std::is_constant_evaluated() && !has_values) {
+    throw std::logic_error{"magic_enum::enum_fuse accepts only in-range enum values"};
+  }
+#endif
+  return assert(has_values), (has_values ? fusion_detail::fuse_enum(values...) : 0);
 }
 
 namespace ostream_operators {
