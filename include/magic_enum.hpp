@@ -910,18 +910,23 @@ template <typename E>
 namespace fusion_detail {
 
 template <typename E>
-constexpr std::size_t fuse_one_enum(std::size_t hash, E value) noexcept {
-  // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-  return (hash << detail::log2(enum_count<E>() + 1)) | (enum_index(value).value() + 1);
+constexpr std::optional<std::size_t> fuse_one_enum(std::optional<std::size_t> hash, E value) noexcept {
+  if (hash.has_value()) {
+    if (const auto index = enum_index(value); index.has_value()) {
+      // Add 1 to prevent matching 2D fusions with 3D fusions etc.
+      return (hash.value() << detail::log2(enum_count<E>() + 1)) | (index.value() + 1);
+    }
+  }
+  return std::nullopt;
 }
 
 template <typename E>
-constexpr std::size_t fuse_enum(E value) noexcept {
+constexpr std::optional<std::size_t> fuse_enum(E value) noexcept {
   return fuse_one_enum(0, value);
 }
 
 template <typename E, typename... Es>
-constexpr std::size_t fuse_enum(E head, Es... tail) noexcept {
+constexpr std::optional<std::size_t> fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
@@ -932,12 +937,8 @@ template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::size_t>> {
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::size_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-  const bool has_values = (enum_index(values).has_value() && ...);
-  if (has_values) {
-    return fusion_detail::fuse_enum(values...);
-  } else {
-    return assert(has_values), std::nullopt;
-  }
+  const auto fuse = fusion_detail::fuse_enum(values...);
+  return assert(fuse.has_value()), fuse;
 }
 
 namespace ostream_operators {
