@@ -912,8 +912,7 @@ namespace fusion_detail {
 template <typename E>
 constexpr std::size_t fuse_one_enum(std::size_t hash, E value) noexcept {
   // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-  std::size_t index = enum_index(value).has_value() ? (enum_index(value).value() + 1) : 0;
-  return (hash << detail::log2(enum_count<E>() + 1)) | index;
+  return (hash << detail::log2(enum_count<E>() + 1)) | (enum_index(value).value() + 1);
 }
 
 template <typename E>
@@ -930,16 +929,15 @@ constexpr std::size_t fuse_enum(E head, Es... tail) noexcept {
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::size_t>{
+[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::size_t>> {
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::size_t) * 8), "magic_enum::enum_fuse does not work for large enums");
   const bool has_values = (enum_index(values).has_value() && ...);
-#if defined(__cpp_lib_is_constant_evaluated) &&  (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined(_HAS_EXCEPTIONS) && _HAS_EXCEPTIONS))
-  if (std::is_constant_evaluated() && !has_values) {
-    throw std::logic_error{"magic_enum::enum_fuse accepts only in-range enum values"};
+  if (has_values) {
+    return fusion_detail::fuse_enum(values...);
+  } else {
+    return assert(has_values), std::nullopt;
   }
-#endif
-  return assert(has_values), (has_values ? fusion_detail::fuse_enum(values...) : 0);
 }
 
 namespace ostream_operators {
