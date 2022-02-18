@@ -534,7 +534,7 @@ constexpr auto names(std::index_sequence<I...>) noexcept {
 }
 
 template <typename E>
-inline constexpr auto names_v = names<E>(std::make_index_sequence<count_v<E>>{});
+inline constexpr std::array names_v = names<E>(std::make_index_sequence<count_v<E>>{});
 
 template <typename E, typename D = std::decay_t<E>>
 using names_t = decltype((names_v<D>));
