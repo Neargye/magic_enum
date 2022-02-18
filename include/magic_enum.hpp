@@ -662,6 +662,10 @@ constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable
   }
 }
 
+enum class try_index_invoke_t : bool {
+    no = false, yes = true
+};
+
 template<typename DefaultResultType = void>
 constexpr auto default_result_type_lambda = [] { return DefaultResultType{}; };
 template<>
@@ -679,7 +683,8 @@ constexpr auto default_result_type_lambda<void> = [] {};
 #define MAGIC_ENUM_CASE(val)                                                                                                \
   case cases[val]:                                                                                                          \
     if constexpr ((val) + page < size) {                                                                                    \
-      if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)             \
+      if constexpr (try_index_invoke == try_index_invoke_t::yes &&                                                          \
+          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)                       \
         return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, (val) + page>{});       \
       else if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<EnumType, values[(val) + page]>>)   \
         return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<EnumType, values[(val) + page]>{});  \
@@ -688,7 +693,7 @@ constexpr auto default_result_type_lambda<void> = [] {};
       [[fallthrough]];                                                                                                      \
     }
 
-template<std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
+template<try_index_invoke_t try_index_invoke = try_index_invoke_t::no, std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
 static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, ResultGetterType&& def = default_result_type_lambda<>)
   -> std::invoke_result_t<ResultGetterType> {
   using U = typename underlying_type<EnumType>::type;
@@ -702,7 +707,7 @@ static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, Resul
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
   default:
     if constexpr (size > 256 + page) {
-      return constexpr_switch<page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
+      return constexpr_switch<try_index_invoke, page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
     }
   }
   return def();
@@ -794,8 +799,8 @@ template <typename E>
   using U = underlying_type_t<D>;
 
   if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
-    return detail::constexpr_switch([](std::size_t index) { return optional<std::size_t>{index}; }, value,
-                                    detail::default_result_type_lambda<optional<std::size_t>>);
+    return detail::constexpr_switch<detail::try_index_invoke_t::yes>([](std::size_t index) { return optional<std::size_t>{index}; }, value,
+                                                                     detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
