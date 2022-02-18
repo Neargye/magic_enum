@@ -809,7 +809,7 @@ template <typename E>
 // allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
 inline constexpr auto case_insensitive = [](char lhs, auto rhs) noexcept -> bool {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-    static_assert(!std::is_same_v<decltype(lhs), decltype(rhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
+    static_assert(!std::is_same_v<decltype(rhs), decltype(rhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
 #endif
     return detail::to_lower(lhs) == detail::to_lower(rhs);
 };
