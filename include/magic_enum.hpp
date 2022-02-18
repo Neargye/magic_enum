@@ -336,11 +336,11 @@ constexpr auto n() noexcept {
 #  elif defined(_MSC_VER)
       constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #  else
-      constexpr std::string_view name = "";
+      constexpr string_view name = "";
 #  endif
       return static_string<name.size()>{name};
   } else {
-      return std::string_view{}; // Unsupported compiler.
+      return string_view{}; // Unsupported compiler.
   }
 }
 
