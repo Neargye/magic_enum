@@ -351,20 +351,21 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  constexpr auto custom_name = customize::enum_name<E>(V);
+  [[maybe_unused]] constexpr auto custom_name = customize::enum_name<E>(V);
 
   if constexpr (custom_name.empty()) {
-    static_cast<void>(custom_name);
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-#  if defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#  elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#  endif
-    return static_string<name.size()>{name};
+    if constexpr (supported<E>::value) {
+#if defined(__clang__) || defined(__GNUC__)
+      constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(_MSC_VER)
+      constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-    return string_view{}; // Unsupported compiler.
+      constexpr auto name = string_view{};
 #endif
+      return static_string<name.size()>{name};
+    } else {
+      return string_view{}; // Unsupported compiler.
+    }
   } else {
     return static_string<custom_name.size()>{custom_name};
   }
