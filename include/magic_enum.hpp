@@ -788,9 +788,8 @@ template <typename E>
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
       return static_cast<std::size_t>(v - detail::min_v<D>);
     }
+    return {}; // Invalid value or out of range.
   }
-
-  return {}; // Invalid value or out of range.
 }
 
 // Returns name from static storage enum variable.
@@ -876,6 +875,7 @@ template <typename E>
       if (check_value != 0 && check_value == value) {
         return static_cast<D>(value);
       }
+      return {}; // Invalid value or out of range.
     } else {
       return detail::constexpr_switch([](D value) { return optional<D>{value}; }, static_cast<D>(value),
                                       detail::default_result_type_lambda<optional<D>>);
@@ -887,9 +887,8 @@ template <typename E>
     if (value >= min && value <= max) {
       return static_cast<D>(value);
     }
+    return {}; // Invalid value or out of range.
   }
-
-  return {}; // Invalid value or out of range.
 }
 
 // Obtains enum value from name.
