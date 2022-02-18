@@ -237,7 +237,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 }
 
 template<typename CharType>
-constexpr auto to_lower(CharType ch) noexcept -> std::enable_if_t<std::is_same_v<CharType, char>, char> {
+constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if_t<std::is_same_v<CharType, char>, char> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.");
 #else
@@ -807,9 +807,10 @@ template <typename E>
 }
 
 // allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
-inline constexpr auto case_insensitive = [](char lhs, auto rhs) noexcept -> bool {
+inline constexpr auto case_insensitive = []([[maybe_unused]] auto lhs, [[maybe_unused]] auto rhs) noexcept
+        -> std::enable_if_t<std::is_same_v<decltype(lhs), char> && std::is_same_v<decltype(rhs), char>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-    static_assert(!std::is_same_v<decltype(rhs), decltype(rhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
+    static_assert(!std::is_same_v<decltype(lhs), decltype(lhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
 #endif
     return detail::to_lower(lhs) == detail::to_lower(rhs);
 };
