@@ -172,12 +172,6 @@ struct range_max : std::integral_constant<int, MAGIC_ENUM_RANGE_MAX> {};
 template <typename T>
 struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std::integral_constant<decltype(customize::enum_range<T>::max), customize::enum_range<T>::max> {};
 
-struct char_equal_to {
-  constexpr bool operator()(char lhs, char rhs) const noexcept {
-    return lhs == rhs;
-  }
-};
-
 template <std::size_t N>
 class static_string {
  public:
@@ -281,7 +275,9 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
 #else
   constexpr bool workaround = false;
 #endif
-  constexpr bool custom_predicate = std::negation_v<std::is_same<std::decay_t<BinaryPredicate>, char_equal_to>>;
+  constexpr bool custom_predicate =
+    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
+    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
   if constexpr (custom_predicate || workaround) {
     if (lhs.size() != rhs.size()) {
@@ -817,7 +813,7 @@ inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
 
 // Obtains enum value from name.
 // Returns optional with enum value.
-template <typename E, typename BinaryPredicate = detail::char_equal_to>
+template <typename E, typename BinaryPredicate = std::equal_to<char>>
 [[nodiscard]] constexpr auto enum_cast(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
@@ -901,7 +897,7 @@ template <typename E>
 }
 
 // Checks whether enum contains enumerator with such name.
-template <typename E, typename BinaryPredicate = detail::char_equal_to>
+template <typename E, typename BinaryPredicate = std::equal_to<char>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
 
