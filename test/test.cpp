@@ -383,7 +383,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<const Directions>(dr2, case_insensitive));
     REQUIRE(enum_contains<Directions&>("up", case_insensitive));
     REQUIRE(enum_contains<Directions>("dOwN", case_insensitive));
-    REQUIRE_FALSE(enum_contains<Directions>("Left-"));
+    REQUIRE_FALSE(enum_contains<Directions>("Left-", case_insensitive));
 #endif
 
     constexpr auto nt = enum_contains<number>("three");
