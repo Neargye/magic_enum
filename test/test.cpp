@@ -94,6 +94,9 @@ constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) 
   }
 }
 
+template<>
+constexpr std::string_view magic_enum::customize::enum_name_v<Binary, Binary::ONE> = "1";
+
 using namespace magic_enum;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
@@ -569,7 +572,7 @@ TEST_CASE("enum_name") {
     REQUIRE(nt_name == "three");
     REQUIRE(enum_name<number::four>() == "four");
 
-    REQUIRE(enum_name<Binary::ONE>() == "ONE");
+    REQUIRE(enum_name<Binary::ONE>() == "1");
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
   }
 }

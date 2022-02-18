@@ -118,6 +118,11 @@ MAGIC_ENUM_USING_ALIAS_STRING
 using std::string;
 #endif
 
+namespace detail {
+template <typename E, E V>
+constexpr auto n() noexcept;
+}
+
 namespace customize {
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
@@ -141,6 +146,10 @@ constexpr string_view enum_name(E) noexcept {
 
   return {};
 }
+
+// If need custom name only for one enum, add specialization enum_name_v for that instance.
+template <typename E, E V>
+inline constexpr auto enum_name_v = detail::n<E, V>();
 
 } // namespace magic_enum::customize
 
@@ -367,9 +376,6 @@ constexpr auto n() noexcept {
   }
 }
 
-template <typename E, E V>
-inline constexpr auto enum_name_v = n<E, V>();
-
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
@@ -528,7 +534,7 @@ template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
 
-  return std::array<string_view, sizeof...(I)>{{enum_name_v<E, values_v<E>[I]>...}};
+  return std::array<string_view, sizeof...(I)>{{customize::enum_name_v<E, values_v<E>[I]>...}};
 }
 
 template <typename E>
@@ -541,7 +547,7 @@ template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
-  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{values_v<E>[I], enum_name_v<E, values_v<E>[I]>}...}};
+  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{values_v<E>[I], customize::enum_name_v<E, values_v<E>[I]>}...}};
 }
 
 template <typename E>
@@ -688,7 +694,7 @@ template <typename E>
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
-  constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>;
+  constexpr string_view name = customize::enum_name_v<std::decay_t<decltype(V)>, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
