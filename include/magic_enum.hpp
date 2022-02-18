@@ -667,13 +667,13 @@ constexpr auto default_result_type_lambda<void> = [] {};
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
-#define MAGIC_ENUM_CASE(val)                                                                                 \
-  case cases[val]:                                                                                           \
-    if constexpr (constexpr std::size_t index = (val) + page; index < size) {                                \
-      if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, index>>)                 \
-         return lambda(std::integral_constant<std::size_t, index>{});                                        \
-      else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<EnumType, values[index]>>)       \
-         return lambda(std::integral_constant<EnumType, values[index]>{});                                   \
+#define MAGIC_ENUM_CASE(val)                                                                                        \
+  case cases[val]:                                                                                                  \
+    if constexpr ((val) + page < size) {                                                                            \
+      if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, (val) + page>>)                 \
+         return lambda(std::integral_constant<std::size_t, (val) + page>{});                                        \
+      else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<EnumType, values[(val) + page]>>)       \
+         return lambda(std::integral_constant<EnumType, values[(val) + page]>{});                                   \
     } break;
 
 template<std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
