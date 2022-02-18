@@ -127,6 +127,12 @@ TEST_CASE("enum_cast") {
     REQUIRE(lang.value() == Language::日本語);
     REQUIRE(enum_cast<Language>("😃").value() == Language::😃);
     REQUIRE_FALSE(enum_cast<Language>("Französisch").has_value());
+#else // !defined(MAGIC_ENUM_ENABLE_NONASCII)
+    constexpr auto dr2 = enum_cast<Directions>("RIGHT", case_insensitive);
+    REQUIRE(dr2.value() == Directions::Right);
+    REQUIRE(enum_cast<Directions&>("up", case_insensitive).value() == Directions::Up);
+    REQUIRE(enum_cast<const Directions>("dOwN", case_insensitive).value() == Directions::Down);
+    REQUIRE_FALSE(enum_cast<Directions>("Left-", case_insensitive).has_value());
 #endif
 
     constexpr auto nt = enum_cast<number>("three");
@@ -372,6 +378,12 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<const Language>(lang));
     REQUIRE(enum_contains<Language>("😃"));
     REQUIRE_FALSE(enum_contains<Language>("None"));
+#else
+    auto dr2 = std::string{"RIGHT"};
+    REQUIRE(enum_contains<const Directions>(dr2, case_insensitive));
+    REQUIRE(enum_contains<Directions&>("up", case_insensitive));
+    REQUIRE(enum_contains<Directions>("dOwN", case_insensitive));
+    REQUIRE_FALSE(enum_contains<Directions>("Left-"));
 #endif
 
     constexpr auto nt = enum_contains<number>("three");
