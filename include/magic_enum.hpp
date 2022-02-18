@@ -688,7 +688,7 @@ static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, Resul
   switch (static_cast<switch_t>(static_cast<U>(searched))) {
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
   default:
-    if constexpr (size > 256 - page) {
+    if constexpr (size > 256 + page) {
       return constexpr_switch<page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
     }
   }
@@ -782,7 +782,7 @@ template <typename E>
 
   if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
     return detail::constexpr_switch([](std::size_t index) { return optional<std::size_t>{index}; }, value,
-                             detail::default_result_type_lambda<optional<std::size_t>>);
+                                    detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
