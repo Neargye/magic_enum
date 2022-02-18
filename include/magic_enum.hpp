@@ -330,17 +330,18 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+
   if constexpr (supported<E>::value) {
-#  if defined(__clang__) || defined(__GNUC__)
-      constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#  elif defined(_MSC_VER)
-      constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#  else
-      constexpr string_view name = "";
-#  endif
-      return static_string<name.size()>{name};
+#if defined(__clang__) || defined(__GNUC__)
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(_MSC_VER)
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+#else
+    constexpr auto name = string_view{};
+#endif
+    return static_string<name.size()>{name};
   } else {
-      return string_view{}; // Unsupported compiler.
+    return string_view{}; // Unsupported compiler.
   }
 }
 
@@ -949,13 +950,14 @@ template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
+
   if constexpr (detail::supported<D>::value) {
-      if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
-          for (const auto c : name) {
-              os.put(c);
-          }
-          return os;
+    if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
+      for (const auto c : name) {
+        os.put(c);
       }
+      return os;
+    }
   }
   return (os << static_cast<U>(value));
 }
