@@ -634,8 +634,8 @@ constexpr auto calculate_cases(std::size_t page) {
   bool reached_max = false;
   auto it = result.begin();
   for (std::size_t i = values_to; i < 256; ++i) {
-    if (last_value == std::numeric_limits<U>::max()) {
-      last_value = std::numeric_limits<U>::min();
+    if (last_value == (std::numeric_limits<U>::max)()) {
+      last_value = (std::numeric_limits<U>::min)();
       reached_max = true;
     } else if (!reached_max) {
       result[i] = ++last_value;
@@ -674,7 +674,10 @@ constexpr auto default_result_type_lambda<void> = [] {};
          return lambda(std::integral_constant<std::size_t, (val) + page>{});                                        \
       else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<EnumType, values[(val) + page]>>)       \
          return lambda(std::integral_constant<EnumType, values[(val) + page]>{});                                   \
-    } break;
+      break;                                                                                                        \
+    } else {                                                                                                        \
+      [[fallthrough]];                                                                                              \
+    }
 
 template<std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
 static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, ResultGetterType&& def = default_result_type_lambda<>)
