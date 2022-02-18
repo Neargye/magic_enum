@@ -809,8 +809,9 @@ inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
   static_assert(!std::is_same_v<decltype(lhs), decltype(lhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
   return {};
-#endif
+#else
   return detail::to_lower(lhs) == detail::to_lower(rhs);
+#endif
 };
 
 // Obtains enum value from name.
