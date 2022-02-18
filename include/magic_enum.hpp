@@ -330,16 +330,19 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-#  if defined(__clang__) || defined(__GNUC__)
-  constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#  elif defined(_MSC_VER)
-  constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#  endif
-  return static_string<name.size()>{name};
+
+  if constexpr (supported<E>::value) {
+#if defined(__clang__) || defined(__GNUC__)
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(_MSC_VER)
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-  return string_view{}; // Unsupported compiler.
+    constexpr auto name = string_view{};
 #endif
+    return static_string<name.size()>{name};
+  } else {
+    return string_view{}; // Unsupported compiler.
+  }
 }
 
 template <typename E>
@@ -348,20 +351,21 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  constexpr auto custom_name = customize::enum_name<E>(V);
+  [[maybe_unused]] constexpr auto custom_name = customize::enum_name<E>(V);
 
   if constexpr (custom_name.empty()) {
-    static_cast<void>(custom_name);
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-#  if defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
-#  elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
-#  endif
-    return static_string<name.size()>{name};
+    if constexpr (supported<E>::value) {
+#if defined(__clang__) || defined(__GNUC__)
+      constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(_MSC_VER)
+      constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-    return string_view{}; // Unsupported compiler.
+      constexpr auto name = string_view{};
 #endif
+      return static_string<name.size()>{name};
+    } else {
+      return string_view{}; // Unsupported compiler.
+    }
   } else {
     return static_string<custom_name.size()>{custom_name};
   }
@@ -510,7 +514,7 @@ template <typename E>
 inline constexpr bool is_flags_v = is_flags_enum<E>();
 
 template <typename E>
-inline constexpr auto values_v = values<E, is_flags_v<E>>();
+inline constexpr std::array values_v = values<E, is_flags_v<E>>();
 
 template <typename E, typename D = std::decay_t<E>>
 using values_t = decltype((values_v<D>));
@@ -532,7 +536,7 @@ constexpr auto names(std::index_sequence<I...>) noexcept {
 }
 
 template <typename E>
-inline constexpr auto names_v = names<E>(std::make_index_sequence<count_v<E>>{});
+inline constexpr std::array names_v = names<E>(std::make_index_sequence<count_v<E>>{});
 
 template <typename E, typename D = std::decay_t<E>>
 using names_t = decltype((names_v<D>));
@@ -545,7 +549,7 @@ constexpr auto entries(std::index_sequence<I...>) noexcept {
 }
 
 template <typename E>
-inline constexpr auto entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
+inline constexpr std::array entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
 
 template <typename E, typename D = std::decay_t<E>>
 using entries_t = decltype((entries_v<D>));
@@ -871,7 +875,7 @@ template <typename E>
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
-      return static_cast<std::size_t>(v - detail::min_v<E>);
+      return static_cast<std::size_t>(v - detail::min_v<D>);
     }
   }
 
@@ -947,14 +951,15 @@ template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED
-  if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
-    for (const auto c : name) {
-      os.put(c);
+
+  if constexpr (detail::supported<D>::value) {
+    if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
+      for (const auto c : name) {
+        os.put(c);
+      }
+      return os;
     }
-    return os;
   }
-#endif
   return (os << static_cast<U>(value));
 }
 
