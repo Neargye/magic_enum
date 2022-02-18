@@ -239,7 +239,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 template<typename CharType>
 constexpr auto to_lower(CharType ch) noexcept -> std::enable_if_t<std::is_same_v<CharType, char>, char> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-    static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.")
+    static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.");
 #else
     return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
 #endif
