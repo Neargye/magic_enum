@@ -680,9 +680,9 @@ constexpr auto default_result_type_lambda<void> = [] {};
   case cases[val]:                                                                                                          \
     if constexpr ((val) + page < size) {                                                                                    \
       if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)             \
-         return invoke_r<result_t>(lambda, std::integral_constant<std::size_t, (val) + page>{});                            \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, (val) + page>{});       \
       else if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<EnumType, values[(val) + page]>>)   \
-         return invoke_r<result_t>(lambda, std::integral_constant<EnumType, values[(val) + page]>{});                       \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<EnumType, values[(val) + page]>{});  \
       break;                                                                                                                \
     } else {                                                                                                                \
       [[fallthrough]];                                                                                                      \
