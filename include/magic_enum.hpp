@@ -653,6 +653,15 @@ constexpr auto calculate_cases(std::size_t page) {
   return result;
 }
 
+template< class R, class F, class... Args >
+constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
+    if constexpr (std::is_void_v<R>) {
+        std::forward<F>(f)(std::forward<Args>(args)...);
+    } else {
+        return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));
+    }
+}
+
 template<typename DefaultResultType = void>
 constexpr auto default_result_type_lambda = [] { return DefaultResultType{}; };
 template<>
@@ -667,16 +676,16 @@ constexpr auto default_result_type_lambda<void> = [] {};
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
-#define MAGIC_ENUM_CASE(val)                                                                                        \
-  case cases[val]:                                                                                                  \
-    if constexpr ((val) + page < size) {                                                                            \
-      if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, (val) + page>>)                 \
-         return lambda(std::integral_constant<std::size_t, (val) + page>{});                                        \
-      else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<EnumType, values[(val) + page]>>)       \
-         return lambda(std::integral_constant<EnumType, values[(val) + page]>{});                                   \
-      break;                                                                                                        \
-    } else {                                                                                                        \
-      [[fallthrough]];                                                                                              \
+#define MAGIC_ENUM_CASE(val)                                                                                                \
+  case cases[val]:                                                                                                          \
+    if constexpr ((val) + page < size) {                                                                                    \
+      if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)             \
+         return invoke_r<result_t>(lambda, std::integral_constant<std::size_t, (val) + page>{});                            \
+      else if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<EnumType, values[(val) + page]>>)   \
+         return invoke_r<result_t>(lambda, std::integral_constant<EnumType, values[(val) + page]>{});                       \
+      break;                                                                                                                \
+    } else {                                                                                                                \
+      [[fallthrough]];                                                                                                      \
     }
 
 template<std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
@@ -684,6 +693,7 @@ static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, Resul
   -> std::invoke_result_t<ResultGetterType> {
   using U = typename underlying_type<EnumType>::type;
   using switch_t = switch_type_t<EnumType>;
+  using result_t = std::invoke_result_t<ResultGetterType>;
   constexpr std::array values = values_v<EnumType>;
   constexpr std::size_t size = values.size();
   constexpr std::array cases = calculate_cases<EnumType>(page);
