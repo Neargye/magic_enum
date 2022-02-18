@@ -655,11 +655,11 @@ constexpr auto calculate_cases(std::size_t page) {
 
 template< class R, class F, class... Args >
 constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
-    if constexpr (std::is_void_v<R>) {
-        std::forward<F>(f)(std::forward<Args>(args)...);
-    } else {
-        return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));
-    }
+  if constexpr (std::is_void_v<R>) {
+    std::forward<F>(f)(std::forward<Args>(args)...);
+  } else {
+    return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));
+  }
 }
 
 template<typename DefaultResultType = void>
