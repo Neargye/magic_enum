@@ -172,12 +172,6 @@ struct range_max : std::integral_constant<int, MAGIC_ENUM_RANGE_MAX> {};
 template <typename T>
 struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std::integral_constant<decltype(customize::enum_range<T>::max), customize::enum_range<T>::max> {};
 
-struct char_equal_to {
-  constexpr bool operator()(char lhs, char rhs) const noexcept {
-    return lhs == rhs;
-  }
-};
-
 template <std::size_t N>
 class static_string {
  public:
@@ -236,6 +230,16 @@ constexpr string_view pretty_name(string_view name) noexcept {
   return {}; // Invalid name.
 }
 
+template<typename CharType>
+constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<CharType>, char>, char> {
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+  static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.");
+  return {};
+#else
+  return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
+#endif
+}
+
 constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
@@ -264,7 +268,7 @@ constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequ
 }
 
 template <typename BinaryPredicate>
-constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
+constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
 #if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
   // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
   // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
@@ -272,7 +276,9 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 #else
   constexpr bool workaround = false;
 #endif
-  constexpr bool custom_predicate = std::negation_v<std::is_same<std::decay_t<BinaryPredicate>, char_equal_to>>;
+  constexpr bool custom_predicate =
+    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
+    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
   if constexpr (custom_predicate || workaround) {
     if (lhs.size() != rhs.size()) {
@@ -288,8 +294,6 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, BinaryPredicate&& p) 
 
     return true;
   } else {
-    static_cast<void>(p);
-
     return lhs == rhs;
   }
 }
@@ -909,10 +913,21 @@ template <typename E>
   }
 }
 
+// allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
+inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
+        -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(lhs)>, char> && std::is_same_v<std::decay_t<decltype(rhs)>, char>, bool> {
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+  static_assert(!std::is_same_v<decltype(lhs), decltype(lhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
+  return {};
+#else
+  return detail::to_lower(lhs) == detail::to_lower(rhs);
+#endif
+};
+
 // Obtains enum value from name.
 // Returns optional with enum value.
-template <typename E, typename BinaryPredicate>
-[[nodiscard]] constexpr auto enum_cast(string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
+template <typename E, typename BinaryPredicate = std::equal_to<char>>
+[[nodiscard]] constexpr auto enum_cast(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
@@ -950,15 +965,6 @@ template <typename E, typename BinaryPredicate>
   return {}; // Invalid value or out of range.
 }
 
-// Obtains enum value from name.
-// Returns optional with enum value.
-template <typename E>
-[[nodiscard]] constexpr auto enum_cast(string_view value) noexcept -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
-  using D = std::decay_t<E>;
-
-  return enum_cast<D>(value, detail::char_equal_to{});
-}
-
 // Returns integer value from enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
@@ -981,23 +987,17 @@ template <typename E>
 }
 
 // Checks whether enum contains enumerator with such name.
-template <typename E, typename BinaryPredicate>
-[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
+template <typename E, typename BinaryPredicate = std::equal_to<char>>
+[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
 
   return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
 }
 
-// Checks whether enum contains enumerator with such name.
-template <typename E>
-[[nodiscard]] constexpr auto enum_contains(string_view value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  return enum_cast<std::decay_t<E>>(value).has_value();
-}
-
 namespace fusion_detail {
 
 template <typename E>
-constexpr std::optional<std::size_t> fuse_one_enum(std::optional<std::size_t> hash, E value) noexcept {
+constexpr std::optional<std::uintmax_t> fuse_one_enum(std::optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
       // Add 1 to prevent matching 2D fusions with 3D fusions etc.
@@ -1008,12 +1008,12 @@ constexpr std::optional<std::size_t> fuse_one_enum(std::optional<std::size_t> ha
 }
 
 template <typename E>
-constexpr std::optional<std::size_t> fuse_enum(E value) noexcept {
+constexpr std::optional<std::uintmax_t> fuse_enum(E value) noexcept {
   return fuse_one_enum(0, value);
 }
 
 template <typename E, typename... Es>
-constexpr std::optional<std::size_t> fuse_enum(E head, Es... tail) noexcept {
+constexpr std::optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
@@ -1021,9 +1021,9 @@ constexpr std::optional<std::size_t> fuse_enum(E head, Es... tail) noexcept {
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::size_t>> {
+[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::uintmax_t>> {
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
-  static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::size_t) * 8), "magic_enum::enum_fuse does not work for large enums");
+  static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
   const auto fuse = fusion_detail::fuse_enum(values...);
   return assert(fuse.has_value()), fuse;
 }
