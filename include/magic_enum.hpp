@@ -917,8 +917,7 @@ template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
-      // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-      return (hash.value() << detail::log2(enum_count<E>() + 1)) | (index.value() + 1);
+      return (hash.value() << detail::log2(enum_count<E>() + 1)) | index.value();
     }
   }
   return {};
@@ -934,6 +933,15 @@ constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
+template <typename... Es>
+constexpr auto typesafe_fuse_enum(Es... values) noexcept {
+  enum class Enum : std::uintmax_t { };
+  auto hash = fuse_enum(values...);
+  if (hash.has_value())
+    return optional(static_cast<Enum>(hash.value()));
+  return optional<Enum>{};
+}
+
 } // namespace magic_enum::fusion_detail
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
@@ -942,7 +950,7 @@ template <typename... Es>
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse works only with enums");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-  const auto fuse = fusion_detail::fuse_enum(values...);
+  const auto fuse = fusion_detail::typesafe_fuse_enum(values...);
   return assert(fuse.has_value()), fuse;
 }
 
