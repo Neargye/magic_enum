@@ -318,6 +318,17 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   }
 }
 
+constexpr std::size_t hash_string(string_view to_hash) {
+  auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
+
+  for (char c : to_hash) {
+    result ^= c;
+    result *= static_cast<std::size_t>(1099511628211); // FNV prime
+  }
+
+  return result;
+}
+
 template <typename I>
 constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
@@ -546,6 +557,19 @@ template <typename E, typename D = std::decay_t<E>>
 using names_t = decltype((names_v<D>));
 
 template <typename E, std::size_t... I>
+constexpr auto name_hashes(std::index_sequence<I...>) noexcept {
+    static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
+
+    return std::array<std::size_t, sizeof...(I)>{{ hash_string(enum_name_v<E, values_v<E>[I]>)... }};
+}
+
+template <typename E>
+inline constexpr std::array name_hashes_v = name_hashes<E>(std::make_index_sequence<count_v<E>>{});
+
+template <typename E, typename D = std::decay_t<E>>
+using name_hashes_t = decltype((name_hashes_v<D>));
+
+template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
@@ -620,26 +644,22 @@ struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 template <typename EnumType>
 using switch_type_t = std::conditional_t<std::is_same_v<bool, typename underlying_type<EnumType>::type>, std::uint8_t, typename underlying_type<EnumType>::type>;
 
-template<typename EnumType>
-constexpr auto calculate_cases(std::size_t page) {
-  using U = typename underlying_type<EnumType>::type;
-  using switch_t = switch_type_t<EnumType>;
-  constexpr std::array values = values_v<EnumType>;
-  constexpr std::size_t size = values.size();
+template<typename ResultType, typename EnumType, std::size_t size>
+constexpr auto calculate_cases(std::size_t page, const std::array<EnumType, size>& values) {
   const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - page);
 
-  std::array<switch_t, 256> result{};
+  std::array<ResultType, 256> result{};
   for (std::size_t i = 0; i < values_to; ++i) {
-    result[i] = static_cast<switch_t>(static_cast<U>(values[i + page]));
+    result[i] = static_cast<ResultType>(values[i + page]);
   }
 
   // dead cases, try to avoid case collisions
-  switch_t last_value = result[values_to-1];
+  ResultType last_value = result[values_to-1];
   bool reached_max = false;
   auto it = result.begin();
   for (std::size_t i = values_to; i < 256; ++i) {
-    if (last_value == (std::numeric_limits<U>::max)()) {
-      last_value = (std::numeric_limits<U>::min)();
+    if (last_value == (std::numeric_limits<ResultType>::max)()) {
+      last_value = (std::numeric_limits<ResultType>::min)();
       reached_max = true;
     } else if (!reached_max) {
       result[i] = ++last_value;
@@ -684,34 +704,55 @@ constexpr auto default_result_type_lambda<void> = [] {};
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
-#define MAGIC_ENUM_CASE(val)                                                                                                \
-  case cases[val]:                                                                                                          \
-    if constexpr ((val) + page < size) {                                                                                    \
-      if constexpr (try_index_invoke == try_index_invoke_t::yes &&                                                          \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)                       \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, (val) + page>{});       \
-      else if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<EnumType, values[(val) + page]>>)   \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<EnumType, values[(val) + page]>{});  \
-      break;                                                                                                                \
-    } else {                                                                                                                \
-      [[fallthrough]];                                                                                                      \
+#define MAGIC_ENUM_CASE(val)                                                                                            \
+  case cases[val]:                                                                                                      \
+    if constexpr ((val) + page < size) {                                                                                \
+      if constexpr (try_index_invoke == try_index_invoke_t::yes &&                                                      \
+          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)                   \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, (val) + page>{});   \
+      else if constexpr (std::is_invocable_r_v<result_t, Lambda,                                                        \
+          std::integral_constant<std::decay_t<decltype(values[(val) + page])>, values[(val) + page]>>)                  \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda),                                                         \
+          std::integral_constant<std::decay_t<decltype(values[(val) + page])>, values[(val) + page]>{});                \
+      break;                                                                                                            \
+    } else {                                                                                                            \
+      [[fallthrough]];                                                                                                  \
     }
 
 template<try_index_invoke_t try_index_invoke = try_index_invoke_t::no, std::size_t page = 0, typename Lambda, typename EnumType, typename ResultGetterType = decltype(default_result_type_lambda<>)>
 static constexpr auto constexpr_switch(Lambda&& lambda, EnumType searched, ResultGetterType&& def = default_result_type_lambda<>)
   -> std::invoke_result_t<ResultGetterType> {
-  using U = typename underlying_type<EnumType>::type;
   using switch_t = switch_type_t<EnumType>;
   using result_t = std::invoke_result_t<ResultGetterType>;
   constexpr std::array values = values_v<EnumType>;
   constexpr std::size_t size = values.size();
-  constexpr std::array cases = calculate_cases<EnumType>(page);
+  constexpr std::array cases = calculate_cases<switch_t>(page, values);
 
-  switch (static_cast<switch_t>(static_cast<U>(searched))) {
+  switch (static_cast<switch_t>(searched)) {
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
   default:
     if constexpr (size > 256 + page) {
       return constexpr_switch<try_index_invoke, page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
+    }
+  }
+  return def();
+}
+
+template<typename EnumType, std::size_t page = 0,
+        typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>)>
+static constexpr auto constexpr_switch(Lambda&& lambda, string_view searched, ResultGetterType&& def = default_result_type_lambda<>)
+  -> std::invoke_result_t<ResultGetterType> {
+  constexpr try_index_invoke_t try_index_invoke = try_index_invoke_t::yes;
+  using result_t = std::invoke_result_t<ResultGetterType>;
+  constexpr std::array values = name_hashes_v<EnumType>;
+  constexpr std::size_t size = values.size();
+  constexpr std::array cases = calculate_cases<std::size_t>(page, values);
+
+  switch (hash_string(searched)) {
+    MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
+  default:
+    if constexpr (size > 256 + page) {
+      return constexpr_switch<EnumType, page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
     }
   }
   return def();
@@ -927,7 +968,7 @@ inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
 // Obtains enum value from name.
 // Returns optional with enum value.
 template <typename E, typename BinaryPredicate = std::equal_to<char>>
-[[nodiscard]] constexpr auto enum_cast(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
@@ -954,11 +995,21 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
     if (result != U{0}) {
       return static_cast<D>(result);
     }
+    return {}; // Invalid value or out of range.
   } else {
-    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-      if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
-        return enum_value<D>(i);
+    constexpr bool default_predicate =
+        std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> ||
+        std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
+    if constexpr (default_predicate) {
+      return detail::constexpr_switch<D>([](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; }, value,
+                                         detail::default_result_type_lambda<optional<D>>);
+    } else {
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+        if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
+          return enum_value<D>(i);
+        }
       }
+      return {}; // Invalid value or out of range.
     }
   }
 
