@@ -330,7 +330,7 @@ constexpr string_view enum_type_name() noexcept;
 
 ```cpp
 template <typename... Es>
-[[nodiscard]] constexpr std::size_t enum_fuse(Es... values);
+[[nodiscard]] constexpr optional<std::uintmax_t> enum_fuse(Es... values);
 ```
 
 * Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
@@ -338,9 +338,9 @@ template <typename... Es>
 * Examples
 
   ```cpp
-  switch (magic_enum::enum_fuse(color, direction)) {
-    case magic_enum::enum_fuse(Color::RED, Directions::Up): // ...
-    case magic_enum::enum_fuse(Color::BLUE, Directions::Down): // ...
+  switch (magic_enum::enum_fuse(color, direction).value()) {
+    case magic_enum::enum_fuse(Color::RED, Directions::Up).value(): // ...
+    case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
   // ...
   }
   ```
