@@ -1026,6 +1026,11 @@ TEST_CASE("constexpr_for") {
   });
 }
 
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable : 4064)
+#endif
+
 static int switch_case_2d(Color color, Directions direction) {
   switch (magic_enum::enum_fuse(color, direction).value()) {
     case magic_enum::enum_fuse(Color::RED, Directions::Up).value():
@@ -1049,6 +1054,10 @@ static int switch_case_3d(Color color, Directions direction, Index index) {
       return 0;
   }
 }
+
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
 
 TEST_CASE("multdimensional-switch-case") {
   REQUIRE(switch_case_2d(Color::RED, Directions::Up) == 1);

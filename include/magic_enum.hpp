@@ -935,7 +935,7 @@ constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
 
 template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
-  enum class Enum : std::uintmax_t { };
+  enum class Enum : std::uintmax_t;
   auto hash = fuse_enum(values...);
   if (hash.has_value())
     return optional(static_cast<Enum>(hash.value()));

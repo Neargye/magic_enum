@@ -335,7 +335,9 @@ template <typename... Es>
 
 * Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 
-* Return type is `optional<FusedEnum>` where FusedEnum is an enum. It is unique for any given combination of `Es...`.
+* Return type is `optional<FusedEnum>` where FusedEnum is an incomplete enum. It is unique for any given combination of `Es...`.
+
+* Switch/case statement over an incomplete enum is a Visual Studio warning C4064, so you have to silent or ignore it.
 
 * Examples
 
