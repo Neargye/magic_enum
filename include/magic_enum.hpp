@@ -938,7 +938,8 @@ constexpr std::optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::uintmax_t>> {
+[[nodiscard]] constexpr auto enum_fuse(Es... values) {
+  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse works only with enums");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
   const auto fuse = fusion_detail::fuse_enum(values...);
