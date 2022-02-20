@@ -337,7 +337,9 @@ template <typename... Es>
 
 * Return type is `optional<FusedEnum>` where FusedEnum is an incomplete enum. It is unique for any given combination of `Es...`.
 
-* Switch/case statement over an incomplete enum is a Visual Studio warning C4064, so you have to silent or ignore it.
+* Switch/case statement over an incomplete enum is a Visual Studio warning C4064
+  * You have to silent (/wd4064) or ignore it.
+  * Alternatively, define MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE to disable type-safety (FusedEnum equals std::uintmax_t).
 
 * Examples
 

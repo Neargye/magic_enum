@@ -950,7 +950,11 @@ template <typename... Es>
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse works only with enums");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
+#ifdef MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE
+  const auto fuse = fusion_detail::fuse_enum(values...);
+#else
   const auto fuse = fusion_detail::typesafe_fuse_enum(values...);
+#endif
   return assert(fuse.has_value()), fuse;
 }
 
