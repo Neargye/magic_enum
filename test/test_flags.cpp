@@ -46,6 +46,7 @@ enum class Numbers : int {
   two = 1 << 2,
   three = 1 << 3,
   many = 1 << 30,
+  all = one | two | three,
 };
 
 enum Directions : std::uint64_t {
@@ -82,6 +83,9 @@ struct magic_enum::customize::enum_range<number> {
   static constexpr int min = 100;
   static constexpr int max = 300;
 };
+
+template<>
+constexpr std::string_view magic_enum::customize::enum_name_v<Numbers::all>{};
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
