@@ -84,8 +84,10 @@ struct magic_enum::customize::enum_range<number> {
   static constexpr int max = 300;
 };
 
+namespace magic_enum::customize {
 template<>
-constexpr std::string_view magic_enum::customize::enum_name_v<Numbers::all>{};
+constexpr std::string_view enum_name_v<Numbers::all>{};
+}
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
