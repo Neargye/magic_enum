@@ -17,6 +17,8 @@
 [![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/JPMZqT9mgaUdooyC)
 [![Compiler explorer](https://img.shields.io/badge/compiler_explorer-online-blue.svg)](https://godbolt.org/z/BxfmsH)
 
+If you like this project, please consider donating to one of the funds that help victims of the war in Ukraine: https://www.stopputin.net/.
+
 # Magic Enum C++
 
 Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
