@@ -38,6 +38,8 @@ enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
 
+constexpr auto NumberFour = static_cast<Numbers>(4);
+
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
@@ -100,6 +102,10 @@ constexpr std::string_view enum_name_v<Binary::ONE> = "1";
 
 template<>
 constexpr std::string_view enum_name_v<Numbers::two>{};
+
+template<>
+constexpr std::string_view enum_name_v<NumberFour> = "four";
+
 }
 
 using namespace magic_enum;
@@ -117,6 +123,7 @@ TEST_CASE("enum_cast") {
     constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(enum_cast<Numbers>("three").value() == Numbers::three);
+    REQUIRE(enum_cast<Numbers>("four").value() == NumberFour);
     REQUIRE_FALSE(enum_cast<Numbers>("two").has_value());
     REQUIRE_FALSE(enum_cast<Numbers>("many").has_value());
     REQUIRE_FALSE(enum_cast<Numbers>("None").has_value());
@@ -156,6 +163,7 @@ TEST_CASE("enum_cast") {
     constexpr auto no = enum_cast<Numbers>(1);
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(enum_cast<Numbers>(3).value() == Numbers::three);
+    REQUIRE(enum_cast<Numbers>(4).value() == NumberFour);
     REQUIRE_FALSE(enum_cast<Numbers>(2).has_value());
     REQUIRE_FALSE(enum_cast<Numbers>(127).has_value());
     REQUIRE_FALSE(enum_cast<Numbers>(0).has_value());
@@ -198,6 +206,7 @@ TEST_CASE("enum_integer") {
   REQUIRE(no == 1);
   REQUIRE(enum_integer(Numbers::two) == 2);
   REQUIRE(enum_integer(Numbers::three) == 3);
+  REQUIRE(enum_integer(NumberFour) == 4);
   REQUIRE(enum_integer(Numbers::many) == 127);
   REQUIRE(enum_integer(static_cast<Numbers>(0)) == 0);
 
@@ -239,6 +248,7 @@ TEST_CASE("enum_index") {
   constexpr auto no = enum_index(Numbers::one);
   REQUIRE(no.value() == 0);
   REQUIRE(enum_index(Numbers::three).value() == 1);
+  REQUIRE(enum_index(NumberFour).value() == 2);
   REQUIRE_FALSE(enum_index(Numbers::two).has_value());
   REQUIRE_FALSE(enum_index(Numbers::many).has_value());
   REQUIRE_FALSE(enum_index(static_cast<Numbers>(0)).has_value());
@@ -282,6 +292,7 @@ TEST_CASE("enum_contains") {
     constexpr auto no = enum_contains(Numbers::one);
     REQUIRE(no);
     REQUIRE(enum_contains(Numbers::three));
+    REQUIRE(enum_contains(NumberFour));
     REQUIRE_FALSE(enum_contains(Numbers::two));
     REQUIRE_FALSE(enum_contains(Numbers::many));
     REQUIRE_FALSE(enum_contains(static_cast<Numbers>(0)));
@@ -323,6 +334,7 @@ TEST_CASE("enum_contains") {
     constexpr auto no = enum_integer(Numbers::one);
     REQUIRE(enum_contains<Numbers>(no));
     REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::three)));
+    REQUIRE(enum_contains<Numbers>(enum_integer(NumberFour)));
     REQUIRE_FALSE(enum_contains<Numbers>(enum_integer(Numbers::two)));
     REQUIRE_FALSE(enum_contains<Numbers>(enum_integer(Numbers::many)));
 
@@ -362,6 +374,7 @@ TEST_CASE("enum_contains") {
     constexpr auto no = std::string_view{"one"};
     REQUIRE(enum_contains<Numbers>(no));
     REQUIRE(enum_contains<Numbers>("three"));
+    REQUIRE(enum_contains<Numbers>("four"));
     REQUIRE_FALSE(enum_contains<Numbers>("two"));
     REQUIRE_FALSE(enum_contains<Numbers>("many"));
     REQUIRE_FALSE(enum_contains<Numbers>("None"));
@@ -407,6 +420,7 @@ TEST_CASE("enum_value") {
 
   REQUIRE(enum_value<Numbers, 0>() == Numbers::one);
   REQUIRE(enum_value<Numbers, 1>() == Numbers::three);
+  REQUIRE(enum_value<Numbers, 2>() == NumberFour);
 
   constexpr auto dr = enum_value<Directions>(3);
   REQUIRE(enum_value<Directions&>(0) == Directions::Left);
@@ -444,7 +458,7 @@ TEST_CASE("enum_values") {
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
   constexpr auto& s2 = enum_values<Numbers>();
-  REQUIRE(s2 == std::array<Numbers, 2>{{Numbers::one, Numbers::three}});
+  REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::three, NumberFour}});
 
   constexpr auto& s3 = enum_values<const Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
@@ -469,7 +483,7 @@ TEST_CASE("enum_count") {
   REQUIRE(s1 == 3);
 
   constexpr auto s2 = enum_count<Numbers>();
-  REQUIRE(s2 == 2);
+  REQUIRE(s2 == 3);
 
   constexpr auto s3 = enum_count<const Directions>();
   REQUIRE(s3 == 4);
@@ -504,6 +518,7 @@ TEST_CASE("enum_name") {
     constexpr auto no_name = enum_name(no);
     REQUIRE(no_name == "one");
     REQUIRE(enum_name(Numbers::three) == "three");
+    REQUIRE(enum_name(NumberFour) == "four");
     REQUIRE(enum_name(Numbers::two).empty());
     REQUIRE(enum_name(Numbers::many).empty());
     REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
@@ -549,6 +564,7 @@ TEST_CASE("enum_name") {
     constexpr auto no_name = enum_name<no>();
     REQUIRE(no_name == "one");
     REQUIRE(enum_name<Numbers::three>() == "three");
+    REQUIRE(enum_name<NumberFour>() == "four");
     REQUIRE(enum_name<Numbers::many>() == "many");
 
     constexpr Directions dr = Directions::Right;
@@ -586,7 +602,7 @@ TEST_CASE("enum_names") {
   REQUIRE(s1 == std::array<std::string_view, 3>{{"red", "GREEN", "BLUE"}});
 
   constexpr auto& s2 = enum_names<Numbers>();
-  REQUIRE(s2 == std::array<std::string_view, 2>{{"one", "three"}});
+  REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "three", "four"}});
 
   constexpr auto& s3 = enum_names<const Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
@@ -607,7 +623,7 @@ TEST_CASE("enum_entries") {
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "red"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
   constexpr auto& s2 = enum_entries<Numbers>();
-  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 2>{{{Numbers::one, "one"}, {Numbers::three, "three"}}});
+  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::three, "three"}, {NumberFour, "four"}}});
 
   constexpr auto& s3 = enum_entries<Directions&>();
   REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
@@ -638,6 +654,7 @@ TEST_CASE("ostream_operators") {
   test_ostream(std::make_optional(Numbers::one), "one");
   test_ostream(Numbers::two, "2");
   test_ostream(Numbers::three, "three");
+  test_ostream(NumberFour, "four");
   test_ostream(Numbers::many, "127");
   test_ostream(static_cast<Numbers>(0), "0");
   test_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
@@ -691,7 +708,7 @@ TEST_CASE("bitwise_operators") {
 
   SECTION("operator&") {
     REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
-    REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Numbers::one & NumberFour) == (enum_integer(Numbers::one) & enum_integer(NumberFour)));
     REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     REQUIRE(enum_integer(Language::日本語 & Language::한국어) == (enum_integer(Language::日本語) & enum_integer(Language::한국어)));
@@ -890,7 +907,7 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<Numbers, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<Numbers> == 3);
+    REQUIRE(magic_enum::detail::max_v<Numbers> == 4);
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max_v<Directions, false> == MAGIC_ENUM_RANGE_MAX);
