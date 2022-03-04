@@ -914,7 +914,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 namespace fusion_detail {
 
 template <typename E>
-constexpr std::optional<std::uintmax_t> fuse_one_enum(std::optional<std::uintmax_t> hash, E value) noexcept {
+constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
       // Add 1 to prevent matching 2D fusions with 3D fusions etc.
@@ -925,12 +925,12 @@ constexpr std::optional<std::uintmax_t> fuse_one_enum(std::optional<std::uintmax
 }
 
 template <typename E>
-constexpr std::optional<std::uintmax_t> fuse_enum(E value) noexcept {
+constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
   return fuse_one_enum(0, value);
 }
 
 template <typename E, typename... Es>
-constexpr std::optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
+constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
