@@ -692,9 +692,9 @@ template <typename E>
 
 // Returns name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
-template <auto V>
-[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
-  constexpr string_view name = customize::enum_name_v<decltype(V), V>;
+template <auto V, typename E = decltype(V)>
+[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
+  constexpr string_view name = customize::enum_name_v<E, V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
