@@ -241,25 +241,8 @@ constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if
 }
 
 constexpr std::size_t find(string_view str, char c) noexcept {
-#if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
-// https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
-// https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
-  constexpr bool workaround = true;
-#else
-  constexpr bool workaround = false;
-#endif
-
-  if constexpr (workaround) {
-    for (std::size_t i = 0; i < str.size(); ++i) {
-      if (str[i] == c) {
-        return i;
-      }
-    }
-
-    return string_view::npos;
-  } else {
-    return str.find_first_of(c);
-  }
+  std::size_t pos = std::char_traits<char>::find(str.data(), str.size(), c) - str.data();
+  return pos == str.size() ? std::string_view::npos : pos;
 }
 
 template <typename T, std::size_t N, std::size_t... I>
@@ -269,22 +252,14 @@ constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequ
 
 template <typename BinaryPredicate>
 constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) {
-#if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
-  // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
-  // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
-  constexpr bool workaround = true;
-#else
-  constexpr bool workaround = false;
-#endif
   constexpr bool custom_predicate =
     !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
     !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
-  if constexpr (custom_predicate || workaround) {
-    if (lhs.size() != rhs.size()) {
+  if (lhs.size() != rhs.size()) {
       return false;
-    }
-
+  }
+  if constexpr (custom_predicate) {
     const auto size = lhs.size();
     for (std::size_t i = 0; i < size; ++i) {
       if (!p(lhs[i], rhs[i])) {
@@ -294,7 +269,7 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
 
     return true;
   } else {
-    return lhs == rhs;
+    return std::char_traits<char>::compare(lhs.data(), rhs.data(), lhs.size()) == 0;
   }
 }
 
