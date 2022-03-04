@@ -86,7 +86,7 @@ struct magic_enum::customize::enum_range<number> {
 
 namespace magic_enum::customize {
 template<>
-constexpr std::string_view enum_name_v<Numbers, Numbers::all>{};
+constexpr std::string_view enum_name_v<Numbers::all>{};
 }
 
 using namespace magic_enum;

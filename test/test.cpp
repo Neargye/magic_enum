@@ -96,13 +96,10 @@ constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) 
 
 namespace magic_enum::customize {
 template<>
-constexpr std::string_view enum_name_v<Binary, Binary::ONE> = "1";
+constexpr std::string_view enum_name_v<Binary::ONE> = "1";
 
 template<>
-constexpr std::string_view enum_name_v<MaxUsedAsInvalid, MaxUsedAsInvalid::ONE> = "ONE";
-
-template<>
-constexpr std::string_view enum_name_v<Numbers, Numbers::two>{};
+constexpr std::string_view enum_name_v<Numbers::two>{};
 }
 
 using namespace magic_enum;

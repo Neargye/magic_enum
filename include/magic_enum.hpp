@@ -148,7 +148,7 @@ constexpr string_view enum_name(E) noexcept {
 }
 
 // If need custom name only for one enum, add specialization enum_name_v for that instance.
-template <typename E, E V>
+template <auto V, typename E = decltype(V)>
 inline constexpr auto enum_name_v = detail::n<E, V>();
 
 } // namespace magic_enum::customize
@@ -380,7 +380,7 @@ template <typename E, auto V>
 constexpr bool is_valid() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
 
-  return customize::enum_name_v<E, static_cast<E>(V)>.size() != 0;
+  return customize::enum_name_v<static_cast<E>(V)>.size() != 0;
 }
 
 template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
@@ -534,7 +534,7 @@ template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
 
-  return std::array<string_view, sizeof...(I)>{{customize::enum_name_v<E, values_v<E>[I]>...}};
+  return std::array<string_view, sizeof...(I)>{{customize::enum_name_v<values_v<E>[I]>...}};
 }
 
 template <typename E>
@@ -547,7 +547,7 @@ template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
-  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{values_v<E>[I], customize::enum_name_v<E, values_v<E>[I]>}...}};
+  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{values_v<E>[I], customize::enum_name_v<values_v<E>[I]>}...}};
 }
 
 template <typename E>
@@ -694,7 +694,7 @@ template <typename E>
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V, typename E = decltype(V)>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
-  constexpr string_view name = customize::enum_name_v<E, V>;
+  constexpr string_view name = customize::enum_name_v<V>;
   static_assert(name.size() > 0, "Enum value does not have a name.");
 
   return name;
