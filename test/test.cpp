@@ -99,6 +99,9 @@ template<>
 constexpr std::string_view enum_name_v<Binary, Binary::ONE> = "1";
 
 template<>
+constexpr std::string_view enum_name_v<MaxUsedAsInvalid, MaxUsedAsInvalid::ONE> = "ONE";
+
+template<>
 constexpr std::string_view enum_name_v<Numbers, Numbers::two>{};
 }
 
