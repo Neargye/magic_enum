@@ -241,8 +241,8 @@ constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if
 }
 
 constexpr std::size_t find(string_view str, char c) noexcept {
-    auto* ptr = std::char_traits<char>::find(str.data(), str.size(), c);
-    return ptr ? ptr - str.data() : std::string_view::npos;
+  auto* ptr = std::char_traits<char>::find(str.data(), str.size(), c);
+  return ptr ? ptr - str.data() : std::string_view::npos;
 }
 
 template <typename T, std::size_t N, std::size_t... I>
