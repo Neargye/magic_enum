@@ -241,8 +241,25 @@ constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if
 }
 
 constexpr std::size_t find(string_view str, char c) noexcept {
-  auto* ptr = std::char_traits<char>::find(str.data(), str.size(), c);
-  return ptr ? ptr - str.data() : std::string_view::npos;
+#if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
+// https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
+// https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
+    constexpr bool workaround = true;
+#else
+    constexpr bool workaround = false;
+#endif
+
+    if constexpr (workaround) {
+        for (std::size_t i = 0; i < str.size(); ++i) {
+            if (str[i] == c) {
+                return i;
+            }
+        }
+
+        return string_view::npos;
+    } else {
+        return str.find_first_of(c);
+    }
 }
 
 template <typename T, std::size_t N, std::size_t... I>
