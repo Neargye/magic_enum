@@ -12,6 +12,7 @@ jobs:
         compiler:
         - { cc: "gcc-9",    cxx: "g++-9"      }
         - { cc: "gcc-10",   cxx: "g++-10"     }
+        - { cc: "gcc-10",   cxx: "g++-10",    boost_optional: true }
         - { cc: "clang-10", cxx: "clang++-10" }
         - { cc: "clang-11", cxx: "clang++-11" }
         - { cc: "clang-12", cxx: "clang++-12" }
@@ -19,6 +20,17 @@ jobs:
     name: "${{matrix.compiler.cxx}}:${{matrix.build}}"
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.1.0
+      if: ${{matrix.compiler.boost_optional}}
+      with:
+        boost_version: 1.73.0
+
+    - name: Set Boost optional flag
+      if: ${{matrix.compiler.boost_optional}}
+      run: |
+        export CXXFLAGS="$CXXFLAGS -DMAGIC_ENUM_USING_ALIAS_OPTIONAL='using boost::optional'"
 
     - name: Configure CMake
       run: cmake -DCMAKE_BUILD_TYPE=${{matrix.build}} -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
