@@ -921,7 +921,7 @@ constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, 
       return (hash.value() << detail::log2(enum_count<E>() + 1)) | (index.value() + 1);
     }
   }
-  return std::nullopt;
+  return {};
 }
 
 template <typename E>
