@@ -330,16 +330,16 @@ constexpr string_view enum_type_name() noexcept;
 
 ```cpp
 template <typename... Es>
-[[nodiscard]] constexpr optional<FusedEnum> enum_fuse(Es... values);
+[[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values);
 ```
 
 * Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 
-* Return type is `optional<FusedEnum>` where FusedEnum is an incomplete enum. It is unique for any given combination of `Es...`.
+* Return type is `optional<enum_fuse_t>` where `enum_fuse_t` is an incomplete enum, it is unique for any given combination of `Es...`.
 
 * Switch/case statement over an incomplete enum is a Visual Studio warning C4064
   * You have to silent (/wd4064) or ignore it.
-  * Alternatively, define MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE to disable type-safety (FusedEnum equals std::uintmax_t).
+  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `std::uintmax_t`).
 
 * Examples
 

@@ -911,13 +911,13 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
 }
 
-namespace fusion_detail {
+namespace detail {
 
 template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
-      return (hash.value() << detail::log2(enum_count<E>() + 1)) | index.value();
+      return (hash.value() << log2(enum_count<E>() + 1)) | index.value();
     }
   }
   return {};
@@ -935,25 +935,26 @@ constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
 
 template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
-  enum class Enum : std::uintmax_t;
-  auto hash = fuse_enum(values...);
-  if (hash.has_value())
-    return optional(static_cast<Enum>(hash.value()));
-  return optional<Enum>{};
+  enum class enum_fuse_t : std::uintmax_t;
+  const auto fuse = fuse_enum(values...);
+  if (fuse.has_value()) {
+    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(fuse.value())};
+  }
+  return optional<enum_fuse_t>{};
 }
 
-} // namespace magic_enum::fusion_detail
+} // namespace magic_enum::detail
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) {
-  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse works only with enums");
-  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
+[[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
+  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
+  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-#ifdef MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE
-  const auto fuse = fusion_detail::fuse_enum(values...);
+#if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
+  const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
 #else
-  const auto fuse = fusion_detail::typesafe_fuse_enum(values...);
+  const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
 #endif
   return assert(fuse.has_value()), fuse;
 }
