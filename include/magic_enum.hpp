@@ -661,7 +661,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
   constexpr string_view name = detail::type_name_v<std::decay_t<E>>;
-  static_assert(name.size() > 0, "Enum type does not have a name.");
+  static_assert(name.size() > 0, "magic_enum::enum_type_name enum type does not have a name.");
 
   return name;
 }
@@ -691,7 +691,10 @@ template <typename E>
 // Returns enum value at specified index.
 template <typename E, std::size_t I>
 [[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
-  return enum_value<std::decay_t<E>>(I);
+  using D = std::decay_t<E>;
+  static_assert(I < detail::count_v<D>, "magic_enum::enum_value out of range.");
+
+  return enum_value<D>(I);
 }
 
 // Returns std::array with enum values, sorted by enum value.
@@ -705,7 +708,7 @@ template <typename E>
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
   constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>;
-  static_assert(name.size() > 0, "Enum value does not have a name.");
+  static_assert(name.size() > 0, "magic_enum::enum_name enum value does not have a name.");
 
   return name;
 }
@@ -886,6 +889,15 @@ template <typename E>
   }
 
   return {}; // Invalid value or out of range.
+}
+
+// Obtains index in enum values from static storage enum variable.
+template <auto V>
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_enum_t<decltype(V), std::size_t> {
+  constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
+  static_assert(index.has_value(), "magic_enum::enum_index enum value does not have a index.");
+
+  return index.value();
 }
 
 // Checks whether enum contains enumerator with such enum value.
