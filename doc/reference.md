@@ -122,6 +122,22 @@ constexpr E enum_value(size_t index) noexcept;
   // color -> Color::BLUE
   ````
 
+```cpp
+template <typename E, size_t I>
+constexpr E enum_value() noexcept;
+```
+
+* Returns enum value at specified index.
+
+* If `I >= number of enum values`, occurs the compilation error `magic_enum::enum_value out of range.`.
+
+* Examples
+
+  ```cpp
+  Color color = magic_enum::enum_value<Color, 1>();
+  // color -> Color::BLUE
+  ````
+
 ## `enum_values`
 
 ```cpp
@@ -184,7 +200,7 @@ constexpr string_view enum_name() noexcept;
 
 * Returns name from enum value as `string_view` with null-terminated string.
   * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
-  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
+  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `magic_enum::enum_name enum value does not have a name.`.
 
 * `enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range [limitation](limitations.md).
 
@@ -275,8 +291,24 @@ constexpr optional<size_t> enum_index() noexcept;
 
   ```cpp
   constexpr auto color_index = magic_enum::enum_index(Color::BLUE);
-  // color_index -> color_index.value() -> 1
-  // color_index -> color_index.has_value() -> true
+  // color_index.value() -> 1
+  // color_index.has_value() -> true
+  ```
+
+```cpp
+template <auto V>
+constexpr size_t enum_index() noexcept;
+```
+
+* Obtains index in enum values from enum value.
+
+* If enum value does not have a index, occurs the compilation error `magic_enum::enum_index enum value does not have a index.`.
+
+* Examples
+
+  ```cpp
+  constexpr auto color_index = magic_enum::enum_index<Color::BLUE>();
+  // color_index -> 1
   ```
 
 ## `enum_contains`
@@ -339,7 +371,7 @@ template <typename... Es>
 
 * Switch/case statement over an incomplete enum is a Visual Studio warning C4064
   * You have to silent (/wd4064) or ignore it.
-  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `std::uintmax_t`).
+  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `uintmax_t`).
 
 * Examples
 
