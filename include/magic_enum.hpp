@@ -137,14 +137,15 @@ static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limi
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
 constexpr string_view enum_name(E) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_name requires enum type.");
-
   return {};
 }
 
 } // namespace magic_enum::customize
 
 namespace detail {
+
+template <typename... T>
+inline constexpr bool always_false_v = false;
 
 template <typename T>
 struct supported
@@ -230,15 +231,22 @@ constexpr string_view pretty_name(string_view name) noexcept {
   return {}; // Invalid name.
 }
 
-template<typename CharType>
-constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<CharType>, char>, char> {
+class case_insensitive {
+  static constexpr char to_lower(char c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
+  }
+
+ public:
+  template <typename L, typename R>
+  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-  static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.");
-  return {};
+    static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
+    return false;
 #else
-  return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
+    return to_lower(lhs) == to_lower(rhs);
 #endif
-}
+  }
+};
 
 constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
@@ -277,8 +285,8 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
   constexpr bool workaround = false;
 #endif
   constexpr bool custom_predicate =
-    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
-    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
+      !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
+      !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
   if constexpr (custom_predicate || workaround) {
     if (lhs.size() != rhs.size()) {
@@ -808,15 +816,7 @@ template <typename E>
 }
 
 // allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
-inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
-        -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(lhs)>, char> && std::is_same_v<std::decay_t<decltype(rhs)>, char>, bool> {
-#if defined(MAGIC_ENUM_ENABLE_NONASCII)
-  static_assert(!std::is_same_v<decltype(lhs), decltype(lhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
-  return {};
-#else
-  return detail::to_lower(lhs) == detail::to_lower(rhs);
-#endif
-};
+inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from name.
 // Returns optional with enum value.
