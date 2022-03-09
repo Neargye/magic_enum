@@ -108,11 +108,14 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
 ```cpp
 template <typename E>
 constexpr E enum_value(size_t index) noexcept;
+
+template <typename E, size_t I>
+constexpr E enum_value() noexcept;
 ```
 
 * Returns enum value at specified index.
-
-* No bounds checking is performed: the behavior is undefined if `index >= number of enum values`.
+  * `enum_value(value)` no bounds checking is performed: the behavior is undefined if `index >= number of enum values`.
+  * `enum_value<value>()` check if `I >= number of enum values`, occurs the compilation error `magic_enum::enum_value out of range`.
 
 * Examples
 
@@ -120,7 +123,12 @@ constexpr E enum_value(size_t index) noexcept;
   int i = 1;
   Color color = magic_enum::enum_value<Color>(i);
   // color -> Color::BLUE
-  ````
+  ```
+
+  ```cpp
+  Color color = magic_enum::enum_value<Color, 1>();
+  // color -> Color::BLUE
+  ```
 
 ## `enum_values`
 
@@ -184,27 +192,23 @@ constexpr string_view enum_name() noexcept;
 
 * Returns name from enum value as `string_view` with null-terminated string.
   * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
-  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `"Enum value does not have a name."`.
+  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `magic_enum::enum_name enum value does not have a name`.
 
 * `enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range [limitation](limitations.md).
 
 * Examples
 
-  * Enum value to string.
+  ```cpp
+  Color color = Color::RED;
+  auto color_name = magic_enum::enum_name(color);
+  // color_name -> "RED"
+  ```
 
-    ```cpp
-    Color color = Color::RED;
-    auto color_name = magic_enum::enum_name(color);
-    // color_name -> "RED"
-    ```
-
-  * Static storage enum variable to string.
-
-    ```cpp
-    constexpr Color color = Color::BLUE;
-    constexpr auto color_name = magic_enum::enum_name<color>();
-    // color_name -> "BLUE"
-    ```
+  ```cpp
+  constexpr Color color = Color::BLUE;
+  constexpr auto color_name = magic_enum::enum_name<color>();
+  // color_name -> "BLUE"
+  ```
 
 ## `enum_flags_name`
 
@@ -264,19 +268,27 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 
 ```cpp
 template <typename E>
-constexpr optional<size_t> enum_index() noexcept;
+constexpr optional<size_t> enum_index(E value) noexcept;
+
+template <auto V>
+constexpr size_t enum_index() noexcept;
 ```
 
 * Obtains index in enum values from enum value.
-
-* Returns `optional<size_t>` with index.
+  * `enum_index(value)` returns `optional<size_t>` with index.
+  * `enum_index<value>()` returns index. If enum value does not have a index, occurs the compilation error `magic_enum::enum_index enum value does not have a index`.
 
 * Examples
 
   ```cpp
   constexpr auto color_index = magic_enum::enum_index(Color::BLUE);
-  // color_index -> color_index.value() -> 1
-  // color_index -> color_index.has_value() -> true
+  // color_index.value() -> 1
+  // color_index.has_value() -> true
+  ```
+
+  ```cpp
+  constexpr auto color_index = magic_enum::enum_index<Color::BLUE>();
+  // color_index -> 1
   ```
 
 ## `enum_contains`
@@ -330,7 +342,7 @@ constexpr string_view enum_type_name() noexcept;
 
 ```cpp
 template <typename... Es>
-[[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values);
+[[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 ```
 
 * Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
@@ -339,7 +351,7 @@ template <typename... Es>
 
 * Switch/case statement over an incomplete enum is a Visual Studio warning C4064
   * You have to silent (/wd4064) or ignore it.
-  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `std::uintmax_t`).
+  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `uintmax_t`).
 
 * Examples
 
