@@ -897,7 +897,7 @@ template <auto V>
   constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
   static_assert(index.has_value(), "magic_enum::enum_index enum value does not have a index.");
 
-  return index.value();
+  return *index;
 }
 
 // Checks whether enum contains enumerator with such enum value.
