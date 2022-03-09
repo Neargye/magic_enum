@@ -917,7 +917,7 @@ template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
-      return (hash.value() << log2(enum_count<E>() + 1)) | index.value();
+      return (*hash << log2(enum_count<E>() + 1)) | *index;
     }
   }
   return {};
@@ -938,7 +938,7 @@ constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
   const auto fuse = fuse_enum(values...);
   if (fuse.has_value()) {
-    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(fuse.value())};
+    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
   return optional<enum_fuse_t>{};
 }
@@ -979,7 +979,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  return value.has_value() ? (os << value.value()) : os;
+  return value.has_value() ? (os << *value) : os;
 }
 
 } // namespace magic_enum::ostream_operators
