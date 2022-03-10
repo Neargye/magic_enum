@@ -1030,19 +1030,15 @@ constexpr std::string_view DoWork<Color::GREEN>() {
 }
 
 TEST_CASE("enum_switch") {
-  constexpr auto bind_enum_switch = [] (Color c) {
-
-    return enum_switch([](auto val) {
-      return DoWork<val>();
-    }, c, string_view{"unrecognized"});
-
+  constexpr auto doWorkCaller = [](auto val) {
+    return DoWork<val>();
   };
 
-  constexpr auto def = bind_enum_switch(Color::BLUE);
+  constexpr auto def = enum_switch(doWorkCaller, Color::BLUE, string_view{"unrecognized"});
   REQUIRE(def == "default");
-  REQUIRE(bind_enum_switch(Color::RED) == "default");
-  REQUIRE(bind_enum_switch(Color::GREEN) == "override");
-  REQUIRE(bind_enum_switch(static_cast<Color>(0)) == "unrecognized");
+  REQUIRE(enum_switch(doWorkCaller, Color::RED, string_view{"unrecognized"}) == "default");
+  REQUIRE(enum_switch(doWorkCaller, Color::GREEN, string_view{"unrecognized"}) == "override");
+  REQUIRE(enum_switch(doWorkCaller, static_cast<Color>(0), string_view{"unrecognized"}) == "unrecognized");
 }
 
 TEST_CASE("enum_for_each") {
