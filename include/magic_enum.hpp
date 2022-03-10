@@ -1138,7 +1138,7 @@ template<typename Lambda, typename E, typename ResultType>
 constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
   return detail::constexpr_switch<&detail::values_v<std::decay_t<E>>, detail::case_call_t::value>(
     std::forward<Lambda>(lambda), value,
-    [result = std::forward<ResultType>(result)] () mutable { return std::forward<ResultType>(result); });
+    [&result] { return std::forward<ResultType>(result); });
 }
 
 template<typename E, typename ResultType = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
