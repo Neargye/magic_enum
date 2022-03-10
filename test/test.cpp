@@ -230,12 +230,14 @@ TEST_CASE("enum_index") {
   constexpr auto cr = enum_index(Color::RED);
   Color cg = Color::GREEN;
   REQUIRE(cr.value() == 0);
+  REQUIRE(enum_index<Color::RED>() == 0);
   REQUIRE(enum_index<Color&>(cg).value() == 1);
   REQUIRE(enum_index(cm[2]).value() == 2);
   REQUIRE_FALSE(enum_index(static_cast<Color>(0)).has_value());
 
   constexpr auto no = enum_index(Numbers::one);
   REQUIRE(no.value() == 0);
+  REQUIRE(enum_index<Numbers::one>() == 0);
   REQUIRE(enum_index(Numbers::two).value() == 1);
   REQUIRE(enum_index(Numbers::three).value() == 2);
   REQUIRE_FALSE(enum_index(Numbers::many).has_value());
@@ -243,6 +245,7 @@ TEST_CASE("enum_index") {
 
   constexpr auto dr = enum_index(Directions::Right);
   Directions dl = Directions::Left;
+  REQUIRE(enum_index<Directions::Left>() == 0);
   REQUIRE(enum_index<Directions&>(dl).value() == 0);
   REQUIRE(enum_index<const Directions>(Directions::Down).value() == 1);
   REQUIRE(enum_index(Directions::Up).value() == 2);
@@ -260,6 +263,7 @@ TEST_CASE("enum_index") {
 #endif
 
   constexpr auto nt = enum_index(number::three);
+  REQUIRE(enum_index<number::one>() == 0);
   REQUIRE(enum_index(number::one).value() == 0);
   REQUIRE(enum_index(number::two).value() == 1);
   REQUIRE(nt.value() == 2);
@@ -1026,6 +1030,11 @@ TEST_CASE("constexpr_for") {
   });
 }
 
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable : 4064)
+#endif
+
 static int switch_case_2d(Color color, Directions direction) {
   switch (magic_enum::enum_fuse(color, direction).value()) {
     case magic_enum::enum_fuse(Color::RED, Directions::Up).value():
@@ -1043,13 +1052,16 @@ static int switch_case_3d(Color color, Directions direction, Index index) {
   switch (magic_enum::enum_fuse(color, direction, index).value()) {
     case magic_enum::enum_fuse(Color::RED, Directions::Up, Index::zero).value():
       return 1;
-    // model accidental removal of last index, must not match anything
-    case magic_enum::enum_fuse(Color::BLUE, Directions::Up).value():
+    case magic_enum::enum_fuse(Color::BLUE, Directions::Up, Index::zero).value():
       return 2;
     default:
       return 0;
   }
 }
+
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
 
 TEST_CASE("multdimensional-switch-case") {
   REQUIRE(switch_case_2d(Color::RED, Directions::Up) == 1);
@@ -1057,7 +1069,7 @@ TEST_CASE("multdimensional-switch-case") {
   REQUIRE(switch_case_2d(Color::BLUE, Directions::Up) == 0);
   REQUIRE(switch_case_2d(Color::BLUE, Directions::Down) == 2);
   REQUIRE(switch_case_3d(Color::RED, Directions::Up, Index::zero) == 1);
-  REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::zero) == 0);
+  REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::zero) == 2);
   REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::one) == 0);
   REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::two) == 0);
 }

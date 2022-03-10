@@ -137,14 +137,15 @@ static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limi
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
 constexpr string_view enum_name(E) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::customize::enum_name requires enum type.");
-
   return {};
 }
 
 } // namespace magic_enum::customize
 
 namespace detail {
+
+template <typename... T>
+inline constexpr bool always_false_v = false;
 
 template <typename T>
 struct supported
@@ -230,15 +231,22 @@ constexpr string_view pretty_name(string_view name) noexcept {
   return {}; // Invalid name.
 }
 
-template<typename CharType>
-constexpr auto to_lower([[maybe_unused]] CharType ch) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<CharType>, char>, char> {
+class case_insensitive {
+  static constexpr char to_lower(char c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
+  }
+
+ public:
+  template <typename L, typename R>
+  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-  static_assert(!std::is_same_v<CharType, CharType>, "magic_enum::detail::to_lower not supported Non-ASCII feature.");
-  return {};
+    static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
+    return false;
 #else
-  return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
+    return to_lower(lhs) == to_lower(rhs);
 #endif
-}
+  }
+};
 
 constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
@@ -277,8 +285,8 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
   constexpr bool workaround = false;
 #endif
   constexpr bool custom_predicate =
-    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
-    !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
+      !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> &&
+      !std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
   if constexpr (custom_predicate || workaround) {
     if (lhs.size() != rhs.size()) {
@@ -776,7 +784,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
   constexpr string_view name = detail::type_name_v<std::decay_t<E>>;
-  static_assert(name.size() > 0, "Enum type does not have a name.");
+  static_assert(!name.empty(), "magic_enum::enum_type_name enum type does not have a name.");
 
   return name;
 }
@@ -806,7 +814,10 @@ template <typename E>
 // Returns enum value at specified index.
 template <typename E, std::size_t I>
 [[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
-  return enum_value<std::decay_t<E>>(I);
+  using D = std::decay_t<E>;
+  static_assert(I < detail::count_v<D>, "magic_enum::enum_value out of range.");
+
+  return enum_value<D>(I);
 }
 
 // Returns std::array with enum values, sorted by enum value.
@@ -846,7 +857,7 @@ template <typename E>
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
   constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>;
-  static_assert(name.size() > 0, "Enum value does not have a name.");
+  static_assert(!name.empty(), "magic_enum::enum_name enum value does not have a name.");
 
   return name;
 }
@@ -941,15 +952,7 @@ template <typename E>
 }
 
 // allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
-inline constexpr auto case_insensitive = [](auto lhs, auto rhs) noexcept
-        -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(lhs)>, char> && std::is_same_v<std::decay_t<decltype(rhs)>, char>, bool> {
-#if defined(MAGIC_ENUM_ENABLE_NONASCII)
-  static_assert(!std::is_same_v<decltype(lhs), decltype(lhs)>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
-  return {};
-#else
-  return detail::to_lower(lhs) == detail::to_lower(rhs);
-#endif
-};
+inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from name.
 // Returns optional with enum value.
@@ -1003,6 +1006,15 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   return {}; // Invalid value or out of range.
 }
 
+// Obtains index in enum values from static storage enum variable.
+template <auto V>
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_enum_t<decltype(V), std::size_t> {
+  constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
+  static_assert(index.has_value(), "magic_enum::enum_index enum value does not have a index.");
+
+  return *index;
+}
+
 // Checks whether enum contains enumerator with such enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
@@ -1026,37 +1038,51 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
 }
 
-namespace fusion_detail {
+namespace detail {
 
 template <typename E>
-constexpr std::optional<std::uintmax_t> fuse_one_enum(std::optional<std::uintmax_t> hash, E value) noexcept {
+constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash.has_value()) {
     if (const auto index = enum_index(value); index.has_value()) {
-      // Add 1 to prevent matching 2D fusions with 3D fusions etc.
-      return (hash.value() << detail::log2(enum_count<E>() + 1)) | (index.value() + 1);
+      return (*hash << log2(enum_count<E>() + 1)) | *index;
     }
   }
-  return std::nullopt;
+  return {};
 }
 
 template <typename E>
-constexpr std::optional<std::uintmax_t> fuse_enum(E value) noexcept {
+constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
   return fuse_one_enum(0, value);
 }
 
 template <typename E, typename... Es>
-constexpr std::optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
+constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
   return fuse_one_enum(fuse_enum(tail...), head);
 }
 
-} // namespace magic_enum::fusion_detail
+template <typename... Es>
+constexpr auto typesafe_fuse_enum(Es... values) noexcept {
+  enum class enum_fuse_t : std::uintmax_t;
+  const auto fuse = fuse_enum(values...);
+  if (fuse.has_value()) {
+    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
+  }
+  return optional<enum_fuse_t>{};
+}
+
+} // namespace magic_enum::detail
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) -> std::enable_if_t<(std::is_enum_v<std::decay_t<Es>> && ...), std::optional<std::uintmax_t>> {
-  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 enums");
+[[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
+  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
+  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
   static_assert((detail::log2(enum_count<Es>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-  const auto fuse = fusion_detail::fuse_enum(values...);
+#if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
+  const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
+#else
+  const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
+#endif
   return assert(fuse.has_value()), fuse;
 }
 
@@ -1080,7 +1106,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  return value.has_value() ? (os << value.value()) : os;
+  return value.has_value() ? (os << *value) : os;
 }
 
 } // namespace magic_enum::ostream_operators
