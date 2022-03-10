@@ -318,17 +318,6 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
   }
 }
 
-constexpr std::size_t hash_string(string_view to_hash) {
-  auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
-
-  for (char c : to_hash) {
-    result ^= c;
-    result *= static_cast<std::size_t>(1099511628211); // FNV prime
-  }
-
-  return result;
-}
-
 template <typename I>
 constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
@@ -631,39 +620,30 @@ struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 template <typename EnumType>
 using switch_type_t = std::conditional_t<std::is_same_v<bool, typename underlying_type<EnumType>::type>, std::uint8_t, typename underlying_type<EnumType>::type>;
 
-template<typename HelperType>
+template <auto* globValues, auto* Hash>
 constexpr auto calculate_cases(std::size_t page) {
-  constexpr std::array values = HelperType::values;
+  constexpr auto hash = *Hash;
+  constexpr std::array values = *globValues;
   constexpr std::size_t size = values.size();
-  using ResultType = typename HelperType::switch_by;
+
+  using SwitchType = std::invoke_result_t<decltype(hash), typename decltype(values)::value_type>;
+  static_assert(std::is_integral_v<SwitchType> && !std::is_same_v<SwitchType, bool>);
   const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - page);
 
-  std::array<ResultType, 256> result{};
-  for (std::size_t i = 0; i < values_to; ++i) {
-    result[i] = HelperType::cast_switchable(static_cast<typename HelperType::search_by>(values[i + page]));
-  }
+  std::array<SwitchType, 256> result{};
+    auto fill = result.begin();
+    for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; )
+        *fill++ = hash(*first++);
 
   // dead cases, try to avoid case collisions
-  ResultType last_value = result[values_to-1];
-  bool reached_max = false;
+  for (SwitchType last_value = result[values_to-1];
+       fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value);
+
   auto it = result.begin();
-  for (std::size_t i = values_to; i < 256; ++i) {
-    if (last_value == (std::numeric_limits<ResultType>::max)()) {
-      last_value = (std::numeric_limits<ResultType>::min)();
-      reached_max = true;
-    } else if (!reached_max) {
-      result[i] = ++last_value;
-      continue;
-    } else {
-      ++last_value;
-    }
-    // find next suitable value
-    while (last_value == *it) {
-      ++last_value;
-      ++it;
-    }
-    result[i] = last_value;
-  }
+  for (auto last_value = (std::numeric_limits<SwitchType>::min)(); fill != result.end(); *fill++ = last_value)
+      while (last_value == *it)
+          ++last_value, ++it;
+
   return result;
 }
 
@@ -676,8 +656,8 @@ constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable
   }
 }
 
-enum class try_index_invoke_t : bool {
-    no = false, yes = true
+enum class case_call_t {
+    index, value
 };
 
 template<typename DefaultResultType = void>
@@ -685,32 +665,30 @@ constexpr auto default_result_type_lambda = [] { return DefaultResultType{}; };
 template<>
 constexpr auto default_result_type_lambda<void> = [] {};
 
-template<typename EnumType, typename SearchBy>
-struct constexpr_switch_helper;
+template<typename Value, typename = void>
+struct ConstexprHash;
 
-template<typename EnumType>
-struct constexpr_switch_helper<EnumType, typename underlying_type<EnumType>::type> {
-  using search_by = typename underlying_type<EnumType>::type;
-  using switch_by = switch_type_t<EnumType>;
-  constexpr static auto values = values_v<EnumType>;
-  constexpr static switch_by cast_switchable(search_by value) {
-    return static_cast<switch_by>(value);
-  }
+template<typename Value>
+struct ConstexprHash<Value, std::enable_if_t<is_enum_v<Value>>> {
+    constexpr std::size_t operator()(const Value& val) const noexcept {
+        return static_cast<std::size_t>(static_cast<typename underlying_type<Value>::type>(val));
+    }
 };
 
-template<typename EnumType>
-struct constexpr_switch_helper<EnumType, EnumType>
-  : constexpr_switch_helper<EnumType, typename underlying_type<EnumType>::type> {};
-
-template<typename EnumType>
-struct constexpr_switch_helper<EnumType, std::string_view> {
-  using search_by = string_view;
-  using switch_by = std::size_t;
-  constexpr static auto values = names_v<EnumType>;
-  constexpr static switch_by cast_switchable(search_by value) {
-    return hash_string(value);
-  }
+template<typename Value>
+struct ConstexprHash<Value, std::enable_if_t<std::is_same_v<Value, std::string_view>>> {
+    constexpr std::size_t operator()(std::string_view val) const noexcept {
+        auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
+        for (char c : val) {
+            result ^= c;
+            result *= static_cast<std::size_t>(1099511628211); // FNV prime
+        }
+        return result;
+    }
 };
+
+template<typename Hash>
+constexpr static Hash HashInstance{};
 
 #define MAGIC_ENUM_FOR_EACH_256(T) T(0)T(1)T(2)T(3)T(4)T(5)T(6)T(7)T(8)T(9)T(10)T(11)T(12)T(13)T(14)T(15)T(16)T(17)T(18)T(19)T(20)T(21)T(22)T(23)T(24)T(25)T(26)T(27)T(28)T(29)T(30)T(31)          \
   T(32)T(33)T(34)T(35)T(36)T(37)T(38)T(39)T(40)T(41)T(42)T(43)T(44)T(45)T(46)T(47)T(48)T(49)T(50)T(51)T(52)T(53)T(54)T(55)T(56)T(57)T(58)T(59)T(60)T(61)T(62)T(63)                                 \
@@ -724,34 +702,37 @@ struct constexpr_switch_helper<EnumType, std::string_view> {
 #define MAGIC_ENUM_CASE(val)                                                                                            \
   case cases[val]:                                                                                                      \
     if constexpr ((val) + page < size) {                                                                                \
-      if constexpr (try_index_invoke == try_index_invoke_t::yes &&                                                      \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, (val) + page>>)                   \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, (val) + page>{});   \
-      else if constexpr (std::is_invocable_r_v<result_t, Lambda,                                                        \
-          std::integral_constant<std::decay_t<decltype(values[(val) + page])>, values[(val) + page]>>)                  \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda),                                                         \
-          std::integral_constant<std::decay_t<decltype(values[(val) + page])>, values[(val) + page]>{});                \
+      if constexpr (call_v == case_call_t::index &&                                                                     \
+          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)                     \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});     \
+      else if constexpr (call_v == case_call_t::value &&                                                                \
+          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>)                 \
+        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<value_t, values[val + page]>{}); \
       break;                                                                                                            \
-    } else {                                                                                                            \
-      [[fallthrough]];                                                                                                  \
-    }
+    } else [[fallthrough]];
 
-template<typename EnumType, try_index_invoke_t try_index_invoke = try_index_invoke_t::no, std::size_t page = 0,
-         typename Lambda, typename Searched, typename ResultGetterType = decltype(default_result_type_lambda<>)>
-static constexpr auto constexpr_switch(Lambda&& lambda, Searched searched, ResultGetterType&& def = default_result_type_lambda<>)
+template<auto* globValues, case_call_t call_v, std::size_t page = 0,
+        auto* Hash = &HashInstance<ConstexprHash<typename std::decay_t<decltype(*globValues)>::value_type>>,
+        typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>)>
+static constexpr auto constexpr_switch(Lambda&& lambda,
+                                       typename std::decay_t<decltype(*globValues)>::value_type searched,
+                                       ResultGetterType&& def = default_result_type_lambda<>)
   -> std::invoke_result_t<ResultGetterType> {
-  using helper_t = constexpr_switch_helper<EnumType, Searched>;
   using result_t = std::invoke_result_t<ResultGetterType>;
-  constexpr std::array values = helper_t::values;
+  using value_t = typename std::decay_t<decltype(*globValues)>::value_type;
+  using hash_t = std::invoke_result_t<decltype(*Hash), value_t>;
+  constexpr std::array values = *globValues;
   constexpr std::size_t size = values.size();
-  constexpr std::array cases = calculate_cases<helper_t>(page);
+  constexpr std::array cases = calculate_cases<globValues, Hash>(page);
 
-  switch (helper_t::cast_switchable(static_cast<typename helper_t::search_by>(searched))) {
+  switch ((*Hash)(searched)) {
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
   default:
     if constexpr (size > 256 + page) {
-      return constexpr_switch<EnumType, try_index_invoke, page + 256>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
+      return constexpr_switch<globValues, call_v, page + 256, Hash>(std::forward<Lambda>(lambda),
+              searched, std::forward<ResultGetterType>(def));
     }
+    break;
   }
   return def();
 }
@@ -848,8 +829,9 @@ template <typename E>
   using U = underlying_type_t<D>;
 
   if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
-    return detail::constexpr_switch<D, detail::try_index_invoke_t::yes>([](std::size_t index) { return optional<std::size_t>{index}; },
-                                                                        value, detail::default_result_type_lambda<optional<std::size_t>>);
+    return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
+            [](std::size_t index) { return optional<std::size_t>{index}; },
+            value, detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
@@ -944,8 +926,8 @@ template <typename E>
       }
       return {}; // Invalid value or out of range.
     } else {
-      return detail::constexpr_switch<D>([](D value) { return optional<D>{value}; }, value,
-                                         detail::default_result_type_lambda<optional<D>>);
+      return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+              [](D value) { return optional<D>{value}; }, static_cast<D>(value), detail::default_result_type_lambda<optional<D>>);
     }
   } else {
     constexpr auto min = detail::min_v<D>;
@@ -1005,8 +987,9 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> ||
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
     if constexpr (default_predicate) {
-      return detail::constexpr_switch<D, detail::try_index_invoke_t::yes>([](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
-                                                                          value, detail::default_result_type_lambda<optional<D>>);
+      return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
+              [](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
+              value, detail::default_result_type_lambda<optional<D>>);
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
