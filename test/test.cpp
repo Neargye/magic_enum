@@ -1029,12 +1029,15 @@ constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
 }
 
-TEST_CASE("enum_switch") {
-  constexpr auto doWorkCaller = [](auto val) {
+struct DoWorkCaller {
+  template<typename T>
+  constexpr auto operator()(T val) {
     return DoWork<val>();
-  };
+  }
+};
 
-  constexpr auto def = enum_switch(doWorkCaller, Color::BLUE, string_view{"unrecognized"});
+TEST_CASE("enum_switch") {
+  constexpr auto def = enum_switch(DoWorkCaller{}, Color::BLUE, string_view{"unrecognized"});
   REQUIRE(def == "default");
   REQUIRE(enum_switch(doWorkCaller, Color::RED, string_view{"unrecognized"}) == "default");
   REQUIRE(enum_switch(doWorkCaller, Color::GREEN, string_view{"unrecognized"}) == "override");
