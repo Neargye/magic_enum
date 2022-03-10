@@ -636,18 +636,18 @@ constexpr auto calculate_cases(std::size_t page) {
   const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - page);
 
   std::array<SwitchType, 256> result{};
-    auto fill = result.begin();
-    for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; )
-        *fill++ = hash(*first++);
+  auto fill = result.begin();
+  for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; )
+    *fill++ = hash(*first++);
 
   // dead cases, try to avoid case collisions
   for (SwitchType last_value = result[values_to-1];
-       fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value);
+    fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value);
 
   auto it = result.begin();
   for (auto last_value = (std::numeric_limits<SwitchType>::min)(); fill != result.end(); *fill++ = last_value)
-      while (last_value == *it)
-          ++last_value, ++it;
+    while (last_value == *it)
+      ++last_value, ++it;
 
   return result;
 }
@@ -662,7 +662,7 @@ constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable
 }
 
 enum class case_call_t {
-    index, value
+  index, value
 };
 
 template<typename DefaultResultType = void>
@@ -675,21 +675,21 @@ struct ConstexprHash;
 
 template<typename Value>
 struct ConstexprHash<Value, std::enable_if_t<is_enum_v<Value>>> {
-    constexpr std::size_t operator()(const Value& val) const noexcept {
-        return static_cast<std::size_t>(static_cast<typename underlying_type<Value>::type>(val));
-    }
+  constexpr std::size_t operator()(const Value& val) const noexcept {
+    return static_cast<std::size_t>(static_cast<typename underlying_type<Value>::type>(val));
+  }
 };
 
 template<typename Value>
 struct ConstexprHash<Value, std::enable_if_t<std::is_same_v<Value, std::string_view>>> {
-    constexpr std::size_t operator()(std::string_view val) const noexcept {
-        auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
-        for (char c : val) {
-            result ^= c;
-            result *= static_cast<std::size_t>(1099511628211); // FNV prime
-        }
-        return result;
+  constexpr std::size_t operator()(std::string_view val) const noexcept {
+    auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
+    for (char c : val) {
+      result ^= c;
+      result *= static_cast<std::size_t>(1099511628211); // FNV prime
     }
+    return result;
+  }
 };
 
 template<typename Hash>
@@ -864,7 +864,7 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
   using D = std::decay_t<E>;
   if (auto index = enum_index(value))
-      return detail::names_v<D>[*index];
+    return detail::names_v<D>[*index];
   return {};
 }
 
