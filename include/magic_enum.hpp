@@ -728,7 +728,6 @@ static constexpr auto constexpr_switch(Lambda&& lambda,
   -> std::invoke_result_t<ResultGetterType> {
   using result_t = std::invoke_result_t<ResultGetterType>;
   using value_t = typename std::decay_t<decltype(*globValues)>::value_type;
-  using hash_t = std::invoke_result_t<decltype(*Hash), value_t>;
   constexpr std::array values = *globValues;
   constexpr std::size_t size = values.size();
   constexpr std::array cases = calculate_cases<globValues, Hash>(page);
