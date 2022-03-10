@@ -682,11 +682,11 @@ struct ConstexprHash<Value, std::enable_if_t<is_enum_v<Value>>> {
 
 template<typename Value>
 struct ConstexprHash<Value, std::enable_if_t<std::is_same_v<Value, std::string_view>>> {
-  constexpr std::size_t operator()(std::string_view val) const noexcept {
-    auto result = static_cast<std::size_t>(0xcbf29ce484222325); // FNV offset basis
+  constexpr std::uintmax_t operator()(std::string_view val) const noexcept {
+    auto result = static_cast<std::uintmax_t>(0xcbf29ce484222325ULL); // FNV offset basis
     for (char c : val) {
       result ^= c;
-      result *= static_cast<std::size_t>(1099511628211); // FNV prime
+      result *= static_cast<std::uintmax_t>(1099511628211ULL); // FNV prime
     }
     return result;
   }
