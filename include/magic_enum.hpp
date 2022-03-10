@@ -775,7 +775,7 @@ constexpr bool no_duplicate() {
 #define MAGIC_ENUM_CASE(val)                                                                                            \
   case cases[val]:                                                                                                      \
     if constexpr ((val) + page < size) {                                                                                \
-      if (values[val + page] != searched)                                                                               \
+      if (!pred(values[val + page], searched))                                                                          \
         break;                                                                                                          \
       if constexpr (call_v == case_call_t::index &&                                                                     \
           std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)                     \
@@ -790,10 +790,12 @@ constexpr bool no_duplicate() {
 
 template<auto* globValues, case_call_t call_v, std::size_t page = 0,
         typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*globValues)>::value_type>,
-        typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>)>
+        typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>),
+        typename BinaryPredicate = std::equal_to<>>
 static constexpr auto constexpr_switch(Lambda&& lambda,
                                        typename std::decay_t<decltype(*globValues)>::value_type searched,
-                                       ResultGetterType&& def = default_result_type_lambda<>)
+                                       ResultGetterType&& def = default_result_type_lambda<>,
+                                       BinaryPredicate&& pred = {})
   -> std::invoke_result_t<ResultGetterType> {
   using result_t = std::invoke_result_t<ResultGetterType>;
   using value_t = typename std::decay_t<decltype(*globValues)>::value_type;
@@ -1061,7 +1063,9 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
     if constexpr (default_predicate) {
       return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
               [](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
-              value, detail::default_result_type_lambda<optional<D>>);
+              value, detail::default_result_type_lambda<optional<D>>, [&p](std::string_view lhs, std::string_view rhs) {
+                  return detail::cmp_equal(lhs, rhs, p);
+              });
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
