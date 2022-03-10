@@ -980,7 +980,6 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
     if (result != U{0}) {
       return static_cast<D>(result);
     }
-    return {}; // Invalid value or out of range.
   } else {
     constexpr bool default_predicate =
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> ||
@@ -995,7 +994,6 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
           return enum_value<D>(i);
         }
       }
-      return {}; // Invalid value or out of range.
     }
   }
 
