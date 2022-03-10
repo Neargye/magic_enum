@@ -741,10 +741,12 @@ constexpr static Hash HashInstance{};
     if constexpr ((val) + page < size) {                                                                                \
       if constexpr (call_v == case_call_t::index &&                                                                     \
           std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)                     \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});     \
+        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
+          std::integral_constant<std::size_t, val + page>{});                                                           \
       else if constexpr (call_v == case_call_t::value &&                                                                \
           std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>)                 \
-        return invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<value_t, values[val + page]>{}); \
+        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
+          std::integral_constant<value_t, values[val + page]>{});                                                       \
       break;                                                                                                            \
     } else [[fallthrough]];
 
