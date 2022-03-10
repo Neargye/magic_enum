@@ -625,9 +625,6 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
-template <typename EnumType>
-using switch_type_t = std::conditional_t<std::is_same_v<bool, typename underlying_type<EnumType>::type>, std::uint8_t, typename underlying_type<EnumType>::type>;
-
 template <auto* globValues, auto* Hash>
 constexpr auto calculate_cases(std::size_t page) {
   constexpr auto hash = *Hash;
