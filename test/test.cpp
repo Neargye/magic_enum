@@ -57,6 +57,16 @@ enum number : unsigned long {
   _4 = four
 #endif
 };
+
+enum class crc_hack {
+  b5a7b602ab754d7ab30fb42c4fb28d82
+};
+
+enum class crc_hack_2 {
+  b5a7b602ab754d7ab30fb42c4fb28d82,
+  d19f2e9e82d14b96be4fa12b8a27ee9f
+};
+
 template <>
 struct magic_enum::customize::enum_range<number> {
   static constexpr int min = 100;
@@ -141,6 +151,13 @@ TEST_CASE("enum_cast") {
     REQUIRE(nt.value() == number::three);
     REQUIRE_FALSE(enum_cast<number>("four").has_value());
     REQUIRE_FALSE(enum_cast<number>("None").has_value());
+
+    REQUIRE(magic_enum::enum_cast<crc_hack>("b5a7b602ab754d7ab30fb42c4fb28d82").has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<crc_hack>("d19f2e9e82d14b96be4fa12b8a27ee9f").has_value());
+
+    constexpr auto crc = magic_enum::enum_cast<crc_hack_2>("b5a7b602ab754d7ab30fb42c4fb28d82");
+    REQUIRE(crc.value() == crc_hack_2::b5a7b602ab754d7ab30fb42c4fb28d82);
+    REQUIRE(magic_enum::enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
   }
 
   SECTION("integer") {
