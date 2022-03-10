@@ -675,8 +675,13 @@ struct ConstexprHash;
 
 template<typename Value>
 struct ConstexprHash<Value, std::enable_if_t<is_enum_v<Value>>> {
-  constexpr std::size_t operator()(const Value& val) const noexcept {
-    return static_cast<std::size_t>(static_cast<typename underlying_type<Value>::type>(val));
+  constexpr auto operator()(const Value& val) const noexcept {
+    using type = typename underlying_type<Value>::type;
+    if constexpr (std::is_same_v<type, bool>) {
+      return static_cast<std::size_t>(static_cast<bool>(val));
+    } else {
+      return static_cast<typename underlying_type<Value>::type>(val);
+    }
   }
 };
 
