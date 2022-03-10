@@ -53,3 +53,20 @@ if(MAGIC_ENUM_OPT_INSTALL)
     export(EXPORT ${PROJECT_NAME}Config
             NAMESPACE ${PROJECT_NAME}::)
 endif()
+
+# Install into ROS workspace if present:
+find_package(roscpp QUIET)
+find_package(rclcpp QUIET)
+if(roscpp_FOUND OR rclcpp_FOUND)
+        install(DIRECTORY include/
+                DESTINATION include/${PROJECT_NAME})
+
+        install(TARGETS ${PROJECT_NAME}
+                DESTINATION lib/${PROJECT_NAME})
+
+        install(FILES package.xml
+                DESTINATION share/${PROJECT_NAME}/)
+
+        install(EXPORT ${PROJECT_NAME}Config
+                DESTINATION share/${PROJECT_NAME}/cmake/${PROJECT_NAME})
+endif()
