@@ -777,14 +777,17 @@ constexpr bool no_duplicate() {
     if constexpr ((val) + page < size) {                                                                                \
       if (!pred(values[val + page], searched))                                                                          \
         break;                                                                                                          \
-      if constexpr (call_v == case_call_t::index &&                                                                     \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)                     \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
-          std::integral_constant<std::size_t, val + page>{});                                                           \
-      else if constexpr (call_v == case_call_t::value &&                                                                \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>)                 \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
-          std::integral_constant<value_t, values[val + page]>{});                                                       \
+      if constexpr (call_v == case_call_t::index) {                                                                     \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)         \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                               \
+            std::integral_constant<std::size_t, val + page>{});                                                         \
+        else assert(false && "wrong result type");                                                                      \
+      } else if constexpr (call_v == case_call_t::value) {                                                              \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>)     \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                               \
+            std::integral_constant<value_t, values[val + page]>{});                                                     \
+        else assert(false && "wrong result type");                                                                      \
+      }                                                                                                                 \
       break;                                                                                                            \
     } else [[fallthrough]];
 
@@ -818,6 +821,22 @@ static constexpr auto constexpr_switch(Lambda&& lambda,
 
 #undef MAGIC_ENUM_FOR_EACH_256
 #undef MAGIC_ENUM_CASE
+
+template<typename E, typename Lambda, std::size_t ... Ix>
+constexpr auto enum_for_each_impl(Lambda&& lambda, std::index_sequence<Ix...>) {
+  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[Ix]>>> || ...);
+  constexpr bool all_same_return = (std::is_same_v<
+    std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[0]>>,
+    std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[Ix]>>> && ...);
+
+  if constexpr (has_void_return) {
+    (lambda(std::integral_constant<E, values_v<E>[Ix]>{}), ...);
+  } else if constexpr (all_same_return) {
+    return std::array{lambda(std::integral_constant<E, values_v<E>[Ix]>{}) ...};
+  } else {
+    return std::tuple{lambda(std::integral_constant<E, values_v<E>[Ix]>{}) ...};
+  }
+}
 
 } // namespace magic_enum::detail
 
@@ -1122,21 +1141,42 @@ constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> det
     [result = std::forward<ResultType>(result)] () mutable { return std::forward<ResultType>(result); });
 }
 
-template<typename E, typename ResultType = void, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name) -> detail::enable_if_enum_t<E, ResultType> {
-  if (auto value = enum_cast<E>(name)) {
+template<typename E, typename ResultType = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_enum_t<E, ResultType> {
+  if (auto value = enum_cast<E>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch<ResultType>(std::forward<Lambda>(lambda), *value);
   }
   return detail::default_result_type_lambda<ResultType>();
 }
 
-
-template<typename E, typename Lambda, typename ResultType>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
-  if (auto value = enum_cast<E>(name)) {
+template<typename E, typename BinaryPredicate = std::equal_to<char>, typename Lambda, typename ResultType>
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {}) -> detail::enable_if_enum_t<E, ResultType> {
+  if (auto value = enum_cast<E>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch(std::forward<Lambda>(lambda), *value, std::forward<ResultType>(result));
   }
   return std::forward<ResultType>(result);
+}
+
+template<typename E, typename ResultType = void, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<std::decay_t<E>> raw_value) -> detail::enable_if_enum_t<E, ResultType> {
+  if (auto value = enum_cast<E>(raw_value)) {
+    return enum_switch<ResultType>(std::forward<Lambda>(lambda), *value);
+  }
+  return detail::default_result_type_lambda<ResultType>();
+}
+
+template<typename E, typename Lambda, typename ResultType>
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<std::decay_t<E>> raw_value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
+  if (auto value = enum_cast<E>(raw_value)) {
+    return enum_switch(std::forward<Lambda>(lambda), *value, std::forward<ResultType>(result));
+  }
+  return std::forward<ResultType>(result);
+}
+
+template<typename E, typename Lambda>
+constexpr auto enum_for_each(Lambda&& lambda)
+  -> detail::enable_if_enum_t<E, decltype(detail::enum_for_each_impl<E>(std::declval<Lambda>(), std::make_index_sequence<detail::count_v<E>>{}))> {
+  return detail::enum_for_each_impl<E>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<E>>{});
 }
 
 namespace detail {

@@ -1019,6 +1019,32 @@ TEST_CASE("cmp_less") {
   }
 }
 
+template<Color C>
+constexpr std::string_view DoWork() {
+  return "default";
+}
+
+template<>
+constexpr std::string_view DoWork<Color::GREEN>() {
+  return "override";
+}
+
+TEST_CASE("enum_switch") {
+  constexpr auto bind_enum_switch = [] (Color c) {
+
+    return enum_switch([](auto val) {
+      return DoWork<val>();
+    }, c, string_view{"unrecognized"});
+
+  };
+
+  constexpr auto def = bind_enum_switch(Color::BLUE);
+  REQUIRE(def == "default");
+  REQUIRE(bind_enum_switch(Color::RED) == "default");
+  REQUIRE(bind_enum_switch(Color::GREEN) == "override");
+  REQUIRE(bind_enum_switch(static_cast<Color>(0)) == "unrecognized");
+}
+
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  define MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR 1
 #endif
@@ -1046,6 +1072,7 @@ TEST_CASE("constexpr_for") {
     [[maybe_unused]] Foo<Numbers, magic_enum::enum_value<Numbers, i>()> bar{};
   });
 }
+
 
 #ifdef _MSC_VER
 # pragma warning(push)
