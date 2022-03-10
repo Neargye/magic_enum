@@ -58,14 +58,16 @@ endif()
 find_package(roscpp QUIET)
 find_package(rclcpp QUIET)
 if(roscpp_FOUND OR rclcpp_FOUND)
+        include(GNUInstallDirs)
+
         install(DIRECTORY include/
-                DESTINATION include/${PROJECT_NAME})
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         install(TARGETS ${PROJECT_NAME}
-                DESTINATION lib/${PROJECT_NAME})
+                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-        install(FILES package.xml
-                DESTINATION share/${PROJECT_NAME}/)
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/package.xml"
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
 
         install(EXPORT ${PROJECT_NAME}Config
                 DESTINATION share/${PROJECT_NAME}/cmake/${PROJECT_NAME})
