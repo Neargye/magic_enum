@@ -625,24 +625,24 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
-template<typename Value, typename = void>
+template <typename Value, typename = void>
 struct constexpr_hash_t;
 
-template<typename Value>
+template <typename Value>
 struct constexpr_hash_t<Value, std::enable_if_t<is_enum_v<Value>>> {
-  constexpr auto operator()(const Value& val) const noexcept {
-    using type = typename underlying_type<Value>::type;
-    if constexpr (std::is_same_v<type, bool>) {
-      return static_cast<std::size_t>(static_cast<bool>(val));
+  constexpr auto operator()(Value value) const noexcept {
+    using U = typename underlying_type<Value>::type;
+    if constexpr (std::is_same_v<U, bool>) {
+      return static_cast<std::size_t>(static_cast<bool>(value));
     } else {
-      return static_cast<typename underlying_type<Value>::type>(val);
+      return static_cast<U>(value);
     }
   }
   using secondary_hash = constexpr_hash_t;
 };
 
-template<typename Value>
-struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, std::string_view>>> {
+template <typename Value>
+struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_view>>> {
   static constexpr std::uint32_t crc_table[256] {
     0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L, 0x706af48fL, 0xe963a535L, 0x9e6495a3L,
     0x0edb8832L, 0x79dcb8a4L, 0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L, 0x90bf1d91L,
@@ -677,17 +677,18 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, std::strin
     0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L, 0xcdd70693L, 0x54de5729L, 0x23d967bfL,
     0xb3667a2eL, 0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL, 0x2d02ef8dL
   };
-  constexpr std::uint32_t operator()(std::string_view val) const noexcept {
-    std::uint32_t crc = 0xffffffffL;
-    for (auto c : val)
+  constexpr std::uint32_t operator()(string_view val) const noexcept {
+    auto crc = static_cast<std::uint32_t>(0xffffffffL);
+    for (const auto c : val) {
       crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];
+    }
     return crc ^ 0xffffffffL;
   }
 
   struct secondary_hash {
-    constexpr std::uint32_t operator()(std::string_view val) const noexcept {
-      auto acc {static_cast<std::uint64_t>(2166136261ULL)};
-      for (char v : val) {
+    constexpr std::uint32_t operator()(string_view val) const noexcept {
+      auto acc = static_cast<std::uint64_t>(2166136261ULL);
+      for (const auto v : val) {
         acc = ((acc ^ static_cast<std::uint64_t>(v)) * static_cast<std::uint64_t>(16777619ULL)) & std::numeric_limits<std::uint32_t>::max();
       }
       return static_cast<std::uint32_t>(acc);
@@ -695,7 +696,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, std::strin
   };
 };
 
-template<typename Hash>
+template <typename Hash>
 constexpr static Hash hash_v{};
 
 template <auto* globValues, typename Hash>
@@ -709,23 +710,26 @@ constexpr auto calculate_cases(std::size_t page) {
 
   std::array<SwitchType, 256> result{};
   auto fill = result.begin();
-  for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; )
+  for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; ) {
     *fill++ = hash_v<Hash>(*first++);
+  }
 
   // dead cases, try to avoid case collisions
-  for (SwitchType last_value = result[values_to-1];
-    fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value);
+  for (SwitchType last_value = result[values_to - 1]; fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value) {
+  }
 
   auto it = result.begin();
-  for (auto last_value = (std::numeric_limits<SwitchType>::min)(); fill != result.end(); *fill++ = last_value)
-    while (last_value == *it)
+  for (auto last_value = (std::numeric_limits<SwitchType>::min)(); fill != result.end(); *fill++ = last_value) {
+    while (last_value == *it) {
       ++last_value, ++it;
+    }
+  }
 
   return result;
 }
 
-template< class R, class F, class... Args >
-constexpr R invoke_r( F&& f, Args&&... args ) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
+template <typename R, typename F, typename... Args >
+constexpr R invoke_r(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
   if constexpr (std::is_void_v<R>) {
     std::forward<F>(f)(std::forward<Args>(args)...);
   } else {
@@ -737,27 +741,30 @@ enum class case_call_t {
   index, value
 };
 
-template<typename DefaultResultType = void>
+template <typename DefaultResultType = void>
 constexpr auto default_result_type_lambda = [] { return DefaultResultType{}; };
-template<>
+
+template <>
 constexpr auto default_result_type_lambda<void> = [] {};
 
-template<auto* Arr, typename Hash>
+template <auto* Arr, typename Hash>
 constexpr bool no_duplicate() {
   using value_t = std::decay_t<decltype((*Arr)[0])>;
   using hash_value_t = std::invoke_result_t<Hash, value_t>;
   std::array<hash_value_t, Arr->size()> hashes{};
-  std::size_t size{};
+  std::size_t size = 0;
   for (auto elem : *Arr) {
     hashes[size] = hash_v<Hash>(elem);
     for (auto i = size++; i > 0; --i) {
-      if (hashes[i] < hashes[i-1]) {
-        hash_value_t tmp = hashes[i];
-        hashes[i] = hashes[i-1];
-        hashes[i-1] = tmp;
-      } else if (hashes[i] == hashes[i-1])
-          return false;
-      else break;
+      if (hashes[i] < hashes[i - 1]) {
+        auto tmp = hashes[i];
+        hashes[i] = hashes[i - 1];
+        hashes[i - 1] = tmp;
+      } else if (hashes[i] == hashes[i - 1]) {
+        return false;
+      } else {
+        break;
+      }
     }
   }
   return true;
@@ -772,31 +779,29 @@ constexpr bool no_duplicate() {
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
-#define MAGIC_ENUM_CASE(val)                                                                                            \
-  case cases[val]:                                                                                                      \
-    if constexpr ((val) + page < size) {                                                                                \
-      if (!pred(values[val + page], searched))                                                                          \
-        break;                                                                                                          \
-      if constexpr (call_v == case_call_t::index &&                                                                     \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)                     \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
-          std::integral_constant<std::size_t, val + page>{});                                                           \
-      else if constexpr (call_v == case_call_t::value &&                                                                \
-          std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>)                 \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda),                                                 \
-          std::integral_constant<value_t, values[val + page]>{});                                                       \
-      break;                                                                                                            \
+#define MAGIC_ENUM_CASE(val)                                                                                                                           \
+  case cases[val]:                                                                                                                                     \
+    if constexpr ((val) + page < size) {                                                                                                               \
+      if (!pred(values[val + page], searched))                                                                                                         \
+        break;                                                                                                                                         \
+      if constexpr (call_v == case_call_t::index && std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)          \
+        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});                            \
+      else if constexpr (call_v == case_call_t::value && std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>) \
+        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<value_t, values[val + page]>{});                        \
+      break;                                                                                                                                           \
     } else [[fallthrough]];
 
-template<auto* globValues, case_call_t call_v, std::size_t page = 0,
-        typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*globValues)>::value_type>,
-        typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>),
-        typename BinaryPredicate = std::equal_to<>>
-static constexpr auto constexpr_switch(Lambda&& lambda,
-                                       typename std::decay_t<decltype(*globValues)>::value_type searched,
-                                       ResultGetterType&& def = default_result_type_lambda<>,
-                                       BinaryPredicate&& pred = {})
-  -> std::invoke_result_t<ResultGetterType> {
+template <auto* globValues,
+          case_call_t call_v,
+          std::size_t page = 0,
+          typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*globValues)>::value_type>,
+          typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>),
+          typename BinaryPredicate = std::equal_to<>>
+constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
+    Lambda&& lambda,
+    typename std::decay_t<decltype(*globValues)>::value_type searched,
+    ResultGetterType&& def = default_result_type_lambda<>,
+    BinaryPredicate&& pred = {}) {
   using result_t = std::invoke_result_t<ResultGetterType>;
   using value_t = typename std::decay_t<decltype(*globValues)>::value_type;
   using hash_t = std::conditional_t<no_duplicate<globValues, Hash>(), Hash, typename Hash::secondary_hash>;
@@ -808,8 +813,7 @@ static constexpr auto constexpr_switch(Lambda&& lambda,
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
   default:
     if constexpr (size > 256 + page) {
-      return constexpr_switch<globValues, call_v, page + 256, Hash>(std::forward<Lambda>(lambda),
-              searched, std::forward<ResultGetterType>(def));
+      return constexpr_switch<globValues, call_v, page + 256, Hash>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
     }
     break;
   }
@@ -912,8 +916,9 @@ template <typename E>
 
   if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
-            [](std::size_t index) { return optional<std::size_t>{index}; },
-            value, detail::default_result_type_lambda<optional<std::size_t>>);
+              [](std::size_t index) { return optional<std::size_t>{index}; },
+              value,
+              detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
@@ -938,8 +943,9 @@ template <auto V>
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
   using D = std::decay_t<E>;
-  if (auto index = enum_index(value))
+  if (const auto index = enum_index(value); index.has_value()) {
     return detail::names_v<D>[*index];
+  }
   return {};
 }
 
@@ -989,7 +995,7 @@ template <typename E>
 // Obtains enum value from integer value.
 // Returns optional with enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_cast(underlying_type_t<std::decay_t<E>> value) noexcept -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1009,7 +1015,9 @@ template <typename E>
       return {}; // Invalid value or out of range.
     } else {
       return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
-              [](D value) { return optional<D>{value}; }, static_cast<D>(value), detail::default_result_type_lambda<optional<D>>);
+                [](D value) { return optional<D>{value}; },
+                static_cast<D>(value),
+                detail::default_result_type_lambda<optional<D>>);
     }
   } else {
     constexpr auto min = detail::min_v<D>;
@@ -1062,10 +1070,10 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
     if constexpr (default_predicate) {
       return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
-              [](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
-              value, detail::default_result_type_lambda<optional<D>>, [&p](std::string_view lhs, std::string_view rhs) {
-                  return detail::cmp_equal(lhs, rhs, p);
-              });
+                [](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
+                value,
+                detail::default_result_type_lambda<optional<D>>,
+                [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
