@@ -251,14 +251,8 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
 
 * If you are using [Ros](https://www.ros.org/), you can include this package by adding `<depend>magic_enum</depend>` to your package.xml and include this package in your workspace. In your CMakeLists.txt add the following:
-  ROS1:
   ```cmake
-  find_package(catkin REQUIRED COMPONENTS std_msgs magic_enum)
-  ```
-
-  ROS2:
-  ```cmake
-  find_package(magic_enum REQUIRED)
+  find_package(magic_enum CONFIG REQUIRED)
   ...
   target_link_libraries(your_executable magic_enum::magic_enum)
   ```
