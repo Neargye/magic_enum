@@ -58,6 +58,9 @@
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 #include <string_view>
 #endif
+#if !defined(MAGIC_ENUM_USING_ALIAS_VARIANT)
+#include <variant>
+#endif
 
 #if defined(__clang__)
 #  pragma clang diagnostic push
@@ -118,6 +121,17 @@ MAGIC_ENUM_USING_ALIAS_STRING
 using std::string;
 #endif
 
+// If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
+#if defined(MAGIC_ENUM_USING_ALIAS_VARIANT)
+MAGIC_ENUM_USING_ALIAS_VARIANT
+#else
+using std::variant;
+#endif
+
+enum class customize_default_tag {};
+
+enum class customize_invalid_tag {};
+
 namespace customize {
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
@@ -134,10 +148,21 @@ struct enum_range {
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limits<std::uint16_t>::max)(), "MAGIC_ENUM_RANGE must be less than UINT16_MAX.");
 
+inline constexpr auto default_tag = customize_default_tag{};
+inline constexpr auto invalid_tag = customize_invalid_tag{};
+
+using customize_t = variant<customize_default_tag, customize_invalid_tag, string_view>;
+
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
-constexpr string_view enum_name(E) noexcept {
-  return {};
+constexpr customize_t enum_name(E) noexcept {
+  return default_tag;
+}
+
+// If need custom type name for enum, add specialization enum_type_name for necessary enum type.
+template <typename E>
+constexpr customize_t enum_type_name() noexcept {
+  return default_tag;
 }
 
 } // namespace magic_enum::customize
@@ -196,6 +221,8 @@ class static_string {
 template <>
 class static_string<0> {
  public:
+  constexpr explicit static_string() = default;
+
   constexpr explicit static_string(string_view) noexcept {}
 
   constexpr const char* data() const noexcept { return nullptr; }
@@ -342,8 +369,14 @@ inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::de
 template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+  using std::holds_alternative;
+  using std::get;
 
-  if constexpr (supported<E>::value) {
+  [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
+  if constexpr (holds_alternative<string_view>(custom)) {
+    constexpr auto name = get<string_view>(custom);
+    return static_string<name.size()>{name};
+  } else if constexpr (holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
@@ -353,7 +386,7 @@ constexpr auto n() noexcept {
 #endif
     return static_string<name.size()>{name};
   } else {
-    return string_view{}; // Unsupported compiler.
+    return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
 }
 
@@ -363,23 +396,24 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  [[maybe_unused]] constexpr auto custom_name = customize::enum_name<E>(V);
+  using std::holds_alternative;
+  using std::get;
 
-  if constexpr (custom_name.empty()) {
-    if constexpr (supported<E>::value) {
+  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
+  if constexpr (holds_alternative<string_view>(custom)) {
+    constexpr auto name = get<string_view>(custom);
+    return static_string<name.size()>{name};
+  } else if constexpr (holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
-      constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
-      constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-      constexpr auto name = string_view{};
+    constexpr auto name = string_view{};
 #endif
-      return static_string<name.size()>{name};
-    } else {
-      return string_view{}; // Unsupported compiler.
-    }
+    return static_string<name.size()>{name};
   } else {
-    return static_string<custom_name.size()>{custom_name};
+    return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
 }
 
