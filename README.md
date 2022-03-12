@@ -139,7 +139,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"
   ```
-  
+
 * Enum fusion for multi-level switch/case statements
 
   ```cpp
@@ -249,6 +249,13 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
   (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
+
+* If you are using [Ros](https://www.ros.org/), you can include this package by adding `<depend>magic_enum</depend>` to your package.xml and include this package in your workspace. In your CMakeLists.txt add the following:
+  ```cmake
+  find_package(magic_enum CONFIG REQUIRED)
+  ...
+  target_link_libraries(your_executable magic_enum::magic_enum)
+  ```
 
 ## Compiler compatibility
 
