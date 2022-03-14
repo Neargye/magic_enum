@@ -36,9 +36,9 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
     case Color::BLUE:
       return "The BLUE";
     case Color::GREEN:
-      return magic_enum::customize::invalid_tag;
+      return invalid_tag;
   }
-  return magic_enum::customize::default_tag;
+  return default_tag;
 }
 
 enum class Numbers : int { One, Two, Three };
@@ -51,7 +51,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Nu
     case Numbers::One:
       return "the one";
     default:
-      return magic_enum::customize::default_tag;
+      return default_tag;
   }
 }
 

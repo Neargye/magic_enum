@@ -373,8 +373,10 @@ constexpr auto n() noexcept {
   using std::get;
 
   [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
   if constexpr (holds_alternative<string_view>(custom)) {
     constexpr auto name = get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
   } else if constexpr (holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
@@ -400,8 +402,10 @@ constexpr auto n() noexcept {
   using std::get;
 
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
   if constexpr (holds_alternative<string_view>(custom)) {
     constexpr auto name = get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
   } else if constexpr (holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
@@ -977,7 +981,7 @@ template <auto V>
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
   using D = std::decay_t<E>;
-  if (const auto index = enum_index(value); index.has_value()) {
+  if (const auto index = enum_index(value)) {
     return detail::names_v<D>[*index];
   }
   return {};
@@ -1123,7 +1127,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 template <auto V>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_enum_t<decltype(V), std::size_t> {
   constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
-  static_assert(index.has_value(), "magic_enum::enum_index enum value does not have a index.");
+  static_assert(index, "magic_enum::enum_index enum value does not have a index.");
 
   return *index;
 }
@@ -1134,13 +1138,13 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  return enum_cast<D>(static_cast<U>(value)).has_value();
+  return static_cast<bool>(enum_cast<D>(static_cast<U>(value)));
 }
 
 // Checks whether enum contains enumerator with such integer value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  return enum_cast<std::decay_t<E>>(value).has_value();
+  return static_cast<bool>(enum_cast<std::decay_t<E>>(value));
 }
 
 // Checks whether enum contains enumerator with such name.
@@ -1148,15 +1152,15 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
 
-  return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
+  return static_cast<bool>(enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)));
 }
 
 namespace detail {
 
 template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
-  if (hash.has_value()) {
-    if (const auto index = enum_index(value); index.has_value()) {
+  if (hash) {
+    if (const auto index = enum_index(value)) {
       return (*hash << log2(enum_count<E>() + 1)) | *index;
     }
   }
@@ -1177,7 +1181,7 @@ template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
   const auto fuse = fuse_enum(values...);
-  if (fuse.has_value()) {
+  if (fuse) {
     return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
   return optional<enum_fuse_t>{};
@@ -1196,7 +1200,7 @@ template <typename... Es>
 #else
   const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
 #endif
-  return assert(fuse.has_value()), fuse;
+  return assert(fuse), fuse;
 }
 
 namespace ostream_operators {
@@ -1219,7 +1223,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  return value.has_value() ? (os << *value) : os;
+  return value ? (os << *value) : os;
 }
 
 } // namespace magic_enum::ostream_operators
