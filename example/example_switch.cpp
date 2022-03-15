@@ -57,7 +57,7 @@ int main() {
 
   // with object, explicit enum type
   auto switcher1 = overloaded {
-    [] (auto val) -> std::enable_if_t <(Color::BLUE == decltype(val)())> {
+    [] (auto val) -> std::enable_if_t <(Color::BLUE == decltype(val){}())> {
       std::cout << "Blue" << std::endl;
     },
     [] (std::integral_constant<Color, Color::RED>) {
