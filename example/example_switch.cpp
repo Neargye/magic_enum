@@ -45,7 +45,7 @@ int main() {
   Color c = Color::RED;
 
   auto lambda = [] (auto value) {
-      std::cout << DoWork<value>() << std::endl;
+    std::cout << DoWork<value>() << std::endl;
   };
 
   magic_enum::enum_switch(lambda, c); // prints "default"
