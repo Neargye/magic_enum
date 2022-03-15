@@ -37,6 +37,8 @@ write_basic_package_version_file(${PROJECT_NAME}ConfigVersion.cmake
         ARCH_INDEPENDENT)
 
 if(MAGIC_ENUM_OPT_INSTALL)
+    include(GNUInstallDirs)
+
     install(TARGETS ${PROJECT_NAME}
             EXPORT ${PROJECT_NAME}Config)
 
@@ -52,4 +54,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
 
     export(EXPORT ${PROJECT_NAME}Config
             NAMESPACE ${PROJECT_NAME}::)
+
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/package.xml
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
 endif()
