@@ -916,7 +916,7 @@ template <typename E>
 
   if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
-              [](std::size_t index) { return optional<std::size_t>{index}; },
+              [](std::size_t i) { return optional<std::size_t>{i}; },
               value,
               detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
@@ -1015,7 +1015,7 @@ template <typename E>
       return {}; // Invalid value or out of range.
     } else {
       return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
-                [](D value) { return optional<D>{value}; },
+                [](D v) { return optional<D>{v}; },
                 static_cast<D>(value),
                 detail::default_result_type_lambda<optional<D>>);
     }
@@ -1070,7 +1070,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
     if constexpr (default_predicate) {
       return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
-                [](std::size_t index) { return optional<D>{detail::values_v<D>[index]}; },
+                [](std::size_t i) { return optional<D>{detail::values_v<D>[i]}; },
                 value,
                 detail::default_result_type_lambda<optional<D>>,
                 [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
