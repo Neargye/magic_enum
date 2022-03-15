@@ -41,7 +41,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
     case Color::RED:
       return "red";
     default:
-      return magic_enum::customize::default_tag;
+      return default_tag;
   }
 }
 
