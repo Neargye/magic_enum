@@ -38,7 +38,7 @@ constexpr std::string_view DoWork<Color::GREEN>() {
 
 struct SwitcherLambda1 {
     template <typename T>
-    auto operator()(T) -> std::enable_if_t < T{} == Color::BLUE > { // can be enable_if, with template
+    std::enable_if_t <T() == Color::BLUE> operator()(T) { // can be enable_if, with template
         std::cout << "Blue" << std::endl;
     }
 
