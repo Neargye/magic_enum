@@ -779,16 +779,26 @@ constexpr bool no_duplicate() {
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
-#define MAGIC_ENUM_CASE(val)                                                                                                                           \
-  case cases[val]:                                                                                                                                     \
-    if constexpr ((val) + page < size) {                                                                                                               \
-      if (!pred(values[val + page], searched))                                                                                                         \
-        break;                                                                                                                                         \
-      if constexpr (call_v == case_call_t::index && std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>)          \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});                            \
-      else if constexpr (call_v == case_call_t::value && std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>) \
-        return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<value_t, values[val + page]>{});                        \
-      break;                                                                                                                                           \
+#define MAGIC_ENUM_CASE(val)                                                                                                      \
+  case cases[val]:                                                                                                                \
+    if constexpr ((val) + page < size) {                                                                                          \
+      if (!pred(values[val + page], searched)) {                                                                                  \
+        break;                                                                                                                    \
+      }                                                                                                                           \
+      if constexpr (call_v == case_call_t::index) {                                                                               \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>) {                 \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});     \
+        } else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, val + page>>) {                      \
+          assert(false && "wrong result type");                                                                                   \
+        }                                                                                                                         \
+      } else if constexpr (call_v == case_call_t::value) {                                                                        \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>) {             \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<value_t, values[val + page]>{}); \
+        } else if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<value_t, values[val + page]>>) {      \
+          assert(false && "wrong result type");                                                                                   \
+        }                                                                                                                         \
+      }                                                                                                                           \
+      break;                                                                                                                      \
     } else [[fallthrough]];
 
 template <auto* globValues,
@@ -822,6 +832,22 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
 
 #undef MAGIC_ENUM_FOR_EACH_256
 #undef MAGIC_ENUM_CASE
+
+template<typename E, typename Lambda, std::size_t ... Ix>
+constexpr auto enum_for_each_impl(Lambda&& lambda, std::index_sequence<Ix...>) {
+  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[Ix]>>> || ...);
+  constexpr bool all_same_return = (std::is_same_v<
+    std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[0]>>,
+    std::invoke_result_t<Lambda, std::integral_constant<E, values_v<E>[Ix]>>> && ...);
+
+  if constexpr (has_void_return) {
+    (lambda(std::integral_constant<E, values_v<E>[Ix]>{}), ...);
+  } else if constexpr (all_same_return) {
+    return std::array{lambda(std::integral_constant<E, values_v<E>[Ix]>{}) ...};
+  } else {
+    return std::tuple{lambda(std::integral_constant<E, values_v<E>[Ix]>{}) ...};
+  }
+}
 
 } // namespace magic_enum::detail
 
