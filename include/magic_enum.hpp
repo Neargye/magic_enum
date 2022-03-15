@@ -238,7 +238,7 @@ class case_insensitive {
 
  public:
   template <typename L, typename R>
-  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
+  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
     return false;
@@ -1157,7 +1157,8 @@ constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> det
 }
 
 template<typename E, typename ResultType = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_enum_t<E, ResultType> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {})
+    -> std::enable_if_t<std::is_enum_v<std::decay_t<E>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, ResultType> {
   if (auto value = enum_cast<E>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch<ResultType>(std::forward<Lambda>(lambda), *value);
   }
@@ -1165,7 +1166,8 @@ constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredica
 }
 
 template<typename E, typename BinaryPredicate = std::equal_to<char>, typename Lambda, typename ResultType>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {}) -> detail::enable_if_enum_t<E, ResultType> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {})
+    -> std::enable_if_t<std::is_enum_v<std::decay_t<E>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, ResultType> {
   if (auto value = enum_cast<E>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch(std::forward<Lambda>(lambda), *value, std::forward<ResultType>(result));
   }
