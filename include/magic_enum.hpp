@@ -1149,7 +1149,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_enum_t
     std::forward<Lambda>(lambda), value, detail::default_result_type_lambda<ResultType>);
 }
 
-template<typename Lambda, typename E, typename ResultType>
+template<typename ResultType, typename Lambda, typename E>
 constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
   return detail::constexpr_switch<&detail::values_v<std::decay_t<E>>, detail::case_call_t::value>(
     std::forward<Lambda>(lambda), value,
@@ -1165,7 +1165,7 @@ constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredica
   return detail::default_result_type_lambda<ResultType>();
 }
 
-template<typename E, typename BinaryPredicate = std::equal_to<char>, typename Lambda, typename ResultType>
+template<typename E, typename ResultType, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {})
     -> std::enable_if_t<std::is_enum_v<std::decay_t<E>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, ResultType> {
   if (auto value = enum_cast<E>(name, std::forward<BinaryPredicate>(p))) {
@@ -1182,7 +1182,7 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<std::decay_t<E>> r
   return detail::default_result_type_lambda<ResultType>();
 }
 
-template<typename E, typename Lambda, typename ResultType>
+template<typename E, typename ResultType, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<std::decay_t<E>> raw_value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
   if (auto value = enum_cast<E>(raw_value)) {
     return enum_switch(std::forward<Lambda>(lambda), *value, std::forward<ResultType>(result));
