@@ -35,6 +35,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_contains` checks whether enum contains enumerator with such value.
 * `enum_type_name` returns name of enum type.
 * `enum_fuse` allows multidimensional switch/cases.
+* `enum_switch` allows runtime enum value transformation to constexpr context.
+* `enum_for_each` calls a function with all enum constexpr value.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `underlying_type` improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
@@ -148,6 +150,24 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
     case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
   // ...
   }
+  ```
+  
+* Enum switch runtime value as constexpr constant
+  ```cpp
+  Color color = Color::RED;
+  
+  magic_enum::enum_switch([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  }, color);
+  ```
+
+* Enum iterate for each enum as constexpr constant
+  ```cpp
+  magic_enum::enum_for_each<Color>([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  });
   ```
 
 * Ostream operator for enum

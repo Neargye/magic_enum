@@ -13,6 +13,8 @@
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
 * [`enum_type_name` returns type name of enum.](#enum_type_name)
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
+* [`enum_switch` TODO.](#enum_switch)
+* [`enum_for_each` TODO.](#enum_for_each)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
@@ -363,6 +365,14 @@ template <typename... Es>
   // ...
   }
   ```
+
+## `enum_switch`
+
+TODO
+
+## `enum_for_each`
+
+TODO
 
 ## `is_unscoped_enum`
 
