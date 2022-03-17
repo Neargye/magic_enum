@@ -119,10 +119,6 @@ MAGIC_ENUM_USING_ALIAS_STRING
 using std::string;
 #endif
 
-enum class customize_default_tag {};
-
-enum class customize_invalid_tag {};
-
 namespace customize {
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
@@ -139,12 +135,17 @@ struct enum_range {
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limits<std::uint16_t>::max)(), "MAGIC_ENUM_RANGE must be less than UINT16_MAX.");
 
-// Default customize.
-inline constexpr auto default_tag = customize_default_tag{};
-// Invalid customize.
-inline constexpr auto invalid_tag = customize_invalid_tag{};
+namespace detail {
+enum class customize_default_tag {};
+enum class customize_invalid_tag {};
+} // namespace magic_enum::customize::detail
 
-using customize_t = std::variant<customize_default_tag, customize_invalid_tag, string_view>;
+using customize_t = std::variant<string_view, detail::customize_default_tag, detail::customize_invalid_tag>;
+
+// Default customize.
+inline constexpr auto default_tag = detail::customize_default_tag{};
+// Invalid customize.
+inline constexpr auto invalid_tag = detail::customize_invalid_tag{};
 
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
@@ -365,11 +366,11 @@ constexpr auto n() noexcept {
 
   [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (std::holds_alternative<string_view>(custom)) {
+  if constexpr (custom.index() == 0) {
     constexpr auto name = std::get<string_view>(custom);
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
-  } else if constexpr (std::holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
+  } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
@@ -392,11 +393,11 @@ constexpr auto n() noexcept {
 
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (std::holds_alternative<string_view>(custom)) {
+  if constexpr (custom.index() == 0) {
     constexpr auto name = std::get<string_view>(custom);
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
-  } else if constexpr (std::holds_alternative<customize_default_tag>(custom) && supported<E>::value) {
+  } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
