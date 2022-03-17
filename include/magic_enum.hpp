@@ -573,7 +573,7 @@ constexpr bool is_sparse() noexcept {
   constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
   constexpr auto range_size = max - min + 1;
 
-  return range_size != count_v<E>;
+  return range_size != count_v<E> && count_v<E> > 0;
 }
 
 template <typename E>
@@ -1064,7 +1064,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
       return static_cast<D>(result);
     }
     return {}; // Invalid value or out of range.
-  } else {
+  } else if constexpr (detail::count_v<D> > 0) {
     constexpr bool default_predicate =
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> ||
         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
@@ -1082,6 +1082,8 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
       }
       return {}; // Invalid value or out of range.
     }
+  } else {
+      return {};
   }
 }
 
