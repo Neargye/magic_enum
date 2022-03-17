@@ -252,7 +252,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 ## Compiler compatibility
 
-* Clang/LLVM >= 7
+* Clang/LLVM >= 6
 * MSVC++ >= 14.11 / Visual Studio >= 2017
 * Xcode >= 10
 * GCC >= 9
