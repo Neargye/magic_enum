@@ -136,16 +136,16 @@ static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX
 static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limits<std::uint16_t>::max)(), "MAGIC_ENUM_RANGE must be less than UINT16_MAX.");
 
 namespace detail {
-enum class customize_default_tag {};
-enum class customize_invalid_tag {};
+enum class default_customize_tag {};
+enum class invalid_customize_tag {};
 } // namespace magic_enum::customize::detail
 
-using customize_t = std::variant<string_view, detail::customize_default_tag, detail::customize_invalid_tag>;
+using customize_t = std::variant<string_view, detail::default_customize_tag, detail::invalid_customize_tag>;
 
 // Default customize.
-inline constexpr auto default_tag = detail::customize_default_tag{};
+inline constexpr auto default_tag = detail::default_customize_tag{};
 // Invalid customize.
-inline constexpr auto invalid_tag = detail::customize_invalid_tag{};
+inline constexpr auto invalid_tag = detail::invalid_customize_tag{};
 
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
