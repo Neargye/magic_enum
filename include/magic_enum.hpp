@@ -942,7 +942,9 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
               [](std::size_t i) { return optional<std::size_t>{i}; },
               value,
@@ -1027,7 +1029,9 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  if constexpr (detail::is_sparse_v<D>) {
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else if constexpr (detail::is_sparse_v<D>) {
     if constexpr (detail::is_flags_v<D>) {
       constexpr auto count = detail::count_v<D>;
       auto check_value = U{0};
@@ -1069,7 +1073,9 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  if constexpr (detail::is_flags_v<D>) {
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else if constexpr (detail::is_flags_v<D>) {
     auto result = U{0};
     while (!value.empty()) {
       const auto d = detail::find(value, '|');
@@ -1110,8 +1116,6 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
       }
       return {}; // Invalid value or out of range.
     }
-  } else {
-      return {};
   }
 }
 
