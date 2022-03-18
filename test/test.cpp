@@ -1018,6 +1018,61 @@ TEST_CASE("cmp_less") {
   }
 }
 
+template<Color C>
+constexpr std::string_view DoWork() {
+  return "default";
+}
+
+template<>
+constexpr std::string_view DoWork<Color::GREEN>() {
+  return "override";
+}
+
+TEST_CASE("enum_switch") {
+  constexpr auto bind_enum_switch = [] (Color c) {
+
+    return enum_switch([](auto val) {
+      return DoWork<val>();
+    }, c, string_view{"unrecognized"});
+
+  };
+
+  constexpr auto def = bind_enum_switch(Color::BLUE);
+  REQUIRE(def == "default");
+  REQUIRE(bind_enum_switch(Color::RED) == "default");
+  REQUIRE(bind_enum_switch(Color::GREEN) == "override");
+  REQUIRE(bind_enum_switch(static_cast<Color>(0)) == "unrecognized");
+}
+
+TEST_CASE("enum_for_each") {
+  SECTION("no return type") {
+    underlying_type_t<Color> sum{};
+    enum_for_each<Color>([&sum](auto val) {
+      constexpr underlying_type_t<Color> v = enum_integer(val());
+      sum += v;
+    });
+    REQUIRE(sum == 10);
+  }
+
+  SECTION("same return type") {
+    constexpr auto workResults = enum_for_each<Color>([](auto val) {
+      return DoWork<val>();
+    });
+    REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
+  }
+
+  SECTION("different return type") {
+    constexpr auto colorInts = enum_for_each<Color>([](auto val) {
+      return val;
+    });
+    REQUIRE(std::is_same_v<std::remove_const_t<decltype(colorInts)>, std::tuple<
+      std::integral_constant<Color, Color::RED>,
+      std::integral_constant<Color, Color::GREEN>,
+      std::integral_constant<Color, Color::BLUE>
+    >>);
+  }
+}
+
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  define MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR 1
 #endif
