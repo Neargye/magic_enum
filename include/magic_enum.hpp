@@ -44,6 +44,7 @@
 #include <limits>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
 #include MAGIC_ENUM_CONFIG_FILE
@@ -134,10 +135,28 @@ struct enum_range {
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limits<std::uint16_t>::max)(), "MAGIC_ENUM_RANGE must be less than UINT16_MAX.");
 
+namespace detail {
+enum class default_customize_tag {};
+enum class invalid_customize_tag {};
+} // namespace magic_enum::customize::detail
+
+using customize_t = std::variant<string_view, detail::default_customize_tag, detail::invalid_customize_tag>;
+
+// Default customize.
+inline constexpr auto default_tag = detail::default_customize_tag{};
+// Invalid customize.
+inline constexpr auto invalid_tag = detail::invalid_customize_tag{};
+
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
-constexpr string_view enum_name(E) noexcept {
-  return {};
+constexpr customize_t enum_name(E) noexcept {
+  return default_tag;
+}
+
+// If need custom type name for enum, add specialization enum_type_name for necessary enum type.
+template <typename E>
+constexpr customize_t enum_type_name() noexcept {
+  return default_tag;
 }
 
 } // namespace magic_enum::customize
@@ -196,6 +215,8 @@ class static_string {
 template <>
 class static_string<0> {
  public:
+  constexpr explicit static_string() = default;
+
   constexpr explicit static_string(string_view) noexcept {}
 
   constexpr const char* data() const noexcept { return nullptr; }
@@ -343,7 +364,13 @@ template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
-  if constexpr (supported<E>::value) {
+  [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+  if constexpr (custom.index() == 0) {
+    constexpr auto name = std::get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    return static_string<name.size()>{name};
+  } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
@@ -353,7 +380,7 @@ constexpr auto n() noexcept {
 #endif
     return static_string<name.size()>{name};
   } else {
-    return string_view{}; // Unsupported compiler.
+    return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
 }
 
@@ -363,23 +390,24 @@ inline constexpr auto type_name_v = n<E>();
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-  [[maybe_unused]] constexpr auto custom_name = customize::enum_name<E>(V);
 
-  if constexpr (custom_name.empty()) {
-    if constexpr (supported<E>::value) {
+  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+  if constexpr (custom.index() == 0) {
+    constexpr auto name = std::get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    return static_string<name.size()>{name};
+  } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
-      constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
-      constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
-      constexpr auto name = string_view{};
+    constexpr auto name = string_view{};
 #endif
-      return static_string<name.size()>{name};
-    } else {
-      return string_view{}; // Unsupported compiler.
-    }
+    return static_string<name.size()>{name};
   } else {
-    return static_string<custom_name.size()>{custom_name};
+    return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
 }
 
@@ -943,7 +971,7 @@ template <auto V>
 template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
   using D = std::decay_t<E>;
-  if (const auto index = enum_index(value); index.has_value()) {
+  if (const auto index = enum_index(value)) {
     return detail::names_v<D>[*index];
   }
   return {};
@@ -1089,7 +1117,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 template <auto V>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_enum_t<decltype(V), std::size_t> {
   constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
-  static_assert(index.has_value(), "magic_enum::enum_index enum value does not have a index.");
+  static_assert(index, "magic_enum::enum_index enum value does not have a index.");
 
   return *index;
 }
@@ -1100,13 +1128,13 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  return enum_cast<D>(static_cast<U>(value)).has_value();
+  return static_cast<bool>(enum_cast<D>(static_cast<U>(value)));
 }
 
 // Checks whether enum contains enumerator with such integer value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
-  return enum_cast<std::decay_t<E>>(value).has_value();
+  return static_cast<bool>(enum_cast<std::decay_t<E>>(value));
 }
 
 // Checks whether enum contains enumerator with such name.
@@ -1114,15 +1142,15 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>) -> detail::enable_if_enum_t<E, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
 
-  return enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)).has_value();
+  return static_cast<bool>(enum_cast<std::decay_t<E>>(value, std::move_if_noexcept(p)));
 }
 
 namespace detail {
 
 template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
-  if (hash.has_value()) {
-    if (const auto index = enum_index(value); index.has_value()) {
+  if (hash) {
+    if (const auto index = enum_index(value)) {
       return (*hash << log2(enum_count<E>() + 1)) | *index;
     }
   }
@@ -1143,7 +1171,7 @@ template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
   const auto fuse = fuse_enum(values...);
-  if (fuse.has_value()) {
+  if (fuse) {
     return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
   return optional<enum_fuse_t>{};
@@ -1162,7 +1190,7 @@ template <typename... Es>
 #else
   const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
 #endif
-  return assert(fuse.has_value()), fuse;
+  return assert(fuse), fuse;
 }
 
 namespace ostream_operators {
@@ -1185,7 +1213,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  return value.has_value() ? (os << *value) : os;
+  return value ? (os << *value) : os;
 }
 
 } // namespace magic_enum::ostream_operators

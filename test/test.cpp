@@ -35,6 +35,15 @@
 #include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Color>(Color value) noexcept {
+  switch (value) {
+    case Color::RED:
+      return "red";
+    default:
+      return default_tag;
+  }
+}
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
 
@@ -93,16 +102,6 @@ struct magic_enum::customize::enum_range<Binary> {
   static constexpr int min = 0;
   static constexpr int max = 64;
 };
-
-template <>
-constexpr std::string_view magic_enum::customize::enum_name<Color>(Color value) noexcept {
-  switch (value) {
-    case Color::RED:
-      return "red";
-    default:
-      return {};
-  }
-}
 
 using namespace magic_enum;
 
