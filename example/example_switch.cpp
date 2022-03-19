@@ -1,6 +1,7 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2021 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2020 - 2022 Bela Schaum <schaumb@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -36,10 +37,9 @@ constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
 }
 
-// helper type for the visitor pattern
+// Helper type for the visitor pattern.
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 
 int main() {
   Color c = Color::RED;
@@ -54,13 +54,12 @@ int main() {
 
   magic_enum::enum_switch(lambda, c); // prints "override"
 
-
   // with object, explicit enum type
-  auto switcher1 = overloaded {
-    [] (auto val) -> std::enable_if_t <(Color::BLUE == decltype(val){}())> {
+  auto switcher1 = overloaded{
+    [] (auto val) -> std::enable_if_t<(Color::BLUE == decltype(val){}())> {
       std::cout << "Blue" << std::endl;
     },
-    [] (std::integral_constant<Color, Color::RED>) {
+    [] (magic_enum::enum_constant<Color::RED>) {
       std::cout << "Red" << std::endl;
     }
   };
@@ -69,15 +68,14 @@ int main() {
   magic_enum::enum_switch<Color>(switcher1, 1 /* BLUE */); // prints "Blue"
   magic_enum::enum_switch<Color>(switcher1, 0 /* RED */); // prints "Red"
 
-
   // explicit result type
-  auto switcher2 = overloaded {
-    [] (std::integral_constant<Color, Color::GREEN>) {
+  auto switcher2 = overloaded{
+    [] (magic_enum::enum_constant<Color::GREEN>) {
       return "called with green argument";
     },
     [] (Color other) { // default case
       auto name = magic_enum::enum_name(other); // not empty
-      return "default: " + std::string{name.data(), name.size()};
+      return "default: " + std::string{name};
     }
   };
 
@@ -87,15 +85,14 @@ int main() {
   auto empty = magic_enum::enum_switch<std::string>(switcher2, static_cast<Color>(-3)); // returns an empty string
   assert(empty.empty());
 
-
   // result with default object
   std::cout << magic_enum::enum_switch<Color, std::string>(switcher2, -3, "unrecognized") << std::endl; // prints "unrecognized"
 
-  auto switcher3 = overloaded {
-    [] (std::integral_constant<Color, Color::RED>) {
+  auto switcher3 = overloaded{
+    [] (magic_enum::enum_constant<Color::RED>) {
       return "red result";
     },
-    [] (std::integral_constant<Color, Color::BLUE>) {
+    [] (magic_enum::enum_constant<Color::BLUE>) {
       return std::nullopt;
     }
   };
