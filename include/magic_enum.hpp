@@ -741,27 +741,27 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
 template <typename Hash>
 constexpr static Hash hash_v{};
 
-template <auto* globValues, typename Hash>
-constexpr auto calculate_cases(std::size_t page) noexcept {
-  constexpr std::array values = *globValues;
+template <auto* GlobValues, typename Hash>
+constexpr auto calculate_cases(std::size_t Page) noexcept {
+  constexpr std::array values = *GlobValues;
   constexpr std::size_t size = values.size();
 
-  using SwitchType = std::invoke_result_t<Hash, typename decltype(values)::value_type>;
-  static_assert(std::is_integral_v<SwitchType> && !std::is_same_v<SwitchType, bool>);
-  const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - page);
+  using switch_t = std::invoke_result_t<Hash, typename decltype(values)::value_type>;
+  static_assert(std::is_integral_v<switch_t> && !std::is_same_v<switch_t, bool>);
+  const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - Page);
 
-  std::array<SwitchType, 256> result{};
+  std::array<switch_t, 256> result{};
   auto fill = result.begin();
-  for (auto first = values.begin() + page, last = values.begin() + page + values_to; first != last; ) {
+  for (auto first = values.begin() + Page, last = values.begin() + Page + values_to; first != last; ) {
     *fill++ = hash_v<Hash>(*first++);
   }
 
   // dead cases, try to avoid case collisions
-  for (SwitchType last_value = result[values_to - 1]; fill != result.end() && last_value != (std::numeric_limits<SwitchType>::max)(); *fill++ = ++last_value) {
+  for (switch_t last_value = result[values_to - 1]; fill != result.end() && last_value != (std::numeric_limits<switch_t>::max)(); *fill++ = ++last_value) {
   }
 
   auto it = result.begin();
-  for (auto last_value = (std::numeric_limits<SwitchType>::min)(); fill != result.end(); *fill++ = last_value) {
+  for (auto last_value = (std::numeric_limits<switch_t>::min)(); fill != result.end(); *fill++ = last_value) {
     while (last_value == *it) {
       ++last_value, ++it;
     }
@@ -783,8 +783,8 @@ enum class case_call_t {
   index, value
 };
 
-template <typename DefaultResultType = void>
-constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<DefaultResultType>) { return DefaultResultType{}; };
+template <typename T = void>
+constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
 
 template <>
 constexpr auto default_result_type_lambda<void> = []() noexcept {};
@@ -823,48 +823,48 @@ constexpr bool no_duplicate() noexcept {
 
 #define MAGIC_ENUM_CASE(val)                                                                                                      \
   case cases[val]:                                                                                                                \
-    if constexpr ((val) + page < size) {                                                                                          \
-      if (!pred(values[val + page], searched)) {                                                                                  \
+    if constexpr ((val) + Page < size) {                                                                                          \
+      if (!pred(values[val + Page], searched)) {                                                                                  \
         break;                                                                                                                    \
       }                                                                                                                           \
-      if constexpr (call_v == case_call_t::index) {                                                                               \
-        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + page>>) {                 \
-          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + page>{});     \
-        } else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, val + page>>) {                      \
+      if constexpr (CallValue == case_call_t::index) {                                                                            \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + Page>>) {                 \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + Page>{});     \
+        } else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, val + Page>>) {                      \
           assert(false && "magic_enum::detail::constexpr_switch wrong result type.");                                             \
         }                                                                                                                         \
-      } else if constexpr (call_v == case_call_t::value) {                                                                        \
-        if constexpr (std::is_invocable_r_v<result_t, Lambda, enum_constant<values[val + page]>>) {                               \
-          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), enum_constant<values[val + page]>{});                   \
-        } else if constexpr (std::is_invocable_r_v<result_t, Lambda, enum_constant<values[val + page]>>) {                        \
+      } else if constexpr (CallValue == case_call_t::value) {                                                                     \
+        if constexpr (std::is_invocable_r_v<result_t, Lambda, enum_constant<values[val + Page]>>) {                               \
+          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), enum_constant<values[val + Page]>{});                   \
+        } else if constexpr (std::is_invocable_r_v<result_t, Lambda, enum_constant<values[val + Page]>>) {                        \
           assert(false && "magic_enum::detail::constexpr_switch wrong result type.");                                             \
         }                                                                                                                         \
       }                                                                                                                           \
       break;                                                                                                                      \
     } else [[fallthrough]];
 
-template <auto* globValues,
-          case_call_t call_v,
-          std::size_t page = 0,
-          typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*globValues)>::value_type>,
+template <auto* GlobValues,
+          case_call_t CallValue,
+          std::size_t Page = 0,
+          typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*GlobValues)>::value_type>,
           typename Lambda, typename ResultGetterType = decltype(default_result_type_lambda<>),
           typename BinaryPredicate = std::equal_to<>>
 constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
     Lambda&& lambda,
-    typename std::decay_t<decltype(*globValues)>::value_type searched,
+    typename std::decay_t<decltype(*GlobValues)>::value_type searched,
     ResultGetterType&& def = default_result_type_lambda<>,
     BinaryPredicate&& pred = {}) {
   using result_t = std::invoke_result_t<ResultGetterType>;
-  using hash_t = std::conditional_t<no_duplicate<globValues, Hash>(), Hash, typename Hash::secondary_hash>;
-  constexpr std::array values = *globValues;
+  using hash_t = std::conditional_t<no_duplicate<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
+  constexpr std::array values = *GlobValues;
   constexpr std::size_t size = values.size();
-  constexpr std::array cases = calculate_cases<globValues, hash_t>(page);
+  constexpr std::array cases = calculate_cases<GlobValues, hash_t>(Page);
 
   switch (hash_v<hash_t>(searched)) {
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
     default:
-      if constexpr (size > 256 + page) {
-        return constexpr_switch<globValues, call_v, page + 256, Hash>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
+      if constexpr (size > 256 + Page) {
+        return constexpr_switch<GlobValues, CallValue, Page + 256, Hash>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
       }
       break;
   }
@@ -1195,66 +1195,66 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   return static_cast<bool>(enum_cast<D>(value, std::forward<BinaryPredicate>(p)));
 }
 
-template <typename ResultType = void, typename E, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_enum_t<E, ResultType> {
+template <typename Result = void, typename E, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_enum_t<E, Result> {
   using D = std::decay_t<E>;
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
       std::forward<Lambda>(lambda),
       value,
-      detail::default_result_type_lambda<ResultType>);
+      detail::default_result_type_lambda<Result>);
 }
 
-template <typename ResultType, typename E, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
+template <typename Result, typename E, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail::enable_if_enum_t<E, Result> {
   using D = std::decay_t<E>;
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
       std::forward<Lambda>(lambda),
       value,
-      [&result] { return std::forward<ResultType>(result); });
+      [&result] { return std::forward<Result>(result); });
 }
 
-template <typename E, typename ResultType = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, ResultType> {
+template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, Result> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
-    return enum_switch<ResultType, D>(std::forward<Lambda>(lambda), *v);
+    return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v);
   }
-  return detail::default_result_type_lambda<ResultType>();
+  return detail::default_result_type_lambda<Result>();
 }
 
-template <typename E, typename ResultType, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, ResultType> {
+template <typename E, typename Result, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, Result> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
-    return enum_switch<ResultType, D>(std::forward<Lambda>(lambda), *v, std::forward<ResultType>(result));
+    return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v, std::forward<Result>(result));
   }
-  return std::forward<ResultType>(result);
+  return std::forward<Result>(result);
 }
 
-template <typename E, typename ResultType = void, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detail::enable_if_enum_t<E, ResultType> {
+template <typename E, typename Result = void, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detail::enable_if_enum_t<E, Result> {
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(value)) {
-    return enum_switch<ResultType, D>(std::forward<Lambda>(lambda), *v);
+    return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v);
   }
-  return detail::default_result_type_lambda<ResultType>();
+  return detail::default_result_type_lambda<Result>();
 }
 
-template <typename E, typename ResultType, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, ResultType&& result) -> detail::enable_if_enum_t<E, ResultType> {
+template <typename E, typename Result, typename Lambda>
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result) -> detail::enable_if_enum_t<E, Result> {
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(value)) {
-    return enum_switch<ResultType, D>(std::forward<Lambda>(lambda), *v, std::forward<ResultType>(result));
+    return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v, std::forward<Result>(result));
   }
-  return std::forward<ResultType>(result);
+  return std::forward<Result>(result);
 }
 
 template <typename E, typename Lambda>
