@@ -873,6 +873,7 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
 
 template <typename E, typename Lambda, std::size_t... I>
 constexpr auto for_each(Lambda&& lambda, std::index_sequence<I...>) {
+  static_assert(is_enum_v<E>, "magic_enum::detail::for_each requires enum type.");
   constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<Lambda, enum_constant<values_v<E>[I]>>> || ...);
   constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<Lambda, enum_constant<values_v<E>[0]>>, std::invoke_result_t<Lambda, enum_constant<values_v<E>[I]>>> && ...);
 
