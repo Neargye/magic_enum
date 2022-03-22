@@ -301,7 +301,7 @@ constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequ
 
 template <typename BinaryPredicate>
 constexpr bool is_default_predicate() noexcept {
-  return std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<char>> ||
+  return std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> ||
          std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 }
 
