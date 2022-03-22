@@ -986,9 +986,9 @@ template <typename E>
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
-              [](std::size_t i) { return optional<std::size_t>{i}; },
-              value,
-              detail::default_result_type_lambda<optional<std::size_t>>);
+        [](std::size_t i) { return optional<std::size_t>{i}; },
+        value,
+        detail::default_result_type_lambda<optional<std::size_t>>);
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
@@ -1088,9 +1088,9 @@ template <typename E>
       return {}; // Invalid value or out of range.
     } else {
       return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
-                [](D v) { return optional<D>{v}; },
-                static_cast<D>(value),
-                detail::default_result_type_lambda<optional<D>>);
+          [](D v) { return optional<D>{v}; },
+          static_cast<D>(value),
+          detail::default_result_type_lambda<optional<D>>);
     }
   } else {
     constexpr auto min = detail::min_v<D>;
@@ -1142,10 +1142,10 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
   } else if constexpr (detail::count_v<D> > 0) {
     if constexpr (detail::is_default_predicate<BinaryPredicate>()) {
       return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
-                [](std::size_t i) { return optional<D>{detail::values_v<D>[i]}; },
-                value,
-                detail::default_result_type_lambda<optional<D>>,
-                [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
+          [](std::size_t i) { return optional<D>{detail::values_v<D>[i]}; },
+          value,
+          detail::default_result_type_lambda<optional<D>>,
+          [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
