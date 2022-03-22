@@ -1108,7 +1108,7 @@ inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from name.
 // Returns optional with enum value.
-template <typename E, typename BinaryPredicate = std::equal_to<char>>
+template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
@@ -1184,7 +1184,7 @@ template <typename E>
 }
 
 // Checks whether enum contains enumerator with such name.
-template <typename E, typename BinaryPredicate = std::equal_to<char>>
+template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
@@ -1212,7 +1212,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail:
       [&result] { return std::forward<Result>(result); });
 }
 
-template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
+template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<>, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
@@ -1223,7 +1223,7 @@ constexpr auto enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& 
   return detail::default_result_type_lambda<Result>();
 }
 
-template <typename E, typename Result, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
+template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
