@@ -640,11 +640,8 @@ struct enable_if_enum<true, R> {
   static_assert(supported<R>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 };
 
-template <typename T, typename R>
-using enable_if_enum_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>>, R>::type;
-
-template <typename T, typename BinaryPredicate, typename R>
-using enable_if_predicate_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
+template <typename T, typename R, typename BinaryPredicate = std::equal_to<>>
+using enable_if_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
 
 template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 using enum_concept = T;
@@ -928,7 +925,7 @@ using enum_constant = detail::enum_constant<V>;
 
 // Returns type name of enum.
 template <typename E>
-[[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_enum_t<E, string_view> {
+[[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_t<E, string_view> {
   constexpr string_view name = detail::type_name_v<std::decay_t<E>>;
   static_assert(!name.empty(), "magic_enum::enum_type_name enum type does not have a name.");
 
@@ -937,14 +934,14 @@ template <typename E>
 
 // Returns number of enum values.
 template <typename E>
-[[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_enum_t<E, std::size_t> {
+[[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_t<E, std::size_t> {
   return detail::count_v<std::decay_t<E>>;
 }
 
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template <typename E>
-[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+[[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
 
   if constexpr (detail::is_sparse_v<D>) {
@@ -959,7 +956,7 @@ template <typename E>
 
 // Returns enum value at specified index.
 template <typename E, std::size_t I>
-[[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_enum_t<E, std::decay_t<E>> {
+[[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
   static_assert(I < detail::count_v<D>, "magic_enum::enum_value out of range.");
 
@@ -968,20 +965,20 @@ template <typename E, std::size_t I>
 
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_enum_t<E, detail::values_t<E>> {
+[[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_t<E, detail::values_t<E>> {
   return detail::values_v<std::decay_t<E>>;
 }
 
 // Returns integer value from enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_t<E, underlying_type_t<E>> {
   return static_cast<underlying_type_t<E>>(value);
 }
 
 // Obtains index in enum values from enum value.
 // Returns optional with index.
 template <typename E>
-[[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_enum_t<E, optional<std::size_t>> {
+[[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1004,7 +1001,7 @@ template <typename E>
 // Returns name from static storage enum variable.
 // This version is much lighter on the compile times and is not restricted to the enum_range limitation.
 template <auto V>
-[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_enum_t<decltype(V), string_view> {
+[[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_t<decltype(V), string_view> {
   constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>;
   static_assert(!name.empty(), "magic_enum::enum_name enum value does not have a name.");
 
@@ -1014,7 +1011,7 @@ template <auto V>
 // Returns name from enum value.
 // If enum value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_enum_t<E, string_view> {
+[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
 
   if (const auto i = enum_index<D>(value)) {
@@ -1026,7 +1023,7 @@ template <typename E>
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_enum_t<E, string> {
+[[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1056,20 +1053,20 @@ template <typename E>
 
 // Returns std::array with names, sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_enum_t<E, detail::names_t<E>> {
+[[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_t<E, detail::names_t<E>> {
   return detail::names_v<std::decay_t<E>>;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_enum_t<E, detail::entries_t<E>> {
+[[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_t<E, detail::entries_t<E>> {
   return detail::entries_v<std::decay_t<E>>;
 }
 
 // Obtains enum value from integer value.
 // Returns optional with enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1112,7 +1109,7 @@ inline constexpr auto case_insensitive = detail::case_insensitive{};
 // Obtains enum value from name.
 // Returns optional with enum value.
 template <typename E, typename BinaryPredicate = std::equal_to<char>>
-[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_predicate_t<E, BinaryPredicate, optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
@@ -1162,7 +1159,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 
 // Obtains index in enum values from static storage enum variable.
 template <auto V>
-[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_enum_t<decltype(V), std::size_t> {
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
   constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
   static_assert(index, "magic_enum::enum_index enum value does not have a index.");
 
@@ -1171,7 +1168,7 @@ template <auto V>
 
 // Checks whether enum contains enumerator with such enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_enum_t<E, bool> {
+[[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1180,7 +1177,7 @@ template <typename E>
 
 // Checks whether enum contains enumerator with such integer value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_enum_t<E, bool> {
+[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
 
   return static_cast<bool>(enum_cast<D>(value));
@@ -1188,7 +1185,7 @@ template <typename E>
 
 // Checks whether enum contains enumerator with such name.
 template <typename E, typename BinaryPredicate = std::equal_to<char>>
-[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_predicate_t<E, BinaryPredicate, bool> {
+[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
@@ -1196,7 +1193,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<char>>
 }
 
 template <typename Result = void, typename E, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_enum_t<E, Result> {
+constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
@@ -1206,7 +1203,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_enum_t
 }
 
 template <typename Result, typename E, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail::enable_if_enum_t<E, Result> {
+constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
@@ -1216,7 +1213,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail:
 }
 
 template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, Result> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
@@ -1227,7 +1224,7 @@ constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredica
 }
 
 template <typename E, typename Result, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, Result> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
@@ -1238,7 +1235,7 @@ constexpr auto enum_switch(Lambda&& lambda, std::string_view name, Result&& resu
 }
 
 template <typename E, typename Result = void, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detail::enable_if_enum_t<E, Result> {
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(value)) {
@@ -1248,7 +1245,7 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detai
 }
 
 template <typename E, typename Result, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result) -> detail::enable_if_enum_t<E, Result> {
+constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(value)) {
@@ -1258,7 +1255,7 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&&
 }
 
 template <typename E, typename Lambda>
-constexpr auto enum_for_each(Lambda&& lambda) -> detail::enable_if_enum_t<E, detail::for_each_t<E, Lambda>> {
+constexpr auto enum_for_each(Lambda&& lambda) -> detail::enable_if_t<E, detail::for_each_t<E, Lambda>> {
   using D = std::decay_t<E>;
 
   return detail::for_each<D>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<D>>{});
@@ -1314,7 +1311,7 @@ template <typename... Es>
 
 namespace ostream_operators {
 
-template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
@@ -1330,7 +1327,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   return (os << static_cast<U>(value));
 }
 
-template <typename Char, typename Traits, typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
   return value ? (os << *value) : os;
 }
@@ -1339,37 +1336,37 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 
 namespace bitwise_operators {
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E operator~(E rhs) noexcept {
   return static_cast<E>(~static_cast<underlying_type_t<E>>(rhs));
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E operator|(E lhs, E rhs) noexcept {
   return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) | static_cast<underlying_type_t<E>>(rhs));
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E operator&(E lhs, E rhs) noexcept {
   return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) & static_cast<underlying_type_t<E>>(rhs));
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E operator^(E lhs, E rhs) noexcept {
   return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) ^ static_cast<underlying_type_t<E>>(rhs));
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E& operator|=(E& lhs, E rhs) noexcept {
   return lhs = (lhs | rhs);
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E& operator&=(E& lhs, E rhs) noexcept {
   return lhs = (lhs & rhs);
 }
 
-template <typename E, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, detail::enable_if_t<E, int> = 0>
 constexpr E& operator^=(E& lhs, E rhs) noexcept {
   return lhs = (lhs ^ rhs);
 }
