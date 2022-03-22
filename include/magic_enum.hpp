@@ -640,8 +640,11 @@ struct enable_if_enum<true, R> {
   static_assert(supported<R>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 };
 
-template <typename T, typename R = void>
+template <typename T, typename R>
 using enable_if_enum_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>>, R>::type;
+
+template <typename T, typename BinaryPredicate, typename R>
+using enable_if_predicate_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
 
 template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 using enum_concept = T;
@@ -1103,13 +1106,13 @@ template <typename E>
   }
 }
 
-// allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
+// Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
 inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from name.
 // Returns optional with enum value.
 template <typename E, typename BinaryPredicate = std::equal_to<char>>
-[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_enum_t<E, optional<std::decay_t<E>>> {
+[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_predicate_t<E, BinaryPredicate, optional<std::decay_t<E>>> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
@@ -1185,7 +1188,7 @@ template <typename E>
 
 // Checks whether enum contains enumerator with such name.
 template <typename E, typename BinaryPredicate = std::equal_to<char>>
-[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_enum_t<E, bool> {
+[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_predicate_t<E, BinaryPredicate, bool> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
@@ -1213,7 +1216,8 @@ constexpr auto enum_switch(Lambda&& lambda, E value, ResultType&& result) -> det
 }
 
 template <typename E, typename ResultType = void, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> std::enable_if_t<std::is_enum_v<std::decay_t<E>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, ResultType> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, ResultType> {
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
@@ -1223,7 +1227,8 @@ constexpr auto enum_switch(Lambda&& lambda, std::string_view name, BinaryPredica
 }
 
 template <typename E, typename ResultType, typename BinaryPredicate = std::equal_to<char>, typename Lambda>
-constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {}) -> std::enable_if_t<std::is_enum_v<std::decay_t<E>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, ResultType> {
+constexpr auto enum_switch(Lambda&& lambda, std::string_view name, ResultType&& result, BinaryPredicate&& p = {}) -> detail::enable_if_predicate_t<E, BinaryPredicate, ResultType> {
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
