@@ -67,7 +67,6 @@
 #  pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // May be used uninitialized 'return {};'.
 #elif defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable : 4702) // Unreachable code.
 #  pragma warning(disable : 26495) // Variable 'static_string<N>::chars_' is uninitialized.
 #  pragma warning(disable : 28020) // Arithmetic overflow: Using operator '-' on a 4 byte value and then casting the result to a 8 byte value.
 #  pragma warning(disable : 26451) // The expression '0<=_Param_(1)&&_Param_(1)<=1-1' is not true at this call.
@@ -352,10 +351,14 @@ template <typename I>
 constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
-  auto ret = I{0};
-  for (; value > I{1}; value >>= I{1}, ++ret) {}
+  if constexpr (std::is_same_v<I, bool>) { // bool special case
+    return assert(false), value;
+  } else {
+    auto ret = I{0};
+    for (; value > I{1}; value >>= I{1}, ++ret) {}
 
-  return ret;
+    return ret;
+  }
 }
 
 template <typename T>
@@ -938,10 +941,11 @@ template <typename E>
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
-  } if constexpr (detail::is_flags_v<D>) {
-    return assert((index < detail::count_v<D>)), detail::value<D, detail::log2(detail::min_v<D>), true>(index);
   } else {
-    return assert((index < detail::count_v<D>)), detail::value<D, detail::min_v<D>, false>(index);
+    constexpr bool is_flag = detail::is_flags_v<D>;
+    constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
+
+    return assert((index < detail::count_v<D>)), detail::value<D, min, is_flag>(index);
   }
 }
 
