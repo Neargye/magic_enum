@@ -602,14 +602,16 @@ template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
 
-  if constexpr (std::is_same_v<U, bool>) { // bool special case
+  if constexpr (count_v<E> == 0) {
+    return false;
+  } else if constexpr (std::is_same_v<U, bool>) { // bool special case
     return false;
   } else {
     constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
     constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
     constexpr auto range_size = max - min + 1;
 
-    return range_size != count_v<E> && count_v<E> > 0;
+    return range_size != count_v<E>;
   }
 }
 
