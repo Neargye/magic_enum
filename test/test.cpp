@@ -103,6 +103,8 @@ struct magic_enum::customize::enum_range<Binary> {
   static constexpr int max = 64;
 };
 
+enum class BoolTest : bool { Yay, Nay };
+
 using namespace magic_enum;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
@@ -157,6 +159,8 @@ TEST_CASE("enum_cast") {
     constexpr auto crc = magic_enum::enum_cast<crc_hack_2>("b5a7b602ab754d7ab30fb42c4fb28d82");
     REQUIRE(crc.value() == crc_hack_2::b5a7b602ab754d7ab30fb42c4fb28d82);
     REQUIRE(magic_enum::enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
+
+    REQUIRE(magic_enum::enum_cast<BoolTest>("Nay").has_value());
   }
 
   SECTION("integer") {
@@ -196,6 +200,9 @@ TEST_CASE("enum_cast") {
     REQUIRE(nt.value() == number::three);
     REQUIRE_FALSE(enum_cast<number>(400).has_value());
     REQUIRE_FALSE(enum_cast<number>(0).has_value());
+
+    REQUIRE_FALSE(enum_cast<BoolTest>(false).has_value());
+    REQUIRE_FALSE(enum_cast<BoolTest>(0).has_value());
   }
 }
 
@@ -239,6 +246,8 @@ TEST_CASE("enum_integer") {
   REQUIRE(nt == 300);
   REQUIRE(enum_integer(number::four) == 400);
   REQUIRE(enum_integer(static_cast<number>(0)) == 0);
+
+  REQUIRE(enum_integer(BoolTest::Yay) == false);
 }
 
 TEST_CASE("enum_index") {
@@ -285,6 +294,8 @@ TEST_CASE("enum_index") {
   REQUIRE(nt.value() == 2);
   REQUIRE_FALSE(enum_index(number::four).has_value());
   REQUIRE_FALSE(enum_index(static_cast<number>(0)).has_value());
+
+  REQUIRE(enum_index<BoolTest::Yay>() == 0);
 }
 
 TEST_CASE("enum_contains") {
@@ -328,6 +339,8 @@ TEST_CASE("enum_contains") {
     REQUIRE(nt);
     REQUIRE_FALSE(enum_contains(number::four));
     REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
+
+    REQUIRE_FALSE(enum_contains(BoolTest::Yay));
   }
 
   SECTION("integer") {
@@ -368,6 +381,9 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<number>(number::four));
     REQUIRE_FALSE(enum_contains<number>(111));
     REQUIRE_FALSE(enum_contains<number>(0));
+
+    REQUIRE_FALSE(enum_contains<BoolTest>(false));
+    REQUIRE_FALSE(enum_contains<BoolTest>(0));
   }
 
   SECTION("string") {
@@ -412,6 +428,8 @@ TEST_CASE("enum_contains") {
     REQUIRE(nt);
     REQUIRE_FALSE(enum_contains<number>("four"));
     REQUIRE_FALSE(enum_contains<number>("None"));
+
+    REQUIRE(enum_contains<BoolTest>("Yay"));
   }
 }
 
@@ -461,6 +479,9 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<number, 0>() == number::one);
   REQUIRE(enum_value<number, 1>() == number::two);
   REQUIRE(enum_value<number, 2>() == number::three);
+
+  REQUIRE(enum_value<BoolTest>(0) == false);
+  REQUIRE(enum_value<BoolTest, 0>() == false);
 }
 
 TEST_CASE("enum_values") {
@@ -1101,7 +1122,7 @@ TEST_CASE("constexpr_for") {
   });
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 # pragma warning(push)
 # pragma warning(disable : 4064)
 #endif
@@ -1130,7 +1151,7 @@ static int switch_case_3d(Color color, Directions direction, Index index) {
   }
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
 

@@ -597,11 +597,16 @@ using entries_t = decltype((entries_v<D>));
 template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
-  constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
-  constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
-  constexpr auto range_size = max - min + 1;
 
-  return range_size != count_v<E> && count_v<E> > 0;
+  if constexpr (std::is_same_v<U, bool>) { // bool special case
+    return false;
+  } else {
+    constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
+    constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
+    constexpr auto range_size = max - min + 1;
+
+    return range_size != count_v<E> && count_v<E> > 0;
+  }
 }
 
 template <typename E>
@@ -958,6 +963,13 @@ template <typename E>
 // Returns integer value from enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
+  return static_cast<underlying_type_t<E>>(value);
+}
+
+
+// Returns underlying value from enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_underlying(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
   return static_cast<underlying_type_t<E>>(value);
 }
 
