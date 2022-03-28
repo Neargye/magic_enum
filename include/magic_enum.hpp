@@ -363,10 +363,14 @@ template <typename I>
 constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
-  auto ret = I{0};
-  for (; value > I{1}; value >>= I{1}, ++ret) {}
+  if constexpr (std::is_same_v<I, bool>) { // bool special case
+    return assert(false), value;
+  } else {
+    auto ret = I{0};
+    for (; value > I{1}; value >>= I{1}, ++ret) {}
 
-  return ret;
+    return ret;
+  }
 }
 
 template <typename T>
@@ -609,11 +613,18 @@ using entries_t = decltype((entries_v<D>));
 template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_sparse requires enum type.");
-  constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
-  constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
-  constexpr auto range_size = max - min + 1;
 
-  return range_size != count_v<E> && count_v<E> > 0;
+  if constexpr (count_v<E> == 0) {
+    return false;
+  } else if constexpr (std::is_same_v<U, bool>) { // bool special case
+    return false;
+  } else {
+    constexpr auto max = is_flags_v<E> ? log2(max_v<E>) : max_v<E>;
+    constexpr auto min = is_flags_v<E> ? log2(min_v<E>) : min_v<E>;
+    constexpr auto range_size = max - min + 1;
+
+    return range_size != count_v<E>;
+  }
 }
 
 template <typename E>
@@ -671,8 +682,8 @@ template <typename Value>
 struct constexpr_hash_t<Value, std::enable_if_t<is_enum_v<Value>>> {
   constexpr auto operator()(Value value) const noexcept {
     using U = typename underlying_type<Value>::type;
-    if constexpr (std::is_same_v<U, bool>) {
-      return static_cast<std::size_t>(static_cast<bool>(value));
+    if constexpr (std::is_same_v<U, bool>) { // bool special case
+      return static_cast<std::size_t>(value);
     } else {
       return static_cast<U>(value);
     }
@@ -973,6 +984,13 @@ template <typename E>
 // Returns integer value from enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_t<E, underlying_type_t<E>> {
+  return static_cast<underlying_type_t<E>>(value);
+}
+
+
+// Returns underlying value from enum value.
+template <typename E>
+[[nodiscard]] constexpr auto enum_underlying(E value) noexcept -> detail::enable_if_enum_t<E, underlying_type_t<E>> {
   return static_cast<underlying_type_t<E>>(value);
 }
 

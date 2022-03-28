@@ -170,6 +170,9 @@ constexpr size_t enum_count() noexcept;
 ```cpp
 template <typename E>
 constexpr underlying_type_t<E> enum_integer(E value) noexcept;
+
+template <typename E>
+constexpr underlying_type_t<E> enum_underlying(E value) noexcept;
 ```
 
 * Returns integer value from enum value.
