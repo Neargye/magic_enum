@@ -480,8 +480,8 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<number, 1>() == number::two);
   REQUIRE(enum_value<number, 2>() == number::three);
 
-  REQUIRE(enum_value<BoolTest>(0) == false);
-  REQUIRE(enum_value<BoolTest, 0>() == false);
+  REQUIRE(enum_value<BoolTest>(0) == BoolTest::Yay);
+  REQUIRE(enum_value<BoolTest, 0>() == BoolTest::Yay);
 }
 
 TEST_CASE("enum_values") {
