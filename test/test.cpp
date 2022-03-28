@@ -201,8 +201,8 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<number>(400).has_value());
     REQUIRE_FALSE(enum_cast<number>(0).has_value());
 
-    REQUIRE_FALSE(enum_cast<BoolTest>(false).has_value());
-    REQUIRE_FALSE(enum_cast<BoolTest>(0).has_value());
+    REQUIRE(enum_cast<BoolTest>(false).has_value());
+    REQUIRE(enum_cast<BoolTest>(0).has_value());
   }
 }
 
@@ -340,7 +340,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains(number::four));
     REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
 
-    REQUIRE_FALSE(enum_contains(BoolTest::Yay));
+    REQUIRE(enum_contains(BoolTest::Yay));
   }
 
   SECTION("integer") {
@@ -382,8 +382,8 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<number>(111));
     REQUIRE_FALSE(enum_contains<number>(0));
 
-    REQUIRE_FALSE(enum_contains<BoolTest>(false));
-    REQUIRE_FALSE(enum_contains<BoolTest>(0));
+    REQUIRE(enum_contains<BoolTest>(false));
+    REQUIRE(enum_contains<BoolTest>(0));
   }
 
   SECTION("string") {
