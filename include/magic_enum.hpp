@@ -672,7 +672,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<is_enum_v<Value>>> {
   constexpr auto operator()(Value value) const noexcept {
     using U = typename underlying_type<Value>::type;
     if constexpr (std::is_same_v<U, bool>) { // bool special case
-      return static_cast<std::size_t>(static_cast<bool>(value));
+      return static_cast<std::size_t>(value);
     } else {
       return static_cast<U>(value);
     }
