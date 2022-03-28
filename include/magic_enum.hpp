@@ -351,14 +351,10 @@ template <typename I>
 constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
-  if constexpr (std::is_same_v<I, bool>) { // bool special case
-    return false;
-  } else {
-    auto ret = I{0};
-    for (; value > I{1}; value >>= I{1}, ++ret) {}
+  auto ret = I{0};
+  for (; value > I{1}; value >>= I{1}, ++ret) {}
 
-    return ret;
-  }
+  return ret;
 }
 
 template <typename T>
@@ -669,7 +665,7 @@ template <typename Value>
 struct constexpr_hash_t<Value, std::enable_if_t<is_enum_v<Value>>> {
   constexpr auto operator()(Value value) const noexcept {
     using U = typename underlying_type<Value>::type;
-    if constexpr (std::is_same_v<U, bool>) {
+    if constexpr (std::is_same_v<U, bool>) { // bool special case
       return static_cast<std::size_t>(static_cast<bool>(value));
     } else {
       return static_cast<U>(value);
@@ -941,11 +937,10 @@ template <typename E>
 
   if constexpr (detail::is_sparse_v<D>) {
     return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
+  } if constexpr (detail::is_flags_v<D>) {
+    return assert((index < detail::count_v<D>)), detail::value<D, detail::log2(detail::min_v<D>), true>(index);
   } else {
-    constexpr bool is_flag = detail::is_flags_v<D>;
-    constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
-
-    return assert((index < detail::count_v<D>)), detail::value<D, min, is_flag>(index);
+    return assert((index < detail::count_v<D>)), detail::value<D, detail::min_v<D>, false>(index);
   }
 }
 
