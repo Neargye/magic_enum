@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2021 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -1039,12 +1039,12 @@ TEST_CASE("cmp_less") {
   }
 }
 
-template<Color C>
+template <Color C>
 constexpr std::string_view DoWork() {
   return "default";
 }
 
-template<>
+template <>
 constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
 }
@@ -1086,11 +1086,11 @@ TEST_CASE("enum_for_each") {
     constexpr auto colorInts = enum_for_each<Color>([](auto val) {
       return val;
     });
-    REQUIRE(std::is_same_v<std::remove_const_t<decltype(colorInts)>, std::tuple<
-      std::integral_constant<Color, Color::RED>,
-      std::integral_constant<Color, Color::GREEN>,
-      std::integral_constant<Color, Color::BLUE>
-    >>);
+
+    REQUIRE(std::is_same_v<std::remove_const_t<decltype(colorInts)>,
+                           std::tuple<enum_constant<Color::RED>,
+                                      enum_constant<Color::GREEN>,
+                                      enum_constant<Color::BLUE>>>);
   }
 }
 
