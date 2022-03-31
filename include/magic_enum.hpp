@@ -727,19 +727,19 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
     0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L, 0xcdd70693L, 0x54de5729L, 0x23d967bfL,
     0xb3667a2eL, 0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL, 0x2d02ef8dL
   };
-  constexpr std::uint32_t operator()(string_view val) const noexcept {
+  constexpr std::uint32_t operator()(string_view value) const noexcept {
     auto crc = static_cast<std::uint32_t>(0xffffffffL);
-    for (const auto c : val) {
+    for (const auto c : value) {
       crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<std::uint32_t>(c)) & 0xff];
     }
     return crc ^ 0xffffffffL;
   }
 
   struct secondary_hash {
-    constexpr std::uint32_t operator()(string_view val) const noexcept {
+    constexpr std::uint32_t operator()(string_view value) const noexcept {
       auto acc = static_cast<std::uint64_t>(2166136261ULL);
-      for (const auto v : val) {
-        acc = ((acc ^ static_cast<std::uint64_t>(v)) * static_cast<std::uint64_t>(16777619ULL)) & std::numeric_limits<std::uint32_t>::max();
+      for (const auto c : value) {
+        acc = ((acc ^ static_cast<std::uint64_t>(c)) * static_cast<std::uint64_t>(16777619ULL)) & std::numeric_limits<std::uint32_t>::max();
       }
       return static_cast<std::uint32_t>(acc);
     }
