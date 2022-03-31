@@ -730,7 +730,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
   constexpr std::uint32_t operator()(string_view val) const noexcept {
     auto crc = static_cast<std::uint32_t>(0xffffffffL);
     for (const auto c : val) {
-      crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];
+      crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<std::uint32_t>(c)) & 0xff];
     }
     return crc ^ 0xffffffffL;
   }
