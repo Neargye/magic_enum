@@ -598,7 +598,7 @@ TEST_CASE("enum_entries") {
 }
 
 TEST_CASE("ostream_operators") {
-  auto test_ostream = [](auto e, std::string_view name) {
+  auto test_ostream = [](auto e, std::string name) {
     using namespace magic_enum::ostream_operators;
     std::stringstream ss;
     ss << e;
@@ -644,6 +644,42 @@ TEST_CASE("ostream_operators") {
   test_ostream(number::four | number::one, "one|four");
   test_ostream(static_cast<number>(0), "0");
   test_ostream(std::make_optional(static_cast<number>(0)), "0");
+}
+
+TEST_CASE("istream_operators") {
+  auto test_istream = [](const auto e, std::string name) {
+    using namespace magic_enum::istream_operators;
+    std::istringstream ss(name);
+    std::decay_t<decltype(e)> v;
+    ss >> v;
+    REQUIRE(v == e);
+    REQUIRE(ss);
+  };
+
+  test_istream(Color::GREEN, "GREEN");
+  test_istream(Color::BLUE, "BLUE");
+  test_istream(Color::BLUE | Color::RED, "RED|BLUE");
+  test_istream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+
+  test_istream(Numbers::two, "two");
+  test_istream(Numbers::three, "three");
+  test_istream(Numbers::many, "many");
+
+  test_istream(Directions::Down, "Down");
+  test_istream(Directions::Right, "Right");
+  test_istream(Directions::Left, "Left");
+  test_istream(Directions::Right | Directions::Left, "Left|Right");
+
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+  test_istream(Language::한국어, "한국어");
+  test_istream(Language::English, "English");
+  test_istream(Language::😃, "😃");
+#endif
+
+  test_istream(number::two, "two");
+  test_istream(number::three, "three");
+  test_istream(number::four, "four");
+  test_istream(number::four | number::one, "one|four");
 }
 
 TEST_CASE("bitwise_operators") {

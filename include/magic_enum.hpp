@@ -1336,7 +1336,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using U = underlying_type_t<D>;
 
   if constexpr (detail::supported<D>::value) {
-    if (const auto name = magic_enum::enum_flags_name<D>(value); !name.empty()) {
+    if (const auto name = enum_flags_name<D>(value); !name.empty()) {
       for (const auto c : name) {
         os.put(c);
       }
@@ -1352,6 +1352,29 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 }
 
 } // namespace magic_enum::ostream_operators
+
+namespace istream_operators {
+
+template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
+std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& is, E& value) {
+  std::basic_string<Char, Traits> in;
+  is >> in;
+  if (const auto v = enum_cast<E>(in)) {
+    value = *v;
+  } else {
+    is.setstate(std::ios::failbit);
+  }
+  return is;
+}
+
+} // namespace magic_enum::istream_operators
+
+namespace iostream_operators {
+
+using namespace ostream_operators;
+using namespace istream_operators;
+
+} // namespace magic_enum::iostream_operators
 
 namespace bitwise_operators {
 
