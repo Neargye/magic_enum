@@ -1357,9 +1357,11 @@ namespace istream_operators {
 
 template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
 std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& is, E& value) {
-  std::basic_string<Char, Traits> in;
-  is >> in;
-  if (const auto v = enum_cast<E>(in)) {
+  using D = std::decay_t<E>;
+
+  std::basic_string<Char, Traits> s;
+  is >> s;
+  if (const auto v = enum_cast<D>(s)) {
     value = *v;
   } else {
     is.setstate(std::ios::failbit);
