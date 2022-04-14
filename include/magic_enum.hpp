@@ -792,10 +792,10 @@ enum class case_call_t {
 };
 
 template <typename T = void>
-constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
+inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
 
 template <>
-constexpr auto default_result_type_lambda<void> = []() noexcept {};
+inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
 template <auto* Arr, typename Hash>
 constexpr bool no_duplicate() noexcept {
