@@ -1,8 +1,8 @@
 #ifndef MAGIC_ENUM_MAP_HPP
 #define MAGIC_ENUM_MAP_HPP
 
-#include <map>
 #include <initializer_list>
+#include <map>
 
 #include "magic_enum.hpp"
 
@@ -34,7 +34,6 @@ namespace magic_enum
     class enum_map
     {
         static_assert(std::is_enum_v<E>, "magic_enum::enum_map requires enum type");
-        
 
     public:
         typedef Map<E, T, MapArgs...> map_type;
@@ -46,7 +45,8 @@ namespace magic_enum
 
         enum_map()
         {
-            enum_for_each<E>([this](auto e) { (*this)[e]; });
+            enum_for_each<E>([this](auto e)
+                             { (*this)[e]; });
         };
 
         template <
@@ -59,21 +59,22 @@ namespace magic_enum
 
         template <
             typename... Args,
-            typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
+            typename = typename std::enable_if<(true && ... && std::_Is_nothrow_convertible_v<Args, T>), void>::type>
         enum_map(const Args &...args) : enum_map()
         {
             insert(begin(), std::array<T, sizeof...(Args)>{{args...}});
         }
 
-        template <class V,
-                  typename = typename std::enable_if<is_iterable<V>::value>::type>
+        template <typename V,
+                  typename = typename std::enable_if<(is_iterable<V>::value && (std::_Is_nothrow_convertible_v<typename V::iterator::value_type, T> || std::_Is_nothrow_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
         enum_map(const V &values) : enum_map()
         {
             insert(begin(), values);
         }
 
-        enum_map(std::initializer_list<value_type> l) : enum_map() {
-            for(const value_type &v: l)
+        enum_map(std::initializer_list<value_type> l) : enum_map()
+        {
+            for (const value_type &v : l)
                 _map[v.first] = v.second;
         }
 
@@ -82,8 +83,8 @@ namespace magic_enum
         iterator begin() { return _map.begin(); }
         iterator end() { return _map.end(); }
 
-        iterator find(const E& e) { return _map.find(e); }
-        const_iterator find(const E& e) const { return _map.find(e); }
+        iterator find(const E &e) { return _map.find(e); }
+        const_iterator find(const E &e) const { return _map.find(e); }
 
         T &operator[](const E &e) { return _map[e]; }
         T &operator[](E &&e) { return _map[e]; }
@@ -92,14 +93,14 @@ namespace magic_enum
         const T &at(const E &e) const { return _map.at(e); }
 
         template <typename... Args,
-                  typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
+                  typename = typename std::enable_if<(true && ... && std::_Is_nothrow_convertible_v<Args, T>), void>::type>
         iterator insert(iterator begin, Args &&...args)
         {
             return insert(begin, std::array<T, sizeof...(Args)>{{args...}});
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type,T>), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && std::_Is_nothrow_convertible_v<typename V::iterator::value_type, T>), void>::type>
         iterator insert(iterator begin, const V &values)
         {
             auto v_it = values.begin();
@@ -114,13 +115,13 @@ namespace magic_enum
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && std::_Is_nothrow_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
         iterator insert(const V &values)
         {
             auto v_it = values.begin();
             for (; v_it != values.end(); v_it++)
-                _map[v_it->first] = v_it->second;       
-                
+                _map[v_it->first] = v_it->second;
+
             v_it--;
             return _map.find(v_it->first);
         }

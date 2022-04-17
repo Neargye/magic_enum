@@ -1,8 +1,8 @@
 #include <iostream>
-#include <vector>
 #include <map>
-#include <unordered_map>
 #include <typeinfo>
+#include <unordered_map>
+#include <vector>
 
 #include <magic_enum_map.hpp>
 
@@ -13,7 +13,8 @@ enum Color
     GREEN = 2
 };
 
-enum KeyState {
+enum KeyState
+{
     KEY_PRESSED,
     KEY_RELEASED,
     KEY_UP,
@@ -24,13 +25,15 @@ struct RGB
 {
     int r, g, b;
 
-    friend std::ostream & operator<<(std::ostream &os, const RGB &rgb) {
+    friend std::ostream &operator<<(std::ostream &os, const RGB &rgb)
+    {
         os << "{" << rgb.r << ", " << rgb.g << ", " << rgb.b << "}";
         return os;
     }
 };
 
-void construct_map() {
+void construct_map()
+{
     std::cout << "\nCreate map and then set values:" << std::endl;
     magic_enum::enum_map<Color, RGB, std::map> default_map;
     default_map[Color::RED] = RGB{255, 0, 0};
@@ -54,6 +57,16 @@ void construct_map() {
     std::cout << "Color::BLUE is: " << iterable_map[Color::BLUE] << std::endl;
     std::cout << "Color::GREEN is: " << iterable_map[Color::GREEN] << std::endl;
 
+    std::cout << "\nIterable can also be of pairs:" << std::endl;
+    std::vector<std::pair<Color, RGB>> pair_values = {
+        {Color::RED, {255, 0, 0}},
+        {Color::BLUE, {0, 0, 255}},
+        {Color::GREEN, {0, 255, 0}}};
+    magic_enum::enum_map<Color, RGB, std::map> pair_iterable_map(values);
+    std::cout << "Color::RED is: " << pair_iterable_map[Color::RED] << std::endl;
+    std::cout << "Color::BLUE is: " << pair_iterable_map[Color::BLUE] << std::endl;
+    std::cout << "Color::GREEN is: " << pair_iterable_map[Color::GREEN] << std::endl;
+
     std::cout << "\nCreate map using initializer list:" << std::endl;
     magic_enum::enum_map<Color, RGB, std::map> initializer_map = {
         {Color::RED, {255, 0, 0}},
@@ -64,7 +77,8 @@ void construct_map() {
     std::cout << "Color::GREEN is: " << initializer_map[Color::GREEN] << std::endl;
 }
 
-void partial_map() {
+void partial_map()
+{
     std::cout << "\nCreate map defining only some defaults" << std::endl;
     std::cout << "With the constructor:" << std::endl;
     magic_enum::enum_map<Color, RGB, std::map> partial_const_map(RGB{255, 0, 0}, RGB{0, 0, 255});
@@ -88,18 +102,20 @@ void partial_map() {
     std::cout << "Color::GREEN is: " << partial_initializer_map[Color::GREEN] << std::endl;
 }
 
-void iterate_map() {
+void iterate_map()
+{
     std::cout << "\nIterate through map:" << std::endl;
     magic_enum::enum_map<Color, RGB, std::map> map = {
         {Color::RED, {255, 0, 0}},
         {Color::BLUE, {0, 0, 255}},
         {Color::GREEN, {0, 255, 0}}};
 
-    for(auto [color, rgb] : map)
-        std::cout << magic_enum::enum_name(color) << " " <<rgb << std::endl;
+    for (auto [color, rgb] : map)
+        std::cout << magic_enum::enum_name(color) << " " << rgb << std::endl;
 }
 
-void insert_map() {
+void insert_map()
+{
     std::cout << "\nInsert into map" << std::endl;
     magic_enum::enum_map<Color, RGB, std::map> map;
 
@@ -119,15 +135,15 @@ void insert_map() {
     std::cout << "\nOr by passing another map/iterable pair:" << std::endl;
     std::map<Color, RGB> normal_map = {
         {Color::RED, {255, 15, 15}},
-        {Color::BLUE, {15, 255, 15}}
-    };
+        {Color::BLUE, {15, 255, 15}}};
     map.insert(normal_map);
     std::cout << "Color::RED is: " << map[Color::RED] << std::endl;
     std::cout << "Color::BLUE is: " << map[Color::BLUE] << std::endl;
     std::cout << "Color::GREEN is: " << map[Color::GREEN] << std::endl;
 }
 
-void types_map() {
+void types_map()
+{
     std::cout << "Finally, you can specify the map object used" << std::endl;
     std::cout << "Just make sure your map is an iterable" << std::endl;
 
@@ -139,7 +155,7 @@ void types_map() {
 }
 
 int main()
-{   
+{
     construct_map();
     partial_map();
     iterate_map();

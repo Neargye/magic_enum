@@ -224,6 +224,135 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_name -> "BLUE"
   ```
 
+## [Examples (enum_map)](example/example_enum_map.cpp)
+
+* Create an enum_map and specif a values.
+
+  ```cpp
+  magic_enum::enum_map<Color, int, std::map> map;
+  map[Color::RED] = 1;
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 0, map[Color::GREEN] -> 0
+  ```
+
+* Create an enum_map and pass initial values.
+  
+  ```cpp
+  magic_enum::enum_map<Color, RGB, std::map> map(1, 2, 3);
+  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+  ```
+
+* Create an enum_map using an iterable.
+
+  ```cpp
+  std::vector<int> values = {1, 2, 3};
+  magic_enum::enum_map<Color, RGB, std::map> map(values);
+  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+
+  std::vector<std::pair<Color, int>> pair_values = {
+    {Color::RED, 1}, {Color::GREEN, 3}, {Color::BLUE, 2}
+  };
+  magic_enum::enum_map<Color, RGB, std::map> pair_map(values);
+  // pair_map[Color::RED] -> 1, 
+  // pair_map[Color::Blue] -> 2, 
+  // pair_map[Color::GREEN] -> 3
+  ```
+
+* Create an enum_map using an initializer list.
+  
+  ```cpp
+  magic_enum::enum_map<Color, RGB, std::map> map = {
+    {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}
+  };
+  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+  ```
+
+* enum_map's are created using all mapped_types defaults, so
+  constructors do not require all values for instantiation, and will still
+  work if values exceed total number of enums.
+
+  ```cpp
+  magic_enum::enum_map<Color, RGB, std::map> map(1, 2);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 0
+  ```
+
+  ```cpp
+  std::vector<int> values = {2, 4, 8, 16};
+  magic_enum::enum_map<Color, RGB, std::map> map(values);
+  // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 8
+
+  std::vector<std::pair<Color, int>> pair_values = {{Color::GREEN, 2}};
+  magic_enum::enum_map<Color, RGB, std::map> pair_map(values);
+  // pair_map[Color::RED] -> 0, 
+  // pair_map[Color::Blue] -> 2, 
+  // pair_map[Color::GREEN] -> 0
+  ```
+
+  ```cpp
+  magic_enum::enum_map<Color, RGB, std::map> map = {
+    {Color::RED, 1}, {Color::GREEN, 3}
+  };
+  // map[Color::RED] -> 1, map[Color::Blue] -> 0, map[Color::GREEN] -> 3
+  ```
+
+* Maps can be iterated.
+  
+  ```cpp
+  magic_enum::enum_map<Color, int, std::map> map = {
+    {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}
+  };
+
+  for(auto [color, value] : map) {
+    std::cout << magic_enum::enum_name(color) << " " << value << " ";
+  }
+
+  // prints:
+  // RED 1 BLUE 2 GREEN 3
+  ```
+  
+* Values can be inserted into maps the same ways as constructors.
+  Iterators are necessary when value position is unknown.
+
+  ```cpp
+  magic_enum::enum_map<Color, int, std::map> map;
+  map.insert(map.begin(), 1, 2);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2
+  ```
+
+  ```cpp
+  std::vector<int> values = {2, 4, 8, 16};
+  magic_enum::enum_map<Color, int, std::map> map;
+  map.insert(map.begin(), values);
+  // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 8
+
+  std::vector<std::pair<Color, int>> pair_values = {{Color::GREEN, 2}};
+  map.insert(pair_values);
+  // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 2
+  ```
+
+* Any map type can be used, as long as it follows the general format of
+  map_type<key_type, value_type, args...> and is iterable. Below is an example
+  with `std::unordered_map` and a general `map_type`.
+
+  ```cpp
+  typedef unordered_enum_map magic_enum::enum_map<Color, int, std::unordered_map>;
+  // unordered_enum_map::enum_type -> enum Color
+  // unordered_enum_map::mapped_type -> int
+  // unordered_enum_map::value_type -> struct std::pair<enum Color, int>
+
+  // unordered_enum_map::map_type ->
+  //    class std::unordered_map<enum Color, int>
+  ```
+
+  ```cpp
+  typedef custom_map magic_enum::enum_map<Color, int, map_type, arg1, arg2>;
+  // custom_map::enum_type -> enum Color
+  // custom_map::enum_map<Color, int, map_type, arg1, arg2>::mapped_type -> int
+  // custom_map::value_type -> custom_map::iterator::value_type
+
+  // magic_enum::enum_map<Color, int, map_type, arg1, arg2>::map_type ->
+  //    class map_type<Color, int, arg1, arg2> 
+  ```
+
 ## Remarks
 
 * `magic_enum` does not pretend to be a silver bullet for reflection for enums, it was originally designed for small enum.
