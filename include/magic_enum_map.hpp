@@ -2,6 +2,7 @@
 #define MAGIC_ENUM_MAP_HPP
 
 #include <initializer_list>
+#include <type_traits>
 #include <map>
 
 #include "magic_enum.hpp"
@@ -59,14 +60,14 @@ namespace magic_enum
 
         template <
             typename... Args,
-            typename = typename std::enable_if<(true && ... && std::_Is_nothrow_convertible_v<Args, T>), void>::type>
+            typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
         enum_map(const Args &...args) : enum_map()
         {
             insert(begin(), std::array<T, sizeof...(Args)>{{args...}});
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && (std::_Is_nothrow_convertible_v<typename V::iterator::value_type, T> || std::_Is_nothrow_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && (std::is_convertible_v<typename V::iterator::value_type, T> || std::is_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
         enum_map(const V &values) : enum_map()
         {
             insert(begin(), values);
@@ -93,14 +94,14 @@ namespace magic_enum
         const T &at(const E &e) const { return _map.at(e); }
 
         template <typename... Args,
-                  typename = typename std::enable_if<(true && ... && std::_Is_nothrow_convertible_v<Args, T>), void>::type>
+                  typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
         iterator insert(iterator begin, Args &&...args)
         {
             return insert(begin, std::array<T, sizeof...(Args)>{{args...}});
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::_Is_nothrow_convertible_v<typename V::iterator::value_type, T>), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, T>), void>::type>
         iterator insert(iterator begin, const V &values)
         {
             auto v_it = values.begin();
@@ -115,7 +116,7 @@ namespace magic_enum
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::_Is_nothrow_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
         iterator insert(const V &values)
         {
             auto v_it = values.begin();
