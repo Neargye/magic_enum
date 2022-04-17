@@ -330,7 +330,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
 
 * Any map type can be used, as long as it follows the general format of
-  map_type<key_type, value_type, args...> and is iterable. Below is an example
+  `map_type<key_type, value_type, Args...>` and is iterable. Below is an example
   with `std::unordered_map` and a general `map_type`.
 
   ```cpp
