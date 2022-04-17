@@ -45,13 +45,10 @@ namespace magic_enum
         typedef typename map_type::mapped_type mapped_type;
         typedef typename map_type::key_type enum_type;
 
-        T &operator[](const E &e) { return _map[e]; }
-        T &operator[](E &&e) { return _map[e]; }
-
         enum_map()
         {
-            using D = std::decay_t<E>;
-            detail::for_each<D>([this](auto e){ (*this)[e]; }, std::make_index_sequence<detail::count_v<D>>{});
+            for(size_t i = 0; i < enum_count<E>(); i++)
+                _map[enum_value<E>(i)];
         };
 
         template <
@@ -127,6 +124,9 @@ namespace magic_enum
             v_it--;
             return _map.find(v_it->first);
         }
+
+        T &operator[](const E &e) { return _map[e]; }
+        T &operator[](E &&e) { return _map[e]; }
 
     private:
         map_type _map;
