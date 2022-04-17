@@ -310,7 +310,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```
   
 * Values can be inserted into maps the same ways as constructors.
-  Iterators are necessary when value position is unknown.
+  Iterators are necessary when value position is unknown. 
 
   ```cpp
   magic_enum::enum_map<Color, int, std::map> map;
