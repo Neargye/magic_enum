@@ -84,7 +84,7 @@ struct magic_enum::customize::enum_range<number> {
 
 enum class MaxUsedAsInvalid : std::uint8_t {
   ONE,
-  TWO,
+  TWO = 63,
   INVALID = std::numeric_limits<std::uint8_t>::max()
 };
 template <>
@@ -582,6 +582,8 @@ TEST_CASE("enum_name") {
     REQUIRE(nt_name == "three");
     REQUIRE(enum_name(number::four).empty());
     REQUIRE(enum_name(static_cast<number>(0)).empty());
+
+    REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
   }
 
   SECTION("static storage") {
@@ -989,7 +991,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::max_v<Binary> == true);
 
     REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid, false> == 64);
-    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 1);
+    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 63);
   }
 }
 

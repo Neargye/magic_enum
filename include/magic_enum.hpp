@@ -769,7 +769,7 @@ constexpr auto calculate_cases(std::size_t Page) noexcept {
   }
 
   auto it = result.begin();
-  for (auto last_value = (std::numeric_limits<switch_t>::min)(); fill != result.end(); *fill++ = last_value) {
+  for (auto last_value = (std::numeric_limits<switch_t>::min)(); fill != result.end(); *fill++ = last_value++) {
     while (last_value == *it) {
       ++last_value, ++it;
     }
