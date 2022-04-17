@@ -1364,7 +1364,7 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
   if (const auto v = enum_cast<D>(s)) {
     value = *v;
   } else {
-    is.setstate(std::ios::failbit);
+    is.setstate(std::basic_ios<Char>::failbit);
   }
   return is;
 }
