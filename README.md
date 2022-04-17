@@ -334,12 +334,12 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   with `std::unordered_map` and a general `map_type`.
 
   ```cpp
-  typedef unordered_enum_map magic_enum::enum_map<Color, int, std::unordered_map>;
-  // unordered_enum_map::enum_type -> enum Color
-  // unordered_enum_map::mapped_type -> int
-  // unordered_enum_map::value_type -> struct std::pair<enum Color, int>
+  typedef u_enum_map magic_enum::enum_map<Color, int, std::unordered_map>;
+  // u_enum_map::enum_type -> enum Color
+  // u_enum_map::mapped_type -> int
+  // u_enum_map::value_type -> struct std::pair<enum Color, int>
 
-  // unordered_enum_map::map_type ->
+  // u_enum_map::map_type ->
   //    class std::unordered_map<enum Color, int>
   ```
 
