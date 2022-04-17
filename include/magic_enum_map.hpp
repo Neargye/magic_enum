@@ -2,6 +2,7 @@
 #define MAGIC_ENUM_MAP_HPP
 
 #include <initializer_list>
+#include <iterator>
 #include <type_traits>
 #include <map>
 
@@ -67,7 +68,7 @@ namespace magic_enum
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && (std::is_convertible_v<typename V::iterator::value_type, T> || std::is_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && (std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T> || std::is_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
         enum_map(const V &values) : enum_map()
         {
             insert(begin(), values);
@@ -101,7 +102,7 @@ namespace magic_enum
         }
 
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, T>), void>::type>
+                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T>), void>::type>
         iterator insert(iterator begin, const V &values)
         {
             auto v_it = values.begin();
