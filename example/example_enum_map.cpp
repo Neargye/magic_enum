@@ -134,8 +134,8 @@ void insert_map()
 
     std::cout << "\nOr by passing another map/iterable pair:" << std::endl;
     std::map<Color, RGB> normal_map = {
-        {Color::RED, {255, 15, 15}},
-        {Color::BLUE, {15, 255, 15}}};
+        {Color::RED, {255, 10, 10}},
+        {Color::BLUE, {10, 255, 10}}};
     map.insert(normal_map);
     std::cout << "Color::RED is: " << map[Color::RED] << std::endl;
     std::cout << "Color::BLUE is: " << map[Color::BLUE] << std::endl;
@@ -144,14 +144,14 @@ void insert_map()
 
 void types_map()
 {
-    std::cout << "Finally, you can specify the map object used" << std::endl;
-    std::cout << "Just make sure your map is an iterable" << std::endl;
+    std::cout << "\nFinally, you can specify the map object used," << std::endl;
+    std::cout << "just make sure your map is an iterable:" << std::endl;
 
     magic_enum::enum_map<Color, int, std::unordered_map> unordered_map;
-    std::cout << "enum_type: " << typeid(magic_enum::enum_map<Color, int, std::unordered_map>::enum_type).name() << std::endl;
-    std::cout << "mapped_type: " << typeid(magic_enum::enum_map<Color, int, std::unordered_map>::mapped_type).name() << std::endl;
-    std::cout << "value_type: " << typeid(magic_enum::enum_map<Color, int, std::unordered_map>::value_type).name() << std::endl;
-    std::cout << "map_type: " << typeid(magic_enum::enum_map<Color, int, std::unordered_map>::map_type).name() << std::endl;
+    std::cout << "enum_type: " << "enum Color" << std::endl;
+    std::cout << "mapped_type: " << "int" << std::endl;
+    std::cout << "value_type: " << "struct std::pair<enum Color, int>" << std::endl;
+    std::cout << "map_type: " << "class std::unordered_map<Color, int>" << std::endl;
 }
 
 int main()
