@@ -13,6 +13,8 @@
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
 * [`enum_type_name` returns type name of enum.](#enum_type_name)
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
+* [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
+* [`enum_for_each` calls a function with all enum constexpr value.](#enum_for_each)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
@@ -168,6 +170,9 @@ constexpr size_t enum_count() noexcept;
 ```cpp
 template <typename E>
 constexpr underlying_type_t<E> enum_integer(E value) noexcept;
+
+template <typename E>
+constexpr underlying_type_t<E> enum_underlying(E value) noexcept;
 ```
 
 * Returns integer value from enum value.
@@ -363,6 +368,35 @@ template <typename... Es>
   // ...
   }
   ```
+
+## `enum_switch`
+
+```cpp
+template <typename Result = void, typename E, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, E value);
+
+template <typename Result, typename E, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, E value, Result&& result);
+
+template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<>, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {});
+
+template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {});
+
+template <typename E, typename Result = void, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value);
+
+template <typename E, typename Result, typename Lambda>
+constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result);
+```
+
+## `enum_for_each`
+
+```cpp
+template <typename E, typename Lambda>
+constexpr auto enum_for_each(Lambda&& lambda);
+```
 
 ## `is_unscoped_enum`
 

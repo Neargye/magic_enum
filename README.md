@@ -35,6 +35,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `enum_contains` checks whether enum contains enumerator with such value.
 * `enum_type_name` returns name of enum type.
 * `enum_fuse` allows multidimensional switch/cases.
+* `enum_switch` allows runtime enum value transformation to constexpr context.
+* `enum_for_each` calls a function with all enum constexpr value.
 * `is_unscoped_enum` checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
 * `is_scoped_enum` checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 * `underlying_type` improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
@@ -139,7 +141,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"
   ```
-  
+
 * Enum fusion for multi-level switch/case statements
 
   ```cpp
@@ -148,6 +150,24 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
     case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
   // ...
   }
+  ```
+  
+* Enum switch runtime value as constexpr constant
+  ```cpp
+  Color color = Color::RED;
+  
+  magic_enum::enum_switch([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  }, color);
+  ```
+
+* Enum iterate for each enum as constexpr constant
+  ```cpp
+  magic_enum::enum_for_each<Color>([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  });
   ```
 
 * Ostream operator for enum
@@ -250,9 +270,16 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
   (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
 
+* If you are using [Ros](https://www.ros.org/), you can include this package by adding `<depend>magic_enum</depend>` to your package.xml and include this package in your workspace. In your CMakeLists.txt add the following:
+  ```cmake
+  find_package(magic_enum CONFIG REQUIRED)
+  ...
+  target_link_libraries(your_executable magic_enum::magic_enum)
+  ```
+
 ## Compiler compatibility
 
-* Clang/LLVM >= 5
+* Clang/LLVM >= 6
 * MSVC++ >= 14.11 / Visual Studio >= 2017
 * Xcode >= 10
 * GCC >= 9
