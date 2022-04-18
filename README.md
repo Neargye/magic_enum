@@ -237,33 +237,29 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Create an enum_map and pass initial values.
   
   ```cpp
-  magic_enum::enum_map<Color, RGB, std::map> map(1, 2, 3);
-  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+  magic_enum::enum_map<Color, int, std::map> map(1, 2, 3);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 3
   ```
 
 * Create an enum_map using an iterable.
 
   ```cpp
   std::vector<int> values = {1, 2, 3};
-  magic_enum::enum_map<Color, RGB, std::map> map(values);
-  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+  magic_enum::enum_map<Color, int, std::map> map(values);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 3
 
-  std::vector<std::pair<Color, int>> pair_values = {
-    {Color::RED, 1}, {Color::GREEN, 3}, {Color::BLUE, 2}
-  };
-  magic_enum::enum_map<Color, RGB, std::map> pair_map(values);
-  // pair_map[Color::RED] -> 1, 
-  // pair_map[Color::Blue] -> 2, 
-  // pair_map[Color::GREEN] -> 3
+  std::vector<std::pair<Color, int>> v_values = {
+      {Color::RED, 1}, {Color::GREEN, 3}, {Color::BLUE, 2}};
+  magic_enum::enum_map<Color, int, std::map> v_map(v_values);
+  // v_map[Color::RED] -> 1, v_map[Color::BLUE] -> 2, v_map[Color::GREEN] -> 3
   ```
 
 * Create an enum_map using an initializer list.
   
   ```cpp
-  magic_enum::enum_map<Color, RGB, std::map> map = {
-    {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}
-  };
-  // map[Color::RED] -> 1, map[Color::Blue] -> 2, map[Color::GREEN] -> 3
+  magic_enum::enum_map<Color, int, std::map> map = {
+      {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}};
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 3
   ```
 
 * enum_map's are created using all mapped_types defaults, so
@@ -271,39 +267,37 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   work if values exceed total number of enums.
 
   ```cpp
-  magic_enum::enum_map<Color, RGB, std::map> map(1, 2);
+  magic_enum::enum_map<Color, int, std::map> map(1, 2);
   // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 0
   ```
 
   ```cpp
   std::vector<int> values = {2, 4, 8, 16};
-  magic_enum::enum_map<Color, RGB, std::map> map(values);
+  magic_enum::enum_map<Color, int, std::map> map(values);
   // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 8
 
-  std::vector<std::pair<Color, int>> pair_values = {{Color::GREEN, 2}};
-  magic_enum::enum_map<Color, RGB, std::map> pair_map(values);
-  // pair_map[Color::RED] -> 0, 
-  // pair_map[Color::Blue] -> 2, 
-  // pair_map[Color::GREEN] -> 0
+  std::vector<std::pair<Color, int>> v_values = {{Color::BLUE, 2}};
+  magic_enum::enum_map<Color, int, std::map> v_map(v_values);
+  // v_map[Color::RED] -> 0, v_map[Color::BLUE] -> 2, v_map[Color::GREEN] -> 0
   ```
 
   ```cpp
-  magic_enum::enum_map<Color, RGB, std::map> map = {
-    {Color::RED, 1}, {Color::GREEN, 3}
-  };
-  // map[Color::RED] -> 1, map[Color::Blue] -> 0, map[Color::GREEN] -> 3
+  magic_enum::enum_map<Color, int, std::map> map = {
+      {Color::RED, 1}, {Color::GREEN, 3}};
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 0, map[Color::GREEN] -> 3
   ```
 
 * Maps can be iterated.
   
   ```cpp
   magic_enum::enum_map<Color, int, std::map> map = {
-    {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}
-  };
+      {Color::RED, 1}, {Color::BLUE, 2}, {Color::GREEN, 3}};
 
-  for(auto [color, value] : map) {
-    std::cout << magic_enum::enum_name(color) << " " << value << " ";
+  for (auto [color, value] : map)
+  {
+      std::cout << magic_enum::enum_name(color) << " " << value << " ";
   }
+  std::cout << std::endl;
 
   // prints:
   // RED 1 BLUE 2 GREEN 3
@@ -314,8 +308,20 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
   ```cpp
   magic_enum::enum_map<Color, int, std::map> map;
-  map.insert(map.begin(), 1, 2);
-  // map[Color::RED] -> 1, map[Color::BLUE] -> 2
+  map.insert(map.begin(), 1);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 0, map[Color::GREEN] -> 0
+
+  map.insert(std::pair<Color, int>{Color::BLUE, 2});
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 0
+  ```
+
+  ```cpp
+  magic_enum::enum_map<Color, int, std::map> map;
+  map.insert(map.begin(), 1, 2, 4, 8);
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 4
+
+  map.insert(std::pair<Color, int>{Color::BLUE, 1}, std::pair<Color, int>{Color::GREEN, 1});
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 1, map[Color::GREEN] -> 1
   ```
 
   ```cpp
@@ -324,9 +330,39 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   map.insert(map.begin(), values);
   // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 8
 
-  std::vector<std::pair<Color, int>> pair_values = {{Color::GREEN, 2}};
-  map.insert(pair_values);
-  // map[Color::RED] -> 2, map[Color::BLUE] -> 4, map[Color::GREEN] -> 2
+  std::vector<std::pair<Color, int>> v_values = {{Color::BLUE, 2}, {Color::GREEN, 2}};
+  map.insert(v_values);
+  // map[Color::RED] -> 2, map[Color::BLUE] -> 2, map[Color::GREEN] -> 2
+  ```
+
+  ```cpp
+  magic_enum::enum_map<Color, int, std::map> map;
+  map.insert(map.begin(), {1, 2, 3, 4});
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 3
+
+  map.insert({{Color::RED, 3}, {Color::GREEN, 1}});
+  // map[Color::RED] -> 1, map[Color::BLUE] -> 2, map[Color::GREEN] -> 3
+  ```
+
+* Here is a final more detailed implementation with a custom data structure.
+  
+  ```cpp
+  struct RGB
+  {
+      int r, g, b;
+  };
+
+  magic_enum::enum_map<Color, RGB, std::map> color_map = {
+      {Color::RED, {255, 0, 0}},
+      {Color::GREEN, {0, 255, 0}},
+      {Color::BLUE, {0, 0, 255}}};
+
+  color_map[Color::RED].r = 200;
+  color_map.insert({Color::BLUE, {0, 0, 225}});
+
+  // map[Color::RED] -> RGB(200, 0, 0),
+  // map[Color::GREEN] -> RGB(0, 255, 0),
+  // map[Color::BLUE] -> RGB(0, 0, 225)
   ```
 
 * Any map type can be used, as long as it follows the general format of
