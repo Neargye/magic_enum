@@ -365,28 +365,34 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   // map[Color::BLUE] -> RGB(0, 0, 225)
   ```
 
-* Any map type can be used, as long as it follows the general format of
-  `map_type<key_type, value_type, Args...>` and is iterable. Below is an example
-  with `std::unordered_map` and a general `map_type`.
+* Below is an example with `std::unordered_map` and a general `map_type`. In order to use  a custom map type it needs to:
+  
+  1.  have a template of form `map_type<key_type, mapped_type, Args...>`
+  2.  be iterable (have an `iterator` and `const_iterator` type)
+  3.  have a `value_type` container that stores both `key_type` & `mapped_type` and works with `std::get<T>` (like `std::pair` & `std::tuple`)
+  
+   <br>
 
   ```cpp
   typedef u_enum_map magic_enum::enum_map<Color, int, std::unordered_map>;
-  // u_enum_map::enum_type -> enum Color
-  // u_enum_map::mapped_type -> int
-  // u_enum_map::value_type -> struct std::pair<enum Color, int>
-
-  // u_enum_map::map_type ->
-  //    class std::unordered_map<enum Color, int>
+  /* u_enum_map::enum_type -> enum Color
+   * u_enum_map::mapped_type -> int
+   * u_enum_map::value_type -> struct std::pair<enum Color, int>
+   *
+   * u_enum_map::map_type ->
+   *      class std::unordered_map<enum Color, int>
+   */    
   ```
 
   ```cpp
   typedef custom_map magic_enum::enum_map<Color, int, map_type, arg1, arg2>;
-  // custom_map::enum_type -> enum Color
-  // custom_map::enum_map<Color, int, map_type, arg1, arg2>::mapped_type -> int
-  // custom_map::value_type -> custom_map::iterator::value_type
-
-  // magic_enum::enum_map<Color, int, map_type, arg1, arg2>::map_type ->
-  //    class map_type<Color, int, arg1, arg2> 
+  /* custom_map::enum_type -> enum Color
+   * custom_map::mapped_type -> int
+   * custom_map::value_type -> map_type::value_type
+   *
+   * magic_enum::enum_map<Color, int, map_type, arg1, arg2>::map_type ->
+   *      class map_type<enum Color, int, arg1, arg2> 
+   */    
   ```
 
 ## Remarks

@@ -5,9 +5,6 @@
 #include <iterator>
 #include <utility>
 #include <type_traits>
-#include <map>
-
-#include <iostream>
 
 #include "magic_enum.hpp"
 
@@ -53,16 +50,14 @@ namespace magic_enum
         // const_iterator of map
         typedef typename map_type::const_iterator const_iterator;
 
+        // mapped type
+        typedef T mapped_type;
+        // enum type
+        typedef E enum_type;
         // type used by map to store entry pairs
         typedef typename map_type::value_type value_type;
-        // type T
-        typedef typename map_type::mapped_type mapped_type;
-        // type E
-        typedef typename map_type::key_type enum_type;
 
-        
-
-        /**
+                /**
          * @brief Constructs a new enum map object, creating
          * an entry for each possible enum value.
          */

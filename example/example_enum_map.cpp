@@ -1,7 +1,5 @@
 #include <iostream>
 #include <map>
-#include <typeinfo>
-#include <unordered_map>
 #include <vector>
 
 #include <magic_enum_map.hpp>
@@ -163,6 +161,11 @@ void complex_example()
     // map[Color::GREEN] -> RGB(0, 255, 0),
     // map[Color::BLUE] -> RGB(0, 0, 225)
 }
+
+struct test {
+    int i;
+    float j;
+};
 
 int main()
 {
