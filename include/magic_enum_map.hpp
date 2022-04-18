@@ -3,8 +3,11 @@
 
 #include <initializer_list>
 #include <iterator>
+#include <utility>
 #include <type_traits>
 #include <map>
+
+#include <iostream>
 
 #include "magic_enum.hpp"
 
@@ -56,10 +59,12 @@ namespace magic_enum
         typedef typename map_type::mapped_type mapped_type;
         // type E
         typedef typename map_type::key_type enum_type;
+
         
+
         /**
-         * @brief Constructs a new enum map object, creating 
-         * an entry for each possible enum value. 
+         * @brief Constructs a new enum map object, creating
+         * an entry for each possible enum value.
          */
         enum_map()
         {
@@ -80,23 +85,7 @@ namespace magic_enum
             typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
         enum_map(Args &&...args) : enum_map()
         {
-            insert(begin(), std::array<T, sizeof...(Args)>{{args...}});
-        }
-
-        /**
-         * @brief Constructs a new enum map object, initializing 
-         * entries using passed args. 
-         * 
-         * @tparam Args parameter pack consisting of type T 
-         * convertible values 
-         * @param args entries of type T 
-         */
-        template <
-            typename... Args,
-            typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
-        enum_map(const Args &...args) : enum_map()
-        {
-            insert(begin(), std::array<T, sizeof...(Args)>{{args...}});
+            insert(begin(), args...);
         }
 
         /**
@@ -107,7 +96,10 @@ namespace magic_enum
          * @param values iterable container 
          */
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && (std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T> || std::is_convertible_v<typename V::iterator::value_type, value_type>)), void>::type>
+                  typename = typename std::enable_if<
+                    (is_iterable<V>::value && 
+                    (std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T> ||
+                     std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>)), void>>
         enum_map(const V &values) : enum_map()
         {
             insert(begin(), values);
@@ -186,68 +178,165 @@ namespace magic_enum
         T &at(const E &e) { return _map.at(e); }
 
         /**
-         * @brief Inserts elements from a parameter pack args, begining at 
-         * iterator begin and inserting for the number of passed args (will overwrite).
+         * @brief Inserts a value at an iterator if the
+         * iterator does not exceed the map
+         *
+         * @param it where to insert
+         * @param value value to insert
+         * @return iterator pointing to inserted entry
+         */
+        iterator insert(iterator it, T &&value)
+        {
+            if (it != end())
+                std::get<T>(*it) = std::forward<T>(value);
+            return it;
+        }
+
+        /**
+         * @brief Inserts elements from a parameter pack args, begining at a
+         * specified iterator and inserting for the number of passed args 
+         * (will overwrite).
          *
          * @tparam Args parameter pack consisting of type T 
          * convertible values 
-         * @param begin iterator specifying where to begin insertion 
+         * @param it where to begin insertion 
          * @param args entries of type T 
-         * @return iterator pointing to entry immediately 
-         * after the last inserted value 
+         * @return iterator pointing to entry immediately after the last inserted value 
          */
         template <typename... Args,
                   typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
-        iterator insert(iterator begin, const Args &...args)
+        iterator insert(iterator it, Args &&...args)
         {
-            return insert(begin, std::array<T, sizeof...(Args)>{{args...}});
+            return insert(it, {args...});
         }
 
         /**
-         * @brief Inserts elements from an iterable, begining at iterator
-         * begin and inserting for the length of values (will overwrite).
+         * @brief Inserts elements from an iterable, begining at a specified
+         * iterator and inserting for the length of values (will overwrite).
          *
          * @tparam V iterable containing type T
-         * @param begin iterator specifying where to begin insertion 
-         * @param values iterable container
-         * @return iterator pointing to entry immediately 
-         * after the last inserted value 
+         * @param it where to insert
+         * @param values values to insert
+         * @return iterator pointing to entry immediately
+         * after the last inserted value
          */
-        template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T>), void>::type>
-        iterator insert(iterator begin, const V &values)
+        template <typename V>
+        typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T>), iterator>::type
+        insert(iterator it, const V &values)
         {
             auto v_it = values.begin();
-            while (v_it != values.end() && begin != end())
+            while (v_it != values.end() && it != end())
             {
-                begin->second = *v_it;
-                begin++;
+                insert(it, *v_it);
+                it++;
                 v_it++;
             }
 
-            return begin;
+            return it;
         }
 
         /**
-         * @brief Inserts elements from an iterable directly to 
-         * specified enum value (will overwrite).
+         * @brief Inserts elements from an initializer list of T, begining at
+         * a specified iterator and inserting for the length of the list (will 
+         * overwrite).
+         *
+         * @param it where to begin insertion 
+         * @param list initializer list of type T 
+         * @return iterator pointing to entry immediately after the last 
+         * inserted value 
+         */
+        iterator insert(iterator it, std::initializer_list<T> &&list)
+        {   
+            auto l_it = list.begin();
+            while(l_it != list.end() && it != end()) {
+                insert(it, T(*l_it));
+                it++; l_it++;
+            }
+
+            return it;
+        }
+
+        /**
+         * @brief Inserts value into map
+         *
+         * @param value value to insert
+         * @return iterator pointing to inserted entry 
+         */
+        iterator insert(value_type &&value)
+        {
+            iterator it = find(std::get<const E>(value));
+            return insert(it, std::get<T>(value));
+        }
+
+        /**
+         * @brief Inserts elements from a parameter pack args, inserting for the number of passed args 
+         * (will overwrite).
+         *
+         * @tparam Args parameter pack consisting of type T
+         * convertible values
+         * @param it where to begin insertion
+         * @param args entries of type T
+         * @return iterator pointing to entry immediately after the last inserted value
+         */
+        template <typename... Args,
+                  typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, value_type>), void>::type>
+        iterator insert(Args &&...args)
+        {
+            return insert({args...});
+        }
+
+        /**
+         * @brief Inserts elements from an iterable, begining at a specified
+         * iterator and inserting for the length of values (will overwrite).
+         *
+         * @tparam V iterable containing type T
+         * @param it where to insert
+         * @param values values to insert
+         * @return iterator pointing to entry immediately
+         * after the last inserted value
+         */
+        template <typename V>
+        typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>), iterator>::type
+        insert(iterator it, const V &values)
+        {   
+            (void)it;
+            return insert(values);
+        }
+
+        /**
+         * @brief Inserts elements from an initializer list of T, begining at
+         * a specified iterator and inserting for the length of the list (will
+         * overwrite).
+         *
+         * @param list initializer list of type value_type
+         * @return iterator pointing to the last inserted entry
+         */
+        iterator insert(std::initializer_list<value_type> &&list)
+        {
+            iterator it = end();
+            for(auto l_it = list.begin(); l_it != list.end(); l_it++)
+                it = insert(value_type(*l_it));
+
+            return it;
+        }
+
+        /**
+         * @brief Inserts elements from an iterable directly to specified enum 
+         * value (will overwrite).
          * 
-         * @tparam V iterable containing type std::pair<const E, T>
-         * @param values iterable container 
-         * @return iterator pointing to last inserted element
+         * @tparam V iterable containing type value_type
+         * @param values values to insert
+         * @return iterator pointing to last inserted element 
          */
         template <typename V,
                   typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
         iterator insert(const V &values)
         {   
-            //? Currently dependent on std::pair with first and
-            //? and second. Needs to be more generic
-            auto v_it = values.begin();
-            for (; v_it != values.end(); v_it++)
-                _map[v_it->first] = v_it->second;
+            iterator it = end();
+            for (auto v_it = values.begin(); v_it != values.end(); v_it++)
+                it = insert(value_type(*v_it));
 
-            v_it--;
-            return find(v_it->first);
+            return it;
         }
 
         /**
@@ -266,6 +355,15 @@ namespace magic_enum
          * @return T&, reference to mapped value
          */
         T &operator[](E &&e) { return _map[e]; }
+
+        /**
+         * @brief Returns a reference to the mapped value of the element
+         * with key equivalent to enum value.
+         *
+         * @param e enum value
+         * @return const T&, reference to mapped value
+         */
+        const T &operator[](const E &e) const { return _map.at(e); }
 
     private:
         // underlying data structure used to map values
