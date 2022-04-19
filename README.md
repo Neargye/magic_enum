@@ -1,3 +1,5 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://stand-with-ukraine.pp.ua)
+
 ```text
  __  __             _        ______                          _____
 |  \/  |           (_)      |  ____|                        / ____|_     _
@@ -16,8 +18,6 @@
 [![License](https://img.shields.io/github/license/Neargye/magic_enum.svg)](LICENSE)
 [![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/JPMZqT9mgaUdooyC)
 [![Compiler explorer](https://img.shields.io/badge/compiler_explorer-online-blue.svg)](https://godbolt.org/z/BxfmsH)
-
-If you like this project, please consider donating to one of the funds that help victims of the war in Ukraine: https://www.stopputin.net/.
 
 # Magic Enum C++
 
