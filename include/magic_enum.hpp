@@ -897,9 +897,6 @@ constexpr auto for_each(Lambda&& lambda, std::index_sequence<I...>) {
   }
 }
 
-template <typename E, typename Lambda, typename D = std::decay_t<E>>
-using for_each_t = decltype(for_each<D>(std::declval<Lambda>(), std::make_index_sequence<count_v<D>>{}));
-
 } // namespace magic_enum::detail
 
 // Checks is magic_enum supported compiler.
@@ -1274,8 +1271,9 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&&
 }
 
 template <typename E, typename Lambda>
-constexpr auto enum_for_each(Lambda&& lambda) -> detail::enable_if_t<E, detail::for_each_t<E, Lambda>> {
+constexpr auto enum_for_each(Lambda&& lambda) {
   using D = std::decay_t<E>;
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
 
   return detail::for_each<D>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<D>>{});
 }
