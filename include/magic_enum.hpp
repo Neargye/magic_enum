@@ -984,7 +984,6 @@ template <typename E>
   return static_cast<underlying_type_t<E>>(value);
 }
 
-
 // Returns underlying value from enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_underlying(E value) noexcept -> detail::enable_if_t<E, underlying_type_t<E>> {
@@ -1012,6 +1011,15 @@ template <typename E>
     }
     return {}; // Invalid value or out of range.
   }
+}
+
+// Obtains index in enum values from static storage enum variable.
+template <auto V>
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
+  constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
+  static_assert(index, "magic_enum::enum_index enum value does not have a index.");
+
+  return *index;
 }
 
 // Returns name from static storage enum variable.
@@ -1063,7 +1071,7 @@ template <typename E>
 
     return {}; // Invalid value or out of range.
   } else {
-    return string{enum_name(value)};
+    return string{enum_name<D>(value)};
   }
 }
 
@@ -1078,6 +1086,9 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_t<E, detail::entries_t<E>> {
   return detail::entries_v<std::decay_t<E>>;
 }
+
+// Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
+inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from integer value.
 // Returns optional with enum value.
@@ -1118,9 +1129,6 @@ template <typename E>
     return {}; // Invalid value or out of range.
   }
 }
-
-// Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
-inline constexpr auto case_insensitive = detail::case_insensitive{};
 
 // Obtains enum value from name.
 // Returns optional with enum value.
@@ -1171,15 +1179,6 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
       return {}; // Invalid value or out of range.
     }
   }
-}
-
-// Obtains index in enum values from static storage enum variable.
-template <auto V>
-[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
-  constexpr auto index = enum_index<std::decay_t<decltype(V)>>(V);
-  static_assert(index, "magic_enum::enum_index enum value does not have a index.");
-
-  return *index;
 }
 
 // Checks whether enum contains enumerator with such enum value.
