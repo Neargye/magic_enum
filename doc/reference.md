@@ -350,6 +350,8 @@ template <typename... Es>
 [[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 ```
 
+* You should add the required file `<magic_enum_fuse.hpp>`.
+
 * Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 
 * Return type is `optional<enum_fuse_t>` where `enum_fuse_t` is an incomplete enum, it is unique for any given combination of `Es...`.

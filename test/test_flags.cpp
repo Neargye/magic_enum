@@ -33,6 +33,7 @@
 #include <catch2/catch.hpp>
 
 #include <magic_enum.hpp>
+#include <magic_enum_fuse.hpp>
 
 #include <array>
 #include <cctype>

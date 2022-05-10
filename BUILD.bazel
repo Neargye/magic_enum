@@ -6,7 +6,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "magic_enum",
-    hdrs = ["include/magic_enum.hpp"],
+    hdrs = ["include/magic_enum.hpp", "include/magic_enum_fuse.hpp"],
     includes = ["include"],
 )
 
