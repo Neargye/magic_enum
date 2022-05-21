@@ -56,13 +56,18 @@ namespace magic_enum::customize {
 template<typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::customize::enum_format_enabled<E>(), char>> : std::formatter<std::string_view, char> {
   auto format(E e, format_context& ctx) {
-    if (auto name = magic_enum::enum_name(e); name.empty()) {
-      constexpr auto type_name = magic_enum::enum_type_name<E>();
-      throw std::format_error("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " +
-            std::to_string(magic_enum::enum_integer(e)) + " is not exists.");
+    if constexpr (magic_enum::detail::is_flags_v<E>) {
+      if (auto name = magic_enum::enum_flags_name(e); !name.empty()) {
+        return this->std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      }
     } else {
-      return this->std::formatter<std::string_view, char>::format(name, ctx);
+      if (auto name = magic_enum::enum_name(e); !name.empty()) {
+        return this->std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      }
     }
+    constexpr auto type_name = magic_enum::enum_type_name<E>();
+    throw std::format_error("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " +
+                            std::to_string(magic_enum::enum_integer(e)) + " is not exists.");
   }
 };
 

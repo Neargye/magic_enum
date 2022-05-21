@@ -822,3 +822,13 @@ TEST_CASE("constexpr_for") {
 }
 
 #endif
+
+#ifdef __cpp_lib_format
+
+#include <magic_enum_format.hpp>
+
+TEST_CASE("format-base") {
+    REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");
+}
+
+#endif
