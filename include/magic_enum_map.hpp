@@ -1,222 +1,210 @@
-#ifndef MAGIC_ENUM_MAP_HPP
-#define MAGIC_ENUM_MAP_HPP
+#ifndef _MAGIC_ENUM_MAP_HPP_
+#define _MAGIC_ENUM_MAP_HPP_
 
-#include <initializer_list>
+#include <yvals_core.h>
 #include <iterator>
-#include <utility>
-#include <type_traits>
+#include <map>
 
 #include "magic_enum.hpp"
 
+namespace map_utils {
+    template <class _Mty, class = void>
+    struct map_reference
+    {
+        using type = typename _Mty::value_type &;
+    };
+
+    template <class _Mty>
+    struct map_reference<_Mty, std::void_t<typename _Mty::reference>>
+    {
+        using type = typename _Mty::reference;
+    };
+
+    template <class _Mty>
+    using map_reference_t = typename map_reference<_Mty>::type;
+
+    template <class _Mty, class = void>
+    struct map_const_reference
+    {
+        using type = typename const map_reference_t<_Mty> &;
+    };
+
+    template <class _Mty>
+    struct map_const_reference<_Mty, std::void_t<typename _Mty::const_reference>>
+    {
+        using type = typename _Mty::const_reference;
+    };
+
+    template <class _Mty>
+    using map_const_reference_t = typename map_const_reference<_Mty>::type;
+
+    template <class _Mty>
+    struct map_pointer
+    {
+        using type = typename std::_Get_pointer_type<_Mty>::type;
+    };
+
+    template <class _Mty>
+    using map_pointer_t = typename map_pointer<_Mty>::type;
+
+    template <class _Mty>
+    struct map_const_pointer
+    {
+        using type = typename std::_Get_const_pointer_type<_Mty>::type;
+    };
+
+    template <class _Mty>
+    using map_const_pointer_t = typename map_const_pointer<_Mty>::type;
+
+    template <class _Mty, class = void>
+    struct map_reverse_iterator
+    {
+        using type = std::reverse_iterator<typename _Mty::iterator>;
+    };
+
+    template <class _Mty>
+    struct map_reverse_iterator<_Mty, std::void_t<typename _Mty::reverse_iterator>>
+    {
+        using type = typename _Mty::reverse_iterator;
+    };
+
+    template <class _Mty>
+    using map_reverse_iterator_t = typename map_reverse_iterator<_Mty>::type;
+
+    template <class _Mty, class = void>
+    struct map_const_reverse_iterator
+    {
+        using type = std::reverse_iterator<typename _Mty::const_iterator>;
+    };
+
+    template <class _Mty>
+    struct map_const_reverse_iterator<_Mty, std::void_t<typename _Mty::const_reverse_iterator>>
+    {
+        using type = typename _Mty::const_reverse_iterator;
+    };
+
+    template <class _Mty>
+    using map_const_reverse_iterator_t = typename map_const_reverse_iterator<_Mty>::type;
+
+    template <typename T, typename = void>
+    struct is_iterable : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
+                                      decltype(std::end(std::declval<T>()))>> : std::true_type
+    {
+    };
+
+    template <typename T>
+    constexpr bool is_iterable_v = is_iterable<T>::value;
+};
+
 namespace magic_enum
 {
-    // helper struct to check if value is an iterable
-    template <typename C>
-    struct is_iterable
+    template <typename _Mty, typename = void>
+    struct _Is_valid_map : std::false_type
     {
-        typedef long false_type;
-        typedef char true_type;
-
-        template <class T>
-        static false_type check(...);
-        template <class T>
-        static true_type check(int,
-                               typename T::const_iterator = C().end());
-
-        const static bool value = sizeof(check<C>(0)) == sizeof(true_type);
     };
-    /**
-     * @brief Maps every enum entry in E to a unique value T
-     * 
-     * @tparam E enum type used as key
-     * @tparam T mapped value type
-     * @tparam Map template class used as map data structure
-     * @tparam MapArgs optional arguments passed for map class
-     */
-    template <
-        class E,
-        class T,
-        template <class...> class Map,
-        class... MapArgs>
+
+    template <typename _Mty>
+    struct _Is_valid_map<_Mty, std::void_t<typename _Mty::key_type,
+                                           typename _Mty::mapped_type,
+                                           typename _Mty::value_type,
+                                           typename _Mty::iterator,
+                                           typename _Mty::const_iterator>> : std::true_type
+    {
+    };
+
+    template <typename _Mty>
+    constexpr bool _Is_valid_map_v = _Is_valid_map<_Mty>::value;
+
+    template <class _Ety, class _Ty, template <class...> class _Map, class... _Map_Args>
     class enum_map
     {
-        static_assert(std::is_enum_v<E>, "magic_enum::enum_map requires enum type");
-
     public:
-        // type used to map values
-        typedef Map<E, T, MapArgs...> map_type;
-        // iterator of map
-        typedef typename map_type::iterator iterator;
-        // const_iterator of map
-        typedef typename map_type::const_iterator const_iterator;
+        using map_type = _Map<_Ety, _Ty, _Map_Args...>;
+        static_assert(_Is_valid_map_v<map_type>, "map type provided is not valid");
+        static_assert(std::is_enum_v<_Ety>, "magic_enum::enum_map requires enum type");
 
-        // mapped type
-        typedef T mapped_type;
-        // enum type
-        typedef E enum_type;
-        // type used by map to store entry pairs
-        typedef typename map_type::value_type value_type;
+        using enum_type = typename map_type::key_type;
+        using mapped_type = typename map_type::mapped_type;
+        using value_type = typename map_type::value_type;
 
-                /**
-         * @brief Constructs a new enum map object, creating
-         * an entry for each possible enum value.
-         */
+        using pointer = map_utils::map_pointer_t<map_type>;
+        using const_pointer = map_utils::map_const_pointer_t<map_type>;
+        using reference = map_utils::map_reference_t<map_type>;
+        using const_reference = map_utils::map_const_reference_t<map_type>;
+
+        using iterator = typename map_type::iterator;
+        using const_iterator = typename map_type::const_iterator;
+        using reverse_iterator = map_utils::map_reverse_iterator_t<map_type>;
+        using const_reverse_iterator = map_utils::map_const_reverse_iterator_t<map_type>;
+
         enum_map()
         {
-            for(size_t i = 0; i < enum_count<E>(); i++)
-                _map[enum_value<E>(i)];
-        };
+            for (size_t i = 0; i < enum_count<enum_type>(); i++)
+                _map[enum_value<enum_type>(i)];
+        }
 
-        /**
-         * @brief Constructs a new enum map object, initializing 
-         * entries using passed args. 
-         * 
-         * @tparam Args parameter pack consisting of type T 
-         * convertible values 
-         * @param args entries of type T 
-         */
         template <
             typename... Args,
-            typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
+            typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, mapped_type>), void>::type>
         enum_map(Args &&...args) : enum_map()
         {
             insert(begin(), args...);
         }
 
-        /**
-         * @brief Constructs a new enum map object, initializing
-         * entries using values from an iterable. 
-         * 
-         * @tparam V iterable containing type T 
-         * @param values iterable container 
-         */
         template <typename V,
                   typename = typename std::enable_if<
-                    (is_iterable<V>::value && 
-                    (std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T> ||
-                     std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>)), void>>
+                      (map_utils::is_iterable_v<V> &&
+                       (std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, mapped_type> ||
+                        std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>)),
+                      void>>
         enum_map(const V &values) : enum_map()
         {
             insert(begin(), values);
         }
 
-        /**
-         * @brief Constructs a new enum map object, initializing 
-         * entries using an initializer list. 
-         *
-         * @param l initializer list of type Map<E, T, MapArgs...>::value_type 
-         */
         enum_map(std::initializer_list<value_type> l) : enum_map()
         {
             for (const value_type &v : l)
                 _map[v.first] = v.second;
         }
 
-        /**
-         * @brief Returns an iterator to the first element of the map. 
-         *
-         * @return const_iterator, Map<E,T,MapArgs...>::const_iterator 
-         */
-        const_iterator begin() const { return _map.begin(); }
-        /**
-         * @brief Returns an iterator to the first element of the map.
-         *
-         * @return iterator, Map<E,T,MapArgs...>::iterator 
-         */
-        iterator begin() { return _map.begin(); }
+        iterator begin() { return std::begin(_map); }
+        const_iterator begin() const { return std::begin(_map); }
 
-        /**
-         * @brief Returns an iterator to the element following the last 
-         * element of the map. 
-         *
-         * @return const_iterator, Map<E,T,MapArgs...>::const_iterator 
-         */
-        const_iterator end() const { return _map.end(); }
-        /**
-         * @brief Returns an iterator to the element following the last 
-         * element of the map. 
-         *
-         * @return iterator, Map<E, T, MapArgs...>::iterator 
-         */
-        iterator end() { return _map.end(); }
+        iterator end() { return std::end(_map); }
+        const_iterator end() const { return std::end(_map); }
 
-        /**
-         * @brief Finds an element with key equivalent to enum value. 
-         * 
-         * @param e enum value 
-         * @return const_iterator, Map<E,T,MapArgs...>::const_iterator  
-         */
-        const_iterator find(const E &e) const { return _map.find(e); }
-        /**
-         * @brief Finds an element with key equivalent to enum value. 
-         * 
-         * @param e enum value 
-         * @return iterator, Map<E,T,MapArgs...>::iterator 
-         */
-        iterator find(const E &e) { return _map.find(e); }
-        
-        /**
-         * @brief Returns a reference to the mapped value of the element 
-         * with key equivalent to enum value. 
-         * 
-         * @param e enum value 
-         * @return const T&, reference to mapped value 
-         */
-        const T &at(const E &e) const { return _map.at(e); }
-        /**
-         * @brief Returns a reference to the mapped value of the element
-         * with key equivalent to enum value.
-         *
-         * @param e enum value
-         * @return T&, reference to mapped value
-         */
-        T &at(const E &e) { return _map.at(e); }
+        iterator find(const enum_type &e)
+        {   
+            return std::find_if(begin(), end(), [e](const value_type &v)
+                                { return v.first == e; });
+        }
+        const_iterator find(const enum_type &e) const {
+            return std::find_if(begin(), end(), [e](const value_type &v)
+                                { return v.first == e; });
+        }
 
-        /**
-         * @brief Inserts a value at an iterator if the
-         * iterator does not exceed the map
-         *
-         * @param it where to insert
-         * @param value value to insert
-         * @return iterator pointing to inserted entry
-         */
-        iterator insert(iterator it, T &&value)
+        iterator insert(iterator it, mapped_type &&value)
         {
             if (it != end())
-                std::get<T>(*it) = std::forward<T>(value);
+                std::get<mapped_type>(*it) = std::forward<mapped_type>(value);
             return it;
         }
 
-        /**
-         * @brief Inserts elements from a parameter pack args, begining at a
-         * specified iterator and inserting for the number of passed args 
-         * (will overwrite).
-         *
-         * @tparam Args parameter pack consisting of type T 
-         * convertible values 
-         * @param it where to begin insertion 
-         * @param args entries of type T 
-         * @return iterator pointing to entry immediately after the last inserted value 
-         */
         template <typename... Args,
-                  typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, T>), void>::type>
+                  typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, mapped_type>), void>::type>
         iterator insert(iterator it, Args &&...args)
         {
             return insert(it, {args...});
         }
 
-        /**
-         * @brief Inserts elements from an iterable, begining at a specified
-         * iterator and inserting for the length of values (will overwrite).
-         *
-         * @tparam V iterable containing type T
-         * @param it where to insert
-         * @param values values to insert
-         * @return iterator pointing to entry immediately
-         * after the last inserted value
-         */
         template <typename V>
-        typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, T>), iterator>::type
+        typename std::enable_if<(map_utils::is_iterable_v<V> && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, mapped_type>), iterator>::type
         insert(iterator it, const V &values)
         {
             auto v_it = values.begin();
@@ -230,49 +218,23 @@ namespace magic_enum
             return it;
         }
 
-        /**
-         * @brief Inserts elements from an initializer list of T, begining at
-         * a specified iterator and inserting for the length of the list (will 
-         * overwrite).
-         *
-         * @param it where to begin insertion 
-         * @param list initializer list of type T 
-         * @return iterator pointing to entry immediately after the last 
-         * inserted value 
-         */
-        iterator insert(iterator it, std::initializer_list<T> &&list)
-        {   
+        iterator insert(iterator it, std::initializer_list<mapped_type> &&list)
+        {
             auto l_it = list.begin();
             while(l_it != list.end() && it != end()) {
-                insert(it, T(*l_it));
+                insert(it, mapped_type(*l_it));
                 it++; l_it++;
             }
 
             return it;
         }
 
-        /**
-         * @brief Inserts value into map
-         *
-         * @param value value to insert
-         * @return iterator pointing to inserted entry 
-         */
         iterator insert(value_type &&value)
         {
-            iterator it = find(std::get<const E>(value));
-            return insert(it, std::get<T>(value));
+            iterator it = find(std::get<const enum_type>(value));
+            return insert(it, std::get<mapped_type>(value));
         }
 
-        /**
-         * @brief Inserts elements from a parameter pack args, inserting for the number of passed args 
-         * (will overwrite).
-         *
-         * @tparam Args parameter pack consisting of type T
-         * convertible values
-         * @param it where to begin insertion
-         * @param args entries of type T
-         * @return iterator pointing to entry immediately after the last inserted value
-         */
         template <typename... Args,
                   typename = typename std::enable_if<(true && ... && std::is_convertible_v<Args, value_type>), void>::type>
         iterator insert(Args &&...args)
@@ -280,32 +242,14 @@ namespace magic_enum
             return insert({args...});
         }
 
-        /**
-         * @brief Inserts elements from an iterable, begining at a specified
-         * iterator and inserting for the length of values (will overwrite).
-         *
-         * @tparam V iterable containing type T
-         * @param it where to insert
-         * @param values values to insert
-         * @return iterator pointing to entry immediately
-         * after the last inserted value
-         */
         template <typename V>
-        typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>), iterator>::type
+        typename std::enable_if<(map_utils::is_iterable<V>::value && std::is_convertible_v<typename std::iterator_traits<typename V::iterator>::value_type, value_type>), iterator>::type
         insert(iterator it, const V &values)
-        {   
+        {
             (void)it;
             return insert(values);
         }
 
-        /**
-         * @brief Inserts elements from an initializer list of T, begining at
-         * a specified iterator and inserting for the length of the list (will
-         * overwrite).
-         *
-         * @param list initializer list of type value_type
-         * @return iterator pointing to the last inserted entry
-         */
         iterator insert(std::initializer_list<value_type> &&list)
         {
             iterator it = end();
@@ -315,18 +259,10 @@ namespace magic_enum
             return it;
         }
 
-        /**
-         * @brief Inserts elements from an iterable directly to specified enum 
-         * value (will overwrite).
-         * 
-         * @tparam V iterable containing type value_type
-         * @param values values to insert
-         * @return iterator pointing to last inserted element 
-         */
         template <typename V,
-                  typename = typename std::enable_if<(is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
+                  typename = typename std::enable_if<(map_utils::is_iterable<V>::value && std::is_convertible_v<typename V::iterator::value_type, value_type>), void>::type>
         iterator insert(const V &values)
-        {   
+        {
             iterator it = end();
             for (auto v_it = values.begin(); v_it != values.end(); v_it++)
                 it = insert(value_type(*v_it));
@@ -334,36 +270,16 @@ namespace magic_enum
             return it;
         }
 
-        /**
-         * @brief Returns a reference to the value that is mapped to 
-         * a key equivalent to enum value. 
-         *
-         * @param e enum value 
-         * @return T&, reference to mapped value 
-         */
-        T &operator[](const E &e) { return _map[e]; }
-        /**
-         * @brief Returns a reference to the value that is mapped to
-         * a key equivalent to enum value.
-         *
-         * @param e enum vale
-         * @return T&, reference to mapped value
-         */
-        T &operator[](E &&e) { return _map[e]; }
-
-        /**
-         * @brief Returns a reference to the mapped value of the element
-         * with key equivalent to enum value.
-         *
-         * @param e enum value
-         * @return const T&, reference to mapped value
-         */
-        const T &operator[](const E &e) const { return _map.at(e); }
+        mapped_type &at(const enum_type &e) { return (*find(e)).second; }
+        const mapped_type &at(const enum_type &e) const { return (*find(e)).second; }
+       
+        mapped_type &operator[](const enum_type &e) { return at(e); }
+        const mapped_type &operator[](const enum_type &e) const { return at(e); }
+        mapped_type &operator[](enum_type &&e) { return at(e); }
 
     private:
-        // underlying data structure used to map values
         map_type _map;
     };
 }
 
-#endif // MAGIC_ENUM_MAP_HPP
+#endif // _MAGIC_ENUM_MAP_HPP_
