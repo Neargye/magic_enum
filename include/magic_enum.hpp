@@ -1280,37 +1280,61 @@ constexpr auto enum_for_each(Lambda&& lambda) -> detail::enable_if_t<E, detail::
   return detail::for_each<D>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<D>>{});
 }
 
-namespace detail {
+template <typename E, typename T>
+struct enum_map
+{
+  std::array<T, enum_count<E>()> values;
 
-template <typename E>
-constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
-  if (hash) {
-    if (const auto index = enum_index(value)) {
-      return (*hash << log2(enum_count<E>() + 1)) | *index;
+  template<typename... Args>
+  constexpr enum_map(Args... args) : values{args...} {}
+
+  constexpr enum_map(std::array<T, enum_count<E>()> l) : values{l} {}
+
+  constexpr T &operator[](E e) {   
+    const auto index = enum_index<E>(e);
+    return values[*index];
+  }
+};
+
+namespace detail
+{
+
+  template <typename E>
+  constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept
+  {
+    if (hash)
+    {
+      if (const auto index = enum_index(value))
+      {
+        return (*hash << log2(enum_count<E>() + 1)) | *index;
+      }
     }
+    return {};
   }
-  return {};
-}
 
-template <typename E>
-constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
-  return fuse_one_enum(0, value);
-}
-
-template <typename E, typename... Es>
-constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
-  return fuse_one_enum(fuse_enum(tail...), head);
-}
-
-template <typename... Es>
-constexpr auto typesafe_fuse_enum(Es... values) noexcept {
-  enum class enum_fuse_t : std::uintmax_t;
-  const auto fuse = fuse_enum(values...);
-  if (fuse) {
-    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
+  template <typename E>
+  constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept
+  {
+    return fuse_one_enum(0, value);
   }
-  return optional<enum_fuse_t>{};
-}
+
+  template <typename E, typename... Es>
+  constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept
+  {
+    return fuse_one_enum(fuse_enum(tail...), head);
+  }
+
+  template <typename... Es>
+  constexpr auto typesafe_fuse_enum(Es... values) noexcept
+  {
+    enum class enum_fuse_t : std::uintmax_t;
+    const auto fuse = fuse_enum(values...);
+    if (fuse)
+    {
+      return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
+    }
+    return optional<enum_fuse_t>{};
+  }
 
 } // namespace magic_enum::detail
 
