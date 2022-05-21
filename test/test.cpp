@@ -1207,7 +1207,7 @@ TEST_CASE("multdimensional-switch-case") {
 #include <magic_enum_format.hpp>
 
 TEST_CASE("format-base") {
-    REQUIRE(std::format("Test-{:~^10}.", Color::RED) == "Test-~~~red~~~~.");
+  REQUIRE(std::format("Test-{:~^10}.", Color::RED) == "Test-~~~red~~~~.");
 }
 
 #endif
