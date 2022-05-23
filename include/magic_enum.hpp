@@ -255,6 +255,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
   return {}; // Invalid name.
 }
 
+template<typename Op = std::equal_to<>>
 class case_insensitive {
   static constexpr char to_lower(char c) noexcept {
     return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
@@ -267,7 +268,7 @@ class case_insensitive {
     static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
     return false;
 #else
-    return to_lower(lhs) == to_lower(rhs);
+    return Op{}(to_lower(lhs), to_lower(rhs));
 #endif
   }
 };
@@ -993,7 +994,7 @@ template <typename E>
 // Obtains index in enum values from enum value.
 // Returns optional with index.
 template <typename E>
-[[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
+[[nodiscard]] constexpr auto enum_index([[maybe_unused]] E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1047,7 +1048,7 @@ template <typename E>
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_t<E, string> {
+[[nodiscard]] auto enum_flags_name(E value, char sep = '|') -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1059,7 +1060,7 @@ template <typename E>
         check_value |= v;
         const auto n = detail::names_v<D>[i];
         if (!name.empty()) {
-          name.append(1, '|');
+          name.append(1, sep);
         }
         name.append(n.data(), n.size());
       }
@@ -1088,7 +1089,7 @@ template <typename E>
 }
 
 // Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
-inline constexpr auto case_insensitive = detail::case_insensitive{};
+inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
 // Obtains enum value from integer value.
 // Returns optional with enum value.
