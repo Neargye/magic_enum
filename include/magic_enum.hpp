@@ -1048,7 +1048,7 @@ template <typename E>
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] auto enum_flags_name(E value, char sep = '|') -> detail::enable_if_t<E, string> {
+[[nodiscard]] auto enum_flags_name(E value, [[maybe_unused]] char sep = '|') -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
