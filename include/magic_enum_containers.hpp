@@ -37,6 +37,12 @@
 namespace magic_enum::containers {
 
 namespace detail {
+  template<typename T, typename = void>
+  constexpr static bool is_transparent_v {};
+
+  template<typename T>
+  constexpr static bool is_transparent_v<T, std::void_t<typename T::is_transparent>> {true};
+
   template<typename Eq = std::equal_to<>, typename T1, typename T2>
   constexpr bool equal(T1&& t1, T2&& t2, Eq&& eq = {}) {
     auto first1 = t1.begin(), last1 = t1.end();
@@ -176,8 +182,18 @@ namespace detail {
   };
 
   template<typename E = void,
-           typename OP = std::less<>>
+           typename OP = std::less<>,
+           typename = void>
   struct name_sort_impl {
+    [[nodiscard]] constexpr inline bool operator()(E e1, E e2) const noexcept {
+      return OP{}(enum_name(e1), enum_name(e2));
+    }
+  };
+
+  template<typename E,
+           typename OP>
+  struct name_sort_impl<E, OP, std::enable_if_t<!std::is_void_v<E> && is_transparent_v<OP>>> {
+    using is_transparent = std::true_type;
     [[nodiscard]] constexpr inline bool operator()(E e1, E e2) const noexcept {
       return OP{}(enum_name(e1), enum_name(e2));
     }
@@ -214,14 +230,83 @@ namespace detail {
     }
   };
 
-  template<typename T, typename = void>
-  constexpr static bool is_transparent_v {};
-
-  template<typename T>
-  constexpr static bool is_transparent_v<T, std::void_t<typename T::is_transparent>> {true};
-
-
   struct raw_access_t {};
+
+
+  template<typename Parent, typename Iterator, typename Getter, typename Predicate>
+  struct FilteredIterator {
+    Parent parent;
+    Iterator first, last, current;
+    Getter getter;
+    Predicate predicate;
+
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = std::remove_reference_t<std::invoke_result_t<Getter, Parent, Iterator>>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = value_type&;
+
+    constexpr FilteredIterator() noexcept = default;
+    constexpr FilteredIterator(const FilteredIterator&) = default;
+    constexpr FilteredIterator& operator=(const FilteredIterator&) = default;
+    constexpr FilteredIterator(FilteredIterator&&) noexcept = default;
+    constexpr FilteredIterator& operator=(FilteredIterator&&) noexcept = default;
+    ~FilteredIterator() = default;
+
+    constexpr FilteredIterator(Parent p, Iterator begin, Iterator end, Iterator curr, Getter getter = {}, Predicate pred = {})
+        : parent(p)
+          , first(std::move(begin))
+          , last(std::move(end))
+          , current(std::move(curr))
+          , getter{std::move(getter)}
+          , predicate{std::move(pred)}
+    {
+      if (current == first && !predicate(parent, current))
+        ++*this;
+    }
+
+    [[nodiscard]] constexpr reference operator*() const {
+      return getter(parent, current);
+    }
+
+    [[nodiscard]] constexpr pointer operator->() const {
+      return std::addressof(**this);
+    }
+
+    constexpr FilteredIterator& operator++() {
+      do {
+        ++current;
+      } while(current != last && !predicate(parent, current));
+      return *this;
+    }
+
+    [[nodiscard]] constexpr FilteredIterator operator++(int) {
+      FilteredIterator cp = *this;
+      ++*this;
+      return cp;
+    }
+
+    constexpr FilteredIterator& operator--() {
+      do {
+        --current;
+      } while(current != first && !predicate(parent, current));
+      return *this;
+    }
+
+    [[nodiscard]] constexpr FilteredIterator operator--(int) {
+      FilteredIterator cp = *this;
+      --*this;
+      return cp;
+    }
+
+    [[nodiscard]] friend constexpr bool operator==(const FilteredIterator& lhs, const FilteredIterator& rhs) {
+      return lhs.current == rhs.current;
+    }
+
+    [[nodiscard]] friend constexpr bool operator!=(const FilteredIterator& lhs, const FilteredIterator& rhs) {
+      return lhs.current != rhs.current;
+    }
+  };
 } // detail
 
 template<typename E = void>
@@ -489,7 +574,7 @@ class bitset {
       return (parent->a[num_index] & bit_index) > 0;
     }
 
-    constexpr bool operator~() const noexcept {
+    [[nodiscard]] constexpr bool operator~() const noexcept {
       return !static_cast<bool>(*this);
     }
 
@@ -504,7 +589,7 @@ class bitset {
     T res{};
     T flag{1};
     for (std::size_t i{}; i < size(); ++i, flag <<= 1) {
-      if (reference_impl<const bitset*>{this, i}) {
+      if (const_reference{this, i}) {
         if (i >= sizeof(T) * 8) {
           throw std::overflow_error("cannot represent enum in this type");
         }
@@ -517,6 +602,7 @@ public:
   using index_type = Index;
   using container_type = std::array<base_type, base_type_count>;
   using reference = reference_impl<>;
+  using const_reference = reference_impl<const bitset*>;
 
   constexpr explicit bitset(detail::raw_access_t = raw_access) noexcept : a{{}} {}
 
@@ -615,7 +701,7 @@ public:
   }
 
   [[nodiscard]] constexpr bool operator[](E pos) const noexcept {
-    return static_cast<bool>(reference_impl<const bitset*>(this, *index_type{}(pos)));
+    return static_cast<bool>(const_reference(this, *index_type{}(pos)));
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) noexcept {
@@ -624,7 +710,7 @@ public:
 
   constexpr bool test(E pos) const {
     if (auto ix = index_type{}(pos)) {
-      return static_cast<bool>(reference_impl<const bitset*>(this, *ix));
+      return static_cast<bool>(const_reference(this, *ix));
     }
     throw std::out_of_range("enum bitset::test: unrecognized position");
   }
@@ -785,7 +871,7 @@ public:
     string name;
     name.reserve(size());
     for (std::size_t i{}; i < size(); ++i) {
-      name.append(1, reference_impl<const bitset*>{this, i} ? one : zero);
+      name.append(1, const_reference{this, i} ? one : zero);
     }
     return name;
   }
@@ -814,39 +900,61 @@ private:
   container_type a;
 };
 
- /*
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                           SET                                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename E, typename CExprLess = std::less<E>>
 class set {
   using index_type = detail::indexing<E, CExprLess>;
+  struct Getter {
+    constexpr const E& operator()(const set*, const E* p) const noexcept {
+      return *p;
+    }
+  };
+  struct Predicate {
+    constexpr bool operator()(const set* h, const E* e) const noexcept {
+      return h->a[*e];
+    }
+  };
 public:
 
   using container_type = bitset<E, index_type>;
   using key_type = E;
   using value_type = E;
-  using size_type = typename container_type::size_type;
-  using difference_type = typename container_type::difference_type;
+  using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
   using key_compare = CExprLess;
   using value_compare = CExprLess;
   using reference = value_type&;
   using const_reference = const value_type&;
   using pointer = value_type*;
   using const_pointer = const value_type*;
-  // TODO iterators
+  using iterator = detail::FilteredIterator<const set*, const E*, Getter, Predicate>;
+  using const_iterator = detail::FilteredIterator<const set*, const E*, Getter, Predicate>;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   constexpr set() noexcept = default;
 
   template<typename InputIt>
   constexpr set(InputIt first, InputIt last) {
+    while (first != last)
+      insert(*first++);
   }
 
-  constexpr set(std::initializer_list<E>) {
+  constexpr set(std::initializer_list<E> ilist) {
+    for (auto e : ilist)
+      insert(e);
   }
 
   template<typename V = E>
   constexpr explicit set(std::enable_if_t<magic_enum::detail::is_flags_v<V>, E> starter) {
+    auto u = enum_underlying(starter);
+    for (E v : enum_values<E>()) {
+      if ((enum_underlying(v) & u) != 0) {
+        (*this)[v] = true;
+      }
+    }
   }
 
   constexpr set(const set&) noexcept = default;
@@ -854,9 +962,46 @@ public:
 
   constexpr set& operator=(const set&) noexcept = default;
   constexpr set& operator=(set&&) noexcept = default;
-  constexpr set& operator=(std::initializer_list<E>) {
+  constexpr set& operator=(std::initializer_list<E> ilist) {
+    for (auto e : ilist)
+      insert(e);
   }
 
+  constexpr const_iterator begin() const noexcept {
+    return const_iterator{this, index_type::values_v->begin(),
+                          index_type::values_v->end(),
+                          index_type::values_v->begin()};
+  }
+
+  constexpr const_iterator end() const noexcept {
+    return const_iterator{this, index_type::values_v->begin(),
+                          index_type::values_v->end(),
+                          index_type::values_v->end()};
+  }
+
+  constexpr const_iterator cbegin() const noexcept {
+    return begin();
+  }
+
+  constexpr const_iterator cend() const noexcept {
+    return end();
+  }
+
+  constexpr const_reverse_iterator rbegin() const noexcept {
+    return {end()};
+  }
+
+  constexpr const_reverse_iterator rend() const noexcept {
+    return {begin()};
+  }
+
+  constexpr const_reverse_iterator crbegin() const noexcept {
+    return rbegin();
+  }
+
+  constexpr const_reverse_iterator crend() const noexcept {
+    return rend();
+  }
 
   [[nodiscard]] constexpr bool empty() const noexcept {
     return s == 0;
@@ -875,25 +1020,163 @@ public:
     s = 0;
   }
 
-  [[nodiscard]]constexpr size_type count(const key_type& key) const noexcept {
+  constexpr std::pair<iterator,bool> insert(const value_type& value) noexcept {
+    if (auto i = index_type{}(value)) {
+      typename container_type::reference ref = a[value];
+      bool r = !ref;
+      if (r) {
+        ref = true;
+        ++s;
+      }
+
+      return {iterator{this, index_type::values_v->begin(),
+                       index_type::values_v->end(),
+                       &(*index_type::values_v)[*i]}, r};
+    }
+    return {end(), false};
+  }
+
+  constexpr std::pair<iterator,bool> insert(value_type&& value) noexcept {
+    return insert(value);
+  }
+
+  constexpr iterator insert(const_iterator, const value_type& value) noexcept {
+    return insert(value).first;
+  }
+
+  constexpr iterator insert(const_iterator hint, value_type&& value) noexcept {
+    return insert(hint, value);
+  }
+
+  template< class InputIt >
+  constexpr void insert( InputIt first, InputIt last ) noexcept {
+    while (first != last)
+      insert(*first++);
+  }
+
+  constexpr void insert( std::initializer_list<value_type> ilist ) noexcept {
+    for (auto v : ilist)
+      insert(v);
+  }
+
+  template< class... Args >
+  constexpr std::pair<iterator,bool> emplace(Args&&... args) noexcept {
+    return insert({std::forward<Args>(args)...});
+  }
+
+  template <class... Args>
+  constexpr iterator emplace_hint(const_iterator, Args&&... args) noexcept {
+    return emplace(std::forward<Args>(args)...).first;
+  }
+
+  constexpr iterator erase( const_iterator pos ) noexcept {
+    erase(*pos++);
+    return pos;
+  }
+
+  constexpr iterator erase(const_iterator first, const_iterator last) noexcept {
+    while((first = erase(first)) != last);
+    return first;
+  }
+
+  constexpr size_type erase( const key_type& key ) noexcept {
+    typename container_type::reference ref = a[key];
+    bool res = ref;
+    if (res)
+      --s;
+    ref = false;
+    return res;
+  }
+
+  template<class K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase( K&& x ) noexcept {
+    size_type c{};
+    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
+         first != last; )
+      c += erase(*first++);
+    return c;
+  }
+
+  void swap(set& other) noexcept {
+    set cp = *this;
+    *this = other;
+    other = cp;
+  }
+
+  [[nodiscard]] constexpr size_type count(const key_type& key) const noexcept {
     return index_type{}(key) && a[key];
   }
 
-  template<typename K>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<key_compare>, size_type> count(const K& x) const {
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const {
     size_type c{};
     for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first)
       c += count(*first);
     return c;
   }
 
+  [[nodiscard]] constexpr const_iterator find(const key_type & key) const noexcept {
+    if (auto i = index_type{}(key); i && a.test(key))
+      return const_iterator{this, index_type::values_v->begin(),
+                            index_type::values_v->end(),
+                            &(*index_type::values_v)[*i]};
+    return end();
+  }
+
+  template<class K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const {
+    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first)
+      if (a.test(*first))
+        return find(*first);
+    return end();
+  }
+
   [[nodiscard]] constexpr bool contains(const key_type& key) const noexcept {
     return count(key);
   }
 
-  template<typename K>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<key_compare>, bool> contains(const K& x) const {
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const noexcept {
     return count(x) > 0;
+  }
+
+  [[nodiscard]] constexpr std::pair<const_iterator,const_iterator> equal_range(const key_type& key) const noexcept {
+    return {lower_bound(key), upper_bound(key)};
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range( const K& x ) const noexcept {
+    return {lower_bound(x), upper_bound(x)};
+  }
+
+  [[nodiscard]] constexpr const_iterator lower_bound( const key_type& key ) const noexcept {
+    if (auto i = index_type{}(key)) {
+      auto it = const_iterator{this, index_type::values_v->begin(),
+                               index_type::values_v->end(),
+                               &(*index_type::values_v)[*i]};
+      return a.test(key) ? it : std::next(it);
+    }
+    return end();
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound( const K& x ) const noexcept {
+    auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
+    return first != last ? lower_bound(*first) : end();
+  }
+
+  [[nodiscard]] constexpr const_iterator upper_bound( const key_type& key ) const noexcept {
+    if (auto i = index_type{}(key))
+      return std::next(const_iterator{this, index_type::values_v->begin(),
+                            index_type::values_v->end(),
+                            &(*index_type::values_v)[*i]});
+    return end();
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound( const K& x ) const noexcept {
+    auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
+    return first != last ? upper_bound(*std::prev(last)) : end();
   }
 
   [[nodiscard]] constexpr key_compare key_comp() const {
@@ -951,9 +1234,10 @@ public:
 
 private:
   container_type a;
-  std::size_t s;
+  std::size_t s{};
 };
 
+/*
 
 // multiset like API. (Probably delete can invalidate allocators?)
 template<typename E, typename CExprLess = std::less<E>>
@@ -968,7 +1252,7 @@ private:
 };
 
 
-// map like API. changing this structure is NOT CONSTEXPR in c++17
+// map like API.
 template<typename E, typename V, typename CExprLess = std::less<E>>
 class map {
   using index_type = detail::indexing<E, CExprLess>;
@@ -994,7 +1278,7 @@ private:
 };
 
 
-// flat_map (map) like API with contiguous iterator --> can be memcpy'd if V is trivially_copyable. changing this structure is NOT CONSTEXPR in c++17
+// flat_map (map) like API with contiguous iterator --> can be memcpy'd if V is trivially_copyable.
 template<typename E, typename V, typename CExprLess = std::less<E>>
 class flat_map {
 public:
