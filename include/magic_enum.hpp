@@ -222,14 +222,14 @@ class static_string<0> {
 
   constexpr explicit static_string(string_view) noexcept {}
 
-  constexpr const char* data() const noexcept { return nullptr; }
+  [[maybe_unused]] [[nodiscard]] constexpr const char* data() const noexcept { return nullptr; }
 
-  constexpr std::size_t size() const noexcept { return 0; }
+  [[maybe_unused]] [[nodiscard]] constexpr std::size_t size() const noexcept { return 0; }
 
-  constexpr operator string_view() const noexcept { return {}; }
+  [[maybe_unused]] [[nodiscard]] constexpr operator string_view() const noexcept { return {}; }
 };
 
-constexpr string_view pretty_name(string_view name) noexcept {
+[[maybe_unused]] [[nodiscard]] constexpr string_view pretty_name(string_view name) noexcept {
   for (std::size_t i = name.size(); i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
@@ -256,7 +256,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 }
 
 class case_insensitive {
-  static constexpr char to_lower(char c) noexcept {
+  [[maybe_unused]] [[nodiscard]] static constexpr char to_lower(char c) noexcept {
     return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
   }
 
@@ -272,7 +272,7 @@ class case_insensitive {
   }
 };
 
-constexpr std::size_t find(string_view str, char c) noexcept {
+[[maybe_unused]] [[nodiscard]] constexpr std::size_t find(string_view str, char c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
@@ -760,7 +760,7 @@ constexpr auto calculate_cases(std::size_t Page) noexcept {
 
   std::array<switch_t, 256> result{};
   auto fill = result.begin();
-  for (auto first = values.begin() + Page, last = values.begin() + Page + values_to; first != last; ) {
+  for (auto first = values.begin() + static_cast<std::ptrdiff_t>(Page), last = values.begin() + static_cast<std::ptrdiff_t>(Page + values_to); first != last; ) {
     *fill++ = hash_v<Hash>(*first++);
   }
 
