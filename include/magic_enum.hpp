@@ -739,7 +739,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
     constexpr std::uint32_t operator()(string_view value) const noexcept {
       auto acc = static_cast<std::uint64_t>(2166136261ULL);
       for (const auto c : value) {
-        acc = (((acc ^ static_cast<std::uint64_t>(c)) * static_cast<std::uint64_t>(16777619ULL)) & std::numeric_limits<std::uint32_t>::max)();
+        acc = ((acc ^ static_cast<std::uint64_t>(c)) * static_cast<std::uint64_t>(16777619ULL)) & (std::numeric_limits<std::uint32_t>::max)();
       }
       return static_cast<std::uint32_t>(acc);
     }
