@@ -1117,7 +1117,7 @@ TEST_CASE("enum_for_each") {
     constexpr auto workResults = enum_for_each<Color>([](auto val) {
       return DoWork<val>();
     });
-    REQUIRE(workResults == std::array<string_view, 3>{MAKE_STR("default"), MAKE_STR("override"), MAKE_STR("default")});
+    REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
   }
 
   SECTION("different return type") {
