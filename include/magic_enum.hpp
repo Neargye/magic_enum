@@ -125,6 +125,18 @@ static_assert(std::is_same_v<char_type, string::value_type>, "string_view and st
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
 static_assert(std::is_same_v<char_type, char>, "wchar_t not supported on MAGIC_ENUM_ENABLE_NONASCII");
+#else
+static_assert(!std::is_same_v<char_type, wchar_t> || [] {
+    constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr const wchar_t wc[] = L"abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    static_assert(!std::is_same_v<char_type, wchar_t> || std::size(c) == std::size(wc), "identifier characters are multichars in wchar_t");
+
+    for (std::size_t i{}; i < std::size(c); ++i)
+        if (c[i] != wc[i])
+            return false;
+    return true;
+  } (), "wchar_t is not compatible with ASCII");
 #endif
 
 namespace customize {
