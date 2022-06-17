@@ -133,8 +133,8 @@ static_assert(!std::is_same_v<char_type, wchar_t> || [] {
     static_assert(!std::is_same_v<char_type, wchar_t> || std::size(c) == std::size(wc), "identifier characters are multichars in wchar_t");
 
     for (std::size_t i{}; i < std::size(c); ++i)
-        if (c[i] != wc[i])
-            return false;
+      if (c[i] != wc[i])
+        return false;
     return true;
   } (), "wchar_t is not compatible with ASCII");
 #endif
