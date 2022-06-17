@@ -112,11 +112,19 @@ MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 using std::string_view;
 #endif
 
+using char_type = string_view::value_type;
+
 // If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
-using std::string;
+using string = std::basic_string<char_type>;
+#endif
+
+static_assert(std::is_same_v<char_type, string::value_type>, "string_view and string has different character type");
+
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+static_assert(std::is_same_v<char_type, char>, "wchar_t not supported on MAGIC_ENUM_ENABLE_NONASCII");
 #endif
 
 namespace customize {
@@ -202,7 +210,7 @@ class static_string {
     assert(str.size() == N);
   }
 
-  constexpr const char* data() const noexcept { return chars_; }
+  constexpr const char_type* data() const noexcept { return chars_; }
 
   constexpr std::size_t size() const noexcept { return N; }
 
@@ -212,7 +220,7 @@ class static_string {
   template <std::size_t... I>
   constexpr static_string(string_view str, std::index_sequence<I...>) noexcept : chars_{str[I]..., '\0'} {}
 
-  char chars_[N + 1];
+  char_type chars_[N + 1];
 };
 
 template <>
@@ -222,47 +230,63 @@ class static_string<0> {
 
   constexpr explicit static_string(string_view) noexcept {}
 
-  constexpr const char* data() const noexcept { return nullptr; }
+  constexpr const char_type* data() const noexcept { return nullptr; }
 
   constexpr std::size_t size() const noexcept { return 0; }
 
   constexpr operator string_view() const noexcept { return {}; }
 };
 
-constexpr string_view pretty_name(string_view name) noexcept {
-  for (std::size_t i = name.size(); i > 0; --i) {
+constexpr std::size_t pretty_name_size(const char* name, std::size_t len) noexcept {
+  for (std::size_t i = len; i > 0; --i) {
     if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
           (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
           (name[i - 1] >= 'A' && name[i - 1] <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-          (name[i - 1] & 0x80) ||
+          (std::is_same_v<char_type, char> && (name[i - 1] & 0x80)) ||
 #endif
           (name[i - 1] == '_'))) {
-      name.remove_prefix(i);
+      len -= i;
+      name += i;
       break;
     }
   }
 
-  if (name.size() > 0 && ((name.front() >= 'a' && name.front() <= 'z') ||
-                          (name.front() >= 'A' && name.front() <= 'Z') ||
+  if (len > 0 && ((name[0] >= 'a' && name[0] <= 'z') ||
+                  (name[0] >= 'A' && name[0] <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-                          (name.front() & 0x80) ||
+                  (std::is_same_v<char_type, char> && (name[0] & 0x80)) ||
 #endif
-                          (name.front() == '_'))) {
-    return name;
+                  (name[0] == '_'))) {
+    return len;
   }
 
-  return {}; // Invalid name.
+  return 0; // Invalid name.
+}
+
+template<std::size_t realLength>
+constexpr static_string<realLength> pretty_name(const char* name, std::size_t length) {
+    char_type buf [realLength] {};
+    for (std::size_t i{}, from = length - realLength; from < length; ++i, ++from)
+        buf[i] = name[from];
+
+    return static_string<realLength>{string_view{buf, realLength}};
+}
+
+
+template<>
+constexpr static_string<0> pretty_name<0>(const char*, std::size_t) {
+    return static_string<0>{string_view{}};
 }
 
 class case_insensitive {
-  static constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
+  static constexpr char_type to_lower(char_type c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char_type>(c + ('a' - 'A')) : c;
   }
 
  public:
   template <typename L, typename R>
-  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
+  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char_type> && std::is_same_v<std::decay_t<R>, char_type>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
     return false;
@@ -272,7 +296,7 @@ class case_insensitive {
   }
 };
 
-constexpr std::size_t find(string_view str, char c) noexcept {
+constexpr std::size_t find(string_view str, char_type c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
@@ -308,7 +332,7 @@ constexpr bool is_default_predicate() noexcept {
 template <typename BinaryPredicate>
 constexpr bool is_nothrow_invocable() {
   return is_default_predicate<BinaryPredicate>() ||
-         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>;
+         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
 }
 
 template <typename BinaryPredicate>
@@ -388,13 +412,13 @@ constexpr auto n() noexcept {
     return static_string<name.size()>{name};
   } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name<pretty_name_size(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2)>(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2);
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name<pretty_name_size(__FUNCSIG__, sizeof(__FUNCSIG__) - 17)>(__FUNCSIG__, sizeof(__FUNCSIG__) - 17);
 #else
-    constexpr auto name = string_view{};
+    constexpr auto name = static_string<0>{};
 #endif
-    return static_string<name.size()>{name};
+    return name;
   } else {
     return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
@@ -415,13 +439,13 @@ constexpr auto n() noexcept {
     return static_string<name.size()>{name};
   } else if constexpr (custom.index() == 1 && supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name<pretty_name_size(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2)>(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2);
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name<pretty_name_size(__FUNCSIG__, sizeof(__FUNCSIG__) - 17)>(__FUNCSIG__, sizeof(__FUNCSIG__) - 17);
 #else
-    constexpr auto name = string_view{};
+    constexpr auto name = static_string<0>{};
 #endif
-    return static_string<name.size()>{name};
+    return name;
   } else {
     return static_string<0>{}; // Unsupported compiler or Invalid customize.
   }
@@ -652,7 +676,7 @@ struct enable_if_enum<true, R> {
 };
 
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>>
-using enable_if_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
+using enable_if_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, R>::type;
 
 template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
 using enum_concept = T;
@@ -864,6 +888,7 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
     BinaryPredicate&& pred = {}) {
   using result_t = std::invoke_result_t<ResultGetterType>;
   using hash_t = std::conditional_t<no_duplicate<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
+  static_assert(no_duplicate<GlobValues, hash_t>(), "duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues");
   constexpr std::array values = *GlobValues;
   constexpr std::size_t size = values.size();
   constexpr std::array cases = calculate_cases<GlobValues, hash_t>(Page);
@@ -1134,7 +1159,7 @@ template <typename E>
 // Returns optional with enum value.
 template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
-  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_cast requires bool(char, char) invocable predicate.");
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, "magic_enum::enum_cast requires bool(char_type, char_type) invocable predicate.");
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
@@ -1201,7 +1226,7 @@ template <typename E>
 // Checks whether enum contains enumerator with such name.
 template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate&& p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, bool, BinaryPredicate> {
-  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_contains requires bool(char, char) invocable predicate.");
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, "magic_enum::enum_contains requires bool(char_type, char_type) invocable predicate.");
   using D = std::decay_t<E>;
 
   return static_cast<bool>(enum_cast<D>(value, std::forward<BinaryPredicate>(p)));
@@ -1229,7 +1254,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail:
 
 template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<>, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
-  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, "magic_enum::enum_switch requires bool(char_type, char_type) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
@@ -1240,7 +1265,7 @@ constexpr auto enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& 
 
 template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
-  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
+  static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, "magic_enum::enum_switch requires bool(char_type, char_type) invocable predicate.");
   using D = std::decay_t<E>;
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
