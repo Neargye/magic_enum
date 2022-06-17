@@ -124,7 +124,7 @@ using string = std::basic_string<char_type>;
 static_assert(std::is_same_v<char_type, string::value_type>, "string_view and string has different character type");
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-static_assert(std::is_same_v<char_type, char>, "wchar_t not supported on MAGIC_ENUM_ENABLE_NONASCII");
+static_assert(!std::is_same_v<char_type, wchar_t>, "wchar_t not supported with MAGIC_ENUM_ENABLE_NONASCII");
 #else
 static_assert(!std::is_same_v<char_type, wchar_t> || [] {
     constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
