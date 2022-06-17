@@ -1237,6 +1237,310 @@ private:
   std::size_t s{};
 };
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                         FLATSET                                                           //
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename E, typename CExprLess = std::less<E>>
+class flat_set {
+  using index_type = detail::indexing<E, CExprLess>;
+public:
+  using container_type = std::array<E, enum_count<E>()>;
+  using key_type = E;
+  using value_type = E;
+  using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
+  using key_compare = CExprLess;
+  using value_compare = CExprLess;
+  using reference = value_type&;
+  using const_reference = const value_type&;
+  using pointer = value_type*;
+  using const_pointer = const value_type*;
+  using iterator = const E*;
+  using const_iterator = const E*;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+  constexpr flat_set() noexcept : a{}, s{} {}
+  template<typename InputIterator>
+  constexpr flat_set(InputIterator begin, InputIterator end) {
+    insert(begin, end);
+  }
+  constexpr flat_set(std::initializer_list<value_type> il) {
+    insert(il);
+  }
+
+  constexpr flat_set(const flat_set &) = default;
+  constexpr flat_set(flat_set&&) noexcept = default;
+  constexpr flat_set & operator=(const flat_set &) = default;
+  constexpr flat_set & operator=(flat_set &&) noexcept = default;
+  constexpr flat_set & operator=(std::initializer_list< value_type > il) {
+    return *this = flat_set{il};
+  }
+  [[nodiscard]] constexpr const_iterator begin() const noexcept {
+    return a.begin();
+  }
+  [[nodiscard]] constexpr const_iterator end() const noexcept {
+    return a.begin() + s;
+  }
+  [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept {
+    return {end()};
+  }
+  [[nodiscard]] constexpr const_reverse_iterator rend() const noexcept {
+    return {begin()};
+  }
+  [[nodiscard]] constexpr const_iterator cbegin() const noexcept {
+    return begin();
+  }
+  [[nodiscard]] constexpr const_iterator cend() const noexcept {
+    return end();
+  }
+  [[nodiscard]] constexpr const_reverse_iterator crbegin() const noexcept {
+    return rbegin();
+  }
+  [[nodiscard]] constexpr const_reverse_iterator crend() const noexcept {
+    return rend();
+  }
+  [[nodiscard]] constexpr bool empty() const noexcept {
+    return s == 0;
+  }
+  [[nodiscard]] constexpr size_type size() const noexcept {
+    return s;
+  }
+
+  [[nodiscard]] constexpr size_type max_size() const noexcept {
+    return a.max_size();
+  }
+
+  [[nodiscard]] constexpr size_type capacity() const noexcept {
+    return a.size();
+  }
+
+  template<class... Args>
+  constexpr std::pair< iterator, bool > emplace(Args &&... args) {
+    return insert(value_type{std::forward<Args>(args)...});
+  }
+
+  template<class... Args>
+  constexpr iterator emplace_hint(const_iterator, Args &&... args) {
+    return insert(value_type{std::forward<Args>(args)...}).first;
+  }
+
+  constexpr std::pair< iterator, bool > insert(const value_type & v) {
+    auto it = lower_bound(v);
+    bool inserts = it == end() || *it != v;
+    if (inserts) {
+      auto nTh = it - begin();
+      for (size_type cp = s; cp > nTh; --cp)
+        a[cp] = a[cp-1];
+      a[nTh] = v;
+      ++s;
+    }
+    return {it, inserts};
+  }
+
+  constexpr std::pair< iterator, bool > insert(value_type&& v) {
+    return insert(v);
+  }
+
+  template<typename InputIterator>
+  constexpr void insert(InputIterator begin, InputIterator end) {
+    while(begin != end)
+      insert(*begin++);
+  }
+
+  constexpr void insert(std::initializer_list< value_type > il) {
+    for (auto e : il)
+      insert(e);
+  }
+
+  template<typename C2>
+  constexpr void merge(flat_set<value_type, C2> & other) {
+    for (auto e : other)
+      insert(e);
+  }
+
+  template<typename C2>
+  constexpr void merge(flat_set<value_type, C2> && other) {
+    merge(other);
+  }
+
+  constexpr size_type erase(const key_type & key) {
+    auto it = lower_bound(key);
+    bool erases = it != end() && *it == key;
+    if (erases) {
+      erase(it);
+    }
+    return erases;
+  }
+  constexpr iterator erase(const_iterator it) {
+    if (it != end()) {
+      for (size_type from = it - begin(); from < s-1; ++from)
+        a[from] = a[from+1];
+
+      --s;
+    }
+    return it;
+  }
+
+  constexpr iterator erase(const_iterator first, const_iterator last) {
+    while((first = erase(first)) != last);
+    return first;
+  }
+
+  constexpr void swap(flat_set & fs) noexcept {
+    size_type until = (std::min)(s, fs.s);
+    for (size_type i{}; i < until; ++i) {
+      auto v = a[i];
+      a[i] = fs.a[i];
+      fs.a[i] = v;
+    }
+    for (size_type i = until; i < s; ++i)
+      fs.a[i] = a[i];
+    for (size_type i = until; i < fs.s; ++i)
+      a[i] = fs.a[i];
+
+    until = s;
+    s = fs.s;
+    fs.s = until;
+  }
+
+  constexpr void clear() noexcept {
+    s = 0;
+  }
+
+  [[nodiscard]] constexpr key_compare key_comp() const {
+    return {};
+  }
+
+  [[nodiscard]] constexpr value_compare value_comp() const {
+    return {};
+  }
+
+  [[nodiscard]] constexpr const_iterator find(const key_type & k) const {
+    auto it = lower_bound(k);
+    if (it != end() && *it != k)
+      it = end();
+    return it;
+  }
+
+  template<class K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const {
+    auto [first, last] = equal_range(x);
+    return first != last ? first : end();
+  }
+
+  [[nodiscard]] constexpr const_iterator nth(size_type n) const noexcept {
+    return a.begin() + n;
+  }
+
+  [[nodiscard]] constexpr size_type index_of(const_iterator i) const noexcept {
+    return i - begin();
+  }
+
+  [[nodiscard]] constexpr size_type count(const key_type & k) const {
+    return find(k) != end();
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const {
+    auto [first, last] = equal_range(x);
+    return last - first;
+  }
+
+  [[nodiscard]] constexpr bool contains(const key_type & key) const {
+    return count(key);
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const {
+    auto [first, last] = equal_range(x);
+    return last - first > 0;
+  }
+
+  [[nodiscard]] constexpr const_iterator lower_bound(const key_type & k) const {
+    return detail::lower_bound(begin(), end(), k, key_compare{});
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const {
+    return detail::lower_bound(begin(), end(), x, key_compare{});
+  }
+
+  [[nodiscard]] constexpr const_iterator upper_bound(const key_type & k) const {
+    return equal_range(k).second;
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const {
+    return equal_range(x).second;
+  }
+
+  [[nodiscard]] constexpr std::pair< const_iterator, const_iterator > equal_range(const key_type & k) const {
+    return detail::equal_range(begin(), end(), k, key_compare{});
+  }
+
+  template<typename K, typename KC = key_compare>
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair< const_iterator, const_iterator >> equal_range(const K& x) const {
+    return detail::equal_range(begin(), end(), x, key_compare{});
+  }
+
+  [[nodiscard]] constexpr friend bool operator==(const flat_set& lhs, const flat_set& rhs) noexcept {
+    if (lhs.s != rhs.s) return false;
+    for (size_type i{}; i < lhs.s; ++i)
+      if (lhs.a[i] != rhs.a[i])
+        return false;
+    return true;
+  }
+
+  [[nodiscard]] constexpr friend bool operator!=(const flat_set& lhs, const flat_set& rhs) noexcept {
+    return lhs.a != rhs.a;
+  }
+
+  [[nodiscard]] constexpr friend bool operator<(const flat_set& lhs, const flat_set& rhs) noexcept {
+    if (lhs.s < rhs.s) return true;
+    if (rhs.s < lhs.s) return false;
+
+    for (auto& e : *index_type::values_v) {
+      if (auto c = rhs.contains(e); c != lhs.contains(e))
+        return c;
+    }
+    return false;
+  }
+
+  [[nodiscard]] constexpr friend bool operator<=(const flat_set& lhs, const flat_set& rhs) noexcept {
+    return !(rhs < lhs);
+  }
+
+  [[nodiscard]] constexpr friend bool operator>(const flat_set& lhs, const flat_set& rhs) noexcept {
+    return rhs < lhs;
+  }
+
+  [[nodiscard]] constexpr friend bool operator>=(const flat_set& lhs, const flat_set& rhs) noexcept {
+    return !(lhs < rhs);
+  }
+
+  constexpr friend void swap(flat_set & lhs, flat_set & rhs) noexcept {
+    lhs.swap(rhs);
+  }
+
+  template<typename Pred>
+  size_type erase_if(Pred pred) {
+    auto old_size = size();
+    for (auto i = begin(), last = end(); i != last; ) {
+      if (pred(*i)) {
+        i = erase(i);
+      } else {
+        ++i;
+      }
+    }
+    return old_size - size();
+  }
+private:
+  container_type a;
+  std::size_t s;
+};
+
 /*
 
 // multiset like API. (Probably delete can invalidate allocators?)
@@ -1262,19 +1566,6 @@ public:
 
 private:
   array<E, optional<std::pair<const E, V>>, index_type> a;
-};
-
-
-// flat_set (set) like API with contiguous iterator --> can be memcpy'd
-template<typename E, typename CExprLess = std::less<E>>
-class flat_set {
-public:
-
-  //...
-
-private:
-  array<E, E> a;
-  std::size_t s;
 };
 
 
