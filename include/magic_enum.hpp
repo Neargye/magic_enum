@@ -118,7 +118,7 @@ using char_type = string_view::value_type;
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
-using string = std::basic_string<char_type>;
+using std::string;
 #endif
 
 static_assert(std::is_same_v<char_type, string::value_type>, "string_view and string has different character type");
