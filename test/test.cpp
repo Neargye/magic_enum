@@ -1202,7 +1202,7 @@ TEST_CASE("multdimensional-switch-case") {
 
 #endif
 
-#ifdef __cpp_lib_format
+#if defined(__cpp_lib_format)
 
 #include <magic_enum_format.hpp>
 

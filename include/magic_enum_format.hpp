@@ -32,13 +32,13 @@
 #ifndef NEARGYE_MAGIC_ENUM_FORMAT_HPP
 #define NEARGYE_MAGIC_ENUM_FORMAT_HPP
 
-#ifndef __cpp_lib_format
+#if !defined(__cpp_lib_format)
 #  error "Format is not supported"
 #endif
 
 #include "magic_enum.hpp"
 
-#ifndef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
+#if !defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT)
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT true
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
 #endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
@@ -53,25 +53,25 @@ namespace magic_enum::customize {
 
 #include <format>
 
-template<typename E>
+template <typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::customize::enum_format_enabled<E>(), char>> : std::formatter<std::string_view, char> {
   auto format(E e, format_context& ctx) {
-    if constexpr (magic_enum::detail::is_flags_v<E>) {
-      if (auto name = magic_enum::enum_flags_name(e); !name.empty()) {
+    using D = std::decay_t<E>;
+    if constexpr (magic_enum::detail::is_flags_v<D>) {
+      if (auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
         return this->std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
       }
     } else {
-      if (auto name = magic_enum::enum_name(e); !name.empty()) {
+      if (auto name = magic_enum::enum_name<D>(e); !name.empty()) {
         return this->std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
       }
     }
     constexpr auto type_name = magic_enum::enum_type_name<E>();
-    throw std::format_error("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " +
-                            std::to_string(magic_enum::enum_integer(e)) + " is not exists.");
+    throw std::format_error("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " + std::to_string(magic_enum::enum_integer<D>(e)) + " is not exists.");
   }
 };
 
-#ifdef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
+#if defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE)
 #  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
 #  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
 #endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
