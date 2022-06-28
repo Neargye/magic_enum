@@ -113,3 +113,6 @@
   * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
 * Intellisense Visual Studio may have some problems analyzing `magic_enum`.
+
+* Enums in template may work incorrectly (especially on Сlang)
+    See (#164)[https://github.com/Neargye/magic_enum/issues/164], (#65)[https://github.com/Neargye/magic_enum/issues/65]
