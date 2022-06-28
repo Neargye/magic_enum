@@ -70,6 +70,7 @@
 #  pragma warning(disable : 26495) // Variable 'static_string<N>::chars_' is uninitialized.
 #  pragma warning(disable : 28020) // Arithmetic overflow: Using operator '-' on a 4 byte value and then casting the result to a 8 byte value.
 #  pragma warning(disable : 26451) // The expression '0<=_Param_(1)&&_Param_(1)<=1-1' is not true at this call.
+#  pragma warning(disable : 4514) // Unreferenced inline function has been removed.
 #endif
 
 // Checks magic_enum compiler compatibility.
@@ -760,18 +761,25 @@ constexpr auto calculate_cases(std::size_t Page) noexcept {
 
   std::array<switch_t, 256> result{};
   auto fill = result.begin();
-  for (auto first = values.begin() + Page, last = values.begin() + Page + values_to; first != last; ) {
-    *fill++ = hash_v<Hash>(*first++);
+  {
+    auto first = values.begin() + static_cast<std::ptrdiff_t>(Page);
+    auto last = values.begin() + static_cast<std::ptrdiff_t>(Page + values_to);
+    while (first != last) {
+      *fill++ = hash_v<Hash>(*first++);
+    }
   }
 
   // dead cases, try to avoid case collisions
   for (switch_t last_value = result[values_to - 1]; fill != result.end() && last_value != (std::numeric_limits<switch_t>::max)(); *fill++ = ++last_value) {
   }
 
-  auto it = result.begin();
-  for (auto last_value = (std::numeric_limits<switch_t>::min)(); fill != result.end(); *fill++ = last_value++) {
-    while (last_value == *it) {
-      ++last_value, ++it;
+  {
+    auto it = result.begin();
+    auto last_value = (std::numeric_limits<switch_t>::min)();
+    for (; fill != result.end(); *fill++ = last_value++) {
+      while (last_value == *it) {
+        ++last_value, ++it;
+      }
     }
   }
 
