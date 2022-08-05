@@ -196,22 +196,22 @@ struct range_max : std::integral_constant<int, MAGIC_ENUM_RANGE_MAX> {};
 template <typename T>
 struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std::integral_constant<decltype(customize::enum_range<T>::max), customize::enum_range<T>::max> {};
 
-template <std::size_t N>
+template <std::uint16_t N>
 class static_string {
  public:
-  constexpr explicit static_string(string_view str) noexcept : static_string{str, std::make_index_sequence<N>{}} {
+  constexpr explicit static_string(string_view str) noexcept : static_string{str, std::make_integer_sequence<std::uint16_t, N>{}} {
     assert(str.size() == N);
   }
 
   constexpr const char* data() const noexcept { return chars_; }
 
-  constexpr std::size_t size() const noexcept { return N; }
+  constexpr std::uint16_t size() const noexcept { return N; }
 
   constexpr operator string_view() const noexcept { return {data(), size()}; }
 
  private:
-  template <std::size_t... I>
-  constexpr static_string(string_view str, std::index_sequence<I...>) noexcept : chars_{str[I]..., '\0'} {}
+  template <std::uint16_t... I>
+  constexpr static_string(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
 
   char chars_[N + 1];
 };
@@ -225,7 +225,7 @@ class static_string<0> {
 
   constexpr const char* data() const noexcept { return nullptr; }
 
-  constexpr std::size_t size() const noexcept { return 0; }
+  constexpr std::uint16_t size() const noexcept { return 0; }
 
   constexpr operator string_view() const noexcept { return {}; }
 };
