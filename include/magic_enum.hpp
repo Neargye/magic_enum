@@ -748,7 +748,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
 };
 
 template <typename Hash>
-constexpr static Hash hash_v{};
+[[maybe_unused]] constexpr static Hash hash_v{};
 
 template <auto* GlobValues, typename Hash>
 constexpr auto calculate_cases(std::size_t Page) noexcept {
