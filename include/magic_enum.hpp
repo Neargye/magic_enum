@@ -689,6 +689,8 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
+#if defined(MAGIC_ENUM_NO_HASH)
+#else
 template <typename Value, typename = void>
 struct constexpr_hash_t;
 
@@ -902,6 +904,7 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
 
 #undef MAGIC_ENUM_FOR_EACH_256
 #undef MAGIC_ENUM_CASE
+#endif
 
 template <typename E, typename Lambda, std::size_t... I>
 constexpr auto for_each(Lambda&& lambda, std::index_sequence<I...>) {
@@ -1021,10 +1024,19 @@ template <typename E>
   if constexpr (detail::count_v<D> == 0) {
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
+#if defined(MAGIC_ENUM_NO_HASH)
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+      if (enum_value<D>(i) == value) {
+        return i;
+      }
+    }
+    return {}; // Invalid value or out of range.
+#else
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
         [](std::size_t i) { return optional<std::size_t>{i}; },
         value,
         detail::default_result_type_lambda<optional<std::size_t>>);
+#endif
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D> && v <= detail::max_v<D>) {
@@ -1092,7 +1104,10 @@ template <typename E>
 
     return {}; // Invalid value or out of range.
   } else {
-    return string{enum_name<D>(value)};
+    if (const auto name = enum_name<D>(value); !name.empty()) {
+      return {name.data(), name.size()};
+    }
+    return {}; // Invalid value or out of range.
   }
 }
 
@@ -1117,12 +1132,12 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
+  constexpr auto count = detail::count_v<D>;
 
-  if constexpr (detail::count_v<D> == 0) {
+  if constexpr (count == 0) {
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D>) {
     if constexpr (detail::is_flags_v<D>) {
-      constexpr auto count = detail::count_v<D>;
       auto check_value = U{0};
       for (std::size_t i = 0; i < count; ++i) {
         if (const auto v = static_cast<U>(enum_value<D>(i)); (value & v) != 0) {
@@ -1135,10 +1150,19 @@ template <typename E>
       }
       return {}; // Invalid value or out of range.
     } else {
+#if defined(MAGIC_ENUM_NO_HASH)
+      for (std::size_t i = 0; i < count; ++i) {
+        if (value == static_cast<U>(enum_value<D>(i))) {
+          return static_cast<D>(value);
+        }
+      }
+      return {}; // Invalid value or out of range.
+#else
       return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
           [](D v) { return optional<D>{v}; },
           static_cast<D>(value),
           detail::default_result_type_lambda<optional<D>>);
+#endif
     }
   } else {
     constexpr auto min = detail::min_v<D>;
@@ -1186,11 +1210,20 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
     return {}; // Invalid value or out of range.
   } else if constexpr (detail::count_v<D> > 0) {
     if constexpr (detail::is_default_predicate<BinaryPredicate>()) {
+#if defined(MAGIC_ENUM_NO_HASH)
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+        if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
+          return enum_value<D>(i);
+        }
+      }
+      return {}; // Invalid value or out of range.
+#else
       return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
           [](std::size_t i) { return optional<D>{detail::values_v<D>[i]}; },
           value,
           detail::default_result_type_lambda<optional<D>>,
           [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
+#endif
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
