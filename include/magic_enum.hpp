@@ -213,7 +213,7 @@ class static_string {
   template <std::uint16_t... I>
   constexpr static_string(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
 
-  char chars_[N + 1];
+  char chars_[static_cast<std::size_t>(N) + 1];
 };
 
 template <>
