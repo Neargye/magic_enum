@@ -431,23 +431,18 @@ constexpr auto n() noexcept {
 template <typename E, E V>
 inline constexpr auto enum_name_v = n<E, V>();
 
-#if defined(__clang__) || defined(__GNUC__)
-template <typename E, auto V, typename = void>
-struct is_valid : std::false_type {};
-
-template <typename E, auto V>
-struct is_valid<E, V, std::void_t<decltype(n<E, static_cast<E>(V)>())>> : std::bool_constant<(n<E, static_cast<E>(V)>().size() != 0)> {};
-#else
-template <typename E, auto V>
+template <typename E, E V>
 constexpr bool valid() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
 
   return n<E, static_cast<E>(V)>().size() != 0;
 }
 
+template <typename E, auto V, typename = void>
+struct is_valid : std::false_type {};
+
 template <typename E, auto V>
-struct is_valid : std::bool_constant<valid<E, static_cast<E>(V)>()> {};
-#endif
+struct is_valid<E, V, std::void_t<decltype(valid<E, static_cast<E>(V)>())>> : std::bool_constant<valid<E, static_cast<E>(V)>()> {};
 
 template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr U ualue(std::size_t i) noexcept {
