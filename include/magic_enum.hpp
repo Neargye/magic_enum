@@ -451,10 +451,10 @@ struct is_valid : std::bool_constant<valid<E, static_cast<E>(V)>()> {};
 
 template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr U ualue(std::size_t i) noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
+  static_assert(is_enum_v<E>, "magic_enum::detail::ualue requires enum type.");
 
   if constexpr (std::is_same_v<U, bool>) { // bool special case
-    static_assert(O == 0, "magic_enum::detail::value requires valid offset.");
+    static_assert(O == 0, "magic_enum::detail::ualue requires valid offset.");
 
     return static_cast<U>(i);
   } else if constexpr (IsFlags) {
