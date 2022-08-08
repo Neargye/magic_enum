@@ -431,26 +431,44 @@ constexpr auto n() noexcept {
 template <typename E, E V>
 inline constexpr auto enum_name_v = n<E, V>();
 
+#if defined(__clang__) || defined(__GNUC__)
+template <typename E, auto V, typename = void>
+struct is_valid : std::false_type {};
+
 template <typename E, auto V>
-constexpr bool is_valid() noexcept {
+struct is_valid<E, V, std::void_t<decltype(n<E, static_cast<E>(V)>())>> : std::bool_constant<(n<E, static_cast<E>(V)>().size() != 0)> {};
+#else
+template <typename E, auto V>
+constexpr bool valid() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
 
   return n<E, static_cast<E>(V)>().size() != 0;
+}
+
+template <typename E, auto V>
+struct is_valid : std::bool_constant<valid<E, static_cast<E>(V)>()> {};
+#endif
+
+template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
+constexpr U ualue(std::size_t i) noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
+
+  if constexpr (std::is_same_v<U, bool>) { // bool special case
+    static_assert(O == 0, "magic_enum::detail::value requires valid offset.");
+
+    return static_cast<U>(i);
+  } else if constexpr (IsFlags) {
+    return static_cast<U>(U{1} << static_cast<U>(static_cast<int>(i) + O));
+  } else {
+    return static_cast<U>(static_cast<int>(i) + O);
+  }
 }
 
 template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr E value(std::size_t i) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::value requires enum type.");
 
-  if constexpr (std::is_same_v<U, bool>) { // bool special case
-    static_assert(O == 0, "magic_enum::detail::value requires valid offset.");
-
-    return static_cast<E>(i);
-  } else if constexpr (IsFlags) {
-    return static_cast<E>(U{1} << static_cast<U>(static_cast<int>(i) + O));
-  } else {
-    return static_cast<E>(static_cast<int>(i) + O);
-  }
+  return static_cast<E>(ualue<E, O, IsFlags>(i));
 }
 
 template <typename E, bool IsFlags, typename U = std::underlying_type_t<E>>
@@ -510,7 +528,7 @@ constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
 template <typename E, bool IsFlags, int Min, std::size_t... I>
 constexpr auto values(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr bool valid[sizeof...(I)] = {is_valid<E, value<E, Min, IsFlags>(I)>()...};
+  constexpr bool valid[sizeof...(I)] = {is_valid<E, ualue<E, Min, IsFlags>(I)>::value...};
   constexpr std::size_t count = values_count(valid);
 
   if constexpr (count > 0) {
