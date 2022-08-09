@@ -16,26 +16,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure
-      run: |
-        pwd
-        ls
-        mkdir build
-        cd build
-        pwd
-        ls
-
     - name: Build Release
       run: |
-        pwd
-        rm -rf ./*
+        rm -rf build
+        mkdir build
+        cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug
       run: |
-        rm -rf ./*
+        rm -rf build
+        mkdir build
+        cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
