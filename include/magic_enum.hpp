@@ -383,13 +383,7 @@ template <typename E>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
-  [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
-  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (custom.index() == 0) {
-    constexpr auto name = std::get<string_view>(custom);
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-    return static_string<name.size()>{name};
-  } else if constexpr (custom.index() == 1 && supported<E>::value) {
+  if constexpr (supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
@@ -404,19 +398,28 @@ constexpr auto n() noexcept {
 }
 
 template <typename E>
-inline constexpr auto type_name_v = n<E>();
+constexpr auto type_name() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+
+  [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
+    constexpr auto name = std::get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    return static_string<name.size()>{name};
+  } else {
+    return n<E>();
+  }
+}
+
+template <typename E>
+inline constexpr auto type_name_v = type_name<E>();
 
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
-  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
-  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (custom.index() == 0) {
-    constexpr auto name = std::get<string_view>(custom);
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-    return static_string<name.size()>{name};
-  } else if constexpr (custom.index() == 1 && supported<E>::value) {
+  if constexpr (supported<E>::value) {
 #if defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
@@ -431,20 +434,43 @@ constexpr auto n() noexcept {
 }
 
 template <typename E, E V>
-inline constexpr auto enum_name_v = n<E, V>();
+constexpr auto enum_name() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
-template <typename E, E V>
-constexpr bool valid() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
-
-  return n<E, static_cast<E>(V)>().size() != 0;
+  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
+    constexpr auto name = std::get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    return static_string<name.size()>{name};
+  } else {
+    return n<E, V>();
+  }
 }
 
-template <typename E, auto V, typename = void>
-struct is_valid : std::false_type {};
+template <typename E, E V>
+inline constexpr auto enum_name_v = enum_name<E, V>();
 
 template <typename E, auto V>
-struct is_valid<E, V, std::void_t<decltype(valid<E, static_cast<E>(V)>())>> : std::bool_constant<valid<E, static_cast<E>(V)>()> {};
+constexpr bool is_valid() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::is_valid requires enum type.");
+
+#if defined(__clang__) && __clang_major__ >= 16
+  // https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
+  constexpr E v = __builtin_bit_cast(E, V);
+  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
+  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    constexpr auto name = std::get<string_view>(custom);
+    return name.size() != 0;
+  } else {
+    return n<E, v>().size() != 0;
+  }
+#else
+  return enum_name<E, static_cast<E>(V)>().size() != 0;
+#endif
+}
 
 template <typename E, int O, bool IsFlags, typename U = std::underlying_type_t<E>>
 constexpr U ualue(std::size_t i) noexcept {
@@ -525,7 +551,7 @@ constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
 template <typename E, bool IsFlags, int Min, std::size_t... I>
 constexpr auto values(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::values requires enum type.");
-  constexpr bool valid[sizeof...(I)] = {is_valid<E, ualue<E, Min, IsFlags>(I)>::value...};
+  constexpr bool valid[sizeof...(I)] = {is_valid<E, ualue<E, Min, IsFlags>(I)>()...};
   constexpr std::size_t count = values_count(valid);
 
   if constexpr (count > 0) {
