@@ -18,7 +18,7 @@ jobs:
 
     - name: Configure
       run: |
-        if not exist build mkdir build
+        rmdir /S /Q build
         mkdir -p build
         cd build
 
