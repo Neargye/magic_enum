@@ -9,19 +9,29 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macos-10.15 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md#xcode
-        - { os: macos-11.0  } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11.0-Readme.md#xcode
-        build: [Debug, Release]
+        - { os: macos-11  } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
+        - { os: macos-12 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-12-Readme.md#xcode
 
-    name: "${{matrix.config.os}}:${{matrix.build}}"
+    name: "${{matrix.config.os}}"
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure CMake
-      run: cmake -DCMAKE_BUILD_TYPE=${{matrix.build}}
+    - name: Configure
+      run: |
+        rm -rf build
+        mkdir -p build
+        cd build
 
-    - name: Build
-      run: cmake --build . --config ${{matrix.build}}
+    - name: Build Release
+      run: |
+        rm -rf ./*
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build . --config Release
+        ctest --output-on-failure -C Release
 
-    - name: Tests
-      run: ctest --output-on-failure -C ${{matrix.build}}
+    - name: Build Debug
+      run: |
+        rm -rf ./*
+        cmake -DCMAKE_BUILD_TYPE=Debug ..
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug

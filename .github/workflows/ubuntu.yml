@@ -8,7 +8,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [Debug, Release]
         compiler:
         - { cc: "gcc-9",    cxx: "g++-9"      }
         - { cc: "gcc-10",   cxx: "g++-10"     }
@@ -20,22 +19,33 @@ jobs:
         - { cc: "clang-15", cxx: "clang++-15" }
         - { cc: "clang-16", cxx: "clang++-16" }
 
-    name: "${{matrix.compiler.cxx}}:${{matrix.build}}"
+    name: "${{matrix.compiler.cxx}}"
     steps:
     - uses: actions/checkout@v2
 
     - name: Configure compiler
       run: |
-            if [[ ${{matrix.compiler.cc}} == "clang*"]]
+            if [[ ${{matrix.compiler.cc}} == clang*]]; then
             wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
             sudo apt-get install -y ${{matrix.compiler.cc}} ${{matrix.compiler.cxx}}
             fi
 
-    - name: Configure CMake
-      run: cmake -DCMAKE_BUILD_TYPE=${{matrix.build}} -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+    - name: Configure
+      run: |
+        rm -rf build
+        mkdir -p build
+        cd build
 
-    - name: Build
-      run: cmake --build . --config ${{matrix.build}}
+    - name: Build Release
+      run: |
+        rm -rf ./*
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} ..
+        cmake --build . --config Release
+        ctest --output-on-failure -C Release
 
-    - name: Tests
-      run: ctest --output-on-failure -C ${{matrix.build}}
+    - name: Build Debug
+      run: |
+        rm -rf ./*
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} ..
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug

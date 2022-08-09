@@ -11,18 +11,37 @@ jobs:
         config:
         - { os: windows-2019, vs: "Visual Studio 2019" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#visual-studio-enterprise-2019
         - { os: windows-2022, vs: "Visual Studio 2022" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2022-Readme.md#visual-studio-enterprise-2022
-        build: [Debug, Release]
-        platform: [Win32, x64]
 
-    name: "${{matrix.config.vs}}:${{matrix.platform}}:${{matrix.build}}"
+    name: "${{matrix.config.vs}}"
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure CMake
-      run: cmake -A ${{matrix.platform}}
+    - name: Configure
+      run: |
+        if not exist build mkdir build
+        mkdir -p build
+        cd build
 
-    - name: Build
-      run: cmake --build . --config ${{matrix.build}}
+    - name: Build Release Win32
+      run: |
+        cmake -G -A Win32 ..
+        cmake --build . --config Release
+        ctest --output-on-failure -C Release
 
-    - name: Tests
-      run: ctest --output-on-failure -C ${{matrix.build}}
+    - name: Build Release x64
+      run: |
+        cmake -G -A x64 ..
+        cmake --build . --config Release
+        ctest --output-on-failure -C Release
+
+    - name: Build Debug Win32
+      run: |
+        cmake -G -A Win32 ..
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug
+
+    - name: Build Debug x64
+      run: |
+        cmake -G -A x64 ..
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug
