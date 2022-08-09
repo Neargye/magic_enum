@@ -21,7 +21,7 @@ jobs:
         pwd
         ls
         mkdir build
-
+        cd build
         pwd
         ls
 
@@ -29,7 +29,7 @@ jobs:
       run: |
         pwd
         rm -rf ./*
-        cmake -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
