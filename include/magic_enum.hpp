@@ -461,8 +461,8 @@ constexpr bool is_valid() noexcept {
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
   if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     constexpr auto name = std::get<string_view>(custom);
+    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return name.size() != 0;
   } else {
     return n<E, v>().size() != 0;
