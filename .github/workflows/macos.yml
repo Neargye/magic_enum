@@ -19,9 +19,11 @@ jobs:
     - name: Configure
       run: |
         pwd
+        ls
         mkdir build
         cd build
         pwd
+        ls
 
     - name: Build Release
       run: |
