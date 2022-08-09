@@ -18,7 +18,6 @@ jobs:
 
     - name: Configure
       run: |
-        rm -r -fo build
         mkdir build
         cd build
 

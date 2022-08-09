@@ -23,12 +23,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure compiler
+    - name: Configure clang
       run: |
-            if [[ ${{matrix.compiler.cc}} == clang*]]; then
-            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-            sudo apt-get install -y ${{matrix.compiler.cc}} ${{matrix.compiler.cxx}}
-            fi
+        if [[ ${{matrix.compiler.cc}} == clang*]]; then
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+        sudo apt-get install -y ${{matrix.compiler.cc}} ${{matrix.compiler.cxx}}
+        fi
 
     - name: Configure
       run: |

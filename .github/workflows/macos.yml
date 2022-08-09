@@ -18,9 +18,10 @@ jobs:
 
     - name: Configure
       run: |
-        rm -rf build
+        pwd
         mkdir build
         cd build
+        pwd
 
     - name: Build Release
       run: |
