@@ -21,19 +21,17 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        pwd
 
     - name: Build Release
       run: |
-        pwd
         rm -rf ./*
-        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake .. -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug
       run: |
         rm -rf ./*
-        cmake -DCMAKE_BUILD_TYPE=Debug ..
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug

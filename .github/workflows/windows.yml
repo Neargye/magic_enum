@@ -18,30 +18,30 @@ jobs:
 
     - name: Configure
       run: |
-        rmdir /S /Q build
-        mkdir -p build
+        rm -r -fo build
+        mkdir build
         cd build
 
     - name: Build Release Win32
       run: |
-        cmake -G -A Win32 ..
+        cmake .. -A Win32
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Release x64
       run: |
-        cmake -G -A x64 ..
+        cmake .. -A x64
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug Win32
       run: |
-        cmake -G -A Win32 ..
+        cmake .. -A Win32
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Build Debug x64
       run: |
-        cmake -G -A x64 ..
+        cmake .. -A x64
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
