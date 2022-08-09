@@ -19,11 +19,12 @@ jobs:
     - name: Configure
       run: |
         rm -rf build
-        mkdir -p build
+        mkdir build
         cd build
 
     - name: Build Release
       run: |
+        pwd
         rm -rf ./*
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release

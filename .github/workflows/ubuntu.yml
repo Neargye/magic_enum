@@ -33,12 +33,13 @@ jobs:
     - name: Configure
       run: |
         rm -rf build
-        mkdir -p build
+        mkdir build
         cd build
 
     - name: Build Release
       run: |
         rm -rf ./*
+        pwd
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} ..
         cmake --build . --config Release
         ctest --output-on-failure -C Release
