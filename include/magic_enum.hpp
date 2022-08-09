@@ -164,8 +164,8 @@ constexpr customize_t enum_type_name() noexcept {
 
 namespace detail {
 
-template <auto V, typename = std::enable_if_t<std::is_enum_v<std::decay_t<decltype(V)>>>>
-using enum_constant = std::integral_constant<std::decay_t<decltype(V)>, V>;
+template <auto V, typename E = std::decay_t<decltype(V)>, std::enable_if_t<std::is_enum_v<E>, int> = 0>
+using enum_constant = std::integral_constant<E, V>;
 
 template <typename... T>
 inline constexpr bool always_false_v = false;
@@ -668,7 +668,7 @@ struct enable_if_enum<true, R> {
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>>
 using enable_if_t = typename enable_if_enum<std::is_enum_v<std::decay_t<T>> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
 
-template <typename T, typename Enable = std::enable_if_t<std::is_enum_v<std::decay_t<T>>>>
+template <typename T, std::enable_if_t<std::is_enum_v<std::decay_t<T>>, int> = 0>
 using enum_concept = T;
 
 template <typename T, bool = std::is_enum_v<T>>
@@ -690,7 +690,12 @@ template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
 #if defined(MAGIC_ENUM_NO_HASH)
+template <typename T>
+inline constexpr bool has_hash = false;
 #else
+template <typename T>
+inline constexpr bool has_hash = true;
+
 template <typename Value, typename = void>
 struct constexpr_hash_t;
 
@@ -919,6 +924,13 @@ constexpr auto for_each(Lambda&& lambda, std::index_sequence<I...>) {
   } else {
     return std::tuple{lambda(enum_constant<values_v<E>[I]>{})...};
   }
+}
+
+template <typename E, typename Lambda, std::size_t... I>
+constexpr bool all_invocable(std::index_sequence<I...>) {
+  static_assert(is_enum_v<E>, "magic_enum::detail::all_invocable requires enum type.");
+
+  return (std::is_invocable_v<Lambda, enum_constant<values_v<E>[I]>> && ...);
 }
 
 } // namespace magic_enum::detail
@@ -1264,6 +1276,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
 template <typename Result = void, typename E, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
       std::forward<Lambda>(lambda),
@@ -1274,6 +1287,7 @@ constexpr auto enum_switch(Lambda&& lambda, E value) -> detail::enable_if_t<E, R
 template <typename Result, typename E, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, E value, Result&& result) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
       std::forward<Lambda>(lambda),
@@ -1285,6 +1299,7 @@ template <typename E, typename Result = void, typename BinaryPredicate = std::eq
 constexpr auto enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v);
@@ -1296,6 +1311,7 @@ template <typename E, typename Result, typename BinaryPredicate = std::equal_to<
 constexpr auto enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {}) -> detail::enable_if_t<E, Result, BinaryPredicate> {
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
     return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v, std::forward<Result>(result));
@@ -1306,6 +1322,7 @@ constexpr auto enum_switch(Lambda&& lambda, string_view name, Result&& result, B
 template <typename E, typename Result = void, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   if (const auto v = enum_cast<D>(value)) {
     return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v);
@@ -1316,6 +1333,7 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value) -> detai
 template <typename E, typename Result, typename Lambda>
 constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result) -> detail::enable_if_t<E, Result> {
   using D = std::decay_t<E>;
+  static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH");
 
   if (const auto v = enum_cast<D>(value)) {
     return enum_switch<Result, D>(std::forward<Lambda>(lambda), *v, std::forward<Result>(result));
@@ -1323,12 +1341,17 @@ constexpr auto enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&&
   return std::forward<Result>(result);
 }
 
-template <typename E, typename Lambda>
+template <typename E, typename Lambda, detail::enable_if_t<E, int> = 0>
 constexpr auto enum_for_each(Lambda&& lambda) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
+  constexpr auto sep = std::make_index_sequence<detail::count_v<D>>{};
 
-  return detail::for_each<D>(std::forward<Lambda>(lambda), std::make_index_sequence<detail::count_v<D>>{});
+  if constexpr (detail::all_invocable<D, Lambda>(sep)) {
+    return detail::for_each<D>(std::forward<Lambda>(lambda), sep);
+  } else {
+    static_assert(detail::always_false_v<E>, "magic_enum::enum_for_each requires invocable of all enum value.");
+  }
 }
 
 namespace ostream_operators {
