@@ -21,7 +21,7 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
@@ -30,6 +30,6 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug
+        cmake -DCMAKE_BUILD_TYPE=Debug
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug

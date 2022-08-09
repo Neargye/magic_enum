@@ -16,16 +16,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure
-      run: |
-        mkdir build
-        cd build
-
     - name: Build Release Win32
+      shell: bash
       run: |
+        rm -rf build
         mkdir build
         cd build
-        cmake .. -A Win32
+        cmake -A Win32
         cmake --build . --config Release
         ctest --output-on-failure -C Release
 
