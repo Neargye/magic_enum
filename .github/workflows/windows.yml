@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Build Release Win32
+    - name: Build Win32
       shell: bash
       run: |
         rm -rf build
@@ -25,8 +25,10 @@ jobs:
         cmake .. -A Win32
         cmake --build . --config Release
         ctest --output-on-failure -C Release
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug
 
-    - name: Build Release x64
+    - name: Build x64
       shell: bash
       run: |
         rm -rf build
@@ -35,23 +37,6 @@ jobs:
         cmake .. -A x64
         cmake --build . --config Release
         ctest --output-on-failure -C Release
-
-    - name: Build Debug Win32
-      shell: bash
-      run: |
-        rm -rf build
-        mkdir build
-        cd build
-        cmake .. -A Win32
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
 
-    - name: Build Debug x64
-      shell: bash
-      run: |
-        rm -rf build
-        mkdir build
-        cd build
-        cmake .. -A x64
-        cmake --build . --config Debug
-        ctest --output-on-failure -C Debug
