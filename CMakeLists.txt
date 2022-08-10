@@ -8,7 +8,7 @@ else()
     set(IS_TOPLEVEL_PROJECT FALSE)
 endif()
 
-option(MAGIC_ENUM_OPT_ENABLE_NONASCII "Enable support for non-ASCII enumeration identifier" ${IS_TOPLEVEL_PROJECT})
+option(MAGIC_ENUM_OPT_ENABLE_NONASCII "Enable support for non-ASCII enumeration identifier" OFF)
 option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${IS_TOPLEVEL_PROJECT})
 option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${IS_TOPLEVEL_PROJECT})
 option(MAGIC_ENUM_OPT_INSTALL "Generate and install magic_enum target" ${IS_TOPLEVEL_PROJECT})
