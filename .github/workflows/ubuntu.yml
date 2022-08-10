@@ -26,8 +26,9 @@ jobs:
     - name: Configure clang
       run: |
         if [[ "${{matrix.compiler.cc}}" == "clang*" ]]; then
+          pwd
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-          sudo apt-get install -y ${{matrix.compiler.cc}} ${{matrix.compiler.cxx}}
+          sudo apt install -y ${{matrix.compiler.cc}} ${{matrix.compiler.cxx}}
         fi
 
     - name: Build Release
