@@ -38,7 +38,7 @@ jobs:
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
           sudo apt update
-          sudo apt install ${{matrix.compiler.cc}} -y
+          sudo apt install ${{matrix.compiler.cxx}} -y
         fi
 
     - name: Configure gcc
@@ -46,7 +46,7 @@ jobs:
         if [[ "${{matrix.compiler.cc}}" == "gcc"* ]]; then
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt update
-          sudo apt install ${{matrix.compiler.cc}} -y
+          sudo apt install ${{matrix.compiler.cxx}} -y
         fi
 
     - name: Build Release
