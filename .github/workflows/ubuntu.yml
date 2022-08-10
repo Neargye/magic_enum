@@ -11,6 +11,8 @@ jobs:
         compiler:
         - { cc: "gcc-9",    cxx: "g++-9"      }
         - { cc: "gcc-10",   cxx: "g++-10"     }
+        - { cc: "gcc-11",   cxx: "g++-11"     }
+        - { cc: "gcc-12",   cxx: "g++-12"     }
         - { cc: "clang-9",  cxx: "clang++-9"  }
         - { cc: "clang-10", cxx: "clang++-10" }
         - { cc: "clang-11", cxx: "clang++-11" }
@@ -20,7 +22,7 @@ jobs:
         - { cc: "clang-15", cxx: "clang++-15" }
         - { cc: "clang-16", cxx: "clang++-16" }
 
-    name: "${{matrix.compiler.cxx}}"
+    name: "${{matrix.compiler.cc}}"
     steps:
     - uses: actions/checkout@v2
 
@@ -38,6 +40,14 @@ jobs:
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
           sudo apt update
           sudo apt install -y ${{matrix.compiler.cc}}
+        fi
+
+    - name: Configure gcc
+      run: |
+        if [[ "${{matrix.compiler.cc}}" == "gcc"* ]]; then
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          sudo apt update
+          sudo apt install -y ${{matrix.compiler.cxx}}
         fi
 
     - name: Build Release
