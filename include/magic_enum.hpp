@@ -246,12 +246,12 @@ constexpr string_view pretty_name(string_view name) noexcept {
     }
   }
 
-  if (name.size() > 0 && ((name.front() >= 'a' && name.front() <= 'z') ||
-                          (name.front() >= 'A' && name.front() <= 'Z') ||
+  if (name.size() > 0 && ((name[0] >= 'a' && name[0] <= 'z') ||
+                          (name[0] >= 'A' && name[0] <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-                          (name.front() & 0x80) ||
+                          (name[0]) & 0x80) ||
 #endif
-                          (name.front() == '_'))) {
+                          (name[0] == '_'))) {
     return name;
   }
 
@@ -293,7 +293,7 @@ constexpr std::size_t find(string_view str, char c) noexcept {
 
     return string_view::npos;
   } else {
-    return str.find_first_of(c);
+    return str.find(c);
   }
 }
 
