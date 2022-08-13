@@ -46,8 +46,8 @@ struct MyString {
   MyString() : str{} {} // required
   MyString(const char* s, std::size_t l) : str{s, l} {} // required
   bool empty() const { return str.empty(); } // required
-  constexpr auto begin() const { return str.begin(); } // required
-  constexpr auto end() const { return str.end(); } // required
+  auto begin() const { return str.begin(); } // required
+  auto end() const { return str.end(); } // required
   void append(std::size_t count, char c) { str.append(count, c); } // required
   void append(const char* s, std::size_t size) { str.append(s, size); } // required
 
