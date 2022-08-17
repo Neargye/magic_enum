@@ -1144,14 +1144,13 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  constexpr auto count = detail::count_v<D>;
 
-  if constexpr (count == 0) {
+  if constexpr (detail::count_v<D> == 0) {
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D>) {
     if constexpr (detail::is_flags_v<D>) {
       auto check_value = U{0};
-      for (std::size_t i = 0; i < count; ++i) {
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (const auto v = static_cast<U>(enum_value<D>(i)); (value & v) != 0) {
           check_value |= v;
         }
@@ -1163,7 +1162,7 @@ template <typename E>
       return {}; // Invalid value or out of range.
     } else {
 #if defined(MAGIC_ENUM_NO_HASH)
-      for (std::size_t i = 0; i < count; ++i) {
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
         if (value == static_cast<U>(enum_value<D>(i))) {
           return static_cast<D>(value);
         }
@@ -1350,7 +1349,7 @@ constexpr auto enum_for_each(Lambda&& lambda) {
   if constexpr (detail::all_invocable<D, Lambda>(sep)) {
     return detail::for_each<D>(std::forward<Lambda>(lambda), sep);
   } else {
-    static_assert(detail::always_false_v<E>, "magic_enum::enum_for_each requires invocable of all enum value.");
+    static_assert(detail::always_false_v<D>, "magic_enum::enum_for_each requires invocable of all enum value.");
   }
 }
 
