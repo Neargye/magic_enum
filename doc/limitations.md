@@ -20,7 +20,7 @@
 
   * By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
 
-  * `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MIN`.
+  * `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MAX`.
 
   * If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
 
