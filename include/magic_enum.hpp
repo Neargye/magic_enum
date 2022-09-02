@@ -854,7 +854,7 @@ template <>
 inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
 template <auto* Arr, typename Hash>
-constexpr bool no_duplicate() noexcept {
+constexpr bool has_duplicate() noexcept {
   using value_t = std::decay_t<decltype((*Arr)[0])>;
   using hash_value_t = std::invoke_result_t<Hash, value_t>;
   std::array<hash_value_t, Arr->size()> hashes{};
@@ -919,8 +919,8 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
     ResultGetterType&& def = default_result_type_lambda<>,
     BinaryPredicate&& pred = {}) {
   using result_t = std::invoke_result_t<ResultGetterType>;
-  using hash_t = std::conditional_t<no_duplicate<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
-  static_assert(no_duplicate<GlobValues, Hash>(), "magic_enum::detail::constexpr_switch duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues.");
+  using hash_t = std::conditional_t<has_duplicate<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
+  static_assert(has_duplicate<GlobValues, hash_t>(), "magic_enum::detail::constexpr_switch duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues.");
   constexpr std::array values = *GlobValues;
   constexpr std::size_t size = values.size();
   constexpr std::array cases = calculate_cases<GlobValues, hash_t>(Page);
