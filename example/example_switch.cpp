@@ -98,7 +98,7 @@ int main() {
     }
   };
 
-  //std::cout << std::boolalpha;
+  std::cout << std::boolalpha;
   std::cout << magic_enum::enum_switch<Color>(switcher3, "GREEN", std::make_optional("cica")).value() << std::endl; // prints default: "cica"
   std::cout << magic_enum::enum_switch<Color>(switcher3, "RED", std::make_optional("cica")).value() << std::endl; // prints: "red result"
   std::cout << magic_enum::enum_switch<Color>(switcher3, "BLUE", std::make_optional("cica")).has_value() << std::endl; // prints: false
