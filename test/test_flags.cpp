@@ -34,6 +34,7 @@
 
 #include <magic_enum.hpp>
 #include <magic_enum_fuse.hpp>
+#include <magic_enum_utility.hpp>
 
 #include <array>
 #include <cctype>
