@@ -90,14 +90,14 @@ constexpr auto invocable_index(std::index_sequence<I...>) noexcept {
 }
 
 template <typename E, typename F, typename R, std::size_t... I>
-constexpr bool same_invocable(std::index_sequence<I...> seq) noexcept  {
+constexpr bool same_invocable(std::index_sequence<I...>) noexcept  {
   static_assert(is_enum_v<E>, "magic_enum::detail::same_invocable requires enum type.");
 
   return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, R>) && ...);
 }
 
 template <typename E, typename F, typename R, std::size_t... I>
-constexpr bool result_invocable(std::index_sequence<I...> seq) noexcept  {
+constexpr bool result_invocable(std::index_sequence<I...>) noexcept  {
   static_assert(is_enum_v<E>, "magic_enum::detail::result_invocable requires enum type.");
 
   return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) && ...);
