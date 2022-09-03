@@ -43,6 +43,9 @@ struct MyOpt {
 };
 
 struct MyString {
+  using value_type = char; // required
+  static constexpr auto npos = std::string_view::npos; // required
+
   MyString() : str{} {} // required
   MyString(const char* s, std::size_t l) : str{s, l} {} // required
   bool empty() const { return str.empty(); } // required

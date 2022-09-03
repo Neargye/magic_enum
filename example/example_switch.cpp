@@ -91,20 +91,18 @@ int main() {
 
   auto switcher3 = overloaded{
     [] (magic_enum::enum_constant<Color::RED>) -> std::optional<std::string> {
-      return "red result";
-    },
-    [] (auto) -> std::optional<std::string> {
-      return std::nullopt;
+      return "red";
     }
   };
 
   std::cout << std::boolalpha;
-  std::cout << magic_enum::enum_switch<Color>(switcher3, "GREEN", std::make_optional("cica")).value() << std::endl; // prints default: "cica"
-  std::cout << magic_enum::enum_switch<Color>(switcher3, "RED", std::make_optional("cica")).value() << std::endl; // prints: "red result"
-  std::cout << magic_enum::enum_switch<Color>(switcher3, "BLUE", std::make_optional("cica")).has_value() << std::endl; // prints: false
-  std::cout << magic_enum::enum_switch<Color>(switcher3, "red", std::make_optional("cica"), magic_enum::case_insensitive).value() << std::endl; // prints: "red result"
+  std::optional<std::string> cica = "cica";
+  std::cout << magic_enum::enum_switch<Color>(switcher3, "GREEN", cica).value() << std::endl; // prints "cica"
+  std::cout << magic_enum::enum_switch<Color>(switcher3, "RED", cica).value() << std::endl; // prints: "red"
+  std::cout << magic_enum::enum_switch<Color>(switcher3, "BLUE").has_value() << std::endl; // prints: false
+  std::cout << magic_enum::enum_switch<Color>(switcher3, "red", cica, magic_enum::case_insensitive).value() << std::endl; // prints: "red"
 
-  std::cout << magic_enum::enum_switch(switcher3, Color::GREEN, std::make_optional("cica")).value() << std::endl; // prints default: "cica"
-  std::cout << magic_enum::enum_switch(switcher3, Color::RED, std::make_optional("cica")).value() << std::endl; // prints: "red result"
-  std::cout << magic_enum::enum_switch(switcher3, Color::BLUE, std::make_optional("cica")).has_value() << std::endl; // prints: false
+  std::cout << magic_enum::enum_switch(switcher3, Color::GREEN, cica).value() << std::endl; // prints: "cica"
+  std::cout << magic_enum::enum_switch(switcher3, Color::RED, cica).value() << std::endl; // prints: "red"
+  std::cout << magic_enum::enum_switch(switcher3, Color::BLUE).has_value() << std::endl; // prints: false
 }
