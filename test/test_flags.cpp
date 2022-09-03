@@ -85,6 +85,10 @@ struct magic_enum::customize::enum_range<number> {
   static constexpr int max = 300;
 };
 
+// Helper type for the visitor pattern.
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 
@@ -798,6 +802,103 @@ TEST_CASE("bitwise_operators") {
   }
 }
 
+template <Color C>
+constexpr std::string_view DoWork() {
+  return "default";
+}
+
+template <>
+constexpr std::string_view DoWork<Color::GREEN>() {
+  return "override";
+}
+
+TEST_CASE("enum_switch") {
+  constexpr auto bind_enum_switch = [] (Color c) {
+    return enum_switch(
+        [](auto val) { return DoWork<val>(); },
+        c,
+        string_view{"unrecognized"});
+  };
+
+  constexpr auto def = bind_enum_switch(Color::BLUE);
+  REQUIRE(def == "default");
+  REQUIRE(bind_enum_switch(Color::RED) == "default");
+  REQUIRE(bind_enum_switch(Color::GREEN) == "override");
+  REQUIRE(bind_enum_switch(static_cast<Color>(0)) == "unrecognized");
+
+  auto lambda = [] (auto value) { return DoWork<value>(); };
+
+  REQUIRE(enum_switch(lambda, Color::RED) == "default");
+  REQUIRE(enum_switch(lambda, Color::BLUE) == "default");
+  REQUIRE(enum_switch(lambda, Color::GREEN) == "override");
+
+  auto switcher1 = []() {
+    return overloaded{
+        [](enum_constant<Color::BLUE>) { return string_view{"Blue"}; },
+        [](enum_constant<Color::RED>) { return string_view{"Red"}; }};
+  };
+
+  REQUIRE(enum_switch(switcher1(), Color::RED) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), Color::BLUE) == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), Color::GREEN).empty());
+  REQUIRE(enum_switch<Color>(switcher1(), Color::GREEN, string_view{"cica"}) == "cica");
+
+  REQUIRE(enum_switch<Color>(switcher1(), 1) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), 4) == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), 2).empty());
+  REQUIRE(enum_switch<Color>(switcher1(), 2, string_view{"cica"}) == "cica");
+
+  REQUIRE(enum_switch<Color>(switcher1(), "RED") == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "BLUE") == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), "GREEN").empty());
+  REQUIRE(enum_switch<Color>(switcher1(), "GREEN", string_view{"cica"}) == "cica");
+
+  REQUIRE(enum_switch<Color>(switcher1(), "red", case_insensitive) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "blue", case_insensitive) == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), "green", case_insensitive).empty());
+  REQUIRE(enum_switch<Color>(switcher1(), "green", string_view{"cica"}, case_insensitive) == "cica");
+
+  auto switcher2 = []() {
+    return overloaded{
+        [](enum_constant<Color::RED>) -> std::optional<std::string> { return "red"; },
+        [](auto) -> std::optional<std::string> { return std::nullopt;}};
+  };
+
+  REQUIRE(enum_switch(switcher2(), Color::RED).value() == "red");
+  REQUIRE_FALSE(enum_switch<Color>(switcher2(), Color::BLUE).has_value());
+  REQUIRE_FALSE(enum_switch<Color>(switcher2(), Color::GREEN).has_value());
+  REQUIRE_FALSE(enum_switch<Color>(switcher2(), static_cast<Color>(-3)).has_value());
+}
+
+TEST_CASE("enum_for_each") {
+  SECTION("no return type") {
+    underlying_type_t<Color> sum{};
+    enum_for_each<Color>([&sum](auto val) {
+      constexpr underlying_type_t<Color> v = enum_integer(val());
+      sum += v;
+    });
+    REQUIRE(sum == 7);
+  }
+
+  SECTION("same return type") {
+    constexpr auto workResults = enum_for_each<Color>([](auto val) {
+      return DoWork<val>();
+    });
+    REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
+  }
+
+  SECTION("different return type") {
+    constexpr auto colorInts = enum_for_each<Color>([](auto val) {
+      return val;
+    });
+
+    REQUIRE(std::is_same_v<std::remove_const_t<decltype(colorInts)>,
+                           std::tuple<enum_constant<Color::RED>,
+                                      enum_constant<Color::GREEN>,
+                                      enum_constant<Color::BLUE>>>);
+  }
+}
+
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  define MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR 1
 #endif
@@ -823,6 +924,50 @@ TEST_CASE("constexpr_for") {
 }
 
 #endif
+
+#if defined(_MSC_VER)
+# pragma warning(push)
+# pragma warning(disable : 4064)
+#endif
+
+static int switch_case_2d(Color color, Directions direction) {
+  switch (enum_fuse(color, direction).value()) {
+    case enum_fuse(Color::RED, Directions::Up).value():
+      return 1;
+    case enum_fuse(Color::BLUE, Directions::Down).value():
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+enum class Index { zero = 0, one = 1, two = 2 };
+
+static int switch_case_3d(Color color, Directions direction, Index index) {
+  switch (enum_fuse(color, direction, index).value()) {
+    case enum_fuse(Color::RED, Directions::Up, Index::zero).value():
+      return 1;
+    case enum_fuse(Color::BLUE, Directions::Up, Index::zero).value():
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
+
+TEST_CASE("multdimensional-switch-case") {
+  REQUIRE(switch_case_2d(Color::RED, Directions::Up) == 1);
+  REQUIRE(switch_case_2d(Color::RED, Directions::Down) == 0);
+  REQUIRE(switch_case_2d(Color::BLUE, Directions::Up) == 0);
+  REQUIRE(switch_case_2d(Color::BLUE, Directions::Down) == 2);
+  REQUIRE(switch_case_3d(Color::RED, Directions::Up, Index::zero) == 1);
+  REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::zero) == 2);
+  REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::one) == 0);
+  REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::two) == 0);
+}
 
 #if defined(__cpp_lib_format)
 

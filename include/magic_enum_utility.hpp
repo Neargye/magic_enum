@@ -176,14 +176,14 @@ constexpr R enum_switch(F&& f, E value, Result&& result) {
   }
 }
 
-template <typename E, typename Result = detail::default_result_type, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0>
-constexpr decltype(auto) enum_switch(F&& f, string_view name, BinaryPredicate&& p = {}) {
+template <typename E, typename Result = detail::default_result_type, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0, std::enable_if_t<std::is_object_v<Result>, int> = 0>
+constexpr decltype(auto) enum_switch(F&& f, string_view value, BinaryPredicate p = {}) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
 
   if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
+    if (const auto v = enum_cast<D>(value, std::move(p))) {
       return enum_switch<D, Result>(std::forward<F>(f), *v);
     }
     return detail::default_result_type_lambda<R>();
@@ -193,14 +193,14 @@ constexpr decltype(auto) enum_switch(F&& f, string_view name, BinaryPredicate&& 
   }
 }
 
-template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0>
-constexpr R enum_switch(F&& f, string_view name, Result&& result, BinaryPredicate&& p = {}) {
+template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0, std::enable_if_t<std::is_object_v<Result>, int> = 0>
+constexpr R enum_switch(F&& f, string_view value, Result&& result, BinaryPredicate p = {}) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
 
   if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(name, std::forward<BinaryPredicate>(p))) {
+    if (const auto v = enum_cast<D>(value, std::move(p))) {
       return enum_switch<D, Result>(std::forward<F>(f), *v, std::forward<Result>(result));
     }
     return std::forward<Result>(result);
