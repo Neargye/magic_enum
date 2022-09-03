@@ -414,7 +414,7 @@ TEST_CASE("enum_value") {
 }
 
 TEST_CASE("enum_values") {
-  REQUIRE(std::is_same_v<decltype(magic_enum::enum_values<Color>()), const std::array<Color, 3>&>);
+  REQUIRE(std::is_same_v<decltype(enum_values<Color>()), const std::array<Color, 3>&>);
 
   constexpr auto& s1 = enum_values<Color&>();
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
@@ -562,7 +562,7 @@ TEST_CASE("enum_flags_name") {
 }
 
 TEST_CASE("enum_names") {
-  REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
+  REQUIRE(std::is_same_v<decltype(enum_names<Color>()), const std::array<std::string_view, 3>&>);
 
   constexpr auto& s1 = enum_names<Color&>();
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
@@ -583,7 +583,7 @@ TEST_CASE("enum_names") {
 }
 
 TEST_CASE("enum_entries") {
-  REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
+  REQUIRE(std::is_same_v<decltype(enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
 
   constexpr auto& s1 = enum_entries<Color&>();
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
@@ -846,16 +846,25 @@ TEST_CASE("enum_switch") {
   REQUIRE(enum_switch<Color>(switcher1(), 1) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), 4) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), 2).empty());
+
+  REQUIRE(enum_switch<Color>(switcher1(), 1, string_view{"cica"}) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), 4, string_view{"cica"}) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), 2, string_view{"cica"}) == "cica");
 
   REQUIRE(enum_switch<Color>(switcher1(), "RED") == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), "BLUE") == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "GREEN").empty());
+
+  REQUIRE(enum_switch<Color>(switcher1(), "RED", string_view{"cica"}) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "BLUE", string_view{"cica"}) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "GREEN", string_view{"cica"}) == "cica");
 
   REQUIRE(enum_switch<Color>(switcher1(), "red", case_insensitive) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), "blue", case_insensitive) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "green", case_insensitive).empty());
+
+  REQUIRE(enum_switch<Color>(switcher1(), "red", string_view{"cica"}, case_insensitive) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "blue", string_view{"cica"}, case_insensitive) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "green", string_view{"cica"}, case_insensitive) == "cica");
 
   auto switcher2 = []() {
@@ -918,8 +927,8 @@ template <typename E, E V>
 struct Foo {};
 
 TEST_CASE("constexpr_for") {
-  constexpr_for<0, magic_enum::enum_count<Color>(), 1>([](auto i) {
-    [[maybe_unused]] Foo<Color, magic_enum::enum_value<Color, i>()> bar{};
+  constexpr_for<0, enum_count<Color>(), 1>([](auto i) {
+    [[maybe_unused]] Foo<Color, enum_value<Color, i>()> bar{};
   });
 }
 
