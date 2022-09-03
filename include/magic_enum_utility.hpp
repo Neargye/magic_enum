@@ -59,7 +59,11 @@ template <typename E, typename F, std::size_t... I>
 constexpr bool all_invocable(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::all_invocable requires enum type.");
 
-  return (std::is_invocable_v<F, enum_constant<values_v<E>[I]>> && ...);
+  if constexpr (count_v<E> == 0) {
+    return false;
+  } else {
+    return (std::is_invocable_v<F, enum_constant<values_v<E>[I]>> && ...);
+  }
 }
 
 struct default_result_type {};
@@ -81,26 +85,25 @@ template <typename F, typename V>
 using invoke_result_t = typename invoke_result<F, V>::type;
 
 template <typename E, typename F, std::size_t... I>
-constexpr auto invocable_index(std::index_sequence<I...>) noexcept {
+constexpr auto common_invocable(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::invocable_index requires enum type.");
 
-  std::size_t i = 0;
-  static_cast<void>(((std::is_invocable_v<F, enum_constant<values_v<E>[I]>> ? (i = I, false) : true) && ...));
-  return i;
-}
-
-template <typename E, typename F, typename R, std::size_t... I>
-constexpr bool same_invocable(std::index_sequence<I...>) noexcept  {
-  static_assert(is_enum_v<E>, "magic_enum::detail::same_invocable requires enum type.");
-
-  return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, R>) && ...);
+  if constexpr (count_v<E> == 0) {
+    return identity<nonesuch>{};
+  } else {
+    return std::common_type<invoke_result_t<F, enum_constant<values_v<E>[I]>>...>{};
+  }
 }
 
 template <typename E, typename F, typename R, std::size_t... I>
 constexpr bool result_invocable(std::index_sequence<I...>) noexcept  {
   static_assert(is_enum_v<E>, "magic_enum::detail::result_invocable requires enum type.");
 
-  return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) && ...);
+  if constexpr (count_v<E> == 0) {
+    return false;
+  } else {
+    return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) && ...);
+  }
 }
 
 template <typename E, typename Result, typename F>
@@ -108,14 +111,14 @@ constexpr auto result_type() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::result_type requires enum type.");
 
   constexpr auto seq = std::make_index_sequence<detail::count_v<E>>{};
-  using R = invoke_result_t<F, enum_constant<values_v<E>[invocable_index<E, F>(seq)]>>;
+  using R = typename decltype(common_invocable<E, F>(seq))::type;
   if constexpr (std::is_same_v<R, nonesuch>) {
     if constexpr (std::is_same_v<Result, default_result_type>) {
       return identity<void>{};
     } else {
       return identity<nonesuch>{};
     }
-  } else if constexpr (same_invocable<E, F, R>(seq)) {
+  } else if constexpr (result_invocable<E, F, R>(seq)) {
     if constexpr (std::is_same_v<Result, default_result_type>) {
       return identity<R>{};
     } else if constexpr (std::is_convertible_v<R, Result>) {
@@ -253,5 +256,15 @@ constexpr auto enum_for_each(F&& f) {
 }
 
 } // namespace magic_enum
+
+
+template <>
+struct std::common_type<magic_enum::detail::nonesuch, magic_enum::detail::nonesuch> : magic_enum::detail::identity<magic_enum::detail::nonesuch> {};
+
+template <typename T>
+struct std::common_type<T, magic_enum::detail::nonesuch> : magic_enum::detail::identity<T> {};
+
+template <typename T>
+struct std::common_type<magic_enum::detail::nonesuch, T> : magic_enum::detail::identity<T> {};
 
 #endif // NEARGYE_MAGIC_ENUM_UTILITY_HPP
