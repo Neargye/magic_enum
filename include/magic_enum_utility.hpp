@@ -89,12 +89,18 @@ constexpr auto invocable_index(std::index_sequence<I...>) noexcept {
   return i;
 }
 
-template <typename E, typename F, std::size_t... I>
+template <typename E, typename F, typename R, std::size_t... I>
 constexpr bool same_invocable(std::index_sequence<I...> seq) noexcept  {
   static_assert(is_enum_v<E>, "magic_enum::detail::same_invocable requires enum type.");
-  using R = invoke_result_t<F, enum_constant<values_v<E>[invocable_index<E, F>(seq)]>>;
 
-  return ((std::is_same_v<nonesuch, invoke_result_t<F, enum_constant<values_v<E>[I]>>> || std::is_same_v<R, invoke_result_t<F, enum_constant<values_v<E>[I]>>>) && ...);
+  return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, R>) && ...);
+}
+
+template <typename E, typename F, typename R, std::size_t... I>
+constexpr bool result_invocable(std::index_sequence<I...> seq) noexcept  {
+  static_assert(is_enum_v<E>, "magic_enum::detail::result_invocable requires enum type.");
+
+  return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) && ...);
 }
 
 template <typename E, typename Result, typename F>
@@ -102,8 +108,14 @@ constexpr auto result_type() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::result_type requires enum type.");
 
   constexpr auto seq = std::make_index_sequence<detail::count_v<E>>{};
-  if constexpr (same_invocable<E, F>(seq)) {
-    using R = invoke_result_t<F, enum_constant<values_v<E>[invocable_index<E, F>(seq)]>>;
+  using R = invoke_result_t<F, enum_constant<values_v<E>[invocable_index<E, F>(seq)]>>;
+  if constexpr (std::is_same_v<R, nonesuch>) {
+    if constexpr (std::is_same_v<Result, default_result_type>) {
+      return identity<void>{};
+    } else {
+      return identity<nonesuch>{};
+    }
+  } else if constexpr (same_invocable<E, F, R>(seq)) {
     if constexpr (std::is_same_v<Result, default_result_type>) {
       return identity<R>{};
     } else if constexpr (std::is_convertible_v<R, Result>) {
@@ -116,6 +128,8 @@ constexpr auto result_type() noexcept {
   } else {
     if constexpr (std::is_same_v<Result, default_result_type>) {
       return identity<void>{};
+    } else if constexpr (result_invocable<E, F, Result>(seq)) {
+      return identity<Result>{};
     } else {
       return identity<nonesuch>{};
     }
