@@ -221,7 +221,7 @@ constexpr R enum_switch(F&& f, underlying_type_t<E> value, Result&& result) {
   return std::forward<Result>(result);
 }
 
-template <typename E, typename F, detail::enable_if_enum_t<E, int> = 0>
+template <typename E, typename F, detail::enable_if_t<E, int> = 0>
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
