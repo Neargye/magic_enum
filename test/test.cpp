@@ -1110,8 +1110,8 @@ TEST_CASE("enum_switch") {
 
   auto switcher1 = []() {
     return overloaded{
-        [](enum_constant<Color::BLUE>) { return string_view{"Blue"}; },
-        [](enum_constant<Color::RED>) { return string_view{"Red"}; }};
+        [](enum_constant<Color::BLUE>) { return string{"Blue"}; },
+        [](enum_constant<Color::RED>) { return string{"Red"}; }};
   };
 
   REQUIRE(enum_switch(switcher1(), Color::RED) == "Red");

@@ -139,110 +139,89 @@ constexpr auto result_type() noexcept {
   }
 }
 
-template <typename E, typename Result, typename F, typename D = std::decay_t<E>>
-using result_t = typename decltype(result_type<D, Result, F>())::type;
+template <bool, typename R>
+struct result {};
+
+template <typename R>
+struct result<true, R> {
+  using type = R;
+  static_assert(detail::has_hash<R>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
+};
+
+template <typename T, typename Result, typename F, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>, typename R = typename decltype(result_type<D, Result, F>())::type>
+using result_t = typename result<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate, char, char> && !std::is_same_v<R, nonesuch>, R>::type;
 
 } // namespace magic_enum::detail
 
-template <typename E, typename Result = detail::default_result_type, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int> = 0>
+template <typename E, typename Result = detail::default_result_type, typename F, typename R = detail::result_t<E, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
-        std::forward<F>(f),
-        value,
-        detail::default_result_type_lambda<R>);
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
-  }
+  return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+      std::forward<F>(f),
+      value,
+      detail::default_result_type_lambda<R>);
 }
 
-template <typename E, typename Result, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int> = 0>
+template <typename E, typename Result, typename F, typename R = detail::result_t<E, Result, F>>
 constexpr R enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
-        std::forward<F>(f),
-        value,
-        [&result] { return std::forward<Result>(result); });
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
-  }
+  return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+      std::forward<F>(f),
+      value,
+      [&result] { return std::forward<Result>(result); });
 }
 
-template <typename E, typename Result = detail::default_result_type, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0>
+template <typename E, typename Result = detail::default_result_type, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F, BinaryPredicate>>
 constexpr decltype(auto) enum_switch(F&& f, string_view value, BinaryPredicate p = {}) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(value, std::move(p))) {
-      return enum_switch<D, Result>(std::forward<F>(f), *v);
-    }
-    return detail::default_result_type_lambda<R>();
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
+  if (const auto v = enum_cast<D>(value, std::move(p))) {
+    return enum_switch<D, Result>(std::forward<F>(f), *v);
   }
+  return detail::default_result_type_lambda<R>();
 }
 
-template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int, BinaryPredicate> = 0, std::enable_if_t<!std::is_invocable_r_v<bool, Result, char, char>, int> = 0>
+template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename F, typename R = detail::result_t<E, Result, F, BinaryPredicate>>
 constexpr R enum_switch(F&& f, string_view value, Result&& result, BinaryPredicate p = {}) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(std::is_invocable_r_v<bool, BinaryPredicate, char, char>, "magic_enum::enum_switch requires bool(char, char) invocable predicate.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(value, std::move(p))) {
-      return enum_switch<D, Result>(std::forward<F>(f), *v, std::forward<Result>(result));
-    }
-    return std::forward<Result>(result);
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
+  if (const auto v = enum_cast<D>(value, std::move(p))) {
+    return enum_switch<D, Result>(std::forward<F>(f), *v, std::forward<Result>(result));
   }
+  return std::forward<Result>(result);
 }
 
-template <typename E, typename Result = detail::default_result_type, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int> = 0>
+template <typename E, typename Result = detail::default_result_type, typename F, typename R = detail::result_t<E, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, underlying_type_t<E> value) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(value)) {
-      return enum_switch<D, Result>(std::forward<F>(f), *v);
-    }
-    return detail::default_result_type_lambda<R>();
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
+  if (const auto v = enum_cast<D>(value)) {
+    return enum_switch<D, Result>(std::forward<F>(f), *v);
   }
+  return detail::default_result_type_lambda<R>();
 }
 
-template <typename E, typename Result, typename F, typename R = detail::result_t<E, Result, F>, detail::enable_if_t<E, int> = 0>
+template <typename E, typename Result, typename F, typename R = detail::result_t<E, Result, F>>
 constexpr R enum_switch(F&& f, underlying_type_t<E> value, Result&& result) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-  if constexpr (detail::has_hash<D> && !std::is_same_v<R, detail::nonesuch>) {
-    if (const auto v = enum_cast<D>(value)) {
-      return enum_switch<D, Result>(std::forward<F>(f), *v, std::forward<Result>(result));
-    }
-    return std::forward<Result>(result);
-  } else {
-    static_assert(detail::has_hash<D>, "magic_enum::enum_switch requires no defined MAGIC_ENUM_NO_HASH.");
-    static_assert(!std::is_same_v<R, detail::nonesuch>, "magic_enum::enum_switch requires the result of all potential invocations to have the same type.");
+  if (const auto v = enum_cast<D>(value)) {
+    return enum_switch<D, Result>(std::forward<F>(f), *v, std::forward<Result>(result));
   }
+  return std::forward<Result>(result);
 }
 
-template <typename E, typename F, detail::enable_if_t<E, int> = 0>
+template <typename E, typename F, detail::enable_if_enum_t<E, int> = 0>
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
