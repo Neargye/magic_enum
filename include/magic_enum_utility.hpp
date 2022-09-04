@@ -102,7 +102,9 @@ constexpr bool result_invocable(std::index_sequence<I...>) noexcept  {
   if constexpr (count_v<E> == 0) {
     return false;
   } else {
-    return ((std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch> || std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) && ...);
+    const auto count_invocable = (static_cast<std::size_t>(std::is_invocable_r_v<R, F, enum_constant<values_v<E>[I]>>) + ...);
+    const auto count_nonesuch = (static_cast<std::size_t>(std::is_same_v<invoke_result_t<F, enum_constant<values_v<E>[I]>>, nonesuch>) + ...);
+    return count_invocable > 0 && (count_invocable + count_nonesuch == count_v<E>);
   }
 }
 
