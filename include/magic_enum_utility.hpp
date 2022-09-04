@@ -236,7 +236,6 @@ constexpr auto enum_for_each(F&& f) {
 
 } // namespace magic_enum
 
-
 template <>
 struct std::common_type<magic_enum::detail::nonesuch, magic_enum::detail::nonesuch> : magic_enum::detail::identity<magic_enum::detail::nonesuch> {};
 

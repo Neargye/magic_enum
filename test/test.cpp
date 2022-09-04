@@ -1088,6 +1088,27 @@ constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
 }
 
+#if defined(_MSC_VER)
+# pragma warning(push)
+# pragma warning(disable : 4789)
+#endif
+
+auto switcher1 () {
+  return overloaded{
+      [](enum_constant<Color::BLUE>) { return string{"Blue"}; },
+      [](enum_constant<Color::RED>) { return string{"Red"}; }};
+}
+
+auto switcher2 () {
+  return overloaded{
+      [](enum_constant<Color::RED>) -> std::optional<std::string> { return "red"; },
+      [](auto) -> std::optional<std::string> { return std::nullopt;}};
+}
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
+
 TEST_CASE("enum_switch") {
   constexpr auto bind_enum_switch = [] (Color c) {
     return enum_switch(
@@ -1107,12 +1128,6 @@ TEST_CASE("enum_switch") {
   REQUIRE(enum_switch(lambda, Color::RED) == "default");
   REQUIRE(enum_switch(lambda, Color::BLUE) == "default");
   REQUIRE(enum_switch(lambda, Color::GREEN) == "override");
-
-  auto switcher1 = []() {
-    return overloaded{
-        [](enum_constant<Color::BLUE>) { return string{"Blue"}; },
-        [](enum_constant<Color::RED>) { return string{"Red"}; }};
-  };
 
   REQUIRE(enum_switch(switcher1(), Color::RED) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), Color::BLUE) == "Blue");
@@ -1145,12 +1160,6 @@ TEST_CASE("enum_switch") {
   REQUIRE(enum_switch<Color>(switcher1(), "red", string{"cica"}, case_insensitive) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), "blue", string{"cica"}, case_insensitive) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "green", string{"cica"}, case_insensitive) == "cica");
-
-  auto switcher2 = []() {
-    return overloaded{
-        [](enum_constant<Color::RED>) -> std::optional<std::string> { return "red"; },
-        [](auto) -> std::optional<std::string> { return std::nullopt;}};
-  };
 
   REQUIRE(enum_switch(switcher2(), Color::RED).value() == "red");
   REQUIRE_FALSE(enum_switch<Color>(switcher2(), Color::BLUE).has_value());
