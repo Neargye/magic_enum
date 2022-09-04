@@ -834,38 +834,38 @@ TEST_CASE("enum_switch") {
 
   auto switcher1 = []() {
     return overloaded{
-        [](enum_constant<Color::BLUE>) { return string_view{"Blue"}; },
-        [](enum_constant<Color::RED>) { return string_view{"Red"}; }};
+        [](enum_constant<Color::BLUE>) { return string{"Blue"}; },
+        [](enum_constant<Color::RED>) { return string{"Red"}; }};
   };
 
   REQUIRE(enum_switch(switcher1(), Color::RED) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), Color::BLUE) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), Color::GREEN).empty());
-  REQUIRE(enum_switch<Color>(switcher1(), Color::GREEN, string_view{"cica"}) == "cica");
+  REQUIRE(enum_switch<Color>(switcher1(), Color::GREEN, "cica") == "cica");
 
   REQUIRE(enum_switch<Color>(switcher1(), 1) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), 4) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), 2).empty());
 
-  REQUIRE(enum_switch<Color>(switcher1(), 1, string_view{"cica"}) == "Red");
-  REQUIRE(enum_switch<Color>(switcher1(), 4, string_view{"cica"}) == "Blue");
-  REQUIRE(enum_switch<Color>(switcher1(), 2, string_view{"cica"}) == "cica");
+  REQUIRE(enum_switch<Color>(switcher1(), 1, "cica") == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), 4, "cica") == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), 2, "cica") == "cica");
 
   REQUIRE(enum_switch<Color>(switcher1(), "RED") == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), "BLUE") == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "GREEN").empty());
 
-  REQUIRE(enum_switch<Color>(switcher1(), "RED", string_view{"cica"}) == "Red");
-  REQUIRE(enum_switch<Color>(switcher1(), "BLUE", string_view{"cica"}) == "Blue");
-  REQUIRE(enum_switch<Color>(switcher1(), "GREEN", string_view{"cica"}) == "cica");
+  REQUIRE(enum_switch<Color>(switcher1(), "RED", "cica") == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "BLUE", "cica") == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), "GREEN", "cica") == "cica");
 
   REQUIRE(enum_switch<Color>(switcher1(), "red", case_insensitive) == "Red");
   REQUIRE(enum_switch<Color>(switcher1(), "blue", case_insensitive) == "Blue");
   REQUIRE(enum_switch<Color>(switcher1(), "green", case_insensitive).empty());
 
-  REQUIRE(enum_switch<Color>(switcher1(), "red", string_view{"cica"}, case_insensitive) == "Red");
-  REQUIRE(enum_switch<Color>(switcher1(), "blue", string_view{"cica"}, case_insensitive) == "Blue");
-  REQUIRE(enum_switch<Color>(switcher1(), "green", string_view{"cica"}, case_insensitive) == "cica");
+  REQUIRE(enum_switch<Color>(switcher1(), "red", "cica", case_insensitive) == "Red");
+  REQUIRE(enum_switch<Color>(switcher1(), "blue", "cica", case_insensitive) == "Blue");
+  REQUIRE(enum_switch<Color>(switcher1(), "green", "cica", case_insensitive) == "cica");
 
   auto switcher2 = []() {
     return overloaded{
