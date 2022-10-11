@@ -93,6 +93,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::GREEN
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
   * Integer to enum value.
@@ -103,6 +105,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::RED
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
 ## `enum_value`
