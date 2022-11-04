@@ -43,8 +43,14 @@
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
 #endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
 
+#if !defined(MAGIC_ENUM_NO_EXCEPTIONS) && (defined(__cpp_exceptions) || defined(_EXCEPTIONS) || defined(_HAS_EXCEPTIONS))
+#  define MAGIC_ENUM_THROW throw std::format_error
+#else
+#  define MAGIC_ENUM_THROW std::terminate(); (void)
+#endif
+
 namespace magic_enum::customize {
-  // customize enum to enable/disable automatic std::format 
+  // customize enum to enable/disable automatic std::format
   template <typename E>
   constexpr bool enum_format_enabled() noexcept {
     return MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT;
@@ -67,7 +73,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::custo
       }
     }
     constexpr auto type_name = magic_enum::enum_type_name<E>();
-    throw std::format_error("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " + std::to_string(magic_enum::enum_integer<D>(e)) + " is not exists.");
+    MAGIC_ENUM_THROW("Type of " + std::string{type_name.data(), type_name.size()} + " enum value: " + std::to_string(magic_enum::enum_integer<D>(e)) + " is not exists.");
   }
 };
 
