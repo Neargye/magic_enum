@@ -40,7 +40,6 @@
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
-#include <iosfwd>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -58,6 +57,9 @@
 #endif
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 #include <string_view>
+#endif
+#if !defined(MAGIC_ENUM_NO_STREAMS)
+#include <iosfwd>
 #endif
 
 #if defined(__clang__)
@@ -1381,6 +1383,8 @@ constexpr auto enum_for_each(Lambda&& lambda) {
   }
 }
 
+#if !defined(MAGIC_ENUM_NO_STREAMS)
+
 namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
@@ -1430,6 +1434,8 @@ using namespace ostream_operators;
 using namespace istream_operators;
 
 } // namespace magic_enum::iostream_operators
+
+#endif
 
 namespace bitwise_operators {
 
