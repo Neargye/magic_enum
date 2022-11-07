@@ -261,7 +261,6 @@ constexpr string_view pretty_name(string_view name) noexcept {
                           (name[0] == '_'))) {
     return name;
   }
-
   return {}; // Invalid name.
 }
 
@@ -1173,7 +1172,6 @@ template <typename E, detail::value_type VT>
   if (check_value != 0 && check_value == static_cast<U>(value)) {
     return name;
   }
-
   return {}; // Invalid value or out of range.
 }
 
@@ -1250,12 +1248,19 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
         static_cast<D>(value),
         detail::default_result_type_lambda<optional<D>>);
 #else
-    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-      if (value == static_cast<U>(enum_value<D>(i))) {
+    if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
+      for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+        if (value == static_cast<U>(enum_value<D>(i))) {
+          return static_cast<D>(value);
+        }
+      }
+      return {}; // Invalid value or out of range.
+    } else {
+      if (value >= detail::min_v<D> && value <= detail::max_v<D>) {
         return static_cast<D>(value);
       }
+      return {}; // Invalid value or out of range.
     }
-    return {}; // Invalid value or out of range.
 #endif
   }
 }
