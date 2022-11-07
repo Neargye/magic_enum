@@ -927,7 +927,7 @@ template <auto* GlobValues,
           typename BinaryPredicate = std::equal_to<>,
           typename Lambda,
           typename ResultGetterType>
-constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
+constexpr decltype(auto) constexpr_switch(
     Lambda&& lambda,
     typename std::decay_t<decltype(*GlobValues)>::value_type searched,
     ResultGetterType&& def,
