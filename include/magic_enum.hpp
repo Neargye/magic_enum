@@ -1231,7 +1231,6 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
       if (check_value != 0 && check_value == value) {
         return static_cast<D>(value);
       }
-      return {}; // Invalid value or out of range.
     } else {
       constexpr auto min = detail::min_v<D>;
       constexpr auto max = detail::values_ors<D>();
@@ -1239,8 +1238,8 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
       if (value >= min && value <= max) {
         return static_cast<D>(value);
       }
-      return {}; // Invalid value or out of range.
     }
+    return {}; // Invalid value or out of range.
   } else {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
     return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
@@ -1254,13 +1253,12 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
           return static_cast<D>(value);
         }
       }
-      return {}; // Invalid value or out of range.
     } else {
       if (value >= detail::min_v<D> && value <= detail::max_v<D>) {
         return static_cast<D>(value);
       }
-      return {}; // Invalid value or out of range.
     }
+    return {}; // Invalid value or out of range.
 #endif
   }
 }
