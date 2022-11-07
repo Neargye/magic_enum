@@ -154,7 +154,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * Enum switch runtime value as constexpr constant
   ```cpp
   Color color = Color::RED;
-  
   magic_enum::enum_switch([] (auto val) {
     constexpr Color c_color = val;
     // ...
