@@ -130,7 +130,7 @@ constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
 
 template <typename R, typename E, typename F, typename Def>
 constexpr decltype(auto) constexpr_switch(F&& f, E value, Def&& def) {
-  static_assert(is_enum_v<E>, "magic_enum::detail::constexpr_switch_impl requires enum type.");
+  static_assert(is_enum_v<E>, "magic_enum::detail::constexpr_switch requires enum type.");
 
   if constexpr (count_v<E> == 0) {
     return def();
