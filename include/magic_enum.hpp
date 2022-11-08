@@ -732,6 +732,7 @@ template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
+
 template <typename T>
 inline constexpr bool has_hash = true;
 
