@@ -43,7 +43,6 @@
 #include <limits>
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
 #include MAGIC_ENUM_CONFIG_FILE
@@ -141,16 +140,28 @@ static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX
 static_assert((MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN) < (std::numeric_limits<std::uint16_t>::max)(), "MAGIC_ENUM_RANGE must be less than UINT16_MAX.");
 
 namespace detail {
-enum class default_customize_tag {};
-enum class invalid_customize_tag {};
+
+enum class customize_tag {
+  default_tag,
+  invalid_tag,
+  custom_tag
+};
+
 } // namespace magic_enum::customize::detail
 
-using customize_t = std::variant<string_view, detail::default_customize_tag, detail::invalid_customize_tag>;
+class customize_t : public std::pair<detail::customize_tag, string_view> {
+ public:
+  constexpr customize_t(string_view srt) : std::pair<detail::customize_tag, string_view>{detail::customize_tag::custom_tag, srt} {}
+  constexpr customize_t(const char* srt) : customize_t{string_view{srt}} {}
+  constexpr customize_t(detail::customize_tag tag) : std::pair<detail::customize_tag, string_view>{tag, string_view{}} {
+    assert(tag != detail::customize_tag::custom_tag);
+  }
+};
 
 // Default customize.
-inline constexpr auto default_tag = detail::default_customize_tag{};
+inline constexpr auto default_tag = customize_t{detail::customize_tag::default_tag};
 // Invalid customize.
-inline constexpr auto invalid_tag = detail::invalid_customize_tag{};
+inline constexpr auto invalid_tag = customize_t{detail::customize_tag::invalid_tag};
 
 // If need custom names for enum, add specialization enum_name for necessary enum type.
 template <typename E>
@@ -409,13 +420,17 @@ constexpr auto type_name() noexcept {
 
   [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
-    constexpr auto name = std::get<string_view>(custom);
+  if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
+    constexpr auto name = custom.second;
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
-  } else {
+  } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
+    return static_string<0>{};
+  } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<E>();
     return static_string<name.size()>{name};
+  } else {
+    static_assert(detail::always_false_v<E>, "magic_enum::customize invalid.");
   }
 }
 
@@ -446,13 +461,17 @@ constexpr auto enum_name() noexcept {
 
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
-    constexpr auto name = std::get<string_view>(custom);
+  if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
+    constexpr auto name = custom.second;
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return static_string<name.size()>{name};
-  } else {
+  } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
+    return static_string<0>{};
+  } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<E, V>();
     return static_string<name.size()>{name};
+  } else {
+    static_assert(detail::always_false_v<E>, "magic_enum::customize invalid.");
   }
 }
 
@@ -471,12 +490,14 @@ constexpr bool is_valid() noexcept {
 #endif
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t> && custom.index() == 0) {
-    constexpr auto name = std::get<string_view>(custom);
+  if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
+    constexpr auto name = custom.second;
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return name.size() != 0;
-  } else {
+  } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     return n<E, v>().size() != 0;
+  } else {
+    return false;
   }
 }
 
