@@ -34,6 +34,9 @@
 
 #include "magic_enum.hpp"
 
+#include <stdexcept>
+#include <tuple>
+
 namespace magic_enum::containers {
 
 namespace detail {
@@ -890,8 +893,9 @@ public:
 
   friend std::istream& operator>>(std::istream& i, bitset& bs) {
     string s;
-    if (i >> s)
+    if (i >> s; !s.empty()) {
       bs = bitset(string_view{s});
+    }
     return i;
   }
 
@@ -1633,7 +1637,7 @@ namespace std {
     return std::move(a[Enum]);
   }
 
-  /* template<class T>
+  template<class T>
   struct tuple_size;
 
   template<typename E, typename V, typename Index>
@@ -1646,7 +1650,7 @@ namespace std {
   template<std::size_t I, typename E, typename V, typename Index>
   struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
     using type = V;
-  }; */
+  };
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
