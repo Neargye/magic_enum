@@ -1,3 +1,5 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://bit.ly/3OMysM8)
+
 ```text
  __  __             _        ______                          _____
 |  \/  |           (_)      |  ____|                        / ____|_     _
@@ -16,8 +18,6 @@
 [![License](https://img.shields.io/github/license/Neargye/magic_enum.svg)](LICENSE)
 [![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/JPMZqT9mgaUdooyC)
 [![Compiler explorer](https://img.shields.io/badge/compiler_explorer-online-blue.svg)](https://godbolt.org/z/BxfmsH)
-
-If you like this project, please consider donating to one of the funds that help victims of the war in Ukraine: https://www.stopputin.net/.
 
 # Magic Enum C++
 
@@ -61,11 +61,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
 ## [Examples](example/example.cpp)
 
-```cpp
-// For example color enum.
-enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
-```
-
 * Enum value to string
 
   ```cpp
@@ -82,6 +77,8 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   if (color.has_value()) {
     // color.value() -> Color::GREEN
   }
+
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
   ```
 
 * Integer to enum value
@@ -90,16 +87,18 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   int color_integer = 2;
   auto color = magic_enum::enum_cast<Color>(color_integer);
   if (color.has_value()) {
-    // color.value() -> Color::RED
+    // color.value() -> Color::BLUE
   }
+
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
   ```
 
 * Indexed access to enum value
 
   ```cpp
-  std::size_t i = 1;
+  std::size_t i = 0;
   Color color = magic_enum::enum_value<Color>(i);
-  // color -> Color::BLUE
+  // color -> Color::RED
   ```
 
 * Enum value sequence
@@ -122,7 +121,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   Color color = Color::RED;
   auto color_integer = magic_enum::enum_integer(color);
-  // color -> 2
+  // color -> 1
   ```
 
 * Enum names sequence
@@ -155,7 +154,6 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Enum switch runtime value as constexpr constant
   ```cpp
   Color color = Color::RED;
-  
   magic_enum::enum_switch([] (auto val) {
     constexpr Color c_color = val;
     // ...

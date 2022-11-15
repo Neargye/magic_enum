@@ -28,6 +28,7 @@
 #undef  MAGIC_ENUM_RANGE_MAX
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
+#include <magic_enum_fuse.hpp>
 
 #include <array>
 #include <cctype>
@@ -84,7 +85,7 @@ struct magic_enum::customize::enum_range<number> {
 
 enum class MaxUsedAsInvalid : std::uint8_t {
   ONE,
-  TWO,
+  TWO = 63,
   INVALID = std::numeric_limits<std::uint8_t>::max()
 };
 template <>
@@ -544,14 +545,14 @@ TEST_CASE("enum_name") {
     Color cb = Color::BLUE;
     REQUIRE(cr_name == "red");
     REQUIRE(enum_name<Color&>(cb) == "BLUE");
-    REQUIRE(enum_name(cm[1]) == "GREEN");
-    REQUIRE(enum_name(static_cast<Color>(0)).empty());
+    REQUIRE(enum_name<as_flags<false>>(cm[1]) == "GREEN");
+    REQUIRE(enum_name<detail::value_type::default_value>(static_cast<Color>(0)).empty());
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name(no);
     REQUIRE(no_name == "one");
-    REQUIRE(enum_name(Numbers::two) == "two");
-    REQUIRE(enum_name(Numbers::three) == "three");
+    REQUIRE(enum_name<Numbers, as_flags<false>>(Numbers::two) == "two");
+    REQUIRE(enum_name<as_flags<false>, Numbers>(Numbers::three) == "three");
     REQUIRE(enum_name(Numbers::many).empty());
     REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
 
@@ -582,6 +583,8 @@ TEST_CASE("enum_name") {
     REQUIRE(nt_name == "three");
     REQUIRE(enum_name(number::four).empty());
     REQUIRE(enum_name(static_cast<number>(0)).empty());
+
+    REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
   }
 
   SECTION("static storage") {
@@ -989,7 +992,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::max_v<Binary> == true);
 
     REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid, false> == 64);
-    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 1);
+    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 63);
   }
 }
 
@@ -1078,22 +1081,6 @@ constexpr std::string_view DoWork() {
 template <>
 constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
-}
-
-TEST_CASE("enum_switch") {
-  constexpr auto bind_enum_switch = [] (Color c) {
-
-    return enum_switch([](auto val) {
-      return DoWork<val>();
-    }, c, string_view{"unrecognized"});
-
-  };
-
-  constexpr auto def = bind_enum_switch(Color::BLUE);
-  REQUIRE(def == "default");
-  REQUIRE(bind_enum_switch(Color::RED) == "default");
-  REQUIRE(bind_enum_switch(Color::GREEN) == "override");
-  REQUIRE(bind_enum_switch(static_cast<Color>(0)) == "unrecognized");
 }
 
 TEST_CASE("enum_for_each") {
@@ -1195,6 +1182,18 @@ TEST_CASE("multdimensional-switch-case") {
   REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::zero) == 2);
   REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::one) == 0);
   REQUIRE(switch_case_3d(Color::BLUE, Directions::Up, Index::two) == 0);
+}
+
+#endif
+
+#if defined(__cpp_lib_format)
+
+#include <magic_enum_format.hpp>
+
+TEST_CASE("format-base") {
+  REQUIRE(std::format("{}", Color::RED) == "red");
+  REQUIRE(std::format("{}", Color{0}) == "0");
+  REQUIRE(std::format("Test-{:~^10}.", Color::RED) == "Test-~~~red~~~~.");
 }
 
 #endif

@@ -6,7 +6,6 @@
 * [`enum_count` returns number of enum values.](#enum_count)
 * [`enum_integer` obtains integer value from enum value.](#enum_integer)
 * [`enum_name` returns name from enum value.](#enum_name)
-* [`enum_flags_name` returns name from enum-flags value.](#enum_flags_name)
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
@@ -15,6 +14,7 @@
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
 * [`enum_for_each` calls a function with all enum constexpr value.](#enum_for_each)
+* [`enum_flags` API from enum-flags.](#enum_flags)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
@@ -93,6 +93,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::GREEN
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
   * Integer to enum value.
@@ -103,6 +105,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::RED
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
 ## `enum_value`
@@ -214,25 +218,6 @@ constexpr string_view enum_name() noexcept;
   constexpr auto color_name = magic_enum::enum_name<color>();
   // color_name -> "BLUE"
   ```
-
-## `enum_flags_name`
-
-```cpp
-template <typename E>
-string enum_flags_name(E value);
-```
-
-* Returns name from enum-flags value as `string` with null-terminated string.
-
-* If enum-flags value does not have name or [out of range](limitations.md),  returns empty string.
-
-* Examples
-
-  ```cpp
-  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
-  // directions_name -> "Directions::Up | Directions::Right"
-  ```
-
 
 ## `enum_names`
 
@@ -350,6 +335,8 @@ template <typename... Es>
 [[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 ```
 
+* You should add the required file `<magic_enum_fuse.hpp>`.
+
 * Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 
 * Return type is `optional<enum_fuse_t>` where `enum_fuse_t` is an incomplete enum, it is unique for any given combination of `Es...`.
@@ -377,19 +364,20 @@ constexpr Result enum_switch(Lambda&& lambda, E value);
 
 template <typename Result, typename E, typename Lambda>
 constexpr Result enum_switch(Lambda&& lambda, E value, Result&& result);
-
-template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<>, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {});
-
-template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {});
-
-template <typename E, typename Result = void, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value);
-
-template <typename E, typename Result, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result);
 ```
+
+* You should add the required file `<magic_enum_switch.hpp>`.
+
+* Examples
+
+  ```cpp
+  Color color = Color::RED;
+
+  magic_enum::enum_switch([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  }, color);
+  ```
 
 ## `enum_for_each`
 
@@ -397,6 +385,51 @@ constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result
 template <typename E, typename Lambda>
 constexpr auto enum_for_each(Lambda&& lambda);
 ```
+
+* Examples
+
+  ```cpp
+  magic_enum::enum_for_each<Color>([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  });
+  ```
+
+## `enum_flags`
+
+```cpp
+template <typename E>
+string enum_flags_name(E value);
+
+template <typename E>
+constexpr optional<E> enum_flags_cast(underlying_type_t<E> value) noexcept;
+
+template <typename E>
+constexpr optional<E> enum_flags_cast(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_flags_cast(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+
+template <typename E>
+constexpr bool enum_flags_contains(E value) noexcept;
+
+template <typename E>
+constexpr bool enum_flags_contains(underlying_type_t<E> value) noexcept;
+
+template <typename E>
+constexpr bool enum_flags_contains(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_flags_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+```
+
+* Examples
+
+  ```cpp
+  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
+  // directions_name -> "Directions::Up | Directions::Right"
+  ```
+
 
 ## `is_unscoped_enum`
 
