@@ -38,8 +38,8 @@
 
 #include <array>
 #include <cassert>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 #include <utility>
