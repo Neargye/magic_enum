@@ -93,11 +93,19 @@ TEST_CASE("enum_cast") {
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
     REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
-    REQUIRE(enum_cast<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == (Color::BLUE | Color::RED));
-    REQUIRE(enum_cast<Color&>("GREEN|RED").value() == (Color::GREEN | Color::RED));
-    REQUIRE(enum_cast<Color&>("GREEN|RED|RED").value() == (Color::GREEN | Color::RED));
+    REQUIRE_FALSE(enum_cast<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).has_value());
+    REQUIRE_FALSE(enum_cast<Color&>("GREEN|RED").has_value());
+    REQUIRE_FALSE(enum_cast<Color&>("GREEN|RED|RED").has_value());
     REQUIRE_FALSE(enum_cast<Color&>("GREEN|RED|None").has_value());
     REQUIRE_FALSE(enum_cast<Color>("None").has_value());
+
+    REQUIRE(enum_flags_cast<Color&>("GREEN").value() == Color::GREEN);
+    REQUIRE(enum_flags_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
+    REQUIRE(enum_flags_cast<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == (Color::BLUE | Color::RED));
+    REQUIRE(enum_flags_cast<Color&>("GREEN|RED").value() == (Color::GREEN | Color::RED));
+    REQUIRE(enum_flags_cast<Color&>("GREEN|RED|RED").value() == (Color::GREEN | Color::RED));
+    REQUIRE_FALSE(enum_flags_cast<Color&>("GREEN|RED|None").has_value());
+    REQUIRE_FALSE(enum_flags_cast<Color>("None").has_value());
 
     constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
@@ -122,7 +130,7 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<Language>("None").has_value());
 #endif
 
-    constexpr auto nto = enum_cast<number>("three|one");
+    constexpr auto nto = enum_flags_cast<number>("three|one");
     REQUIRE(enum_cast<number>("one").value() == number::one);
     REQUIRE(enum_cast<number>("two").value() == number::two);
     REQUIRE(enum_cast<number>("three").value() == number::three);
@@ -137,10 +145,17 @@ TEST_CASE("enum_cast") {
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>(2).value() == Color::GREEN);
     REQUIRE(enum_cast<Color>(static_cast<int>(cm[2])).value() == Color::BLUE);
-    REQUIRE(enum_cast<Color>(1 | 2).value() == (Color::GREEN | Color::RED));
-    REQUIRE(enum_cast<Color>(1 | 2 | 1).value() == (Color::GREEN | Color::RED));
+    REQUIRE_FALSE(enum_cast<Color>(1 | 2).has_value());
+    REQUIRE_FALSE(enum_cast<Color>(1 | 2 | 1).has_value());
     REQUIRE_FALSE(enum_cast<Color>(1 | 2 | 8).has_value());
     REQUIRE_FALSE(enum_cast<Color>(0).has_value());
+
+    REQUIRE(enum_flags_cast<Color&>(2).value() == Color::GREEN);
+    REQUIRE(enum_flags_cast<Color>(static_cast<int>(cm[2])).value() == Color::BLUE);
+    REQUIRE(enum_flags_cast<Color>(1 | 2).value() == (Color::GREEN | Color::RED));
+    REQUIRE(enum_flags_cast<Color>(1 | 2 | 1).value() == (Color::GREEN | Color::RED));
+    REQUIRE_FALSE(enum_flags_cast<Color>(1 | 2 | 8).has_value());
+    REQUIRE_FALSE(enum_flags_cast<Color>(0).has_value());
 
     constexpr auto no = enum_cast<Numbers>(2);
     REQUIRE(no.value() == Numbers::one);
@@ -166,7 +181,7 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<Language>(0).has_value());
 #endif
 
-    constexpr auto nto = enum_cast<number>(2 | 8);
+    constexpr auto nto = enum_flags_cast<number>(2 | 8);
     REQUIRE(enum_cast<number>(1 << 1).value() == number::one);
     REQUIRE(enum_cast<number>(1 << 2).value() == number::two);
     REQUIRE(enum_cast<number>(1 << 3).value() == number::three);
@@ -230,10 +245,19 @@ TEST_CASE("enum_contains") {
     REQUIRE(cr);
     REQUIRE(enum_contains<Color&>(cg));
     REQUIRE(enum_contains(cm[2]));
-    REQUIRE(enum_contains<Color>(Color::RED | Color::GREEN));
-    REQUIRE(enum_contains<Color>(Color::RED | Color::GREEN | Color::GREEN));
+    REQUIRE(enum_contains<Color, as_flags<>>(Color::RED | Color::GREEN));
+    REQUIRE(enum_contains<Color, as_flags<true>>(Color::RED | Color::GREEN | Color::GREEN));
+    REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color::GREEN));
+    REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color::GREEN | Color::GREEN));
     REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color{8}));
     REQUIRE_FALSE(enum_contains(static_cast<Color>(0)));
+
+    REQUIRE(enum_flags_contains<Color&>(cg));
+    REQUIRE(enum_flags_contains(cm[2]));
+    REQUIRE(enum_flags_contains<Color>(Color::RED | Color::GREEN));
+    REQUIRE(enum_flags_contains<Color>(Color::RED | Color::GREEN | Color::GREEN));
+    REQUIRE_FALSE(enum_flags_contains<Color>(Color::RED | Color{8}));
+    REQUIRE_FALSE(enum_flags_contains(static_cast<Color>(0)));
 
     constexpr auto no = enum_contains(Numbers::one);
     REQUIRE(no);
@@ -265,18 +289,30 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number&>(number::two));
     REQUIRE(enum_contains(number::one));
     REQUIRE(enum_contains(number::four));
-    REQUIRE(nto);
+    REQUIRE_FALSE(nto);
     REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
+
+    REQUIRE(enum_flags_contains(number::three | number::one));
   }
 
   SECTION("integer") {
     REQUIRE(enum_contains<Color>(1));
     REQUIRE(enum_contains<Color&>(2));
-    REQUIRE(enum_contains<Color>(4));
-    REQUIRE(enum_contains<Color>(1 | 2));
-    REQUIRE(enum_contains<Color>(1 | 2 | 1));
+    REQUIRE(enum_contains<const Color>(4));
+    REQUIRE(enum_contains<Color, as_flags<>>(1 | 2));
+    REQUIRE(enum_contains<Color, as_flags<true>>(1 | 2 | 1));
+    REQUIRE_FALSE(enum_contains<Color>(1 | 2));
+    REQUIRE_FALSE(enum_contains<Color>(1 | 2 | 1));
     REQUIRE_FALSE(enum_contains<Color>(1 | 2 | 8));
     REQUIRE_FALSE(enum_contains<Color>(0));
+
+    REQUIRE(enum_flags_contains<Color>(1));
+    REQUIRE(enum_flags_contains<Color&>(2));
+    REQUIRE(enum_flags_contains<Color>(4));
+    REQUIRE(enum_flags_contains<Color>(1 | 2));
+    REQUIRE(enum_flags_contains<Color>(1 | 2 | 1));
+    REQUIRE_FALSE(enum_flags_contains<Color>(1 | 2 | 8));
+    REQUIRE_FALSE(enum_flags_contains<Color>(0));
 
     constexpr auto no = enum_contains<Numbers>(1 << 1);
     REQUIRE(no);
@@ -305,9 +341,9 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number>(1 << 2));
     REQUIRE(enum_contains<number>(1 << 3));
     REQUIRE(enum_contains<number>(1 << 4));
-    REQUIRE(enum_contains<number>(8 | 2 | 16));
-    REQUIRE(enum_contains<number>(8 | 16 | 16));
-    REQUIRE(nto);
+    REQUIRE_FALSE(enum_contains<number>(8 | 2 | 16));
+    REQUIRE_FALSE(enum_contains<number>(8 | 16 | 16));
+    REQUIRE_FALSE(nto);
     REQUIRE_FALSE(enum_contains<number>(8 | 64));
     REQUIRE_FALSE(enum_contains<number>(0));
   }
@@ -316,12 +352,23 @@ TEST_CASE("enum_contains") {
     constexpr auto cr = "RED";
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
-    REQUIRE(enum_contains<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE(enum_contains<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE(enum_contains<Color&>("GREEN|RED"));
-    REQUIRE(enum_contains<Color&>("GREEN|RED|RED"));
+    REQUIRE(enum_contains<const Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE(enum_contains<Color&, as_flags<>>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE(enum_contains<Color&, as_flags<true>>("GREEN|RED"));
+    REQUIRE(enum_contains<Color, as_flags<true>>("GREEN|RED|RED"));
+    REQUIRE_FALSE(enum_contains<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE_FALSE(enum_contains<Color&>("GREEN|RED"));
+    REQUIRE_FALSE(enum_contains<Color&>("GREEN|RED|RED"));
     REQUIRE_FALSE(enum_contains<Color>("GREEN|RED|None"));
     REQUIRE_FALSE(enum_contains<Color>("None"));
+
+    REQUIRE(enum_flags_contains<Color&>("GREEN"));
+    REQUIRE(enum_flags_contains<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE(enum_flags_contains<Color>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE(enum_flags_contains<Color>("GREEN|RED"));
+    REQUIRE(enum_flags_contains<Color>("GREEN|RED|RED"));
+    REQUIRE_FALSE(enum_flags_contains<Color>("GREEN|RED|None"));
+    REQUIRE_FALSE(enum_flags_contains<Color>("None"));
 
     constexpr auto no = std::string_view{"one"};
     REQUIRE(enum_contains<Numbers>(no));
@@ -351,8 +398,10 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number>("two"));
     REQUIRE(enum_contains<number>("three"));
     REQUIRE(enum_contains<number>("four"));
-    REQUIRE(nto);
+    REQUIRE_FALSE(nto);
     REQUIRE_FALSE(enum_contains<number>("None"));
+
+    REQUIRE(enum_flags_contains<number>("three|one"));
   }
 }
 
@@ -819,6 +868,16 @@ TEST_CASE("constexpr_for") {
   constexpr_for<0, magic_enum::enum_count<Color>(), 1>([](auto i) {
     [[maybe_unused]] Foo<Color, magic_enum::enum_value<Color, i>()> bar{};
   });
+}
+
+#endif
+
+#if defined(__cpp_lib_format)
+
+#include <magic_enum_format.hpp>
+
+TEST_CASE("format-base") {
+  REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");
 }
 
 #endif

@@ -1,7 +1,5 @@
 include(CheckCXXCompilerFlag)
 
-set(SOURCES test.cpp)
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(OPTIONS /W4 /WX)
     check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
@@ -10,12 +8,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     endif()
 
     check_cxx_compiler_flag(/std:c++20 HAS_CPP20_FLAG)
+    check_cxx_compiler_flag(/std:c++23 HAS_CPP23_FLAG)
     check_cxx_compiler_flag(/std:c++latest HAS_CPPLATEST_FLAG)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
 
     check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
+    check_cxx_compiler_flag(-std=c++23 HAS_CPP23_FLAG)
 endif()
 
 if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
@@ -44,13 +44,22 @@ endfunction()
 
 make_test(test.cpp test-cpp17 c++17)
 make_test(test_flags.cpp test_flags-cpp17 c++17)
+make_test(test_aliases.cpp test_aliases-cpp17 c++17)
 
 if(HAS_CPP20_FLAG)
     make_test(test.cpp test-cpp20 c++20)
     make_test(test_flags.cpp test_flags-cpp20 c++20)
+    make_test(test_aliases.cpp test_aliases-cpp20 c++20)
+endif()
+
+if(HAS_CPP23_FLAG)
+    make_test(test.cpp test-cpp23 c++23)
+    make_test(test_flags.cpp test_flags-cpp23 c++23)
+    make_test(test_aliases.cpp test_aliases-cpp23 c++23)
 endif()
 
 if(HAS_CPPLATEST_FLAG)
     make_test(test.cpp test-cpplatest c++latest)
     make_test(test_flags.cpp test_flags-cpplatest c++latest)
+    make_test(test_aliases.cpp test_aliases-cpplatest c++latest)
 endif()
