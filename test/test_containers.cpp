@@ -60,6 +60,8 @@ struct RGB {
 template <typename T> bool check_const([[maybe_unused]]T& x) { return false; }
 template <typename T> bool check_const([[maybe_unused]]T const& x) { return true; }
 
+constexpr std::uint8_t color_max = std::numeric_limits<std::uint8_t>::max();
+
 TEST_CASE("containers_array") {
 
   using namespace magic_enum::bitwise_operators;
@@ -114,13 +116,13 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_container.at(Color::BLUE).empty());
   REQUIRE_THROWS(color_rgb_container.at(Color::BLUE|Color::GREEN).empty());
 
-  color_rgb_container[Color::RED] = {std::numeric_limits<std::uint8_t>::max(), 0, 0};
-  color_rgb_container[Color::GREEN] = {0, std::numeric_limits<std::uint8_t>::max(), 0};
-  color_rgb_container[Color::BLUE] = {0, 0, std::numeric_limits<std::uint8_t>::max()};
+  color_rgb_container[Color::RED] = {color_max, 0, 0};
+  color_rgb_container[Color::GREEN] = {0, color_max, 0};
+  color_rgb_container[Color::BLUE] = {0, 0, color_max};
 
-  REQUIRE(color_rgb_container.at(Color::RED) == RGB{std::numeric_limits<std::uint8_t>::max(), 0, 0});
-  REQUIRE(color_rgb_container.at(Color::GREEN) == RGB{0, std::numeric_limits<std::uint8_t>::max(), 0});
-  REQUIRE(color_rgb_container.at(Color::BLUE) == RGB{0, 0, std::numeric_limits<std::uint8_t>::max()});
+  REQUIRE(color_rgb_container.at(Color::RED) == RGB{color_max, 0, 0});
+  REQUIRE(color_rgb_container.at(Color::GREEN) == RGB{0, color_max, 0});
+  REQUIRE(color_rgb_container.at(Color::BLUE) == RGB{0, 0, color_max});
 
   auto iterator = color_rgb_container.begin();
   REQUIRE_FALSE(check_const(iterator));
@@ -128,12 +130,12 @@ TEST_CASE("containers_array") {
   REQUIRE(check_const(color_rgb_container.cbegin()));
 
   auto color_rgb_container_compare = magic_enum::containers::array<Color, RGB>();
-  color_rgb_container_compare.fill({std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max()});
+  color_rgb_container_compare.fill({color_max, color_max, color_max});
   REQUIRE_FALSE(color_rgb_container == color_rgb_container_compare);
 
-  color_rgb_container_compare[Color::RED] = {std::numeric_limits<std::uint8_t>::max(), 0, 0};
-  color_rgb_container_compare[Color::GREEN] = {0, std::numeric_limits<std::uint8_t>::max(), 0};
-  color_rgb_container_compare[Color::BLUE] = {0, 0, std::numeric_limits<std::uint8_t>::max()};
+  color_rgb_container_compare[Color::RED] = {color_max, 0, 0};
+  color_rgb_container_compare[Color::GREEN] = {0, color_max, 0};
+  color_rgb_container_compare[Color::BLUE] = {0, 0, color_max};
   REQUIRE(color_rgb_container == color_rgb_container_compare);
 
   for (auto color : colors) {
@@ -165,10 +167,10 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set.size() == 3);
   REQUIRE(magic_enum::enum_count<Color>() == color_set.size());
 
-  for (auto color : color_set) {
+  /*for (auto color : color_set) {
 
     std::cout << color << std::endl;
-  }
+  }*/
 
   // std::sort(std::begin(color_set), std::end(color_set));
 
