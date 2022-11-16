@@ -154,18 +154,18 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set.size() == 0);
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set.size());
 
-  color_set.insert(Color::RED);
-  color_set.insert(Color::GREEN);
-  color_set.insert(Color::BLUE);
-  color_set.insert(Color::RED);
-  color_set.insert(Color::RED|Color::GREEN);
-  color_set.insert(Color::RED|Color::BLUE);
-  color_set.insert(Color::GREEN|Color::BLUE);
-  color_set.insert(Color::RED|Color::GREEN|Color::BLUE);
+  // color_set.insert(Color::RED);
+  // color_set.insert(Color::GREEN);
+  // color_set.insert(Color::BLUE);
+  // color_set.insert(Color::RED);
+  // color_set.insert(Color::RED|Color::GREEN);
+  // color_set.insert(Color::RED|Color::BLUE);
+  // color_set.insert(Color::GREEN|Color::BLUE);
+  // color_set.insert(Color::RED|Color::GREEN|Color::BLUE);
 
-  REQUIRE_FALSE(color_set.empty());
-  REQUIRE(color_set.size() == 3);
-  REQUIRE(magic_enum::enum_count<Color>() == color_set.size());
+  // REQUIRE_FALSE(color_set.empty());
+  // REQUIRE(color_set.size() == 3);
+  // REQUIRE(magic_enum::enum_count<Color>() == color_set.size());
 
   /*for (auto color : color_set) {
 
@@ -174,10 +174,10 @@ TEST_CASE("containers_set") {
 
   // std::sort(std::begin(color_set), std::end(color_set));
 
-  auto color_set_compare = magic_enum::containers::set<Color>();
-  color_set_compare.insert(Color::BLUE);
-  color_set_compare.insert(Color::RED);
-  color_set_compare.insert(Color::GREEN);
+  // auto color_set_compare = magic_enum::containers::set<Color>();
+  // color_set_compare.insert(Color::BLUE);
+  // color_set_compare.insert(Color::RED);
+  // color_set_compare.insert(Color::GREEN);
 
   /*for (auto color : color_set_compare) {
 
