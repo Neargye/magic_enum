@@ -1636,6 +1636,23 @@ namespace std {
                              magic_enum::enum_contains(Enum), const V&&> get( const magic_enum::containers::array<E, V, Index>&& a ) noexcept {
     return std::move(a[Enum]);
   }
+
+#ifdef _WIN32
+  template<class T>
+  struct tuple_size;
+
+  template<typename E, typename V, typename Index>
+  struct tuple_size< magic_enum::containers::array<E, V, Index> > :
+    std::integral_constant<std::size_t, magic_enum::enum_count<E>()> {};
+
+  template<std::size_t I, class T>
+  struct tuple_element;
+
+  template<std::size_t I, typename E, typename V, typename Index>
+  struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
+    using type = V;
+  };
+#endif
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
