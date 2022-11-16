@@ -179,8 +179,8 @@ TEST_CASE("containers_set") {
   color_set_compare.insert(Color::RED);
   color_set_compare.insert(Color::GREEN);
 
-  for (auto color : color_set_compare) {
+  /*for (auto color : color_set_compare) {
 
     std::cout << color << std::endl;
-  }
+  }*/
 }
