@@ -67,12 +67,18 @@ TEST_CASE("containers_array") {
   using namespace magic_enum::bitwise_operators;
   using namespace magic_enum::ostream_operators;
 
+  constexpr magic_enum::containers::array<Color, RGB> color_rgb_initializer {{{{color_max, 0, 0}, {0, color_max, 0}, {0, 0, color_max}}}};
+  for (auto color : color_rgb_initializer) {
+
+    std::cout << color << std::endl;
+  }
+
   /* Issue: a sort will not survive the data integration */
-  magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int {{1U, 4U, 2U}};
+  magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int{{1U, 4U, 2U}};
 
   // Missing: Direct convert to std::array
   // std::array compare_before {1U, 4U, 2U};
-  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before {{1U, 4U, 2U}};
+  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{1U, 4U, 2U}};
   REQUIRE(color_rgb_container_int == compare_before);
 
   constexpr auto colors = magic_enum::enum_values<Color>();
@@ -80,6 +86,13 @@ TEST_CASE("containers_array") {
 
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_before[color]) << std::endl;
   }
+  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
+
+  std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<Color::BLUE>(compare_before)) << std::endl;
 
   REQUIRE(std::make_pair(colors[0], color_rgb_container_int[colors[0]]) == std::make_pair<Color, std::uint8_t>(Color::RED, 1U));
   REQUIRE(std::make_pair(colors[1], color_rgb_container_int[colors[1]]) == std::make_pair<Color, std::uint8_t>(Color::GREEN, 4U));
@@ -89,13 +102,21 @@ TEST_CASE("containers_array") {
 
   // Missing: Direct convert to std::array
   // std::array compare_after {1U, 2U, 4U};
-  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after {{1U, 2U, 4U}};
+  // auto arr = magic_enum::containers::to_array<Color>({Color::RED, Color::GREEN, Color::BLUE});
+  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{1U, 2U, 4U}};
   REQUIRE(color_rgb_container_int == compare_after);
 
   for (auto color : colors) {
 
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_after[color]) << std::endl;
   }
+  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
+
+  std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<Color::BLUE>(compare_after)) << std::endl;
 
   REQUIRE(std::make_pair(colors[0], color_rgb_container_int[colors[0]]) == std::make_pair<Color, std::uint8_t>(Color::RED, 1U));
   REQUIRE(std::make_pair(colors[1], color_rgb_container_int[colors[1]]) == std::make_pair<Color, std::uint8_t>(Color::GREEN, 2U));
@@ -123,6 +144,10 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_container.at(Color::RED) == RGB{color_max, 0, 0});
   REQUIRE(color_rgb_container.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(color_rgb_container.at(Color::BLUE) == RGB{0, 0, color_max});
+
+  REQUIRE(std::get<Color::RED>(color_rgb_container) == RGB{color_max, 0, 0});
+  REQUIRE(std::get<Color::GREEN>(color_rgb_container) == RGB{0, color_max, 0});
+  REQUIRE(std::get<Color::BLUE>(color_rgb_container) == RGB{0, 0, color_max});
 
   auto iterator = color_rgb_container.begin();
   REQUIRE_FALSE(check_const(iterator));

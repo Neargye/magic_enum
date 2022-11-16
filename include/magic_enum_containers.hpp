@@ -48,8 +48,10 @@ namespace detail {
 
   template<typename Eq = std::equal_to<>, typename T1, typename T2>
   constexpr bool equal(T1&& t1, T2&& t2, Eq&& eq = {}) {
-    auto first1 = t1.begin(), last1 = t1.end();
-    auto first2 = t2.begin(), last2 = t2.end();
+    auto first1 = t1.begin();
+    auto last1 = t1.end();
+    auto first2 = t2.begin();
+    auto last2 = t2.end();
 
     for (; first1 != last1; ++first1, ++first2) {
       if (first2 == last2 || !eq(*first1, *first2)) {
@@ -61,13 +63,15 @@ namespace detail {
 
   template<typename Cmp = std::less<>, typename T1, typename T2>
   constexpr bool lexicographical_compare(T1&& t1, T2&& t2, Cmp&& cmp = {}) noexcept {
-    auto first1 = t1.begin(), last1 = t1.end();
-    auto first2 = t2.begin(), last2 = t2.end();
+    auto first1 = t1.begin();
+    auto last1 = t1.end();
+    auto first2 = t2.begin();
+    auto last2 = t2.end();
 
     // copied from std::lexicographical_compare
     for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) {
-      if (cmp(*first1, *first2)) return true;
-      if (cmp(*first2, *first1)) return false;
+      if (cmp(*first1, *first2)) { return true; }
+      if (cmp(*first2, *first1)) { return false; }
     }
     return (first1 == last1) && (first2 != last2);
   }
@@ -93,8 +97,9 @@ namespace detail {
         first = ++it;
         count -= step + 1;
       }
-      else
+      else {
         count = step;
+      }
     }
     return first;
   }
@@ -245,7 +250,7 @@ namespace detail {
     constexpr FilteredIterator& operator=(FilteredIterator&&) noexcept = default;
 
     template<typename OtherParent, typename OtherIterator, typename = std::enable_if_t<std::is_convertible_v<OtherParent, Parent> && std::is_convertible_v<OtherIterator, Iterator>>*>
-    constexpr FilteredIterator(const FilteredIterator<OtherParent, OtherIterator, Getter, Predicate>& other)
+    constexpr explicit FilteredIterator(const FilteredIterator<OtherParent, OtherIterator, Getter, Predicate>& other)
       : parent(other.parent)
       , first(other.first)
       , last(other.last)
@@ -264,8 +269,9 @@ namespace detail {
           , getter{std::move(getter)}
           , predicate{std::move(pred)}
     {
-      if (current == first && !predicate(parent, current))
+      if (current == first && !predicate(parent, current)) {
         ++*this;
+      }
     }
 
     [[nodiscard]] constexpr reference operator*() const {
@@ -613,8 +619,9 @@ public:
     unsigned long long bit{1};
     for (std::size_t i{}; i < (sizeof(val) * 8); ++i, bit <<= 1) {
       if ((val & bit) > 0) {
-        if (i >= enum_count<E>())
+        if (i >= enum_count<E>()) {
           throw std::out_of_range("enum bitset::constructor: Upper bit set in raw number");
+        }
 
         reference{this, i} = true;
       }
@@ -630,8 +637,9 @@ public:
     std::size_t i{};
     for (auto c : sv.substr(pos, n)) {
       if (c == one) {
-        if (i >= enum_count<E>())
+        if (i >= enum_count<E>()) {
           throw std::out_of_range("enum bitset::constructor: Upper bit set in raw string");
+        }
         reference{this, i} = true;
       } else if (c != zero) {
         throw std::invalid_argument("enum bitset::constructor: unrecognized character in raw string");
@@ -719,12 +727,15 @@ public:
   }
 
   [[nodiscard]] constexpr bool all() const noexcept {
-    if constexpr (base_type_count == 0)
+    if constexpr (base_type_count == 0) {
       return true;
+    }
 
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i)
-      if (~a[i])
+    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
+      if (~a[i]) {
         return false;
+      }
+    }
 
     if constexpr (not_interested > 0) {
       return a[base_type_count - 1] == last_value_max;
@@ -733,9 +744,11 @@ public:
   }
 
   [[nodiscard]] constexpr bool any() const noexcept {
-    for (auto& v : a)
-      if (v > 0)
+    for (auto& v : a) {
+      if (v > 0) {
         return true;
+      }
+    }
     return false;
   }
 
@@ -745,8 +758,9 @@ public:
 
   [[nodiscard]] constexpr std::size_t count() const noexcept {
     std::size_t c{};
-    for (auto& v : a)
+    for (auto& v : a) {
       c += detail::popcount(v);
+    }
     return c;
   }
 
@@ -759,27 +773,31 @@ public:
   }
 
   constexpr bitset& operator&= (const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i)
+    for (std::size_t i{}; i < base_type_count; ++i) {
       a[i] &= other.a[i];
+    }
     return *this;
   }
 
   constexpr bitset& operator|= (const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i)
+    for (std::size_t i{}; i < base_type_count; ++i) {
       a[i] |= other.a[i];
+    }
     return *this;
   }
 
   constexpr bitset& operator^= (const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i)
+    for (std::size_t i{}; i < base_type_count; ++i) {
       a[i] ^= other.a[i];
+    }
     return *this;
   }
 
   [[nodiscard]] constexpr bitset operator~() const noexcept {
     bitset res;
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i)
+    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
       res.a[i] = ~a[i];
+    }
 
     if constexpr (not_interested > 0) {
       res.a[base_type_count - 1] = ~a[base_type_count - 1] & last_value_max;
@@ -788,8 +806,9 @@ public:
   }
 
   constexpr bitset& set() noexcept {
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i)
+    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
       a[i] = ~base_type{};
+    }
 
     if constexpr (not_interested > 0) {
       a[base_type_count - 1] = last_value_max;
@@ -843,8 +862,9 @@ public:
   [[nodiscard]] constexpr explicit operator std::enable_if_t<magic_enum::detail::is_flags_v<V>, E>() const {
     E res{};
     for (auto& e : enum_values<E>()) {
-      if (test(e))
+      if (test(e)) {
         res |= e;
+      }
     }
     return res;
   }
@@ -942,13 +962,15 @@ public:
 
   template<typename InputIt>
   constexpr set(InputIt first, InputIt last) {
-    while (first != last)
+    while (first != last) {
       insert(*first++);
+    }
   }
 
   constexpr set(std::initializer_list<E> ilist) {
-    for (auto e : ilist)
+    for (auto e : ilist) {
       insert(e);
+    }
   }
 
   template<typename V = E>
@@ -967,8 +989,9 @@ public:
   constexpr set& operator=(const set&) noexcept = default;
   constexpr set& operator=(set&&) noexcept = default;
   constexpr set& operator=(std::initializer_list<E> ilist) {
-    for (auto e : ilist)
+    for (auto e : ilist) {
       insert(e);
+    }
   }
 
   constexpr const_iterator begin() const noexcept {
@@ -1054,13 +1077,15 @@ public:
 
   template< class InputIt >
   constexpr void insert( InputIt first, InputIt last ) noexcept {
-    while (first != last)
+    while (first != last) {
       insert(*first++);
+    }
   }
 
   constexpr void insert( std::initializer_list<value_type> ilist ) noexcept {
-    for (auto v : ilist)
+    for (auto v : ilist) {
       insert(v);
+    }
   }
 
   template< class... Args >
@@ -1079,15 +1104,16 @@ public:
   }
 
   constexpr iterator erase(const_iterator first, const_iterator last) noexcept {
-    while((first = erase(first)) != last);
+    while((first = erase(first)) != last) { ; }
     return first;
   }
 
   constexpr size_type erase( const key_type& key ) noexcept {
     typename container_type::reference ref = a[key];
     bool res = ref;
-    if (res)
+    if (res) {
       --s;
+    }
     ref = false;
     return res;
   }
@@ -1096,8 +1122,9 @@ public:
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase( K&& x ) noexcept {
     size_type c{};
     for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
-         first != last; )
+         first != last; ) {
       c += erase(*first++);
+    }
     return c;
   }
 
@@ -1114,8 +1141,9 @@ public:
   template<typename K, typename KC = key_compare>
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const {
     size_type c{};
-    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first)
+    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first) {
       c += count(*first);
+    }
     return c;
   }
 
@@ -1129,9 +1157,11 @@ public:
 
   template<class K, typename KC = key_compare>
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const {
-    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first)
-      if (a.test(*first))
+    for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first) {
+      if (a.test(*first)) {
         return find(*first);
+      }
+    }
     return end();
   }
 
@@ -1170,10 +1200,11 @@ public:
   }
 
   [[nodiscard]] constexpr const_iterator upper_bound( const key_type& key ) const noexcept {
-    if (auto i = index_type{}(key))
+    if (auto i = index_type{}(key)) {
       return std::next(const_iterator{this, index_type::values_v->begin(),
                             index_type::values_v->end(),
                             &(*index_type::values_v)[*i]});
+    }
     return end();
   }
 
@@ -1200,12 +1231,13 @@ public:
   }
 
   [[nodiscard]] constexpr friend bool operator<(const set& lhs, const set& rhs) noexcept {
-    if (lhs.s < rhs.s) return true;
-    if (rhs.s < lhs.s) return false;
+    if (lhs.s < rhs.s) { return true; }
+    if (rhs.s < lhs.s) { return false; }
 
     for (auto& e : *index_type::values_v) {
-      if (auto c = rhs.contains(e); c != lhs.contains(e))
+      if (auto c = rhs.contains(e); c != lhs.contains(e)) {
         return c;
+      }
     }
     return false;
   }
@@ -1335,8 +1367,9 @@ public:
     bool inserts = it == end() || *it != v;
     if (inserts) {
       auto nTh = it - begin();
-      for (size_type cp = s; cp > nTh; --cp)
+      for (size_type cp = s; cp > nTh; --cp) {
         a[cp] = a[cp-1];
+      }
       a[nTh] = v;
       ++s;
     }
@@ -1349,19 +1382,22 @@ public:
 
   template<typename InputIterator>
   constexpr void insert(InputIterator begin, InputIterator end) {
-    while(begin != end)
+    while(begin != end) {
       insert(*begin++);
+    }
   }
 
   constexpr void insert(std::initializer_list< value_type > il) {
-    for (auto e : il)
+    for (auto e : il) {
       insert(e);
+    }
   }
 
   template<typename C2>
   constexpr void merge(flat_set<value_type, C2> & other) {
-    for (auto e : other)
+    for (auto e : other) {
       insert(e);
+    }
   }
 
   template<typename C2>
@@ -1379,8 +1415,9 @@ public:
   }
   constexpr iterator erase(const_iterator it) {
     if (it != end()) {
-      for (size_type from = it - begin(); from < s-1; ++from)
+      for (size_type from = it - begin(); from < s-1; ++from) {
         a[from] = a[from+1];
+      }
 
       --s;
     }
@@ -1388,7 +1425,7 @@ public:
   }
 
   constexpr iterator erase(const_iterator first, const_iterator last) {
-    while((first = erase(first)) != last);
+    while ((first = erase(first)) != last) { ; }
     return first;
   }
 
@@ -1399,10 +1436,12 @@ public:
       a[i] = fs.a[i];
       fs.a[i] = v;
     }
-    for (size_type i = until; i < s; ++i)
+    for (size_type i = until; i < s; ++i) {
       fs.a[i] = a[i];
-    for (size_type i = until; i < fs.s; ++i)
+    }
+    for (size_type i = until; i < fs.s; ++i) {
       a[i] = fs.a[i];
+    }
 
     until = s;
     s = fs.s;
@@ -1423,8 +1462,9 @@ public:
 
   [[nodiscard]] constexpr const_iterator find(const key_type & k) const {
     auto it = lower_bound(k);
-    if (it != end() && *it != k)
+    if (it != end() && *it != k) {
       it = end();
+    }
     return it;
   }
 
@@ -1490,10 +1530,12 @@ public:
   }
 
   [[nodiscard]] constexpr friend bool operator==(const flat_set& lhs, const flat_set& rhs) noexcept {
-    if (lhs.s != rhs.s) return false;
-    for (size_type i{}; i < lhs.s; ++i)
-      if (lhs.a[i] != rhs.a[i])
+    if (lhs.s != rhs.s) { return false; }
+    for (size_type i{}; i < lhs.s; ++i) {
+      if (lhs.a[i] != rhs.a[i]) {
         return false;
+      }
+    }
     return true;
   }
 
@@ -1502,12 +1544,13 @@ public:
   }
 
   [[nodiscard]] constexpr friend bool operator<(const flat_set& lhs, const flat_set& rhs) noexcept {
-    if (lhs.s < rhs.s) return true;
-    if (rhs.s < lhs.s) return false;
+    if (lhs.s < rhs.s) { return true; }
+    if (rhs.s < lhs.s) { return false; }
 
     for (auto& e : *index_type::values_v) {
-      if (auto c = rhs.contains(e); c != lhs.contains(e))
+      if (auto c = rhs.contains(e); c != lhs.contains(e)) {
         return c;
+      }
     }
     return false;
   }
@@ -1637,10 +1680,11 @@ namespace std {
     return std::move(a[Enum]);
   }
 
-#ifdef _WIN32
+  /* on macOS with xcode clang is ambiguous
   template<class T>
   struct tuple_size;
 
+  //magic_enum::detail::enable_if_t<E, int> = 0
   template<typename E, typename V, typename Index>
   struct tuple_size< magic_enum::containers::array<E, V, Index> > :
     std::integral_constant<std::size_t, magic_enum::enum_count<E>()> {};
@@ -1651,8 +1695,7 @@ namespace std {
   template<std::size_t I, typename E, typename V, typename Index>
   struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
     using type = V;
-  };
-#endif
+  }; */
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
