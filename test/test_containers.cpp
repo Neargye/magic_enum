@@ -147,6 +147,9 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_container.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(color_rgb_container.at(Color::BLUE) == RGB{0, 0, color_max});
 
+  REQUIRE(color_rgb_container.front() == RGB{color_max, 0, 0});
+  REQUIRE(color_rgb_container.back() == RGB{0, 0, color_max});
+
   REQUIRE(std::get<Color::RED>(color_rgb_container) == RGB{color_max, 0, 0});
   REQUIRE(std::get<Color::GREEN>(color_rgb_container) == RGB{0, color_max, 0});
   REQUIRE(std::get<Color::BLUE>(color_rgb_container) == RGB{0, 0, color_max});

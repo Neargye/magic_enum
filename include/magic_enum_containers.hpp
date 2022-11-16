@@ -111,7 +111,6 @@ namespace detail {
                             }).base()};
   }
 
-
   template<typename E = void, typename Cmp = std::less<E>, typename = void>
   struct indexing {
     [[nodiscard]] constexpr static auto get_indices() noexcept {
@@ -227,7 +226,6 @@ namespace detail {
   };
 
   struct raw_access_t {};
-
 
   template<typename Parent, typename Iterator, typename Getter, typename Predicate>
   struct FilteredIterator {
@@ -928,10 +926,10 @@ public:
     return i;
   }
 
-
 private:
   container_type a;
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                           SET                                                             //
@@ -1322,33 +1320,43 @@ public:
   constexpr flat_set & operator=(std::initializer_list< value_type > il) {
     return *this = flat_set{il};
   }
+
   [[nodiscard]] constexpr const_iterator begin() const noexcept {
     return a.begin();
   }
+
   [[nodiscard]] constexpr const_iterator end() const noexcept {
     return a.begin() + s;
   }
+
   [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept {
     return {end()};
   }
+
   [[nodiscard]] constexpr const_reverse_iterator rend() const noexcept {
     return {begin()};
   }
+
   [[nodiscard]] constexpr const_iterator cbegin() const noexcept {
     return begin();
   }
+
   [[nodiscard]] constexpr const_iterator cend() const noexcept {
     return end();
   }
+
   [[nodiscard]] constexpr const_reverse_iterator crbegin() const noexcept {
     return rbegin();
   }
+
   [[nodiscard]] constexpr const_reverse_iterator crend() const noexcept {
     return rend();
   }
+
   [[nodiscard]] constexpr bool empty() const noexcept {
     return s == 0;
   }
+
   [[nodiscard]] constexpr size_type size() const noexcept {
     return s;
   }
