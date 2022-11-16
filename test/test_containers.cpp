@@ -1,4 +1,4 @@
-// Licensed under the MIT License <http://opensource.org/licenses/MIT>.
+﻿// Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
 //
@@ -72,10 +72,10 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_initializer.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(color_rgb_initializer.at(Color::BLUE) == RGB{0, 0, color_max});
 
-  /* Issue: a sort will not survive the data integration */
+  /* BUG: a sort will not survive the data integration */
   magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int{{1U, 4U, 2U}};
 
-  // Missing: Direct convert to std::array
+  // ENC: Direct convert to std::array
   // std::array compare_before {1U, 4U, 2U};
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{1U, 4U, 2U}};
   REQUIRE(color_rgb_container_int == compare_before);
@@ -86,8 +86,8 @@ TEST_CASE("containers_array") {
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_before[color]) << std::endl;
   }
 
-  // Will not work with msvc2019 - ambiguous
-  // std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
+  // BUG: Will not work with msvc2019 - ambiguous
+  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
   // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
   // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
 
@@ -111,8 +111,8 @@ TEST_CASE("containers_array") {
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_after[color]) << std::endl;
   }
 
-  // Will not work with msvc2019 - ambiguous
-  // std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
+  // BUG: Will not work with msvc2019 - ambiguous
+  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
   // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
   // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
 
@@ -189,7 +189,10 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set.size() == 0);
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set.size());
 
+  // BUG: Will not work on msvc
   // color_set.insert(Color::RED);
+  // color_set.insert({{Color::RED, Color::GREEN}});
+  // auto insert = color_set.insert(Color::RED);
   // color_set.insert(Color::GREEN);
   // color_set.insert(Color::BLUE);
   // color_set.insert(Color::RED);
@@ -218,4 +221,24 @@ TEST_CASE("containers_set") {
 
     std::cout << color << std::endl;
   }*/
+}
+
+TEST_CASE("test_test_test") {
+
+  using namespace magic_enum::ostream_operators;
+
+  std::vector<std::pair<Color, RGB>> map {{Color::GREEN, {0, color_max, 0}}, {Color::BLUE, {0, 0, color_max}}, {Color::RED, {color_max, 0, 0}}};
+  for (auto [key, value] : map) {
+
+    std::cout << "Key=" << key << " Value=" << value << std::endl;
+  }
+  auto cmp = [](std::pair<Color, RGB> const & a,
+                std::pair<Color, RGB> const & b) {
+     return static_cast<std::int32_t>(a.first) < static_cast<std::int32_t>(b.first);
+  };
+  std::sort(std::begin(map), std::end(map), cmp);
+  for (auto [key, value] : map) {
+
+    std::cout << "Key=" << key << " Value=" << value << std::endl;
+  }
 }
