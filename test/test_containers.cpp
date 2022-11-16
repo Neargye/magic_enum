@@ -68,10 +68,9 @@ TEST_CASE("containers_array") {
   using namespace magic_enum::ostream_operators;
 
   constexpr magic_enum::containers::array<Color, RGB> color_rgb_initializer {{{{color_max, 0, 0}, {0, color_max, 0}, {0, 0, color_max}}}};
-  for (auto color : color_rgb_initializer) {
-
-    std::cout << color << std::endl;
-  }
+  REQUIRE(color_rgb_initializer.at(Color::RED) == RGB{color_max, 0, 0});
+  REQUIRE(color_rgb_initializer.at(Color::GREEN) == RGB{0, color_max, 0});
+  REQUIRE(color_rgb_initializer.at(Color::BLUE) == RGB{0, 0, color_max});
 
   /* Issue: a sort will not survive the data integration */
   magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int{{1U, 4U, 2U}};
@@ -86,9 +85,11 @@ TEST_CASE("containers_array") {
 
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_before[color]) << std::endl;
   }
-  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
+
+  // Will not work with msvc2019 - ambiguous
+  // std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
+  // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
+  // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
 
   std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_before)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_before)) << std::endl;
@@ -102,7 +103,6 @@ TEST_CASE("containers_array") {
 
   // Missing: Direct convert to std::array
   // std::array compare_after {1U, 2U, 4U};
-  // auto arr = magic_enum::containers::to_array<Color>({Color::RED, Color::GREEN, Color::BLUE});
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{1U, 2U, 4U}};
   REQUIRE(color_rgb_container_int == compare_after);
 
@@ -110,9 +110,11 @@ TEST_CASE("containers_array") {
 
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_after[color]) << std::endl;
   }
-  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
+
+  // Will not work with msvc2019 - ambiguous
+  // std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
+  // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
+  // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
 
   std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_after)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_after)) << std::endl;
@@ -167,6 +169,11 @@ TEST_CASE("containers_array") {
 
     std::cout << "Key=" << color << " Value=" << color_rgb_container[color] << std::endl;
   }
+
+  constexpr auto from_to_array = magic_enum::containers::to_array<Color, RGB>({{color_max, 0, 0}, {0, color_max, 0}, {0, 0, color_max}});
+  REQUIRE(from_to_array.at(Color::RED) == RGB{color_max, 0, 0});
+  REQUIRE(from_to_array.at(Color::GREEN) == RGB{0, color_max, 0});
+  REQUIRE(from_to_array.at(Color::BLUE) == RGB{0, 0, color_max});
 }
 
 TEST_CASE("containers_set") {

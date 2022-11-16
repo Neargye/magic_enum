@@ -35,7 +35,6 @@
 #include "magic_enum.hpp"
 
 #include <stdexcept>
-#include <tuple>
 
 namespace magic_enum::containers {
 
@@ -504,18 +503,27 @@ struct array {
   container_type a;
 };
 
+namespace detail {
+
+  template <class E, class T, std::size_t N, std::size_t... I>
+  constexpr array<E, std::remove_cv_t<T>> to_array_impl(T (&a)[N], std::index_sequence<I...>) {
+    return {{a[I]...}};
+  }
+
+  template <class E, class T, std::size_t N, std::size_t... I>
+  constexpr array<E, std::remove_cv_t<T>> to_array_impl(T (&&a)[N], std::index_sequence<I...>) {
+    return {{std::move(a[I])...}};
+  }
+}
+
 template<class E, class T, std::size_t N>
 constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T (&a)[N]) {
-  return std::apply([] (auto&& ... vals) {
-    return array<E, std::remove_cv_t<T>>{{std::forward<decltype(vals)>(vals)...}};
-  }, a);
+  return detail::to_array_impl<E>(a, std::make_index_sequence<N>{});
 }
 
 template<class E, class T, std::size_t N>
 constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T (&&a)[N]) {
-  return std::apply([] (auto&& ... vals) {
-    return array<E, std::remove_cv_t<T>>{{std::forward<decltype(vals)>(vals)...}};
-  }, std::move(a));
+  return detail::to_array_impl<E>(std::move(a), std::make_index_sequence<N>{});
 }
 
 template<class E, class ...Ts>
@@ -573,8 +581,9 @@ class bitset {
     }
 
     constexpr reference_impl& operator=(const reference_impl& v) noexcept {
-      if (this == &v)
+      if (this == &v) {
         return *this;
+      }
       *this = static_cast<bool>(v);
       return *this;
     }
@@ -1679,23 +1688,6 @@ namespace std {
                              magic_enum::enum_contains(Enum), const V&&> get( const magic_enum::containers::array<E, V, Index>&& a ) noexcept {
     return std::move(a[Enum]);
   }
-
-  /* on macOS with xcode clang is ambiguous
-  template<class T>
-  struct tuple_size;
-
-  //magic_enum::detail::enable_if_t<E, int> = 0
-  template<typename E, typename V, typename Index>
-  struct tuple_size< magic_enum::containers::array<E, V, Index> > :
-    std::integral_constant<std::size_t, magic_enum::enum_count<E>()> {};
-
-  template<std::size_t I, class T>
-  struct tuple_element;
-
-  template<std::size_t I, typename E, typename V, typename Index>
-  struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
-    using type = V;
-  }; */
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
