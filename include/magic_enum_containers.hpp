@@ -1637,6 +1637,7 @@ namespace std {
     return std::move(a[Enum]);
   }
 
+#ifndef __APPLE__
   template<class T>
   struct tuple_size;
 
@@ -1651,6 +1652,7 @@ namespace std {
   struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
     using type = V;
   };
+#endif
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
