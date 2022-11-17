@@ -1673,25 +1673,25 @@ namespace std {
     return std::move(a.a[I]);
   }
 
-  template< auto Enum, typename E, typename V, typename Index>
+  template< auto Enum, typename E, typename V, typename Index, typename X = decltype(Enum)>
   constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> &&
                              magic_enum::enum_contains(Enum), V&> get( magic_enum::containers::array<E, V, Index>& a ) noexcept {
     return a[Enum];
   }
 
-  template< auto Enum, typename E, typename V, typename Index>
+  template< auto Enum, typename E, typename V, typename Index, typename X = decltype(Enum)>
   constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> &&
                              magic_enum::enum_contains(Enum), V&&> get( magic_enum::containers::array<E, V, Index>&& a ) noexcept {
     return std::move(a[Enum]);
   }
 
-  template< auto Enum, typename E, typename V, typename Index>
+  template< auto Enum, typename E, typename V, typename Index, typename X = decltype(Enum)>
   constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> &&
                              magic_enum::enum_contains(Enum), const V&> get( const magic_enum::containers::array<E, V, Index>& a ) noexcept {
     return a[Enum];
   }
 
-  template< auto Enum, typename E, typename V, typename Index>
+  template< auto Enum, typename E, typename V, typename Index, typename X = decltype(Enum)>
   constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> &&
                              magic_enum::enum_contains(Enum), const V&&> get( const magic_enum::containers::array<E, V, Index>&& a ) noexcept {
     return std::move(a[Enum]);

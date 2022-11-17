@@ -86,10 +86,9 @@ TEST_CASE("containers_array") {
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_before[color]) << std::endl;
   }
 
-  // BUG: Will not work with msvc2019 - ambiguous
   std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
-  // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
-  // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
 
   std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_before)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_before)) << std::endl;
@@ -111,10 +110,9 @@ TEST_CASE("containers_array") {
     std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_after[color]) << std::endl;
   }
 
-  // BUG: Will not work with msvc2019 - ambiguous
   std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
-  // std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
-  // std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
+  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
 
   std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_after)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_after)) << std::endl;
