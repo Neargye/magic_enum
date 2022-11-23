@@ -152,7 +152,7 @@ TEST_CASE("containers_array") {
   REQUIRE(std::get<Color::GREEN>(color_rgb_container) == RGB{0, color_max, 0});
   REQUIRE(std::get<Color::BLUE>(color_rgb_container) == RGB{0, 0, color_max});
 
-  auto *iterator = color_rgb_container.begin();
+  auto iterator = color_rgb_container.begin();
   REQUIRE_FALSE(check_const(iterator));
   REQUIRE(check_const(color_rgb_container.begin()));
   REQUIRE(check_const(color_rgb_container.cbegin()));
