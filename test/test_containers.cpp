@@ -50,15 +50,15 @@ struct RGB {
 
   [[nodiscard]] constexpr bool operator==(RGB rgb) const noexcept { return std::equal_to{}(r, rgb.r) && std::equal_to{}(g, rgb.g) && std::equal_to{}(b, rgb.b); }
 
-  friend std::ostream& operator<<(std::ostream& os, RGB rgb) {
+  friend std::ostream& operator<<(std::ostream& ostream, RGB rgb) {
 
-    os << "R=" << static_cast<std::uint32_t>(rgb.r) << " G=" << static_cast<std::uint32_t>(rgb.g) << " B=" << static_cast<std::uint32_t>(rgb.b);
-    return os;
+    ostream << "R=" << static_cast<std::uint32_t>(rgb.r) << " G=" << static_cast<std::uint32_t>(rgb.g) << " B=" << static_cast<std::uint32_t>(rgb.b);
+    return ostream;
   }
 };
 
-template <typename T> bool check_const([[maybe_unused]]T& x) { return false; }
-template <typename T> bool check_const([[maybe_unused]]T const& x) { return true; }
+template <typename T> bool check_const([[maybe_unused]]T& element) { return false; }
+template <typename T> bool check_const([[maybe_unused]]T const& element) { return true; }
 
 constexpr std::uint8_t color_max = std::numeric_limits<std::uint8_t>::max();
 
@@ -152,7 +152,7 @@ TEST_CASE("containers_array") {
   REQUIRE(std::get<Color::GREEN>(color_rgb_container) == RGB{0, color_max, 0});
   REQUIRE(std::get<Color::BLUE>(color_rgb_container) == RGB{0, 0, color_max});
 
-  auto iterator = color_rgb_container.begin();
+  auto *iterator = color_rgb_container.begin();
   REQUIRE_FALSE(check_const(iterator));
   REQUIRE(check_const(color_rgb_container.begin()));
   REQUIRE(check_const(color_rgb_container.cbegin()));
@@ -223,7 +223,7 @@ TEST_CASE("containers_set") {
 #endif
 }
 
-TEST_CASE("test_test_test") {
+TEST_CASE("map_like_container") {
 
   using namespace magic_enum::ostream_operators;
 
@@ -232,11 +232,11 @@ TEST_CASE("test_test_test") {
 
     std::cout << "Key=" << key << " Value=" << value << std::endl;
   }
-  auto cmp = [](std::pair<Color, RGB> const & a,
-                std::pair<Color, RGB> const & b) {
-     return static_cast<std::int32_t>(a.first) < static_cast<std::int32_t>(b.first);
+  auto compare = [](std::pair<Color, RGB>& lhs,
+                    std::pair<Color, RGB>& rhs) {
+     return static_cast<std::int32_t>(lhs.first) < static_cast<std::int32_t>(rhs.first);
   };
-  std::sort(std::begin(map), std::end(map), cmp);
+  std::sort(std::begin(map), std::end(map), compare);
   for (auto [key, value] : map) {
 
     std::cout << "Key=" << key << " Value=" << value << std::endl;
