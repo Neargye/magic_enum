@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License <http://opensource.org/licenses/MIT>.
+// Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
 //
@@ -190,8 +190,8 @@ TEST_CASE("containers_set") {
   // BUG: Will not work on msvc
 #ifndef _WIN32
   color_set.insert(Color::RED);
-  color_set.insert({{Color::RED, Color::GREEN}});
-  auto insert = color_set.insert(Color::RED);
+  // color_set.insert({{Color::RED, Color::GREEN}});
+  std::ignore = color_set.insert(Color::RED);
   color_set.insert(Color::GREEN);
   color_set.insert(Color::BLUE);
   color_set.insert(Color::RED);
