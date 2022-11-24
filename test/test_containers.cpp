@@ -292,7 +292,6 @@ TEST_CASE("containers_set") {
 
     std::cout << color << std::endl;
   }
-#endif
 
   constexpr magic_enum::containers::set color_set_filled {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE_FALSE(color_set_filled.empty());
@@ -307,6 +306,7 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set_not_const.empty());
   REQUIRE(color_set_not_const.size() == 0);
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set_not_const.size());
+#endif
 }
 
 TEST_CASE("containers_flat_set") {

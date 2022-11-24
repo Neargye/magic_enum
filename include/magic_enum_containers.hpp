@@ -40,7 +40,7 @@ namespace magic_enum::containers {
 
 namespace detail {
   template<typename T, typename = void>
-  constexpr static bool is_transparent_v {};
+  [[maybe_unused]] constexpr static bool is_transparent_v {};
 
   template<typename T>
   constexpr static bool is_transparent_v<T, std::void_t<typename T::is_transparent>> {true};
@@ -750,7 +750,6 @@ public:
     if constexpr (not_interested > 0) {
       return a[base_type_count - 1] == last_value_max;
     }
-    return true;
   }
 
   [[nodiscard]] constexpr bool any() const noexcept {
@@ -1086,29 +1085,29 @@ public:
   }
 
   template< class InputIt >
-  constexpr void insert( InputIt first, InputIt last ) noexcept {
+  constexpr void insert(InputIt first, InputIt last) noexcept {
     while (first != last) {
       insert(*first++);
     }
   }
 
-  constexpr void insert( std::initializer_list<value_type> ilist ) noexcept {
+  constexpr void insert(std::initializer_list<value_type> ilist) noexcept {
     for (auto v : ilist) {
       insert(v);
     }
   }
 
-  template< class... Args >
+  template<class... Args>
   constexpr std::pair<iterator,bool> emplace(Args&&... args) noexcept {
     return insert({std::forward<Args>(args)...});
   }
 
-  template <class... Args>
+  template<class... Args>
   constexpr iterator emplace_hint(const_iterator, Args&&... args) noexcept {
     return emplace(std::forward<Args>(args)...).first;
   }
 
-  constexpr iterator erase( const_iterator pos ) noexcept {
+  constexpr iterator erase(const_iterator pos) noexcept {
     erase(*pos++);
     return pos;
   }
@@ -1118,7 +1117,7 @@ public:
     return first;
   }
 
-  constexpr size_type erase( const key_type& key ) noexcept {
+  constexpr size_type erase(const key_type& key) noexcept {
     typename container_type::reference ref = a[key];
     bool res = ref;
     if (res) {
@@ -1129,7 +1128,7 @@ public:
   }
 
   template<class K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase( K&& x ) noexcept {
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept {
     size_type c{};
     for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
          first != last; ) {
