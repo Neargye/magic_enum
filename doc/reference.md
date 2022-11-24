@@ -20,10 +20,10 @@
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
 * [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
-* [`containers::array` array container for enums.](#containers::array)
-* [`containers::bitset` bitset container for enums.](#containers::bitset)
-* [`containers::flat_set` flat_set container for enums.](#containers::flat_set)
-* [`containers::set` set container for enums.](#containers::set)
+* [`containers::array` array container for enums.](#containersarray)
+* [`containers::bitset` bitset container for enums.](#containersbitset)
+* [`containers::flat_set` flat_set container for enums.](#containersflat_set)
+* [`containers::set` set container for enums.](#containersset)
 
 ## Synopsis
 
@@ -571,73 +571,74 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 ```cpp
 template<typename E, typename V, typename Index = default_indexing<E>>
-struct array
+struct array {
 
-constexpr reference at(E pos)
+  constexpr reference at(E pos);
 
-constexpr const_reference at(E pos) const
+  constexpr const_reference at(E pos) const;
 
-constexpr reference operator[](E pos) noexcept
+  constexpr reference operator[](E pos) noexcept;
 
-constexpr const_reference operator[](E pos) const noexcept
+  constexpr const_reference operator[](E pos) const noexcept;
 
-constexpr reference front() noexcept
+  constexpr reference front() noexcept;
 
-constexpr const_reference front() const noexcept
+  constexpr const_reference front() const noexcept;
 
-constexpr reference back() noexcept
+  constexpr reference back() noexcept;
 
-constexpr const_reference back() const noexcept
+  constexpr const_reference back() const noexcept;
 
-constexpr pointer data() noexcept
+  constexpr pointer data() noexcept;
 
-constexpr const_pointer data() const noexcept
+  constexpr const_pointer data() const noexcept;
 
-constexpr iterator begin() noexcept
+  constexpr iterator begin() noexcept;
 
-constexpr const_iterator begin() const noexcept
+  constexpr const_iterator begin() const noexcept;
 
-constexpr const_iterator cbegin() const noexcept
+  constexpr const_iterator cbegin() const noexcept;
 
-constexpr iterator end() noexcept
+  constexpr iterator end() noexcept;
 
-constexpr const_iterator end() const noexcept
+  constexpr const_iterator end() const noexcept;
 
-constexpr const_iterator cend() const noexcept
+  constexpr const_iterator cend() const noexcept;
 
-constexpr iterator rbegin() noexcept
+  constexpr iterator rbegin() noexcept;
 
-constexpr const_iterator rbegin() const noexcept
+  constexpr const_iterator rbegin() const noexcept;
 
-constexpr const_iterator crbegin() const noexcept
+  constexpr const_iterator crbegin() const noexcept;
 
-constexpr iterator rend() noexcept
+  constexpr iterator rend() noexcept;
 
-constexpr const_iterator rend() const noexcept
+  constexpr const_iterator rend() const noexcept;
 
-constexpr const_iterator crend() const noexcept
+  constexpr const_iterator crend() const noexcept;
 
-constexpr bool empty() const noexcept
+  constexpr bool empty() const noexcept;
 
-constexpr size_type size() const noexcept
+  constexpr size_type size() const noexcept;
 
-constexpr size_type max_size() const noexcept
+  constexpr size_type max_size() const noexcept;
 
-constexpr void fill( const V& value )
+  constexpr void fill( const V& value );
 
-constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>)
+  constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>);
 
-friend constexpr bool operator==(const array& a1, const array& a2)
+  friend constexpr bool operator==(const array& a1, const array& a2);
 
-friend constexpr bool operator!=(const array& a1, const array& a2)
+  friend constexpr bool operator!=(const array& a1, const array& a2);
 
-friend constexpr bool operator<(const array& a1, const array& a2)
+  friend constexpr bool operator<(const array& a1, const array& a2);
 
-friend constexpr bool operator<=(const array& a1, const array& a2)
+  friend constexpr bool operator<=(const array& a1, const array& a2);
 
-friend constexpr bool operator>(const array& a1, const array& a2)
+  friend constexpr bool operator>(const array& a1, const array& a2);
 
-friend constexpr bool operator>=(const array& a1, const array& a2)
+  friend constexpr bool operator>=(const array& a1, const array& a2);
+}
 ```
 
 * STL like array for all enums.
