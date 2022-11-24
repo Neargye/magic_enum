@@ -177,6 +177,78 @@ TEST_CASE("containers_array") {
   REQUIRE(from_to_array.at(Color::BLUE) == RGB{0, 0, color_max});
 }
 
+TEST_CASE("containers_bitset") {
+
+  using namespace magic_enum::bitwise_operators;
+
+  auto color_bitset = magic_enum::containers::bitset<Color>();
+  REQUIRE(color_bitset.to_string().empty());
+  REQUIRE(color_bitset.size() == 3);
+  REQUIRE(magic_enum::enum_count<Color>() == color_bitset.size());
+  REQUIRE_FALSE(color_bitset.all());
+  REQUIRE_FALSE(color_bitset.any());
+  REQUIRE(color_bitset.none());
+  REQUIRE(color_bitset.count() == 0);
+
+  color_bitset.set(Color::GREEN);
+  REQUIRE_FALSE(color_bitset.all());
+  REQUIRE(color_bitset.any());
+  REQUIRE_FALSE(color_bitset.none());
+  REQUIRE(color_bitset.count() == 1);
+  REQUIRE_FALSE(color_bitset.test(Color::RED));
+  REQUIRE(color_bitset.test(Color::GREEN));
+  REQUIRE_FALSE(color_bitset.test(Color::BLUE));
+
+  color_bitset.set(Color::BLUE);
+  REQUIRE_FALSE(color_bitset.all());
+  REQUIRE(color_bitset.any());
+  REQUIRE_FALSE(color_bitset.none());
+  REQUIRE(color_bitset.count() == 2);
+  REQUIRE_FALSE(color_bitset.test(Color::RED));
+  REQUIRE(color_bitset.test(Color::GREEN));
+  REQUIRE(color_bitset.test(Color::BLUE));
+
+  color_bitset.set(Color::RED);
+  REQUIRE(color_bitset.all());
+  REQUIRE(color_bitset.any());
+  REQUIRE_FALSE(color_bitset.none());
+  REQUIRE(color_bitset.count() == 3);
+  REQUIRE(color_bitset.test(Color::RED));
+  REQUIRE(color_bitset.test(Color::GREEN));
+  REQUIRE(color_bitset.test(Color::BLUE));
+
+  color_bitset.reset();
+  REQUIRE_FALSE(color_bitset.all());
+  REQUIRE_FALSE(color_bitset.any());
+  REQUIRE(color_bitset.none());
+  REQUIRE(color_bitset.count() == 0);
+  REQUIRE_FALSE(color_bitset.test(Color::RED));
+  REQUIRE_FALSE(color_bitset.test(Color::GREEN));
+  REQUIRE_FALSE(color_bitset.test(Color::BLUE));
+
+  color_bitset.set(Color::RED);
+  REQUIRE(color_bitset.test(Color::RED));
+  REQUIRE_FALSE(color_bitset.test(Color::GREEN));
+  REQUIRE_FALSE(color_bitset.test(Color::BLUE));
+
+  color_bitset.flip();
+  REQUIRE_FALSE(color_bitset.test(Color::RED));
+  REQUIRE(color_bitset.test(Color::GREEN));
+  REQUIRE(color_bitset.test(Color::BLUE));
+
+  constexpr magic_enum::containers::bitset<Color> color_bitset_all {Color::RED|Color::GREEN|Color::BLUE};
+  REQUIRE(color_bitset_all.to_string() == "RED|GREEN|BLUE");
+  REQUIRE(color_bitset_all.all());
+  REQUIRE(color_bitset_all.any());
+  REQUIRE_FALSE(color_bitset_all.none());
+
+  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
+  REQUIRE(color_bitset_red_green.to_string() == "RED|GREEN");
+  REQUIRE_FALSE(color_bitset_red_green.all());
+  REQUIRE(color_bitset_red_green.any());
+  REQUIRE_FALSE(color_bitset_red_green.none());
+}
+
 TEST_CASE("containers_set") {
 
   using namespace magic_enum::bitwise_operators;
@@ -221,6 +293,28 @@ TEST_CASE("containers_set") {
     std::cout << color << std::endl;
   }
 #endif
+
+  constexpr magic_enum::containers::set color_set_filled {Color::RED, Color::GREEN, Color::BLUE};
+  REQUIRE_FALSE(color_set_filled.empty());
+  REQUIRE(color_set_filled.size() == 3);
+  REQUIRE(magic_enum::enum_count<Color>() == color_set_filled.size());
+
+  magic_enum::containers::set color_set_not_const {Color::RED, Color::GREEN, Color::BLUE};
+  REQUIRE_FALSE(color_set_not_const.empty());
+  REQUIRE(color_set_not_const.size() == 3);
+  REQUIRE(magic_enum::enum_count<Color>() == color_set_not_const.size());
+  color_set_not_const.clear();
+  REQUIRE(color_set_not_const.empty());
+  REQUIRE(color_set_not_const.size() == 0);
+  REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set_not_const.size());
+}
+
+TEST_CASE("containers_flat_set") {
+
+  // magic_enum::containers::flat_set color_flat_set_filled {Color::RED, Color::GREEN, Color::BLUE};
+  // REQUIRE_FALSE(color_flat_set_filled.empty());
+  // REQUIRE(color_flat_set_filled.size() == 3);
+  // REQUIRE(magic_enum::enum_count<Color>() == color_flat_set_filled.size());
 }
 
 TEST_CASE("map_like_container") {

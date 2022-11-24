@@ -230,7 +230,9 @@ namespace detail {
   template<typename Parent, typename Iterator, typename Getter, typename Predicate>
   struct FilteredIterator {
     Parent parent;
-    Iterator first, last, current;
+    Iterator first;
+    Iterator last;
+    Iterator current;
     Getter getter;
     Predicate predicate;
 
@@ -877,9 +879,9 @@ public:
   }
 
   [[nodiscard]] string to_string(char sep = '|') const {
-    if constexpr (magic_enum::detail::is_flags_v<E>) {
-      return enum_flags_name(static_cast<E>(*this), sep);
-    } else {
+    // if constexpr (magic_enum::detail::is_flags_v<E>) {
+    //   return enum_flags_name(static_cast<E>(*this), sep);
+    // } else {
       string name;
 
       for (auto& e : enum_values<E>()) {
@@ -892,7 +894,7 @@ public:
         }
       }
       return name;
-    }
+    // }
   }
 
   [[nodiscard]] string to_string(detail::raw_access_t,
@@ -1384,7 +1386,7 @@ public:
     bool inserts = it == end() || *it != v;
     if (inserts) {
       auto nTh = it - begin();
-      for (size_type cp = s; cp > nTh; --cp) {
+      for (size_type cp = s; cp > static_cast<size_type>(nTh); --cp) {
         a[cp] = a[cp-1];
       }
       a[nTh] = v;
