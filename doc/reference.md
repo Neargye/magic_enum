@@ -20,6 +20,10 @@
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
 * [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
+* [`containers::array` array container for enums.](#containers_array)
+* [`containers::bitset` bitset container for enums.](#containers_bitset)
+* [`containers::flat_set` flat_set container for enums.](#containers_flat_set)
+* [`containers::set` set container for enums.](#containers_set)
 
 ## Synopsis
 
@@ -427,7 +431,7 @@ constexpr optional<E> enum_flags_contains(string_view value, BinaryPredicate p) 
 
   ```cpp
   auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
-  // directions_name -> "Directions::Up | Directions::Right"
+  // directions_name -> "Directions::Up|Directions::Right"
   ```
 
 
@@ -561,4 +565,40 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flags = Flags::A | Flags::B & ~Flags::C;
+  ```
+
+## `containers_array`
+
+```cpp
+
+```
+
+* STL like array for all enums.
+
+* Examples
+
+  ```cpp
+  enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+  struct RGB {
+
+    std::uint8_t r {};
+    std::uint8_t g {};
+    std::uint8_t b {};
+  };
+  constexpr magic_enum::containers::array<Color, RGB> color_rgb_array {{{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}}}};
+  ```
+
+  ```cpp
+  enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+  struct RGB {
+
+    std::uint8_t r {};
+    std::uint8_t g {};
+    std::uint8_t b {};
+  };
+  magic_enum::containers::array<Color, RGB> color_rgb_array {};
+  color_rgb_array[Color::RED] = {255, 0, 0};
+  color_rgb_array[Color::GREEN] = {0, 255, 0};
+  color_rgb_array[Color::BLUE] = {0, 0, 255};
+  std::get<Color::BLUE>(color_rgb_array) -> RGB{0, 0, 255}
   ```

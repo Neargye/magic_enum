@@ -247,6 +247,8 @@ TEST_CASE("containers_bitset") {
   REQUIRE_FALSE(color_bitset_red_green.all());
   REQUIRE(color_bitset_red_green.any());
   REQUIRE_FALSE(color_bitset_red_green.none());
+
+  std::cout << magic_enum::enum_flags_name(Color::GREEN | Color::RED) << std::endl;
 }
 
 TEST_CASE("containers_set") {
