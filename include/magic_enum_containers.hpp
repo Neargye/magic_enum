@@ -741,7 +741,8 @@ public:
     }
 
     for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
-      if (~a[i]) {
+      auto check = ~a[i];
+      if (check) {
         return false;
       }
     }
