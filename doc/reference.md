@@ -20,10 +20,10 @@
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
 * [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
-* [`containers::array` array container for enums.](#containers_array)
-* [`containers::bitset` bitset container for enums.](#containers_bitset)
-* [`containers::flat_set` flat_set container for enums.](#containers_flat_set)
-* [`containers::set` set container for enums.](#containers_set)
+* [`containers::array` array container for enums.](#containers::array)
+* [`containers::bitset` bitset container for enums.](#containers::bitset)
+* [`containers::flat_set` flat_set container for enums.](#containers::flat_set)
+* [`containers::set` set container for enums.](#containers::set)
 
 ## Synopsis
 
@@ -567,10 +567,77 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
   Flags flags = Flags::A | Flags::B & ~Flags::C;
   ```
 
-## `containers_array`
+## `containers::array`
 
 ```cpp
+template<typename E, typename V, typename Index = default_indexing<E>>
+struct array
 
+constexpr reference at(E pos)
+
+constexpr const_reference at(E pos) const
+
+constexpr reference operator[](E pos) noexcept
+
+constexpr const_reference operator[](E pos) const noexcept
+
+constexpr reference front() noexcept
+
+constexpr const_reference front() const noexcept
+
+constexpr reference back() noexcept
+
+constexpr const_reference back() const noexcept
+
+constexpr pointer data() noexcept
+
+constexpr const_pointer data() const noexcept
+
+constexpr iterator begin() noexcept
+
+constexpr const_iterator begin() const noexcept
+
+constexpr const_iterator cbegin() const noexcept
+
+constexpr iterator end() noexcept
+
+constexpr const_iterator end() const noexcept
+
+constexpr const_iterator cend() const noexcept
+
+constexpr iterator rbegin() noexcept
+
+constexpr const_iterator rbegin() const noexcept
+
+constexpr const_iterator crbegin() const noexcept
+
+constexpr iterator rend() noexcept
+
+constexpr const_iterator rend() const noexcept
+
+constexpr const_iterator crend() const noexcept
+
+constexpr bool empty() const noexcept
+
+constexpr size_type size() const noexcept
+
+constexpr size_type max_size() const noexcept
+
+constexpr void fill( const V& value )
+
+constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>)
+
+friend constexpr bool operator==(const array& a1, const array& a2)
+
+friend constexpr bool operator!=(const array& a1, const array& a2)
+
+friend constexpr bool operator<(const array& a1, const array& a2)
+
+friend constexpr bool operator<=(const array& a1, const array& a2)
+
+friend constexpr bool operator>(const array& a1, const array& a2)
+
+friend constexpr bool operator>=(const array& a1, const array& a2)
 ```
 
 * STL like array for all enums.
@@ -578,24 +645,10 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 * Examples
 
   ```cpp
-  enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
-  struct RGB {
-
-    std::uint8_t r {};
-    std::uint8_t g {};
-    std::uint8_t b {};
-  };
   constexpr magic_enum::containers::array<Color, RGB> color_rgb_array {{{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}}}};
   ```
 
   ```cpp
-  enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
-  struct RGB {
-
-    std::uint8_t r {};
-    std::uint8_t g {};
-    std::uint8_t b {};
-  };
   magic_enum::containers::array<Color, RGB> color_rgb_array {};
   color_rgb_array[Color::RED] = {255, 0, 0};
   color_rgb_array[Color::GREEN] = {0, 255, 0};
