@@ -1004,15 +1004,15 @@ public:
   }
 
   constexpr const_iterator begin() const noexcept {
-    return const_iterator{this, index_type::values_v->begin(),
-                          index_type::values_v->end(),
-                          index_type::values_v->begin()};
+    return const_iterator{this, &(*index_type::values_v->begin()),
+                          &(*index_type::values_v->end()),
+                          &(*index_type::values_v->begin())};
   }
 
   constexpr const_iterator end() const noexcept {
-    return const_iterator{this, index_type::values_v->begin(),
-                          index_type::values_v->end(),
-                          index_type::values_v->end()};
+    return const_iterator{this, &(*index_type::values_v->begin()),
+                          &(*index_type::values_v->end()),
+                          &(*index_type::values_v->end())};
   }
 
   constexpr const_iterator cbegin() const noexcept {
@@ -1065,8 +1065,8 @@ public:
         ++s;
       }
 
-      return {iterator{this, index_type::values_v->begin(),
-                       index_type::values_v->end(),
+      return {iterator{this, &(*index_type::values_v->begin()),
+                       &(*index_type::values_v->end()),
                        &(*index_type::values_v)[*i]}, r};
     }
     return {end(), false};
@@ -1328,7 +1328,7 @@ public:
   }
 
   [[nodiscard]] constexpr const_iterator end() const noexcept {
-    return a.begin() + s;
+    return a.end();
   }
 
   [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept {
@@ -1702,6 +1702,19 @@ namespace std {
                              magic_enum::enum_contains(Enum), const V&&> get( const magic_enum::containers::array<E, V, Index>&& a ) noexcept {
     return std::move(a[Enum]);
   }
+
+  template<class T>
+    struct tuple_size;
+    //magic_enum::detail::enable_if_t<E, int> = 0
+    template<typename E, typename V, typename Index>
+    struct tuple_size< magic_enum::containers::array<E, V, Index> > :
+      std::integral_constant<std::size_t, magic_enum::enum_count<E>()> {};
+    template<std::size_t I, class T>
+    struct tuple_element;
+    template<std::size_t I, typename E, typename V, typename Index>
+    struct tuple_element< I, magic_enum::containers::array<E, V, Index> > {
+      using type = V;
+    };
 }
 
 #endif// NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
