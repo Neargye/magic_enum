@@ -1328,7 +1328,7 @@ public:
   }
 
   [[nodiscard]] constexpr const_iterator end() const noexcept {
-    return a.end();
+    return a.begin() + s;
   }
 
   [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept {

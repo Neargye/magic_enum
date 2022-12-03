@@ -86,13 +86,13 @@ TEST_CASE("containers_array") {
 
   constexpr auto colors = magic_enum::enum_values<Color>();
 
-  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_before)) << std::endl;
+  std::ignore = std::get<0>(compare_before);
+  std::ignore = std::get<1>(compare_before);
+  std::ignore = std::get<2>(compare_before);
 
-  std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_before)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<Color::BLUE>(compare_before)) << std::endl;
+  std::ignore = std::get<Color::RED>(compare_before);
+  std::ignore = std::get<Color::GREEN>(compare_before);
+  std::ignore = std::get<Color::BLUE>(compare_before);
 
   REQUIRE(std::make_pair(colors[0], color_rgb_container_int[colors[0]]) == std::make_pair<Color, std::uint8_t>(Color::RED, 1U));
   REQUIRE(std::make_pair(colors[1], color_rgb_container_int[colors[1]]) == std::make_pair<Color, std::uint8_t>(Color::GREEN, 4U));
@@ -105,13 +105,13 @@ TEST_CASE("containers_array") {
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{1U, 2U, 4U}};
   REQUIRE(color_rgb_container_int == compare_after);
 
-  std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<2>(compare_after)) << std::endl;
+  std::ignore = std::get<0>(compare_after);
+  std::ignore = std::get<1>(compare_after);
+  std::ignore = std::get<2>(compare_after);
 
-  std::cout << static_cast<std::uint32_t>(std::get<Color::RED>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<Color::GREEN>(compare_after)) << std::endl;
-  std::cout << static_cast<std::uint32_t>(std::get<Color::BLUE>(compare_after)) << std::endl;
+  std::ignore = std::get<Color::RED>(compare_after);
+  std::ignore = std::get<Color::GREEN>(compare_after);
+  std::ignore = std::get<Color::BLUE>(compare_after);
 
   REQUIRE(std::make_pair(colors[0], color_rgb_container_int[colors[0]]) == std::make_pair<Color, std::uint8_t>(Color::RED, 1U));
   REQUIRE(std::make_pair(colors[1], color_rgb_container_int[colors[1]]) == std::make_pair<Color, std::uint8_t>(Color::GREEN, 2U));
@@ -291,7 +291,7 @@ TEST_CASE("containers_set") {
 
 TEST_CASE("containers_flat_set") {
 
-  // magic_enum::containers::flat_set color_flat_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
+  // constexpr magic_enum::containers::flat_set color_flat_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
   // REQUIRE_FALSE(color_flat_set_filled.empty());
   // REQUIRE(color_flat_set_filled.size() == 3);
   // REQUIRE(magic_enum::enum_count<Color>() == color_flat_set_filled.size());
