@@ -85,10 +85,6 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_container_int == compare_before);
 
   constexpr auto colors = magic_enum::enum_values<Color>();
-  for (auto color : colors) {
-
-    std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_before[color]) << std::endl;
-  }
 
   std::cout << static_cast<std::uint32_t>(std::get<0>(compare_before)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<1>(compare_before)) << std::endl;
@@ -108,11 +104,6 @@ TEST_CASE("containers_array") {
   // std::array compare_after {1U, 2U, 4U};
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{1U, 2U, 4U}};
   REQUIRE(color_rgb_container_int == compare_after);
-
-  for (auto color : colors) {
-
-    std::cout << "Key=" << color << " Value=" << static_cast<std::uint32_t>(compare_after[color]) << std::endl;
-  }
 
   std::cout << static_cast<std::uint32_t>(std::get<0>(compare_after)) << std::endl;
   std::cout << static_cast<std::uint32_t>(std::get<1>(compare_after)) << std::endl;
@@ -169,11 +160,6 @@ TEST_CASE("containers_array") {
   color_rgb_container_compare[Color::GREEN] = {0, color_max, 0};
   color_rgb_container_compare[Color::BLUE] = {0, 0, color_max};
   REQUIRE(color_rgb_container == color_rgb_container_compare);
-
-  for (auto color : colors) {
-
-    std::cout << "Key=" << color << " Value=" << color_rgb_container[color] << std::endl;
-  }
 
   constexpr auto from_to_array = magic_enum::containers::to_array<Color, RGB>({{color_max, 0, 0}, {0, color_max, 0}, {0, 0, color_max}});
   REQUIRE(from_to_array.at(Color::RED) == RGB{color_max, 0, 0});
@@ -251,14 +237,12 @@ TEST_CASE("containers_bitset") {
 
   constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
   REQUIRE(color_bitset_red_green.to_string() == "RED|GREEN");
-  REQUIRE(color_bitset_all.to_string( {}, '0', '1' ) == "111"); // FIXME: This must be 110
-  REQUIRE(color_bitset_all.to_ulong( {} ) == 7); // FIXME: This must be 3
-  REQUIRE(color_bitset_all.to_ullong( {} ) == 7); // FIXME: This must be 3
+  REQUIRE(color_bitset_red_green.to_string( {}, '0', '1' ) == "110");
+  REQUIRE(color_bitset_red_green.to_ulong( {} ) == 3);
+  REQUIRE(color_bitset_red_green.to_ullong( {} ) == 3);
   REQUIRE_FALSE(color_bitset_red_green.all());
   REQUIRE(color_bitset_red_green.any());
   REQUIRE_FALSE(color_bitset_red_green.none());
-
-  std::cout << magic_enum::enum_flags_name(Color::GREEN | Color::RED) << std::endl;
 }
 
 TEST_CASE("containers_set") {
@@ -271,9 +255,7 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set.size() == 0);
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set.size());
 
-  // BUG: Will not work on msvc
   color_set.insert(Color::RED);
-  // color_set.insert({{Color::RED, Color::GREEN}});
   std::ignore = color_set.insert(Color::RED);
   color_set.insert(Color::GREEN);
   color_set.insert(Color::BLUE);
@@ -287,22 +269,10 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set.size() == 3);
   REQUIRE(magic_enum::enum_count<Color>() == color_set.size());
 
-  for (auto color : color_set) {
-
-    std::cout << color << std::endl;
-  }
-
-  // std::sort(std::begin(color_set), std::end(color_set));
-
   auto color_set_compare = magic_enum::containers::set<Color>();
   color_set_compare.insert(Color::BLUE);
   color_set_compare.insert(Color::RED);
   color_set_compare.insert(Color::GREEN);
-
-  for (auto color : color_set_compare) {
-
-    std::cout << color << std::endl;
-  }
 
   constexpr magic_enum::containers::set color_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE_FALSE(color_set_filled.empty());
