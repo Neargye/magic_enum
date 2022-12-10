@@ -621,17 +621,38 @@ constexpr bool is_flags_enum() noexcept {
 #if defined(MAGIC_ENUM_NO_CHECK_FLAGS)
     return false;
 #else
-    constexpr auto flags_values = values<E, true>();
     constexpr auto default_values = values<E, false>();
-    if (flags_values.size() == 0 || default_values.size() > flags_values.size()) {
-      return false;
-    }
-    for (std::size_t i = 0; i < default_values.size(); ++i) {
-      const auto v = static_cast<U>(default_values[i]);
-      if (v != 0 && (v & (v - 1)) != 0) {
+    constexpr auto flags_values = values<E, true>();
+
+    if (default_values.size() == flags_values.size()) {
+      bool equal = true;
+      for (std::size_t i = 0; i < default_values.size(); ++i) {
+        if (default_values[i] != flags_values[i]) {
+          equal = false;
+          break;
+        }
+      }
+      if (equal) {
         return false;
       }
     }
+
+    for (std::size_t i = 0; i < default_values.size(); ++i) {
+      const auto vd = static_cast<U>(default_values[i]);
+      if (vd != 0 && (vd & (vd - 1)) != 0) {
+        auto check_value = U{0};
+        for (std::size_t j = 0; j < flags_values.size(); ++j) {
+          const auto vf = static_cast<U>(flags_values[j]);
+          if ((vd & vf) != 0) {
+            check_value |= vf;
+          }
+        }
+        if (check_value == 0 || check_value != vd) {
+          return false;
+        }
+      }
+    }
+
     return flags_values.size() > 0;
 #endif
   }
