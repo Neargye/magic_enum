@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 #define NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 
+#ifdef _WIN32
+#define _ITERATOR_DEBUG_LEVEL 0
+#endif
+
 #include "magic_enum.hpp"
 
 #include <stdexcept>
@@ -1282,6 +1286,7 @@ private:
   std::size_t s{};
 };
 
+/*
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                         FLATSET                                                           //
@@ -1606,6 +1611,8 @@ private:
   container_type a;
   std::size_t s;
 };
+
+*/
 
 /*
 

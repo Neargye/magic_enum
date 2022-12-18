@@ -29,10 +29,6 @@
 #  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
 #endif
 
-#ifdef _WIN32
-#define _ITERATOR_DEBUG_LEVEL 0
-#endif
-
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
