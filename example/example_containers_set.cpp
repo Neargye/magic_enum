@@ -43,7 +43,6 @@ int main() {
 
   color_set.insert(Color::GREEN);
   color_set.insert(Color::BLUE);
-
   std::cout << color_set.empty() << std::endl; // false
   std::cout << color_set.size() << std::endl; // 2
 
