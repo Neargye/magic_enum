@@ -251,27 +251,34 @@ class static_string<0> {
 };
 
 constexpr string_view pretty_name(string_view name) noexcept {
+  char const* str = name.data();
   for (std::size_t i = name.size(); i > 0; --i) {
-    if (!((name[i - 1] >= '0' && name[i - 1] <= '9') ||
-          (name[i - 1] >= 'a' && name[i - 1] <= 'z') ||
-          (name[i - 1] >= 'A' && name[i - 1] <= 'Z') ||
+    char c = str[i - 1];
+    if (!((c >= '0' && c <= '9') ||
+          (c >= 'a' && c <= 'z') ||
+          (c >= 'A' && c <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-          (name[i - 1] & 0x80) ||
+          (c & 0x80) ||
 #endif
-          (name[i - 1] == '_'))) {
+          (c == '_'))) {
       name.remove_prefix(i);
       break;
     }
   }
 
-  if (name.size() > 0 && ((name[0] >= 'a' && name[0] <= 'z') ||
-                          (name[0] >= 'A' && name[0] <= 'Z') ||
+  if (name.size() > 0)
+  {
+      char c = name[0];
+    if ((c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-                          (name[0]) & 0x80) ||
+        (c) & 0x80) ||
 #endif
-                          (name[0] == '_'))) {
-    return name;
+        (c == '_')) {
+      return name;
+    }
   }
+  
   return {}; // Invalid name.
 }
 
