@@ -1192,11 +1192,11 @@ public:
   }
 
   template<typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range( const K& x ) const noexcept {
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range(const K& x) const noexcept {
     return {lower_bound(x), upper_bound(x)};
   }
 
-  [[nodiscard]] constexpr const_iterator lower_bound( const key_type& key ) const noexcept {
+  [[nodiscard]] constexpr const_iterator lower_bound(const key_type& key) const noexcept {
     if (auto i = index_type{}(key)) {
       auto it = const_iterator{this, index_type::values_v->begin(),
                                index_type::values_v->end(),
@@ -1207,12 +1207,12 @@ public:
   }
 
   template<typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound( const K& x ) const noexcept {
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const noexcept {
     auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
     return first != last ? lower_bound(*first) : end();
   }
 
-  [[nodiscard]] constexpr const_iterator upper_bound( const key_type& key ) const noexcept {
+  [[nodiscard]] constexpr const_iterator upper_bound(const key_type& key) const noexcept {
     if (auto i = index_type{}(key)) {
       return std::next(const_iterator{this, index_type::values_v->begin(),
                             index_type::values_v->end(),
@@ -1222,7 +1222,7 @@ public:
   }
 
   template<typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound( const K& x ) const noexcept {
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const noexcept {
     auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{});
     return first != last ? upper_bound(*std::prev(last)) : end();
   }
