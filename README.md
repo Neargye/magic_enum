@@ -1,5 +1,3 @@
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://bit.ly/3OMysM8)
-
 ```text
  __  __             _        ______                          _____
 |  \/  |           (_)      |  ____|                        / ____|_     _
