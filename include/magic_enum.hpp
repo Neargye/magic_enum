@@ -251,9 +251,9 @@ class static_string<0> {
 };
 
 constexpr string_view pretty_name(string_view name) noexcept {
-  char const* str = name.data();
+  const char* str = name.data();
   for (std::size_t i = name.size(); i > 0; --i) {
-    char c = str[i - 1];
+    const char c = str[i - 1];
     if (!((c >= '0' && c <= '9') ||
           (c >= 'a' && c <= 'z') ||
           (c >= 'A' && c <= 'Z') ||
@@ -266,19 +266,18 @@ constexpr string_view pretty_name(string_view name) noexcept {
     }
   }
 
-  if (name.size() > 0)
-  {
-      char c = name[0];
+  if (name.size() > 0) {
+    const char c = name[0];
     if ((c >= 'a' && c <= 'z') ||
         (c >= 'A' && c <= 'Z') ||
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
-        (c) & 0x80) ||
+        (c & 0x80) ||
 #endif
         (c == '_')) {
       return name;
     }
   }
-  
+
   return {}; // Invalid name.
 }
 
