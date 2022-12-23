@@ -8,23 +8,70 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [Debug, Release]
         compiler:
         - { cc: "gcc-9",    cxx: "g++-9"      }
         - { cc: "gcc-10",   cxx: "g++-10"     }
+        - { cc: "gcc-11",   cxx: "g++-11"     }
+        - { cc: "clang-9",  cxx: "clang++-9"  }
         - { cc: "clang-10", cxx: "clang++-10" }
         - { cc: "clang-11", cxx: "clang++-11" }
         - { cc: "clang-12", cxx: "clang++-12" }
+        - { cc: "clang-13", cxx: "clang++-13" }
+        - { cc: "clang-14", cxx: "clang++-14" }
+        - { cc: "clang-15", cxx: "clang++-15" }
+        - { cc: "clang-16", cxx: "clang++-16" }
 
-    name: "${{matrix.compiler.cxx}}:${{matrix.build}}"
+    name: "${{matrix.compiler.cc}}"
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure CMake
-      run: cmake -DCMAKE_BUILD_TYPE=${{matrix.build}} -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+    - name: Configure clang
+      run: |
+        if [[ "${{matrix.compiler.cc}}" == "clang"* ]]; then
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-9 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-10 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
+          sudo apt update
+          sudo apt install ${{matrix.compiler.cc}} -y
+        fi
 
-    - name: Build
-      run: cmake --build . --config ${{matrix.build}}
+    - name: Configure gcc
+      run: |
+        if [[ "${{matrix.compiler.cc}}" == "gcc"* ]]; then
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt install ${{matrix.compiler.cxx}} -y
+        fi
 
-    - name: Tests
-      run: ctest --output-on-failure -C ${{matrix.build}}
+    - name: Configure bazel
+      run: |
+        wget -O - https://bazel.build/bazel-release.pub.gpg|sudo apt-key add -
+        sudo apt-add-repository "deb https://storage.googleapis.com/bazel-apt stable jdk1.8"
+        sudo apt update
+        sudo apt install bazel -y
+
+    - name: Build Release
+      run: |
+        rm -rf build
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+        cmake --build . --config Release
+        ctest --output-on-failure -C Release
+
+    - name: Build Debug
+      run: |
+        rm -rf build
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+        cmake --build . --config Debug
+        ctest --output-on-failure -C Debug
+        cd ..
+        bazel test //... --curses no

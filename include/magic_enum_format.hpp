@@ -29,61 +29,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef NEARGYE_MAGIC_ENUM_FUSE_HPP
-#define NEARGYE_MAGIC_ENUM_FUSE_HPP
+#ifndef NEARGYE_MAGIC_ENUM_FORMAT_HPP
+#define NEARGYE_MAGIC_ENUM_FORMAT_HPP
+
+#if !defined(__cpp_lib_format)
+#  error "Format is not supported"
+#endif
 
 #include "magic_enum.hpp"
 
-namespace magic_enum {
+#if !defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT)
+#  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT true
+#  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
+#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
 
-namespace detail {
+namespace magic_enum::customize {
+  // customize enum to enable/disable automatic std::format
+  template <typename E>
+  constexpr bool enum_format_enabled() noexcept {
+    return MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT;
+  }
+} // magic_enum::customize
+
+#include <format>
 
 template <typename E>
-constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
-  if (hash) {
-    if (const auto index = enum_index(value)) {
-      return (*hash << log2(enum_count<E>() + 1)) | *index;
+struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::customize::enum_format_enabled<E>(), char>> : std::formatter<std::string_view, char> {
+  auto format(E e, format_context& ctx) {
+    static_assert(std::is_same_v<char, string_view::value_type>, "formatter requires string_view::value_type type same as char.");
+    using D = std::decay_t<E>;
+
+    if constexpr (magic_enum::detail::supported<D>::value) {
+      if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
+        return std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      }
     }
+    return std::formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);
   }
-  return {};
-}
+};
 
-template <typename E>
-constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
-  return fuse_one_enum(0, value);
-}
+#if defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE)
+#  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
+#  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
+#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
 
-template <typename E, typename... Es>
-constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
-  return fuse_one_enum(fuse_enum(tail...), head);
-}
-
-template <typename... Es>
-constexpr auto typesafe_fuse_enum(Es... values) noexcept {
-  enum class enum_fuse_t : std::uintmax_t;
-  const auto fuse = fuse_enum(values...);
-  if (fuse) {
-    return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
-  }
-  return optional<enum_fuse_t>{};
-}
-
-} // namespace magic_enum::detail
-
-// Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
-template <typename... Es>
-[[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
-  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
-  static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
-  static_assert((detail::log2(enum_count<std::decay_t<Es>>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
-#if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
-  const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
-#else
-  const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
-#endif
-  return assert(fuse), fuse;
-}
-
-} // namespace magic_enum
-
-#endif // NEARGYE_MAGIC_ENUM_FUSE_HPP
+#endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP

@@ -6,7 +6,6 @@
 * [`enum_count` returns number of enum values.](#enum_count)
 * [`enum_integer` obtains integer value from enum value.](#enum_integer)
 * [`enum_name` returns name from enum value.](#enum_name)
-* [`enum_flags_name` returns name from enum-flags value.](#enum_flags_name)
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
@@ -15,11 +14,15 @@
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
 * [`enum_for_each` calls a function with all enum constexpr value.](#enum_for_each)
+* [`enum_flags` API from enum-flags.](#enum_flags)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
 * [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
+* [`containers::array` array container for enums.](#containersarray)
+* [`containers::bitset` bitset container for enums.](#containersbitset)
+* [`containers::set` set container for enums.](#containersset)
 
 ## Synopsis
 
@@ -93,6 +96,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::GREEN
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
   * Integer to enum value.
@@ -103,6 +108,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
     if (color.has_value()) {
         // color.value() -> Color::RED
     }
+
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
 ## `enum_value`
@@ -215,25 +222,6 @@ constexpr string_view enum_name() noexcept;
   // color_name -> "BLUE"
   ```
 
-## `enum_flags_name`
-
-```cpp
-template <typename E>
-string enum_flags_name(E value);
-```
-
-* Returns name from enum-flags value as `string` with null-terminated string.
-
-* If enum-flags value does not have name or [out of range](limitations.md),  returns empty string.
-
-* Examples
-
-  ```cpp
-  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
-  // directions_name -> "Directions::Up | Directions::Right"
-  ```
-
-
 ## `enum_names`
 
 ```cpp
@@ -340,7 +328,7 @@ constexpr string_view enum_type_name() noexcept;
   ```cpp
   Color color = Color::RED;
   auto type_name = magic_enum::enum_type_name<decltype(color)>();
-  // color_name -> "Color"
+  // type_name -> "Color"
   ```
 
 ## `enum_fuse`
@@ -379,19 +367,20 @@ constexpr Result enum_switch(Lambda&& lambda, E value);
 
 template <typename Result, typename E, typename Lambda>
 constexpr Result enum_switch(Lambda&& lambda, E value, Result&& result);
-
-template <typename E, typename Result = void, typename BinaryPredicate = std::equal_to<>, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, string_view name, BinaryPredicate&& p = {});
-
-template <typename E, typename Result, typename BinaryPredicate = std::equal_to<>, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, string_view name, Result&& result, BinaryPredicate&& p = {});
-
-template <typename E, typename Result = void, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value);
-
-template <typename E, typename Result, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result&& result);
 ```
+
+* You should add the required file `<magic_enum_switch.hpp>`.
+
+* Examples
+
+  ```cpp
+  Color color = Color::RED;
+
+  magic_enum::enum_switch([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  }, color);
+  ```
 
 ## `enum_for_each`
 
@@ -399,6 +388,51 @@ constexpr Result enum_switch(Lambda&& lambda, underlying_type_t<E> value, Result
 template <typename E, typename Lambda>
 constexpr auto enum_for_each(Lambda&& lambda);
 ```
+
+* Examples
+
+  ```cpp
+  magic_enum::enum_for_each<Color>([] (auto val) {
+    constexpr Color c_color = val;
+    // ...
+  });
+  ```
+
+## `enum_flags`
+
+```cpp
+template <typename E>
+string enum_flags_name(E value);
+
+template <typename E>
+constexpr optional<E> enum_flags_cast(underlying_type_t<E> value) noexcept;
+
+template <typename E>
+constexpr optional<E> enum_flags_cast(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_flags_cast(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+
+template <typename E>
+constexpr bool enum_flags_contains(E value) noexcept;
+
+template <typename E>
+constexpr bool enum_flags_contains(underlying_type_t<E> value) noexcept;
+
+template <typename E>
+constexpr bool enum_flags_contains(string_view value) noexcept;
+
+template <typename E, typename BinaryPredicate>
+constexpr optional<E> enum_flags_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+```
+
+* Examples
+
+  ```cpp
+  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
+  // directions_name -> "Directions::Up|Directions::Right"
+  ```
+
 
 ## `is_unscoped_enum`
 
@@ -530,4 +564,363 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flags = Flags::A | Flags::B & ~Flags::C;
+  ```
+
+## `containers::array`
+
+```cpp
+template<typename E, typename V, typename Index = default_indexing<E>>
+struct array {
+
+  constexpr reference at(E pos);
+
+  constexpr const_reference at(E pos) const;
+
+  constexpr reference operator[](E pos) noexcept;
+
+  constexpr const_reference operator[](E pos) const noexcept;
+
+  constexpr reference front() noexcept;
+
+  constexpr const_reference front() const noexcept;
+
+  constexpr reference back() noexcept;
+
+  constexpr const_reference back() const noexcept;
+
+  constexpr pointer data() noexcept;
+
+  constexpr const_pointer data() const noexcept;
+
+  constexpr iterator begin() noexcept;
+
+  constexpr const_iterator begin() const noexcept;
+
+  constexpr const_iterator cbegin() const noexcept;
+
+  constexpr iterator end() noexcept;
+
+  constexpr const_iterator end() const noexcept;
+
+  constexpr const_iterator cend() const noexcept;
+
+  constexpr iterator rbegin() noexcept;
+
+  constexpr const_iterator rbegin() const noexcept;
+
+  constexpr const_iterator crbegin() const noexcept;
+
+  constexpr iterator rend() noexcept;
+
+  constexpr const_iterator rend() const noexcept;
+
+  constexpr const_iterator crend() const noexcept;
+
+  constexpr bool empty() const noexcept;
+
+  constexpr size_type size() const noexcept;
+
+  constexpr size_type max_size() const noexcept;
+
+  constexpr void fill( const V& value );
+
+  constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>);
+
+  friend constexpr bool operator==(const array& a1, const array& a2);
+
+  friend constexpr bool operator!=(const array& a1, const array& a2);
+
+  friend constexpr bool operator<(const array& a1, const array& a2);
+
+  friend constexpr bool operator<=(const array& a1, const array& a2);
+
+  friend constexpr bool operator>(const array& a1, const array& a2);
+
+  friend constexpr bool operator>=(const array& a1, const array& a2);
+}
+```
+
+* STL like array for all enums.
+
+* Examples
+
+  ```cpp
+  constexpr magic_enum::containers::array<Color, RGB> color_rgb_array {{{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}}}};
+  ```
+
+  ```cpp
+  magic_enum::containers::array<Color, RGB> color_rgb_array {};
+  color_rgb_array[Color::RED] = {255, 0, 0};
+  color_rgb_array[Color::GREEN] = {0, 255, 0};
+  color_rgb_array[Color::BLUE] = {0, 0, 255};
+  std::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
+  ```
+
+## `containers::bitset`
+
+```cpp
+template<typename E, typename Index = default_indexing<E>>
+class bitset {
+
+  constexpr explicit bitset(detail::raw_access_t = raw_access) noexcept;
+
+  constexpr explicit bitset(detail::raw_access_t, unsigned long long val);
+
+  constexpr explicit bitset(detail::raw_access_t,
+                            string_view sv,
+                            string_view::size_type pos = 0,
+                            string_view::size_type n = string_view::npos,
+                            char zero = '0',
+                            char one = '1');
+
+  constexpr explicit bitset(detail::raw_access_t,
+                            const char* str,
+                            std::size_t n = ~std::size_t{},
+                            char zero = '0',
+                            char one = '1');
+
+  constexpr bitset(std::initializer_list<E> starters);
+
+  template<typename V = E>
+  constexpr explicit bitset(std::enable_if_t<magic_enum::detail::is_flags_v<V>, E> starter);
+
+  template<typename Cmp = std::equal_to<>>
+  constexpr explicit bitset(string_view sv,
+                            Cmp&& cmp = {},
+                            char sep = '|');
+
+  friend constexpr bool operator==( const bitset& lhs, const bitset& rhs ) noexcept;
+
+  friend constexpr bool operator!=( const bitset& lhs, const bitset& rhs ) noexcept;
+
+  constexpr bool operator[](E pos) const noexcept;
+
+  constexpr reference operator[](E pos) noexcept;
+
+  constexpr bool test(E pos) const;
+
+  constexpr bool all() const noexcept;
+
+  constexpr bool any() const noexcept;
+
+  constexpr bool none() const noexcept;
+
+  constexpr std::size_t count() const noexcept;
+
+  constexpr std::size_t size() const noexcept;
+
+  constexpr std::size_t max_size() const noexcept;
+
+  constexpr bitset& operator&= (const bitset& other) noexcept;
+
+  constexpr bitset& operator|= (const bitset& other) noexcept;
+
+  constexpr bitset& operator^= (const bitset& other) noexcept;
+
+  constexpr bitset operator~() const noexcept;
+
+  constexpr bitset& set() noexcept;
+
+  constexpr bitset& set(E pos, bool value = true);
+
+  constexpr bitset& reset() noexcept;
+
+  constexpr bitset& reset(E pos);
+
+  constexpr bitset& flip() noexcept;
+
+  friend constexpr bitset operator&(const bitset& lhs, const bitset& rhs) noexcept;
+
+  friend constexpr bitset operator|(const bitset& lhs, const bitset& rhs) noexcept;
+
+  friend constexpr bitset operator^(const bitset& lhs, const bitset& rhs) noexcept;
+
+  template<typename V = E>
+  constexpr explicit operator std::enable_if_t<magic_enum::detail::is_flags_v<V>, E>() const;
+
+  string to_string(char sep = '|') const;
+
+  string to_string(detail::raw_access_t,
+                                 char zero = '0',
+                                 char one = '1') const;
+
+  constexpr unsigned long long to_ullong(detail::raw_access_t raw) const;
+
+  constexpr unsigned long long to_ulong(detail::raw_access_t raw) const;
+
+  friend std::ostream& operator<<(std::ostream& o, const bitset& bs);
+
+  friend std::istream& operator>>(std::istream& i, bitset& bs);
+}
+```
+
+* STL like bitset for all enums.
+
+* Examples
+
+  ```cpp
+  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
+  bool all = color_bitset_red_green.all();
+  // all -> false
+  // Color::BLUE is missing
+  bool test = color_bitset_red_green.test(Color::RED);
+  // test -> true
+  ```
+
+  ```cpp
+  auto color_bitset = magic_enum::containers::bitset<Color>();
+  color_bitset.set(Color::GREEN);
+  color_bitset.set(Color::BLUE);
+  std::string to_string = color_bitset.to_string();
+  // to_string -> "GREEN|BLUE"
+  ```
+
+## `containers::set`
+
+```cpp
+template<typename E, typename CExprLess = std::less<E>>
+class set {
+
+  constexpr set() noexcept = default;
+
+  template<typename InputIt>
+  constexpr set(InputIt first, InputIt last);
+
+  constexpr set(std::initializer_list<E> ilist);
+
+  template<typename V = E>
+  constexpr explicit set(std::enable_if_t<magic_enum::detail::is_flags_v<V>, E> starter);
+
+  constexpr set(const set&) noexcept = default;
+
+  constexpr set(set&&) noexcept = default;
+
+  constexpr set& operator=(const set&) noexcept = default;
+
+  constexpr set& operator=(set&&) noexcept = default;
+
+  constexpr set& operator=(std::initializer_list<E> ilist);
+
+  constexpr const_iterator begin() const noexcept;
+
+  constexpr const_iterator end() const noexcept;
+
+  constexpr const_iterator cbegin() const noexcept;
+
+  constexpr const_iterator cend() const noexcept;
+
+  constexpr const_reverse_iterator rbegin() const noexcept;
+
+  constexpr const_reverse_iterator rend() const noexcept;
+
+  constexpr const_reverse_iterator crbegin() const noexcept;
+
+  constexpr const_reverse_iterator crend() const noexcept;
+
+  constexpr bool empty() const noexcept;
+
+  constexpr size_type size() const noexcept;
+
+  constexpr size_type max_size() const noexcept;
+
+  constexpr void clear() noexcept;
+
+  constexpr std::pair<iterator,bool> insert(const value_type& value) noexcept;
+
+  constexpr std::pair<iterator,bool> insert(value_type&& value) noexcept;
+
+  constexpr iterator insert(const_iterator, const value_type& value) noexcept;
+
+  constexpr iterator insert(const_iterator hint, value_type&& value) noexcept;
+
+  template< class InputIt >
+  constexpr void insert(InputIt first, InputIt last) noexcept;
+
+  constexpr void insert(std::initializer_list<value_type> ilist) noexcept;
+
+  template<class... Args>
+  constexpr std::pair<iterator,bool> emplace(Args&&... args) noexcept;
+
+  template<class... Args>
+  constexpr iterator emplace_hint(const_iterator, Args&&... args) noexcept;
+
+  constexpr iterator erase(const_iterator pos) noexcept;
+
+  constexpr iterator erase(const_iterator first, const_iterator last) noexcept;
+
+  constexpr size_type erase(const key_type& key) noexcept;
+
+  template<class K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept;
+
+  void swap(set& other) noexcept;
+
+  constexpr size_type count(const key_type& key) const noexcept;
+
+  template<typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const;
+
+  constexpr const_iterator find(const key_type & key) const noexcept;
+
+  template<class K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const;
+
+  constexpr bool contains(const key_type& key) const noexcept;
+
+  template<typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const noexcept;
+
+  constexpr std::pair<const_iterator,const_iterator> equal_range(const key_type& key) const noexcept;
+
+  template<typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range(const K& x) const noexcept;
+
+  constexpr const_iterator lower_bound(const key_type& key) const noexcept;
+
+  template<typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const noexcept;
+
+  constexpr const_iterator upper_bound(const key_type& key) const noexcept;
+
+  template<typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const noexcept;
+
+  constexpr key_compare key_comp() const;
+
+  constexpr value_compare value_comp() const;
+
+  constexpr friend bool operator==(const set& lhs, const set& rhs) noexcept;
+
+  constexpr friend bool operator!=(const set& lhs, const set& rhs) noexcept;
+
+  constexpr friend bool operator<(const set& lhs, const set& rhs) noexcept;
+
+  constexpr friend bool operator<=(const set& lhs, const set& rhs) noexcept;
+
+  constexpr friend bool operator>(const set& lhs, const set& rhs) noexcept;
+
+  constexpr friend bool operator>=(const set& lhs, const set& rhs) noexcept;
+
+  template<typename Pred>
+  size_type erase_if(Pred pred);
+}
+```
+
+* STL like set for all enums.
+
+* Examples
+
+  ```cpp
+  constexpr magic_enum::containers::set color_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
+  ```
+
+  ```cpp
+  auto color_set = magic_enum::containers::set<Color>();
+  bool empty = color_set.empty();
+  // empty -> true
+  color_set.insert(Color::GREEN);
+  color_set.insert(Color::BLUE);
+  color_set.insert(Color::RED);
+  std::size_t size = color_set.size();
+  // size -> 3
   ```

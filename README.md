@@ -42,6 +42,9 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `underlying_type` improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
 * `ostream_operators` ostream operators for enums.
 * `bitwise_operators` bitwise operators for enums.
+* `containers::array` array container for enums.
+* `containers::bitset` bitset container for enums.
+* `containers::set` set container for enums.
 
 ## Documentation
 
@@ -61,11 +64,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
 ## [Examples](example/example.cpp)
 
-```cpp
-// For example color enum.
-enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
-```
-
 * Enum value to string
 
   ```cpp
@@ -82,6 +80,8 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   if (color.has_value()) {
     // color.value() -> Color::GREEN
   }
+
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
   ```
 
 * Integer to enum value
@@ -90,16 +90,18 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   int color_integer = 2;
   auto color = magic_enum::enum_cast<Color>(color_integer);
   if (color.has_value()) {
-    // color.value() -> Color::RED
+    // color.value() -> Color::BLUE
   }
+
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
   ```
 
 * Indexed access to enum value
 
   ```cpp
-  std::size_t i = 1;
+  std::size_t i = 0;
   Color color = magic_enum::enum_value<Color>(i);
-  // color -> Color::BLUE
+  // color -> Color::RED
   ```
 
 * Enum value sequence
@@ -122,7 +124,7 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   ```cpp
   Color color = Color::RED;
   auto color_integer = magic_enum::enum_integer(color);
-  // color -> 2
+  // color -> 1
   ```
 
 * Enum names sequence
@@ -155,7 +157,6 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 * Enum switch runtime value as constexpr constant
   ```cpp
   Color color = Color::RED;
-  
   magic_enum::enum_switch([] (auto val) {
     constexpr Color c_color = val;
     // ...
@@ -222,6 +223,40 @@ enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
   constexpr Color color = Color::BLUE;
   constexpr auto color_name = magic_enum::enum_name<color>();
   // color_name -> "BLUE"
+  ```
+
+* `containers::array` array container for enums.
+
+  ```cpp
+  magic_enum::containers::array<Color, RGB> color_rgb_array {};
+  color_rgb_array[Color::RED] = {255, 0, 0};
+  color_rgb_array[Color::GREEN] = {0, 255, 0};
+  color_rgb_array[Color::BLUE] = {0, 0, 255};
+  std::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
+  ```
+
+* `containers::bitset` bitset container for enums.
+
+  ```cpp
+  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
+  bool all = color_bitset_red_green.all();
+  // all -> false
+  // Color::BLUE is missing
+  bool test = color_bitset_red_green.test(Color::RED);
+  // test -> true
+  ```
+
+* `containers::set` set container for enums.
+
+  ```cpp
+  auto color_set = magic_enum::containers::set<Color>();
+  bool empty = color_set.empty();
+  // empty -> true
+  color_set.insert(Color::GREEN);
+  color_set.insert(Color::BLUE);
+  color_set.insert(Color::RED);
+  std::size_t size = color_set.size();
+  // size -> 3
   ```
 
 ## Remarks
