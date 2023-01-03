@@ -6,11 +6,9 @@
 #include <magic_enum.hpp>
 
 TEST_CASE("enum_name_via_proxy") {
+  for(auto v: magic_enum::enum_values<flag>()) {
+    (void)v;
+  }
   REQUIRE("low"  == to_string(flag::low));
   REQUIRE("high" == to_string(flag::high));
-}
-
-void unused_function_that_triggers_the_issue() {
-  const auto values = magic_enum::enum_values<flag>();
-  (void)values;
 }
