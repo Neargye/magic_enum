@@ -59,3 +59,5 @@ if(HAS_CPPLATEST_FLAG)
     make_test(test_flags.cpp test_flags-cpplatest c++latest)
     make_test(test_aliases.cpp test_aliases-cpplatest c++latest)
 endif()
+
+add_subdirectory(issue231)
