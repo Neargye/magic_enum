@@ -3,10 +3,9 @@
 
 #include <string_view>
 
-enum class flag
-{
-    low = 0,
-    high = 500,
+enum class flag {
+  low = 0,
+  high = 500,
 };
 
 std::string_view to_string(flag);

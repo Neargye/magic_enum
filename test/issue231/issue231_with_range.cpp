@@ -6,9 +6,10 @@
 #include <magic_enum.hpp>
 
 TEST_CASE("enum_name_via_proxy") {
-  for(auto v: magic_enum::enum_values<flag>()) {
+  for (auto v : magic_enum::enum_values<flag>()) {
     (void)v;
   }
+  REQUIRE(magic_enum::enum_count<flag>() == 2);
   REQUIRE("low"  == to_string(flag::low));
   REQUIRE("high" == to_string(flag::high));
 }
