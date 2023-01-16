@@ -1155,10 +1155,14 @@ template <typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
 
-  if (const auto i = enum_index<D>(value)) {
-    return detail::names_v<D>[*i];
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else {
+    if (const auto i = enum_index<D>(value)) {
+      return detail::names_v<D>[*i];
+    }
+    return {};
   }
-  return {};
 }
 
 // Returns name from enum value.
@@ -1168,23 +1172,27 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
 
-  string name;
-  auto check_value = U{0};
-  for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-    if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
-      check_value |= v;
-      const auto n = detail::names_v<D>[i];
-      if (!name.empty()) {
-        name.append(1, '|');
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else {
+    string name;
+    auto check_value = U{0};
+    for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
+      if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
+        check_value |= v;
+        const auto n = detail::names_v<D>[i];
+        if (!name.empty()) {
+          name.append(1, '|');
+        }
+        name.append(n.data(), n.size());
       }
-      name.append(n.data(), n.size());
     }
-  }
 
-  if (check_value != 0 && check_value == static_cast<U>(value)) {
-    return name;
+    if (check_value != 0 && check_value == static_cast<U>(value)) {
+      return name;
+    }
+    return {}; // Invalid value or out of range.
   }
-  return {}; // Invalid value or out of range.
 }
 
 // If 'as_flags' return name from enum-flags value, otherwise return name from enum value.
@@ -1194,9 +1202,7 @@ template <detail::value_type VT, typename E>
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_name requires enum type.");
 
-  if constexpr (detail::count_v<D> == 0) {
-    return {}; // Empty enum.
-  } else if constexpr (VT == detail::value_type::flags_value) {
+  if constexpr (VT == detail::value_type::flags_value) {
     return enum_flags_name<D>(value);
   } else {
     return enum_name<D>(value);
