@@ -1115,7 +1115,7 @@ template <typename E>
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::constexpr_switch<&enum_values<D>::v, detail::case_call_t::index>(
+    return detail::constexpr_switch<&detail::enum_values<D>::v, detail::case_call_t::index>(
         [](std::size_t i) { return optional<std::size_t>{i}; },
         value,
         detail::default_result_type_lambda<optional<std::size_t>>);
@@ -1262,7 +1262,7 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
     return {}; // Invalid value or out of range.
   } else {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::constexpr_switch<&enum_values<D>::v, detail::case_call_t::value>(
+    return detail::constexpr_switch<&detail::enum_values<D>::v, detail::case_call_t::value>(
         [](D v) { return optional<D>{v}; },
         static_cast<D>(value),
         detail::default_result_type_lambda<optional<D>>);
