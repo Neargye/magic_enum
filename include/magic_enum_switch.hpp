@@ -63,7 +63,7 @@ constexpr auto common_invocable(std::index_sequence<I...>) noexcept {
   if constexpr (count_v<E> == 0) {
     return identity<nonesuch>{};
   } else {
-    return std::common_type<invoke_result_t<F, enum_constant<values_v<E>[I]>>...>{};
+    return std::common_type<invoke_result_t<F, enum_constant<detail::enum_values<E>::v[I]>>...>{};
   }
 }
 
@@ -148,7 +148,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-  return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+  return detail::constexpr_switch<&detail::enum_values<D>::v, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
       detail::default_result_type_lambda<R>);
@@ -166,7 +166,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-  return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+  return detail::constexpr_switch<&detail::enum_values<D>::v, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
       [&result]() -> R { return std::forward<Result>(result); });

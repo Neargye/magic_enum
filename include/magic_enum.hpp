@@ -647,45 +647,51 @@ template <typename E>
 inline constexpr bool is_flags_v = is_flags_enum<E>();
 
 template <typename E>
-inline constexpr std::array values_v = values<E, is_flags_v<E>>();
+struct enum_values {
+inline static constexpr auto v = values<E, is_flags_v<E>>();
+};
 
 template <typename E, typename D = std::decay_t<E>>
-using values_t = decltype((values_v<D>));
+using values_t = decltype((enum_values<D>::v));
 
 template <typename E>
-inline constexpr auto count_v = values_v<E>.size();
+inline constexpr auto count_v = enum_values<E>::v.size();
 
 template <typename E, typename U = std::underlying_type_t<E>>
-inline constexpr auto min_v = (count_v<E> > 0) ? static_cast<U>(values_v<E>.front()) : U{0};
+inline constexpr auto min_v = (count_v<E> > 0) ? static_cast<U>(enum_values<E>::v.front()) : U{0};
 
 template <typename E, typename U = std::underlying_type_t<E>>
-inline constexpr auto max_v = (count_v<E> > 0) ? static_cast<U>(values_v<E>.back()) : U{0};
+inline constexpr auto max_v = (count_v<E> > 0) ? static_cast<U>(enum_values<E>::v.back()) : U{0};
 
 template <typename E, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::names requires enum type.");
 
-  return std::array<string_view, sizeof...(I)>{{enum_name_v<E, values_v<E>[I]>...}};
+  return std::array<string_view, sizeof...(I)>{{enum_name_v<E, enum_values<E>::v[I]>...}};
 }
 
 template <typename E>
-inline constexpr std::array names_v = names<E>(std::make_index_sequence<count_v<E>>{});
+struct enum_names {
+inline static constexpr auto v = names<E>(std::make_index_sequence<count_v<E>>{});
+};
 
 template <typename E, typename D = std::decay_t<E>>
-using names_t = decltype((names_v<D>));
+using names_t = decltype((enum_names<D>::v));
 
 template <typename E, std::size_t... I>
 constexpr auto entries(std::index_sequence<I...>) noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::entries requires enum type.");
 
-  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{values_v<E>[I], enum_name_v<E, values_v<E>[I]>}...}};
+  return std::array<std::pair<E, string_view>, sizeof...(I)>{{{enum_values<E>::v[I], enum_name_v<E, enum_values<E>::v[I]>}...}};
 }
 
 template <typename E>
-inline constexpr std::array entries_v = entries<E>(std::make_index_sequence<count_v<E>>{});
+struct enum_entries {
+inline static constexpr auto v = entries<E>(std::make_index_sequence<count_v<E>>{});
+};
 
 template <typename E, typename D = std::decay_t<E>>
-using entries_t = decltype((entries_v<D>));
+using entries_t = decltype((enum_entries<D>::v));
 
 template <typename E, typename U = std::underlying_type_t<E>>
 constexpr bool is_sparse() noexcept {
@@ -713,7 +719,7 @@ constexpr U values_ors() noexcept {
 
   auto ors = U{0};
   for (std::size_t i = 0; i < count_v<E>; ++i) {
-    ors |= static_cast<U>(values_v<E>[i]);
+    ors |= static_cast<U>(enum_values<E>::v[i]);
   }
 
   return ors;
@@ -982,15 +988,15 @@ inline constexpr bool has_hash = false;
 template <typename E, typename F, std::size_t... I>
 constexpr auto for_each(F&& f, std::index_sequence<I...>) {
   static_assert(is_enum_v<E>, "magic_enum::detail::for_each requires enum type.");
-  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F, enum_constant<values_v<E>[I]>>> || ...);
-  constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F, enum_constant<values_v<E>[0]>>, std::invoke_result_t<F, enum_constant<values_v<E>[I]>>> && ...);
+  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F, enum_constant<enum_values<E>::v[I]>>> || ...);
+  constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F, enum_constant<enum_values<E>::v[0]>>, std::invoke_result_t<F, enum_constant<enum_values<E>::v[I]>>> && ...);
 
   if constexpr (has_void_return) {
-    (f(enum_constant<values_v<E>[I]>{}), ...);
+    (f(enum_constant<enum_values<E>::v[I]>{}), ...);
   } else if constexpr (all_same_return) {
-    return std::array{f(enum_constant<values_v<E>[I]>{})...};
+    return std::array{f(enum_constant<enum_values<E>::v[I]>{})...};
   } else {
-    return std::tuple{f(enum_constant<values_v<E>[I]>{})...};
+    return std::tuple{f(enum_constant<enum_values<E>::v[I]>{})...};
   }
 }
 
@@ -1001,7 +1007,7 @@ constexpr bool all_invocable(std::index_sequence<I...>) {
   if constexpr (count_v<E> == 0) {
     return false;
   } else {
-    return (std::is_invocable_v<F, enum_constant<values_v<E>[I]>> && ...);
+    return (std::is_invocable_v<F, enum_constant<enum_values<E>::v[I]>> && ...);
   }
 }
 
@@ -1062,7 +1068,7 @@ template <typename E>
   using D = std::decay_t<E>;
 
   if constexpr (detail::is_sparse_v<D>) {
-    return assert((index < detail::count_v<D>)), detail::values_v<D>[index];
+    return assert((index < detail::count_v<D>)), detail::enum_values<D>::v[index];
   } else {
     constexpr bool is_flag = detail::is_flags_v<D>;
     constexpr auto min = is_flag ? detail::log2(detail::min_v<D>) : detail::min_v<D>;
@@ -1083,7 +1089,7 @@ template <typename E, std::size_t I>
 // Returns std::array with enum values, sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_t<E, detail::values_t<E>> {
-  return detail::values_v<std::decay_t<E>>;
+  return detail::enum_values<std::decay_t<E>>::v;
 }
 
 // Returns integer value from enum value.
@@ -1109,7 +1115,7 @@ template <typename E>
     return {}; // Empty enum.
   } else if constexpr (detail::is_sparse_v<D> || detail::is_flags_v<D>) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::index>(
+    return detail::constexpr_switch<&enum_values<D>::v, detail::case_call_t::index>(
         [](std::size_t i) { return optional<std::size_t>{i}; },
         value,
         detail::default_result_type_lambda<optional<std::size_t>>);
@@ -1159,7 +1165,7 @@ template <typename E>
     return {}; // Empty enum.
   } else {
     if (const auto i = enum_index<D>(value)) {
-      return detail::names_v<D>[*i];
+      return detail::enum_names<D>::v[*i];
     }
     return {};
   }
@@ -1180,7 +1186,7 @@ template <typename E>
     for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
       if (const auto v = static_cast<U>(enum_value<D>(i)); (static_cast<U>(value) & v) != 0) {
         check_value |= v;
-        const auto n = detail::names_v<D>[i];
+        const auto n = detail::enum_names<D>::v[i];
         if (!name.empty()) {
           name.append(1, '|');
         }
@@ -1212,13 +1218,13 @@ template <detail::value_type VT, typename E>
 // Returns std::array with names, sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_t<E, detail::names_t<E>> {
-  return detail::names_v<std::decay_t<E>>;
+  return detail::enum_names<std::decay_t<E>>::v;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_t<E, detail::entries_t<E>> {
-  return detail::entries_v<std::decay_t<E>>;
+  return detail::enum_entries<std::decay_t<E>>::v;
 }
 
 // Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
@@ -1256,7 +1262,7 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
     return {}; // Invalid value or out of range.
   } else {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::constexpr_switch<&detail::values_v<D>, detail::case_call_t::value>(
+    return detail::constexpr_switch<&enum_values<D>::v, detail::case_call_t::value>(
         [](D v) { return optional<D>{v}; },
         static_cast<D>(value),
         detail::default_result_type_lambda<optional<D>>);
@@ -1303,7 +1309,7 @@ template <typename E, detail::value_type VT = detail::value_type::default_value,
       const auto s = (d == string_view::npos) ? value : value.substr(0, d);
       auto f = U{0};
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-        if (detail::cmp_equal(s, detail::names_v<D>[i], p)) {
+        if (detail::cmp_equal(s, detail::enum_names<D>::v[i], p)) {
           f = static_cast<U>(enum_value<D>(i));
           result |= f;
           break;
@@ -1322,15 +1328,15 @@ template <typename E, detail::value_type VT = detail::value_type::default_value,
   } else {
     if constexpr (detail::is_default_predicate<BinaryPredicate>() && detail::has_hash<D>) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::constexpr_switch<&detail::names_v<D>, detail::case_call_t::index>(
-        [](std::size_t i) { return optional<D>{detail::values_v<D>[i]}; },
+    return detail::constexpr_switch<&detail::enum_names<D>::v, detail::case_call_t::index>(
+        [](std::size_t i) { return optional<D>{detail::enum_values<D>::v[i]}; },
         value,
         detail::default_result_type_lambda<optional<D>>,
         [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
 #endif
     } else {
       for (std::size_t i = 0; i < detail::count_v<D>; ++i) {
-        if (detail::cmp_equal(value, detail::names_v<D>[i], p)) {
+        if (detail::cmp_equal(value, detail::enum_names<D>::v[i], p)) {
           return enum_value<D>(i);
         }
       }
