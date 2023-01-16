@@ -731,12 +731,6 @@ struct enable_if_enum<true, R> {
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
 using enable_if_t = typename enable_if_enum<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
 
-template <typename T, typename R, value_type VT, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
-using enable_if_default_t = typename enable_if_enum<std::is_enum_v<D> && VT == value_type::default_value && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
-
-template <typename T, typename R, value_type VT, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
-using enable_if_flags_t = typename enable_if_enum<std::is_enum_v<D> && VT == value_type::flags_value && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
-
 template <typename T, std::enable_if_t<std::is_enum_v<std::decay_t<T>>, int> = 0>
 using enum_concept = T;
 
@@ -1157,8 +1151,8 @@ template <auto V>
 
 // Returns name from enum value.
 // If enum value does not have name or value out of range, returns empty string.
-template <typename E, detail::value_type VT = detail::value_type::default_value>
-[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_default_t<E, string_view, VT> {
+template <typename E>
+[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
 
   if (const auto i = enum_index<D>(value)) {
@@ -1169,20 +1163,10 @@ template <typename E, detail::value_type VT = detail::value_type::default_value>
 
 // Returns name from enum value.
 // If enum value does not have name or value out of range, returns empty string.
-template <detail::value_type VT, typename E>
-[[nodiscard]] constexpr auto enum_name(E value) -> detail::enable_if_default_t<E, string_view, VT> {
-  using D = std::decay_t<E>;
-
-  return enum_name<D, VT>(value);
-}
-
-// Returns name from enum value.
-// If enum value does not have name or value out of range, returns empty string.
-template <typename E, detail::value_type VT>
-[[nodiscard]] auto enum_name(E value) -> detail::enable_if_flags_t<E, string, VT> {
+template <typename E>
+[[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
-  static_assert(detail::is_flags_v<D>, "magic_enum::enum_flags_name requires enum-flags type.");
 
   string name;
   auto check_value = U{0};
@@ -1203,24 +1187,20 @@ template <typename E, detail::value_type VT>
   return {}; // Invalid value or out of range.
 }
 
-// Returns name from enum value.
+// If 'as_flags' return name from enum-flags value, otherwise return name from enum value.
 // If enum value does not have name or value out of range, returns empty string.
 template <detail::value_type VT, typename E>
-[[nodiscard]] auto enum_name(E value) -> detail::enable_if_flags_t<E, string, VT> {
+[[nodiscard]] auto enum_name(E value) {
   using D = std::decay_t<E>;
-  static_assert(detail::is_flags_v<D>, "magic_enum::enum_flags_name requires enum-flags type.");
+  static_assert(std::is_enum_v<D>, "magic_enum::enum_name requires enum type.");
 
-  return enum_name<D, VT>(value);
-}
-
-// Returns name from enum-flags value.
-// If enum-flags value does not have name or value out of range, returns empty string.
-template <typename E>
-[[nodiscard]] auto enum_flags_name(E value) -> detail::enable_if_t<E, string> {
-  using D = std::decay_t<E>;
-  static_assert(detail::is_flags_v<D>, "magic_enum::enum_flags_name requires enum-flags type.");
-
-  return enum_name<D, detail::value_type::flags_value>(value);
+  if constexpr (detail::count_v<D> == 0) {
+    return {}; // Empty enum.
+  } else if constexpr (VT == detail::value_type::flags_value) {
+    return enum_flags_name<D>(value);
+  } else {
+    return enum_name<D>(value);
+  }
 }
 
 // Returns std::array with names, sorted by enum value.
@@ -1441,7 +1421,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using U = underlying_type_t<D>;
 
   if constexpr (detail::supported<D>::value) {
-    if (const auto name = enum_name<D, as_flags<detail::is_flags_v<D>>>(value); !name.empty()) {
+    if (const auto name = enum_name<as_flags<detail::is_flags_v<D>>, D>(value); !name.empty()) {
       for (const auto c : name) {
         os.put(c);
       }

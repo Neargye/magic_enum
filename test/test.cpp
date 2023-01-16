@@ -551,7 +551,7 @@ TEST_CASE("enum_name") {
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name(no);
     REQUIRE(no_name == "one");
-    REQUIRE(enum_name<Numbers, as_flags<false>>(Numbers::two) == "two");
+    REQUIRE(enum_name<as_flags<false>>(Numbers::two) == "two");
     REQUIRE(enum_name<as_flags<false>, Numbers>(Numbers::three) == "three");
     REQUIRE(enum_name(Numbers::many).empty());
     REQUIRE(enum_name(static_cast<Numbers>(0)).empty());

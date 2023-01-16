@@ -60,7 +60,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::custo
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
-      if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
+      if (const auto name = magic_enum::enum_name<magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>, D>(e); !name.empty()) {
         return std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
       }
     }
