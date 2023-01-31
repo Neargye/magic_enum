@@ -36,6 +36,7 @@ jobs:
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
           sudo apt update
           sudo apt install ${{matrix.compiler.cc}} -y
