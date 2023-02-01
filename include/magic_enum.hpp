@@ -77,7 +77,7 @@
 #endif
 
 // Checks magic_enum compiler compatibility.
-#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1910
+#if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1910 || defined(__RESHARPER__)
 #  undef  MAGIC_ENUM_SUPPORTED
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
@@ -98,6 +98,19 @@
 // If need another max range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MAX.
 #if !defined(MAGIC_ENUM_RANGE_MAX)
 #  define MAGIC_ENUM_RANGE_MAX 128
+#endif
+
+// Improve ReSharper C++ intellisense performance with builtins, avoiding unnecessary template instantiations.
+#if defined(__RESHARPER__)
+#  undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
+#  undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
+#  if __RESHARPER__ >= 20230100
+#    define MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V) __rscpp_enumerator_name(V)
+#    define MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(T) __rscpp_type_name<T>()
+#  else
+#    define MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V) nullptr
+#    define MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(T) nullptr
+#  endif
 #endif
 
 namespace magic_enum {
@@ -408,7 +421,10 @@ constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<E>::value) {
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(MAGIC_ENUM_GET_TYPE_NAME_BUILTIN)
+    constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
+    constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
+#elif defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
     constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
@@ -449,7 +465,10 @@ constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<E>::value) {
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
+    constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
+    constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
+#elif defined(__clang__) || defined(__GNUC__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
 #elif defined(_MSC_VER)
     constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
