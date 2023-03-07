@@ -2,6 +2,8 @@ name: ubuntu
 
 on: [push, pull_request]
 
+permissions: read-all
+
 jobs:
   ubuntu:
     runs-on: ubuntu-20.04
