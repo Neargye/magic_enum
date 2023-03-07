@@ -2,6 +2,8 @@ name: macos
 
 on: [push, pull_request]
 
+permissions: read-all
+
 jobs:
   build:
     runs-on: ${{matrix.config.os}}
