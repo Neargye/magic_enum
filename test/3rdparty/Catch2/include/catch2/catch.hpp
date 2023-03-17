@@ -6516,12 +6516,12 @@ namespace Catch {
 
         template <typename Fn, typename... Args>
         inline auto invoke_deoptimized(Fn&& fn, Args&&... args) -> typename std::enable_if<!std::is_same<void, decltype(fn(args...))>::value>::type {
-            deoptimize_value(std::forward<Fn>(fn) (std::forward<Args...>(args...)));
+            deoptimize_value(std::forward<Fn>(fn) (std::forward<Args>(args)...));
         }
 
         template <typename Fn, typename... Args>
         inline auto invoke_deoptimized(Fn&& fn, Args&&... args) -> typename std::enable_if<std::is_same<void, decltype(fn(args...))>::value>::type {
-            std::forward<Fn>(fn) (std::forward<Args...>(args...));
+            std::forward<Fn>(fn) (std::forward<Args>(args)...);
         }
     } // namespace Benchmark
 } // namespace Catch
