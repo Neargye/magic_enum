@@ -263,7 +263,15 @@ class static_string<0> {
   constexpr operator string_view() const noexcept { return {}; }
 };
 
-constexpr string_view pretty_name(string_view name) noexcept {
+template <char... Cs>
+struct allowed_chars {
+  static constexpr bool is_allowed(char c) noexcept {
+    return ((c == Cs) || ...);
+  }
+};
+
+template <typename SpecialChars>
+constexpr string_view pretty_name_impl(string_view name) noexcept {
   const char* str = name.data();
   for (std::size_t i = name.size(); i > 0; --i) {
     const char c = str[i - 1];
@@ -273,7 +281,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
           (c & 0x80) ||
 #endif
-          (c == '_'))) {
+          SpecialChars::is_allowed(c))) {
       name.remove_prefix(i);
       break;
     }
@@ -286,7 +294,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
         (c & 0x80) ||
 #endif
-        (c == '_')) {
+        SpecialChars::is_allowed(c)) {
       return name;
     }
   }
@@ -294,6 +302,13 @@ constexpr string_view pretty_name(string_view name) noexcept {
   return {}; // Invalid name.
 }
 
+constexpr string_view pretty_name(string_view name) noexcept {
+#if defined(__clang__) || defined(__APPLE__)
+  return pretty_name_impl<allowed_chars<'_'>>(name);
+#else
+  return pretty_name_impl<allowed_chars<'_', '$'>>(name);
+#endif
+}
 template<typename Op = std::equal_to<>>
 class case_insensitive {
   static constexpr char to_lower(char c) noexcept {

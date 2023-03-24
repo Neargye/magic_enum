@@ -77,6 +77,11 @@ enum class crc_hack_2 {
   d19f2e9e82d14b96be4fa12b8a27ee9f
 };
 
+enum class special_character {
+  _firstValue,
+  $secondValue
+};
+
 template <>
 struct magic_enum::customize::enum_range<number> {
   static constexpr int min = 100;
@@ -154,6 +159,9 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<number>("four").has_value());
     REQUIRE_FALSE(enum_cast<number>("None").has_value());
 
+    REQUIRE(enum_cast<special_character>("_firstValue").value() == special_character::_firstValue);
+    REQUIRE(enum_cast<special_character>("$secondValue").value() == special_character::$secondValue);
+    
     REQUIRE(magic_enum::enum_cast<crc_hack>("b5a7b602ab754d7ab30fb42c4fb28d82").has_value());
     REQUIRE_FALSE(magic_enum::enum_cast<crc_hack>("d19f2e9e82d14b96be4fa12b8a27ee9f").has_value());
 
