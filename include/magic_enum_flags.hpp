@@ -45,6 +45,15 @@ constexpr bool contains(E flags, E flag) noexcept {
   return (flags & flag) == flag;
 }
 
+// Checks whether `flags1` and `flags2` have common flags.
+// Note: If `flags1` or `flags2` equals 0, it returns false, as O is not a flag, and therfore cannot have any matching flag.
+template <typename E, detail::enable_if_t<E, int> = 0>
+constexpr bool any_flag_match(E flags1, E flags2) noexcept {
+  auto flags1_integer = magic_enum::enum_integer<E>(flags1);
+  auto flags2_integer = magic_enum::enum_integer<E>(flags2);
+  return (0 != (flags1_integer & flags2_integer));
+}
+
 } // namespace magic_enum
 
 #endif // NEARGYE_MAGIC_ENUM_FLAGS_HPP

@@ -905,3 +905,22 @@ TEST_CASE("contains") {
   REQUIRE_FALSE(contains(number::one|number::two|number::four, number::three));
   REQUIRE(contains(number::one|number::two|number::four, number::no_number));
 }
+
+TEST_CASE("any_flag_match") {
+  REQUIRE(any_flag_match(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(any_flag_match(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE_FALSE(any_flag_match(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(any_flag_match(Numbers::none, Numbers::one));
+  REQUIRE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE_FALSE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE_FALSE(any_flag_match(Left|Right, NoDirection));
+  REQUIRE(any_flag_match(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(any_flag_match(Left|Up|Down, Right));
+
+  REQUIRE(any_flag_match(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(any_flag_match(number::one|number::two|number::four, number::three));
+  REQUIRE_FALSE(any_flag_match(number::one|number::two|number::four, number::no_number));
+}
