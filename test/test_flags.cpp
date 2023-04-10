@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@
 #include <catch2/catch.hpp>
 
 #include <magic_enum.hpp>
+#include <magic_enum_flags.hpp>
 #include <magic_enum_fuse.hpp>
 
 #include <array>
@@ -43,6 +44,7 @@
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 
 enum class Numbers : int {
+  none = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -50,6 +52,7 @@ enum class Numbers : int {
 };
 
 enum Directions : std::uint64_t {
+  NoDirection = 0,
   Left = std::uint64_t{1} << 10,
   Down = std::uint64_t{1} << 20,
   Up = std::uint64_t{1} << 31,
@@ -58,6 +61,7 @@ enum Directions : std::uint64_t {
 
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
 enum class Language : int {
+  None = 0,
   日本語 = 1 << 1,
   한국어 = 1 << 2,
   English = 1 << 3,
@@ -66,6 +70,7 @@ enum class Language : int {
 #endif
 
 enum number : unsigned long {
+  no_number = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -881,3 +886,22 @@ TEST_CASE("format-base") {
 }
 
 #endif
+
+TEST_CASE("contains") {
+  REQUIRE(contains(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(contains(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE(contains(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(contains(Numbers::none, Numbers::one));
+  REQUIRE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE(contains(Left|Right, NoDirection));
+  REQUIRE(contains(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(contains(Left|Up|Down, Right));
+
+  REQUIRE(contains(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(contains(number::one|number::two|number::four, number::three));
+  REQUIRE(contains(number::one|number::two|number::four, number::no_number));
+}
