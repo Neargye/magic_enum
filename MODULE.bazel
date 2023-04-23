@@ -1,4 +1,8 @@
-module(name = "magic_enum")
+module(
+    name = "magic_enum",
+    version = "0.8.2",
+    compatibility_level = 0,
+)
 
 bazel_dep(name = "platforms", version = "0.0.6")
 bazel_dep(name = "rules_cc", version = "0.0.6")
