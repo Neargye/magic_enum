@@ -35,3 +35,6 @@ jobs:
         cmake .. -DCMAKE_BUILD_TYPE=Debug
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
+
+    - name: Bazel Test
+      run: bazelisk test //... --config=ci
