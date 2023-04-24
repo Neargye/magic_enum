@@ -20,3 +20,7 @@ magic_enum_dep = declare_dependency(
     include_directories: magic_enum_include,
     compile_args: magic_enum_args,
 )
+
+if get_option('test')
+    subdir('test')
+endif

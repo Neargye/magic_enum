@@ -1,4 +1,11 @@
 option(
+    'test',
+    type : 'boolean',
+    value : true,
+    description : 'Build and run tests'
+)
+
+option(
     'noascii',
     type : 'boolean',
     value : false,
