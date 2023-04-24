@@ -23,8 +23,6 @@ cc_binary(
     srcs = ["example_nonascii_name.cpp"],
     deps = ["@magic_enum"],
     copts = COPTS,
-    target_compatible_with = select({
-        "@bazel_tools//tools/cpp:msvc": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    defines = ["MAGIC_ENUM_ENABLE_NONASCII"],
+    tags = ["manual"],
 )
