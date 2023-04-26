@@ -301,7 +301,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   ```
   bazel build //...
   bazel test //...
-  bazel run //:example
+  bazel run //example
   ```
 
   (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)

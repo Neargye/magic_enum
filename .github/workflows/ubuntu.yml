@@ -52,13 +52,6 @@ jobs:
           sudo apt install ${{matrix.compiler.cxx}} -y
         fi
 
-    - name: Configure bazel
-      run: |
-        wget -O - https://bazel.build/bazel-release.pub.gpg|sudo apt-key add -
-        sudo apt-add-repository "deb https://storage.googleapis.com/bazel-apt stable jdk1.8"
-        sudo apt update
-        sudo apt install bazel -y
-
     - name: Build Release
       run: |
         rm -rf build
@@ -76,5 +69,6 @@ jobs:
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
         cmake --build . --config Debug
         ctest --output-on-failure -C Debug
-        cd ..
-        bazel test //... --curses no
+
+    - name: Bazel Test
+      run: bazelisk test //... --config=ci

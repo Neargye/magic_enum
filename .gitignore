@@ -51,3 +51,4 @@ _deps
 
 ### Bazel build artifacts ###
 /bazel-*
+/test/bazel-*

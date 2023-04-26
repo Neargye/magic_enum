@@ -1,0 +1,25 @@
+package(default_visibility = ["//:__subpackages__"])
+
+platform(
+    name = "linux",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@bazel_tools//tools/cpp:clang",
+    ],
+)
+
+platform(
+    name = "macos",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@bazel_tools//tools/cpp:clang",
+    ],
+)
+
+platform(
+    name = "windows",
+    constraint_values = [
+        "@platforms//os:windows",
+        "@bazel_tools//tools/cpp:msvc",
+    ],
+)
