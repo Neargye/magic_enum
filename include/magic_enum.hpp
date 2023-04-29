@@ -266,6 +266,13 @@ class static_string<0> {
 
 constexpr string_view pretty_name(string_view name) noexcept {
   const char* str = name.data();
+#if defined(__clang__) // ]
+  name.remove_suffix(1);
+#elif defined(__GNUC__) // ] or >() (-fno-pretty-templates)
+  name.remove_suffix(name[name.size() - 1] == ']' ? 1 : 3);
+#elif defined(_MSC_VER) // >(void) noexcept
+  name.remove_suffix(16);
+#endif
   for (std::size_t i = name.size(); i > 0; --i) {
     const char c = str[i - 1];
     if (!((c >= '0' && c <= '9') ||
@@ -426,9 +433,9 @@ constexpr auto n() noexcept {
     constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
     constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
 #elif defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1});
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 1});
 #else
     constexpr auto name = string_view{};
 #endif
@@ -470,9 +477,9 @@ constexpr auto n() noexcept {
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
     constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
 #elif defined(__clang__) || defined(__GNUC__)
-    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+    constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1});
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 1});
 #else
     constexpr auto name = string_view{};
 #endif

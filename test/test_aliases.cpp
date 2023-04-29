@@ -76,6 +76,7 @@ struct MyStringView {
   constexpr std::size_t find(char c) const { return str.find(c); } // required
   constexpr MyStringView substr(std::size_t p, std::size_t n) { return str.substr(p, n); } // required
   constexpr void remove_prefix(std::size_t n) { str.remove_prefix(n); } // required
+  constexpr void remove_suffix(std::size_t n) { str.remove_suffix(n); } // required
   friend constexpr bool operator==(MyStringView lhs, MyStringView rhs); // required
 
   constexpr MyStringView(const char* cstr) : str{ cstr } {}
