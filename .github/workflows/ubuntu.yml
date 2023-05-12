@@ -6,24 +6,27 @@ permissions: read-all
 
 jobs:
   ubuntu:
-    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-9",    cxx: "g++-9"      }
-        - { cc: "gcc-10",   cxx: "g++-10"     }
-        - { cc: "gcc-11",   cxx: "g++-11"     }
-        - { cc: "clang-9",  cxx: "clang++-9"  }
-        - { cc: "clang-10", cxx: "clang++-10" }
-        - { cc: "clang-11", cxx: "clang++-11" }
-        - { cc: "clang-12", cxx: "clang++-12" }
-        - { cc: "clang-13", cxx: "clang++-13" }
-        - { cc: "clang-14", cxx: "clang++-14" }
-        - { cc: "clang-15", cxx: "clang++-15" }
-        - { cc: "clang-16", cxx: "clang++-16" }
+        - { cc: "gcc-9",    cxx: "g++-9",      os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "gcc-10",   cxx: "g++-10",     os: "ubuntu-20.04", nonascii: "TRUE" }
+        - { cc: "gcc-10",   cxx: "g++-10",     os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-20.04", nonascii: "TRUE" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04", nonascii: "FALSE" }
+        - { cc: "clang-9",  cxx: "clang++-9",  os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-10", cxx: "clang++-10", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-11", cxx: "clang++-11", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-12", cxx: "clang++-12", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-20.04", nonascii: "FALSE" }
+        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-20.04", nonascii: "FALSE" }
 
-    name: "${{matrix.compiler.cc}}"
+    name: "${{ format('{0} NONASCII={1}', matrix.compiler.cc, matrix.compiler.nonascii) }}"
+    runs-on: ${{ matrix.compiler.os }}
     steps:
     - uses: actions/checkout@v3
 
@@ -57,8 +60,8 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
-        cmake --build . --config Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
+        cmake --build . -j --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug
@@ -66,8 +69,8 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
-        cmake --build . --config Debug
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
+        cmake --build . -j --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test

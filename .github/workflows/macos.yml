@@ -24,7 +24,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release
+        cmake --build . -j --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug
@@ -33,7 +33,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug
-        cmake --build . --config Debug
+        cmake --build . -j --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test
