@@ -425,8 +425,12 @@ constexpr auto n() noexcept {
 #if defined(MAGIC_ENUM_GET_TYPE_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
     constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
-#elif defined(__clang__) || defined(__GNUC__)
+#elif defined(__clang__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(__GNUC__)
+    auto name = string_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
+    name.remove_suffix(name[name.size() - 1] == ']' ? 1 : 3);
+    name = pretty_name(name);
 #elif defined(_MSC_VER)
     constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
@@ -469,8 +473,12 @@ constexpr auto n() noexcept {
 #if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
     constexpr auto name = name_ptr ? string_view{ name_ptr } : std::string_view{};
-#elif defined(__clang__) || defined(__GNUC__)
+#elif defined(__clang__)
     constexpr auto name = pretty_name({__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 2});
+#elif defined(__GNUC__)
+    auto name = string_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
+    name.remove_suffix(name[name.size() - 1] == ']' ? 1 : 3);
+    name = pretty_name(name);
 #elif defined(_MSC_VER)
     constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
 #else
