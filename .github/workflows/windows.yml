@@ -25,9 +25,9 @@ jobs:
         mkdir build
         cd build
         cmake .. -A Win32
-        cmake --build . -j --config Release
+        cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
-        cmake --build . -j --config Debug
+        cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Build x64
@@ -37,9 +37,9 @@ jobs:
         mkdir build
         cd build
         cmake .. -A x64
-        cmake --build . -j --config Release
+        cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
-        cmake --build . -j --config Debug
+        cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test

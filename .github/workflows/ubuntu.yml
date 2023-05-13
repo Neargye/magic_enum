@@ -61,7 +61,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
-        cmake --build . -j --config Release
+        cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
 
     - name: Build Debug
@@ -70,7 +70,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
-        cmake --build . -j --config Debug
+        cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test
