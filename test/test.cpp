@@ -23,6 +23,10 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
+#if !defined(MAKE_STR)
+#define MAKE_STR(v) v
+#endif
+
 #undef  MAGIC_ENUM_RANGE_MIN
 #define MAGIC_ENUM_RANGE_MIN -120
 #undef  MAGIC_ENUM_RANGE_MAX
@@ -40,7 +44,7 @@ template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Color>(Color value) noexcept {
   switch (value) {
     case Color::RED:
-      return "red";
+      return MAKE_STR("red");
     default:
       return default_tag;
   }
@@ -108,47 +112,49 @@ static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https:
 
 TEST_CASE("enum_cast") {
   SECTION("string") {
-    constexpr auto cr = enum_cast<Color>("red");
+    constexpr auto cr = enum_cast<Color>(MAKE_STR("red"));
     REQUIRE(cr.value() == Color::RED);
-    REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
-    REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
-    REQUIRE_FALSE(enum_cast<Color>("None").has_value());
+    REQUIRE(enum_cast<Color&>(MAKE_STR("GREEN")).value() == Color::GREEN);
+    REQUIRE(enum_cast<Color>(MAKE_STR("blue"), [](char_type lhs, char_type rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
+    REQUIRE_FALSE(enum_cast<Color>(MAKE_STR("None")).has_value());
 
-    constexpr auto no = enum_cast<Numbers>("one");
+    constexpr auto no = enum_cast<Numbers>(MAKE_STR("one"));
     REQUIRE(no.value() == Numbers::one);
-    REQUIRE(enum_cast<Numbers>("two").value() == Numbers::two);
-    REQUIRE(enum_cast<Numbers>("three").value() == Numbers::three);
-    REQUIRE_FALSE(enum_cast<Numbers>("many").has_value());
-    REQUIRE_FALSE(enum_cast<Numbers>("None").has_value());
+    REQUIRE(enum_cast<Numbers>(MAKE_STR("two")).value() == Numbers::two);
+    REQUIRE(enum_cast<Numbers>(MAKE_STR("three")).value() == Numbers::three);
+    REQUIRE_FALSE(enum_cast<Numbers>(MAKE_STR("many")).has_value());
+    REQUIRE_FALSE(enum_cast<Numbers>(MAKE_STR("None")).has_value());
 
-    constexpr auto dr = enum_cast<Directions>("Right");
-    REQUIRE(enum_cast<Directions&>("Up").value() == Directions::Up);
-    REQUIRE(enum_cast<const Directions>("Down").value() == Directions::Down);
+    constexpr auto dr = enum_cast<Directions>(MAKE_STR("Right"));
+    REQUIRE(enum_cast<Directions&>(MAKE_STR("Up")).value() == Directions::Up);
+    REQUIRE(enum_cast<const Directions>(MAKE_STR("Down")).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
-    REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
-    REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
+    REQUIRE(enum_cast<Directions>(MAKE_STR("Left")).value() == Directions::Left);
+    REQUIRE_FALSE(enum_cast<Directions>(MAKE_STR("None")).has_value());
 
+if !defined(MAGIC_ENUM_ENABLE_NONASCII)
     constexpr auto dr2 = enum_cast<Directions>("RIGHT", case_insensitive);
     REQUIRE(dr2.value() == Directions::Right);
     REQUIRE(enum_cast<Directions&>("up", case_insensitive).value() == Directions::Up);
     REQUIRE(enum_cast<const Directions>("dOwN", case_insensitive).value() == Directions::Down);
     REQUIRE_FALSE(enum_cast<Directions>("Left-", case_insensitive).has_value());
+#endif
 
-    constexpr auto nt = enum_cast<number>("three");
-    REQUIRE(enum_cast<number>("one").value() == number::one);
-    REQUIRE(enum_cast<number>("two").value() == number::two);
+    constexpr auto nt = enum_cast<number>(MAKE_STR("three"));
+    REQUIRE(enum_cast<number>(MAKE_STR("one")).value() == number::one);
+    REQUIRE(enum_cast<number>(MAKE_STR("two")).value() == number::two);
     REQUIRE(nt.value() == number::three);
-    REQUIRE_FALSE(enum_cast<number>("four").has_value());
-    REQUIRE_FALSE(enum_cast<number>("None").has_value());
+    REQUIRE_FALSE(enum_cast<number>(MAKE_STR("four")).has_value());
+    REQUIRE_FALSE(enum_cast<number>(MAKE_STR("None")).has_value());
 
-    REQUIRE(magic_enum::enum_cast<crc_hack>("b5a7b602ab754d7ab30fb42c4fb28d82").has_value());
-    REQUIRE_FALSE(magic_enum::enum_cast<crc_hack>("d19f2e9e82d14b96be4fa12b8a27ee9f").has_value());
+    REQUIRE(magic_enum::enum_cast<crc_hack>(MAKE_STR("b5a7b602ab754d7ab30fb42c4fb28d82")).has_value());
+    REQUIRE_FALSE(magic_enum::enum_cast<crc_hack>(MAKE_STR("d19f2e9e82d14b96be4fa12b8a27ee9f")).has_value());
 
-    constexpr auto crc = magic_enum::enum_cast<crc_hack_2>("b5a7b602ab754d7ab30fb42c4fb28d82");
+    constexpr auto crc = magic_enum::enum_cast<crc_hack_2>(MAKE_STR("b5a7b602ab754d7ab30fb42c4fb28d82"));
     REQUIRE(crc.value() == crc_hack_2::b5a7b602ab754d7ab30fb42c4fb28d82);
-    REQUIRE(magic_enum::enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
+    REQUIRE(magic_enum::enum_cast<crc_hack_2>(MAKE_STR("d19f2e9e82d14b96be4fa12b8a27ee9f")).value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
 
-    REQUIRE(magic_enum::enum_cast<BoolTest>("Nay").has_value());
+    REQUIRE(magic_enum::enum_cast<BoolTest>(MAKE_STR("Nay")).has_value());
   }
 
   SECTION("integer") {
@@ -328,40 +334,42 @@ TEST_CASE("enum_contains") {
   }
 
   SECTION("string") {
-    constexpr auto cr = "red";
+    constexpr auto cr = MAKE_STR("red");
     REQUIRE(enum_contains<Color>(cr));
-    REQUIRE(enum_contains<Color&>("GREEN"));
-    REQUIRE(enum_contains<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE_FALSE(enum_contains<Color>("None"));
+    REQUIRE(enum_contains<Color&>(MAKE_STR("GREEN")));
+    REQUIRE(enum_contains<Color>(MAKE_STR("blue"), [](char_type lhs, char_type rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
+    REQUIRE_FALSE(enum_contains<Color>(MAKE_STR("None")));
 
-    constexpr auto no = std::string_view{"one"};
+    constexpr auto no = string_view{MAKE_STR("one")};
     REQUIRE(enum_contains<Numbers>(no));
-    REQUIRE(enum_contains<Numbers>("two"));
-    REQUIRE(enum_contains<Numbers>("three"));
-    REQUIRE_FALSE(enum_contains<Numbers>("many"));
-    REQUIRE_FALSE(enum_contains<Numbers>("None"));
+    REQUIRE(enum_contains<Numbers>(MAKE_STR("two")));
+    REQUIRE(enum_contains<Numbers>(MAKE_STR("three")));
+    REQUIRE_FALSE(enum_contains<Numbers>(MAKE_STR("many")));
+    REQUIRE_FALSE(enum_contains<Numbers>(MAKE_STR("None")));
 
-    auto dr = std::string{"Right"};
-    REQUIRE(enum_contains<Directions&>("Up"));
-    REQUIRE(enum_contains<Directions>("Down"));
+    auto dr = string{MAKE_STR("Right")};
+    REQUIRE(enum_contains<Directions&>(MAKE_STR("Up")));
+    REQUIRE(enum_contains<Directions>(MAKE_STR("Down")));
     REQUIRE(enum_contains<const Directions>(dr));
-    REQUIRE(enum_contains<Directions>("Left"));
-    REQUIRE_FALSE(enum_contains<Directions>("None"));
+    REQUIRE(enum_contains<Directions>(MAKE_STR("Left")));
+    REQUIRE_FALSE(enum_contains<Directions>(MAKE_STR("None")));
 
+if !defined(MAGIC_ENUM_ENABLE_NONASCII)
     auto dr2 = std::string{"RIGHT"};
     REQUIRE(enum_contains<const Directions>(dr2, case_insensitive));
     REQUIRE(enum_contains<Directions&>("up", case_insensitive));
     REQUIRE(enum_contains<Directions>("dOwN", case_insensitive));
     REQUIRE_FALSE(enum_contains<Directions>("Left-", case_insensitive));
+#endif
 
-    constexpr auto nt = enum_contains<number>("three");
-    REQUIRE(enum_contains<number>("one"));
-    REQUIRE(enum_contains<number>("two"));
+    constexpr auto nt = enum_contains<number>(MAKE_STR("three"));
+    REQUIRE(enum_contains<number>(MAKE_STR("one")));
+    REQUIRE(enum_contains<number>(MAKE_STR("two")));
     REQUIRE(nt);
-    REQUIRE_FALSE(enum_contains<number>("four"));
-    REQUIRE_FALSE(enum_contains<number>("None"));
+    REQUIRE_FALSE(enum_contains<number>(MAKE_STR("four")));
+    REQUIRE_FALSE(enum_contains<number>(MAKE_STR("None")));
 
-    REQUIRE(enum_contains<BoolTest>("Yay"));
+    REQUIRE(enum_contains<BoolTest>(MAKE_STR("Yay")));
   }
 }
 
@@ -473,117 +481,117 @@ TEST_CASE("enum_name") {
     constexpr Directions dr = Directions::Right;
     constexpr auto dr_name = enum_name(dr);
     Directions du = Directions::Up;
-    REQUIRE(enum_name<Directions&>(du) == "Up");
-    REQUIRE(enum_name<const Directions>(Directions::Down) == "Down");
-    REQUIRE(dr_name == "Right");
-    REQUIRE(enum_name(Directions::Left) == "Left");
+    REQUIRE(enum_name<Directions&>(du) == MAKE_STR("Up"));
+    REQUIRE(enum_name<const Directions>(Directions::Down) == MAKE_STR("Down"));
+    REQUIRE(dr_name == MAKE_STR("Right"));
+    REQUIRE(enum_name(Directions::Left) == MAKE_STR("Left"));
     REQUIRE(enum_name(static_cast<Directions>(0)).empty());
 
     constexpr number nt = number::three;
     constexpr auto nt_name = enum_name(nt);
-    REQUIRE(enum_name(number::one) == "one");
-    REQUIRE(enum_name(number::two) == "two");
-    REQUIRE(nt_name == "three");
+    REQUIRE(enum_name(number::one) == MAKE_STR("one"));
+    REQUIRE(enum_name(number::two) == MAKE_STR("two"));
+    REQUIRE(nt_name == MAKE_STR("three"));
     REQUIRE(enum_name(number::four).empty());
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
-    REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
+    REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == MAKE_STR("ONE"));
   }
 
   SECTION("static storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name<cr>();
     constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
-    REQUIRE(cr_name == "red");
-    REQUIRE(enum_name<Color::BLUE>() == "BLUE");
-    REQUIRE(enum_name<cm[1]>() == "GREEN");
+    REQUIRE(cr_name == MAKE_STR("red"));
+    REQUIRE(enum_name<Color::BLUE>() == MAKE_STR("BLUE"));
+    REQUIRE(enum_name<cm[1]>() == MAKE_STR("GREEN"));
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name<no>();
-    REQUIRE(no_name == "one");
-    REQUIRE(enum_name<Numbers::two>() == "two");
-    REQUIRE(enum_name<Numbers::three>() == "three");
-    REQUIRE(enum_name<Numbers::many>() == "many");
+    REQUIRE(no_name == MAKE_STR("one"));
+    REQUIRE(enum_name<Numbers::two>() == MAKE_STR("two"));
+    REQUIRE(enum_name<Numbers::three>() == MAKE_STR("three"));
+    REQUIRE(enum_name<Numbers::many>() == MAKE_STR("many"));
 
     constexpr Directions dr = Directions::Right;
     constexpr auto dr_name = enum_name<dr>();
-    REQUIRE(enum_name<Directions::Up>() == "Up");
-    REQUIRE(enum_name<Directions::Down>() == "Down");
-    REQUIRE(dr_name == "Right");
-    REQUIRE(enum_name<Directions::Left>() == "Left");
+    REQUIRE(enum_name<Directions::Up>() == MAKE_STR("Up"));
+    REQUIRE(enum_name<Directions::Down>() == MAKE_STR("Down"));
+    REQUIRE(dr_name == MAKE_STR("Right"));
+    REQUIRE(enum_name<Directions::Left>() == MAKE_STR("Left"));
 
     constexpr number nt = number::three;
     constexpr auto nt_name = enum_name<nt>();
-    REQUIRE(enum_name<number::one>() == "one");
-    REQUIRE(enum_name<number::two>() == "two");
-    REQUIRE(nt_name == "three");
-    REQUIRE(enum_name<number::four>() == "four");
+    REQUIRE(enum_name<number::one>() == MAKE_STR("one"));
+    REQUIRE(enum_name<number::two>() == MAKE_STR("two"));
+    REQUIRE(nt_name == MAKE_STR("three"));
+    REQUIRE(enum_name<number::four>() == MAKE_STR("four"));
 
-    REQUIRE(enum_name<Binary::ONE>() == "ONE");
-    REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
+    REQUIRE(enum_name<Binary::ONE>() == MAKE_STR("ONE"));
+    REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == MAKE_STR("ONE"));
   }
 }
 
 TEST_CASE("enum_names") {
-  REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<std::string_view, 3>&>);
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_names<Color>()), const std::array<string_view, 3>&>);
 
   constexpr auto& s1 = enum_names<Color&>();
-  REQUIRE(s1 == std::array<std::string_view, 3>{{"red", "GREEN", "BLUE"}});
+  REQUIRE(s1 == std::array<string_view, 3>{{MAKE_STR("red"), MAKE_STR("GREEN"), MAKE_STR("BLUE")}});
 
   constexpr auto& s2 = enum_names<Numbers>();
-  REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
+  REQUIRE(s2 == std::array<string_view, 3>{{MAKE_STR("one"), MAKE_STR("two"), MAKE_STR("three")}});
 
   constexpr auto& s3 = enum_names<const Directions>();
-  REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
+  REQUIRE(s3 == std::array<string_view, 4>{{MAKE_STR("Left"), MAKE_STR("Down"), MAKE_STR("Up"), MAKE_STR("Right")}});
 
   constexpr auto& s4 = enum_names<number>();
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
 }
 
 TEST_CASE("enum_entries") {
-  REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, std::string_view>, 3>&>);
+  REQUIRE(std::is_same_v<decltype(magic_enum::enum_entries<Color>()), const std::array<std::pair<Color, string_view>, 3>&>);
 
   constexpr auto& s1 = enum_entries<Color&>();
-  REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "red"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
+  REQUIRE(s1 == std::array<std::pair<Color, string_view>, 3>{{{Color::RED, MAKE_STR("red")}, {Color::GREEN, MAKE_STR("GREEN")}, {Color::BLUE, MAKE_STR("BLUE")}}});
 
   constexpr auto& s2 = enum_entries<Numbers>();
-  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
+  REQUIRE(s2 == std::array<std::pair<Numbers, string_view>, 3>{{{Numbers::one, MAKE_STR("one")}, {Numbers::two, MAKE_STR("two")}, {Numbers::three, MAKE_STR("three")}}});
 
   constexpr auto& s3 = enum_entries<Directions&>();
-  REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
+  REQUIRE(s3 == std::array<std::pair<Directions, string_view>, 4>{{{Directions::Left, MAKE_STR("Left")}, {Directions::Down, MAKE_STR("Down")}, {Directions::Up, MAKE_STR("Up")}, {Directions::Right, MAKE_STR("Right")}}});
 
   constexpr auto& s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
 }
 
 TEST_CASE("ostream_operators") {
-  auto test_ostream = [](auto e, std::string name) {
+  auto test_ostream = [](auto e, string name) {
     using namespace magic_enum::ostream_operators;
-    std::stringstream ss;
+    std::basic_stringstream<char_type> ss;
     ss << e;
     REQUIRE(ss);
     REQUIRE(ss.str() == name);
   };
 
-  test_ostream(std::make_optional(Color::RED), "red");
-  test_ostream(Color::GREEN, "GREEN");
-  test_ostream(Color::BLUE, "BLUE");
-  test_ostream(static_cast<Color>(0), "0");
-  test_ostream(std::make_optional(static_cast<Color>(0)), "0");
+  test_ostream(std::make_optional(Color::RED), MAKE_STR("red"));
+  test_ostream(Color::GREEN, MAKE_STR("GREEN"));
+  test_ostream(Color::BLUE, MAKE_STR("BLUE"));
+  test_ostream(static_cast<Color>(0), MAKE_STR("0"));
+  test_ostream(std::make_optional(static_cast<Color>(0)), MAKE_STR("0"));
 
-  test_ostream(std::make_optional(Numbers::one), "one");
-  test_ostream(Numbers::two, "two");
-  test_ostream(Numbers::three, "three");
-  test_ostream(Numbers::many, "127");
-  test_ostream(static_cast<Numbers>(0), "0");
-  test_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
+  test_ostream(std::make_optional(Numbers::one), MAKE_STR("one"));
+  test_ostream(Numbers::two, MAKE_STR("two"));
+  test_ostream(Numbers::three, MAKE_STR("three"));
+  test_ostream(Numbers::many, MAKE_STR("127"));
+  test_ostream(static_cast<Numbers>(0), MAKE_STR("0"));
+  test_ostream(std::make_optional(static_cast<Numbers>(0)), MAKE_STR("0"));
 
-  test_ostream(std::make_optional(Directions::Up), "Up");
-  test_ostream(Directions::Down, "Down");
-  test_ostream(Directions::Right, "Right");
-  test_ostream(Directions::Left, "Left");
-  test_ostream(static_cast<Directions>(0), "0");
-  test_ostream(std::make_optional(static_cast<Directions>(0)), "0");
+  test_ostream(std::make_optional(Directions::Up), MAKE_STR("Up"));
+  test_ostream(Directions::Down, MAKE_STR("Down"));
+  test_ostream(Directions::Right, MAKE_STR("Right"));
+  test_ostream(Directions::Left, MAKE_STR("Left"));
+  test_ostream(static_cast<Directions>(0), MAKE_STR("0"));
+  test_ostream(std::make_optional(static_cast<Directions>(0)), MAKE_STR("0"));
 
   test_ostream(std::make_optional(number::one), "one");
   test_ostream(number::two, "two");
@@ -594,24 +602,24 @@ TEST_CASE("ostream_operators") {
 }
 
 TEST_CASE("istream_operators") {
-  auto test_istream = [](const auto e, std::string name) {
+  auto test_istream = [](const auto e, string name) {
     using namespace magic_enum::istream_operators;
-    std::istringstream ss(name);
+    std::basic_istringstream<char_type> ss(name);
     std::decay_t<decltype(e)> v;
     ss >> v;
     REQUIRE(ss);
     REQUIRE(v == e);
   };
 
-  test_istream(Color::GREEN, "GREEN");
-  test_istream(Color::BLUE, "BLUE");
+  test_istream(Color::GREEN, MAKE_STR("GREEN"));
+  test_istream(Color::BLUE, MAKE_STR("BLUE"));
 
-  test_istream(Numbers::two, "two");
-  test_istream(Numbers::three, "three");
+  test_istream(Numbers::two, MAKE_STR("two"));
+  test_istream(Numbers::three, MAKE_STR("three"));
 
-  test_istream(Directions::Down, "Down");
-  test_istream(Directions::Right, "Right");
-  test_istream(Directions::Left, "Left");
+  test_istream(Directions::Down, MAKE_STR("Down"));
+  test_istream(Directions::Right, MAKE_STR("Right"));
+  test_istream(Directions::Left, MAKE_STR("Left"));
 
   test_istream(number::two, "two");
   test_istream(number::three, "three");
@@ -736,10 +744,10 @@ TEST_CASE("aliases") {
   REQUIRE(enum_integer(number::three) == enum_integer(number::_3));
   REQUIRE(enum_integer(number::four) == enum_integer(number::_4));
 
-  REQUIRE_FALSE(enum_cast<number>("_1").has_value());
-  REQUIRE_FALSE(enum_cast<number>("_2").has_value());
-  REQUIRE_FALSE(enum_cast<number>("_3").has_value());
-  REQUIRE_FALSE(enum_cast<number>("_4").has_value());
+  REQUIRE_FALSE(enum_cast<number>(MAKE_STR("_1")).has_value());
+  REQUIRE_FALSE(enum_cast<number>(MAKE_STR("_2")).has_value());
+  REQUIRE_FALSE(enum_cast<number>(MAKE_STR("_3")).has_value());
+  REQUIRE_FALSE(enum_cast<number>(MAKE_STR("_4")).has_value());
 }
 #endif
 

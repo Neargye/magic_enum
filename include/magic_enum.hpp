@@ -130,11 +130,31 @@ MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 using std::string_view;
 #endif
 
+using char_type = string_view::value_type;
+
 // If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
 using std::string;
+#endif
+
+static_assert(std::is_same_v<char_type, string::value_type>, "string_view and string has different character type");
+
+#if defined(MAGIC_ENUM_ENABLE_NONASCII)
+static_assert(!std::is_same_v<char_type, wchar_t>, "wchar_t not supported with MAGIC_ENUM_ENABLE_NONASCII");
+#else
+static_assert(!std::is_same_v<char_type, wchar_t> || [] {
+    constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr const wchar_t wc[] = L"abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    static_assert(!std::is_same_v<char_type, wchar_t> || std::size(c) == std::size(wc), "identifier characters are multichars in wchar_t");
+
+    for (std::size_t i{}; i < std::size(c); ++i)
+      if (c[i] != wc[i])
+        return false;
+    return true;
+  } (), "wchar_t is not compatible with ASCII");
 #endif
 
 namespace customize {
@@ -237,7 +257,7 @@ class static_string {
     assert(str.size() == N);
   }
 
-  constexpr const char* data() const noexcept { return chars_; }
+  constexpr const char_type* data() const noexcept { return chars_; }
 
   constexpr std::uint16_t size() const noexcept { return N; }
 
@@ -247,7 +267,7 @@ class static_string {
   template <std::uint16_t... I>
   constexpr static_string(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
 
-  char chars_[static_cast<std::size_t>(N) + 1];
+  char_type chars_[static_cast<std::size_t>(N) + 1];
 };
 
 template <>
@@ -257,7 +277,7 @@ class static_string<0> {
 
   constexpr explicit static_string(string_view) noexcept {}
 
-  constexpr const char* data() const noexcept { return nullptr; }
+  constexpr const char_type* data() const noexcept { return nullptr; }
 
   constexpr std::uint16_t size() const noexcept { return 0; }
 
@@ -292,18 +312,33 @@ constexpr string_view pretty_name(string_view name) noexcept {
     }
   }
 
-  return {}; // Invalid name.
+  return 0; // Invalid name.
+}
+
+template<std::size_t realLength>
+constexpr static_string<realLength> pretty_name(const char* name, std::size_t length) {
+    char_type buf [realLength] {};
+    for (std::size_t i{}, from = length - realLength; from < length; ++i, ++from)
+        buf[i] = name[from];
+
+    return static_string<realLength>{string_view{buf, realLength}};
+}
+
+
+template<>
+constexpr static_string<0> pretty_name<0>(const char*, std::size_t) {
+    return static_string<0>{string_view{}};
 }
 
 template<typename Op = std::equal_to<>>
 class case_insensitive {
-  static constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
+  static constexpr char_type to_lower(char_type c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char_type>(c + ('a' - 'A')) : c;
   }
 
  public:
   template <typename L, typename R>
-  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
+  constexpr auto operator()([[maybe_unused]] L lhs, [[maybe_unused]] R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char_type> && std::is_same_v<std::decay_t<R>, char_type>, bool> {
 #if defined(MAGIC_ENUM_ENABLE_NONASCII)
     static_assert(always_false_v<L, R>, "magic_enum::case_insensitive not supported Non-ASCII feature.");
     return false;
@@ -313,7 +348,7 @@ class case_insensitive {
   }
 };
 
-constexpr std::size_t find(string_view str, char c) noexcept {
+constexpr std::size_t find(string_view str, char_type c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
@@ -349,7 +384,7 @@ constexpr bool is_default_predicate() noexcept {
 template <typename BinaryPredicate>
 constexpr bool is_nothrow_invocable() {
   return is_default_predicate<BinaryPredicate>() ||
-         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>;
+         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
 }
 
 template <typename BinaryPredicate>
@@ -432,9 +467,9 @@ constexpr auto n() noexcept {
     name.remove_suffix(name[name.size() - 1] == ']' ? 1 : 3);
     name = pretty_name(name);
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name<pretty_name_size(__FUNCSIG__, sizeof(__FUNCSIG__) - 17)>(__FUNCSIG__, sizeof(__FUNCSIG__) - 17);
 #else
-    constexpr auto name = string_view{};
+    constexpr auto name = static_string<0>{};
 #endif
     return name;
   } else {
@@ -480,9 +515,9 @@ constexpr auto n() noexcept {
     name.remove_suffix(name[name.size() - 1] == ']' ? 1 : 3);
     name = pretty_name(name);
 #elif defined(_MSC_VER)
-    constexpr auto name = pretty_name({__FUNCSIG__, sizeof(__FUNCSIG__) - 17});
+    constexpr auto name = pretty_name<pretty_name_size(__FUNCSIG__, sizeof(__FUNCSIG__) - 17)>(__FUNCSIG__, sizeof(__FUNCSIG__) - 17);
 #else
-    constexpr auto name = string_view{};
+    constexpr auto name = static_string<0>{};
 #endif
     return name;
   } else {
