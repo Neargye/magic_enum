@@ -6,7 +6,7 @@ permissions: read-all
 
 jobs:
   build:
-    runs-on: ${{matrix.config.os}}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:

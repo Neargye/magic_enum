@@ -32,14 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FORMAT_HPP
 #define NEARGYE_MAGIC_ENUM_FORMAT_HPP
 
-#if !defined(__cpp_lib_format)
-#  error "Format is not supported"
-#endif
-
 #include "magic_enum.hpp"
 
 #if !defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT)
-#  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT true
+#  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT 1
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
 #endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
 
@@ -51,22 +47,47 @@ namespace magic_enum::customize {
   }
 } // magic_enum::customize
 
+#if defined(__cpp_lib_format)
+
 #include <format>
 
 template <typename E>
-struct std::formatter<E, std::enable_if_t<std::is_enum_v<E> && magic_enum::customize::enum_format_enabled<E>(), char>> : std::formatter<std::string_view, char> {
+struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && magic_enum::customize::enum_format_enabled<E>(), char>> : std::formatter<std::string_view, char> {
   auto format(E e, format_context& ctx) const {
     static_assert(std::is_same_v<char, string_view::value_type>, "formatter requires string_view::value_type type same as char.");
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
       if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
-        return std::formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+        return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
       }
     }
-    return std::formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);
+    return formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);
   }
 };
+
+#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
+
+#if defined(FMT_VERSION)
+
+#include <fmt/format.h>
+
+template <typename E>
+struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && magic_enum::customize::enum_format_enabled<E>(), char>> : fmt::formatter<std::string_view, char> {
+  auto format(E e, format_context& ctx) {
+    static_assert(std::is_same_v<char, string_view::value_type>, "formatter requires string_view::value_type type same as char.");
+    using D = std::decay_t<E>;
+
+    if constexpr (magic_enum::detail::supported<D>::value) {
+      if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
+        return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      }
+    }
+    return formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);
+  }
+};
+
+#endif // FMT_VERSION
 
 #if defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE)
 #  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT

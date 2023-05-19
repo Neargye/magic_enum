@@ -32,7 +32,7 @@ jobs:
 
     - name: Configure clang
       run: |
-        if [[ "${{matrix.compiler.cc}}" == "clang"* ]]; then
+        if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-9 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-10 main"
@@ -44,15 +44,15 @@ jobs:
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main"
           sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
           sudo apt update
-          sudo apt install ${{matrix.compiler.cc}} -y
+          sudo apt install ${{ matrix.compiler.cc }} -y
         fi
 
     - name: Configure gcc
       run: |
-        if [[ "${{matrix.compiler.cc}}" == "gcc"* ]]; then
+        if [[ "${{ matrix.compiler.cc }}" == "gcc"* ]]; then
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt update
-          sudo apt install ${{matrix.compiler.cxx}} -y
+          sudo apt install ${{ matrix.compiler.cxx }} -y
         fi
 
     - name: Build Release
@@ -60,7 +60,7 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }}
         cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
 
@@ -69,7 +69,7 @@ jobs:
         rm -rf build
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{matrix.compiler.nonascii}}
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }}
         cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 

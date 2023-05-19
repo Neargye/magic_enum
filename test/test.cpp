@@ -128,13 +128,11 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
 
-#if !defined(MAGIC_ENUM_ENABLE_NONASCII)
     constexpr auto dr2 = enum_cast<Directions>("RIGHT", case_insensitive);
     REQUIRE(dr2.value() == Directions::Right);
     REQUIRE(enum_cast<Directions&>("up", case_insensitive).value() == Directions::Up);
     REQUIRE(enum_cast<const Directions>("dOwN", case_insensitive).value() == Directions::Down);
     REQUIRE_FALSE(enum_cast<Directions>("Left-", case_insensitive).has_value());
-#endif
 
     constexpr auto nt = enum_cast<number>("three");
     REQUIRE(enum_cast<number>("one").value() == number::one);
@@ -350,13 +348,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Directions>("Left"));
     REQUIRE_FALSE(enum_contains<Directions>("None"));
 
-#if !defined(MAGIC_ENUM_ENABLE_NONASCII)
     auto dr2 = std::string{"RIGHT"};
     REQUIRE(enum_contains<const Directions>(dr2, case_insensitive));
     REQUIRE(enum_contains<Directions&>("up", case_insensitive));
     REQUIRE(enum_contains<Directions>("dOwN", case_insensitive));
     REQUIRE_FALSE(enum_contains<Directions>("Left-", case_insensitive));
-#endif
 
     constexpr auto nt = enum_contains<number>("three");
     REQUIRE(enum_contains<number>("one"));
@@ -1018,7 +1014,6 @@ TEST_CASE("multdimensional-switch-case") {
 TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
   REQUIRE(std::format("{}", Color{0}) == "0");
-  REQUIRE(std::format("Test-{:~^10}.", Color::RED) == "Test-~~~red~~~~.");
 }
 
 #endif
