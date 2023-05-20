@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -41,12 +41,20 @@
 #include <sstream>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+template <>
+struct magic_enum::customize::enum_range<Color> {
+  static constexpr bool is_flags = true;
+};
 
 enum class Numbers : int {
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
   many = 1 << 30,
+};
+template <>
+struct magic_enum::customize::enum_range<Numbers> {
+  static constexpr bool is_flags = true;
 };
 
 enum Directions : std::uint64_t {
@@ -55,13 +63,16 @@ enum Directions : std::uint64_t {
   Up = std::uint64_t{1} << 31,
   Right = std::uint64_t{1} << 63,
 };
+template <>
+struct magic_enum::customize::enum_range<Directions> {
+  static constexpr bool is_flags = true;
+};
 
 enum number : unsigned long {
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
   four = 1 << 4,
-
 #if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
   _1 = one,
   _2 = two,
@@ -71,9 +82,11 @@ enum number : unsigned long {
 };
 template <>
 struct magic_enum::customize::enum_range<number> {
-  static constexpr int min = 100;
-  static constexpr int max = 300;
+  static constexpr bool is_flags = true;
 };
+
+#include <magic_enum.hpp>
+#include <magic_enum_fuse.hpp>
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
@@ -208,11 +221,6 @@ TEST_CASE("enum_contains") {
     REQUIRE(cr);
     REQUIRE(enum_contains<Color&>(cg));
     REQUIRE(enum_contains(cm[2]));
-    REQUIRE(enum_contains<Color, as_flags<>>(Color::RED | Color::GREEN));
-    REQUIRE(enum_contains<Color, as_flags<true>>(Color::RED | Color::GREEN | Color::GREEN));
-    REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color::GREEN));
-    REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color::GREEN | Color::GREEN));
-    REQUIRE_FALSE(enum_contains<Color>(Color::RED | Color{8}));
     REQUIRE_FALSE(enum_contains(static_cast<Color>(0)));
 
     REQUIRE(enum_flags_contains<Color&>(cg));
@@ -252,11 +260,6 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Color>(1));
     REQUIRE(enum_contains<Color&>(2));
     REQUIRE(enum_contains<const Color>(4));
-    REQUIRE(enum_contains<Color, as_flags<>>(1 | 2));
-    REQUIRE(enum_contains<Color, as_flags<true>>(1 | 2 | 1));
-    REQUIRE_FALSE(enum_contains<Color>(1 | 2));
-    REQUIRE_FALSE(enum_contains<Color>(1 | 2 | 1));
-    REQUIRE_FALSE(enum_contains<Color>(1 | 2 | 8));
     REQUIRE_FALSE(enum_contains<Color>(0));
 
     REQUIRE(enum_flags_contains<Color>(1));
@@ -297,9 +300,6 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
     REQUIRE(enum_contains<const Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE(enum_contains<Color&, as_flags<>>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
-    REQUIRE(enum_contains<Color&, as_flags<true>>("GREEN|RED"));
-    REQUIRE(enum_contains<Color, as_flags<true>>("GREEN|RED|RED"));
     REQUIRE_FALSE(enum_contains<Color&>("blue|RED", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE_FALSE(enum_contains<Color&>("GREEN|RED"));
     REQUIRE_FALSE(enum_contains<Color&>("GREEN|RED|RED"));

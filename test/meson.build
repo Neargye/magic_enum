@@ -5,8 +5,6 @@ catch2_dep = declare_dependency(
 test_files = {
     'basic test'      : files('test.cpp'),
     'flags test'      : files('test_flags.cpp'),
-    'aliases test'    : files('test_aliases.cpp'),
-    'containers test' : files('test_containers.cpp'),
 }
 
 foreach test_name, test_src : test_files

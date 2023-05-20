@@ -9,7 +9,7 @@
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -58,8 +58,14 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
-      if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
-        return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+        if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
+          return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+        }
+      } else {
+        if (const auto name = magic_enum::enum_name<D>(e); !name.empty()) {
+          return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+        }
       }
     }
     return formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);
@@ -79,8 +85,14 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
-      if (const auto name = magic_enum::enum_name<D, magic_enum::as_flags<magic_enum::detail::is_flags_v<D>>>(e); !name.empty()) {
-        return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+      if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+        if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
+          return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+        }
+      } else {
+        if (const auto name = magic_enum::enum_name<D>(e); !name.empty()) {
+          return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
+        }
       }
     }
     return formatter<std::string_view, char>::format(std::to_string(magic_enum::enum_integer<D>(e)), ctx);

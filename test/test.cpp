@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -55,13 +55,17 @@ enum number : unsigned long {
   two = 200,
   three = 300,
   four = 400,
-
 #if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
   _1 = one,
   _2 = two,
   _3 = three,
   _4 = four
 #endif
+};
+template <>
+struct magic_enum::customize::enum_range<number> {
+  static constexpr int min = 100;
+  static constexpr int max = 300;
 };
 
 enum class crc_hack {
@@ -71,12 +75,6 @@ enum class crc_hack {
 enum class crc_hack_2 {
   b5a7b602ab754d7ab30fb42c4fb28d82,
   d19f2e9e82d14b96be4fa12b8a27ee9f
-};
-
-template <>
-struct magic_enum::customize::enum_range<number> {
-  static constexpr int min = 100;
-  static constexpr int max = 300;
 };
 
 enum class MaxUsedAsInvalid : std::uint8_t {
@@ -460,7 +458,8 @@ TEST_CASE("enum_name") {
     REQUIRE(cr_name == "red");
     REQUIRE(enum_name<Color&>(cb) == "BLUE");
     REQUIRE(enum_name<as_flags<false>>(cm[1]) == "GREEN");
-    REQUIRE(enum_name<detail::value_type::default_value>(static_cast<Color>(0)).empty());
+    REQUIRE(enum_name<as_common<true>>(cm[1]) == "GREEN");
+    REQUIRE(enum_name<as_flags<false>>(static_cast<Color>(0)).empty());
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name(no);
@@ -762,58 +761,58 @@ TEST_CASE("extrema") {
 
   SECTION("min") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<BadColor, false> == 0);
-    REQUIRE(magic_enum::detail::min_v<BadColor> == 0);
+    REQUIRE(magic_enum::detail::reflected_min<BadColor, as_common<>>() == 0);
+    REQUIRE(magic_enum::detail::min_v<BadColor, as_common<>> == 0);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Color, false> == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::min_v<Color> == -12);
+    REQUIRE(magic_enum::detail::reflected_min<Color, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Color, as_common<>> == -12);
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Numbers, false> == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::min_v<Numbers> == 1);
+    REQUIRE(magic_enum::detail::reflected_min<Numbers, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Numbers, as_common<>> == 1);
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Directions, false> == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::min_v<Directions> == -120);
+    REQUIRE(magic_enum::detail::reflected_min<Directions, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Directions, as_common<>> == -120);
 
     REQUIRE(magic_enum::customize::enum_range<number>::min == 100);
-    REQUIRE(magic_enum::detail::reflected_min_v<number, false> == 100);
-    REQUIRE(magic_enum::detail::min_v<number> == 100);
+    REQUIRE(magic_enum::detail::reflected_min<number, as_common<>>() == 100);
+    REQUIRE(magic_enum::detail::min_v<number, as_common<>> == 100);
 
-    REQUIRE(magic_enum::detail::reflected_min_v<Binary, false> == 0);
-    REQUIRE(magic_enum::detail::min_v<Binary> == false);
+    REQUIRE(magic_enum::detail::reflected_min<Binary, as_common<>>() == 0);
+    REQUIRE(magic_enum::detail::min_v<Binary, as_common<>> == false);
 
-    REQUIRE(magic_enum::detail::reflected_min_v<MaxUsedAsInvalid,false> == 0);
-    REQUIRE(magic_enum::detail::min_v<MaxUsedAsInvalid> == 0);
+    REQUIRE(magic_enum::detail::reflected_min<MaxUsedAsInvalid, as_common<>>() == 0);
+    REQUIRE(magic_enum::detail::min_v<MaxUsedAsInvalid, as_common<>> == 0);
   }
 
   SECTION("max") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<BadColor, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<BadColor> == 2);
+    REQUIRE(magic_enum::detail::reflected_max<BadColor, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<BadColor, as_common<>> == 2);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Color, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<Color> == 15);
+    REQUIRE(magic_enum::detail::reflected_max<Color, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Color, as_common<>> == 15);
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Numbers, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<Numbers> == 3);
+    REQUIRE(magic_enum::detail::reflected_max<Numbers, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Numbers, as_common<>> == 3);
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Directions, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<Directions> == 120);
+    REQUIRE(magic_enum::detail::reflected_max<Directions, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Directions, as_common<>> == 120);
 
     REQUIRE(magic_enum::customize::enum_range<number>::max == 300);
-    REQUIRE(magic_enum::detail::reflected_max_v<number, false> == 300);
-    REQUIRE(magic_enum::detail::max_v<number> == 300);
+    REQUIRE(magic_enum::detail::reflected_max<number, as_common<>>() == 300);
+    REQUIRE(magic_enum::detail::max_v<number, as_common<>> == 300);
 
-    REQUIRE(magic_enum::detail::reflected_max_v<Binary, false> == 1);
-    REQUIRE(magic_enum::detail::max_v<Binary> == true);
+    REQUIRE(magic_enum::detail::reflected_max<Binary, as_common<>>() == 1);
+    REQUIRE(magic_enum::detail::max_v<Binary, as_common<>> == true);
 
-    REQUIRE(magic_enum::detail::reflected_max_v<MaxUsedAsInvalid, false> == 64);
-    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid> == 63);
+    REQUIRE(magic_enum::detail::reflected_max<MaxUsedAsInvalid, as_common<>>() == 64);
+    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid, as_common<>> == 63);
   }
 }
 

@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -35,11 +35,7 @@
 #include <string_view>
 #include <sstream>
 
-#if !defined(MAGIC_ENUM_ENABLE_NONASCII)
-#error ENABLE_NONASCII must be defined to run nonascii tests
-#endif
-
-enum class Language : int { 日本語 = 10, 한국어 = 20, English = 30, 😃 = 40 };
+enum class Language : int { 日本語 = 10, 한국어 = 20, English = 30, 😃 = 40, TVÅ = 50 };
 
 enum class LanguageFlag : int {
   日本語 = 1 << 1,
@@ -59,6 +55,7 @@ TEST_CASE("enum_cast") {
       REQUIRE(enum_cast<const Language>("English").value() == Language::English);
       REQUIRE(lang.value() == Language::日本語);
       REQUIRE(enum_cast<Language>("😃").value() == Language::😃);
+      REQUIRE(enum_cast<Language>("TVÅ").value() == Language::TVÅ);
       REQUIRE_FALSE(enum_cast<Language>("Französisch").has_value());
   }
 
@@ -130,12 +127,12 @@ TEST_CASE("enum_value") {
 
 TEST_CASE("enum_values") {
   constexpr auto& s7 = enum_values<const Language>();
-  REQUIRE(s7 == std::array<Language, 4>{{Language::日本語, Language::한국어, Language::English, Language::😃}});
+  REQUIRE(s7 == std::array<Language, 5>{{Language::日本語, Language::한국어, Language::English, Language::😃, Language::TVÅ}});
 }
 
 TEST_CASE("enum_count") {
   constexpr auto s7 = enum_count<Language>();
-  REQUIRE(s7 == 4);
+  REQUIRE(s7 == 5);
 }
 
 TEST_CASE("enum_name") {
@@ -147,6 +144,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<const Language>(Language::English) == "English");
     REQUIRE(lang_name == "日本語");
     REQUIRE(enum_name(Language::😃) == "😃");
+    REQUIRE(enum_name(Language::TVÅ) == "TVÅ");
     REQUIRE(enum_name(static_cast<Language>(0)).empty());
   }
 
@@ -162,12 +160,12 @@ TEST_CASE("enum_name") {
 
 TEST_CASE("enum_names") {
   constexpr auto& s5 = enum_names<const Language>();
-  REQUIRE(s5 == std::array<std::string_view, 4>{{"日本語", "한국어", "English", "😃"}});
+  REQUIRE(s5 == std::array<std::string_view, 5>{{"日本語", "한국어", "English", "😃", "TVÅ"}});
 }
 
 TEST_CASE("enum_entries") {
   constexpr auto& s5 = enum_entries<const Language>();
-  REQUIRE(s5 == std::array<std::pair<Language, std::string_view>, 4>{{{Language::日本語, "日本語"}, {Language::한국어, "한국어"}, {Language::English, "English"}, {Language::😃, "😃"}}});
+  REQUIRE(s5 == std::array<std::pair<Language, std::string_view>, 5>{{{Language::日本語, "日本語"}, {Language::한국어, "한국어"}, {Language::English, "English"}, {Language::😃, "😃"}, {Language::TVÅ, "TVÅ"}}});
 }
 
 TEST_CASE("ostream_operators") {
@@ -251,14 +249,14 @@ TEST_CASE("enum_type_name") {
 TEST_CASE("extrema") {
   SECTION("min") {
     REQUIRE(magic_enum::customize::enum_range<Language>::min == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::reflected_min_v<Language, false> == MAGIC_ENUM_RANGE_MIN);
-    REQUIRE(magic_enum::detail::min_v<Language> == 10);
+    REQUIRE(magic_enum::detail::reflected_min<Language, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
+    REQUIRE(magic_enum::detail::min_v<Language, as_common<>> == 10);
   }
 
   SECTION("max") {
     REQUIRE(magic_enum::customize::enum_range<Language>::max == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::reflected_max_v<Language, false> == MAGIC_ENUM_RANGE_MAX);
-    REQUIRE(magic_enum::detail::max_v<Language> == 40);
+    REQUIRE(magic_enum::detail::reflected_max<Language, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+    REQUIRE(magic_enum::detail::max_v<Language, as_common<>> == 50);
   }
 }
 

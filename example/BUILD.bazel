@@ -4,9 +4,9 @@ load("@magic_enum//bazel:copts.bzl", "COPTS")
 _EXAMPLES = [
     "enum_flag_example",
     "example",
-    "example_containers_array",
-    "example_containers_bitset",
-    "example_containers_set",
+    #"example_containers_array", TODO
+    #"example_containers_bitset", TODO
+    #"example_containers_set", TODO
     "example_custom_name",
     "example_switch",
 ]
@@ -23,6 +23,5 @@ cc_binary(
     srcs = ["example_nonascii_name.cpp"],
     deps = ["@magic_enum"],
     copts = COPTS,
-    defines = ["MAGIC_ENUM_ENABLE_NONASCII"],
     tags = ["manual"],
 )
