@@ -58,7 +58,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
-      if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+      if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags) {
         if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
           return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
         }
@@ -85,7 +85,7 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
     using D = std::decay_t<E>;
 
     if constexpr (magic_enum::detail::supported<D>::value) {
-      if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+      if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags) {
         if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
           return formatter<std::string_view, char>::format(std::string_view{name.data(), name.size()}, ctx);
         }

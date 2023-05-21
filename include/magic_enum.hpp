@@ -425,7 +425,7 @@ constexpr auto type_name() noexcept {
     constexpr auto name = n<E>();
     return static_string<name.size()>{name};
   } else {
-    static_assert(detail::always_false_v<E>, "magic_enum::customize invalid.");
+    static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
 }
 
@@ -499,7 +499,7 @@ constexpr auto enum_name() noexcept {
     constexpr auto name = n<V>();
     return static_string<name.size()>{name};
   } else {
-    static_assert(detail::always_false_v<E>, "magic_enum::customize invalid.");
+    static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
 }
 
