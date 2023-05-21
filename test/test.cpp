@@ -449,6 +449,11 @@ TEST_CASE("enum_count") {
 
 }
 
+enum lt1 { s1, loooooooooooooooooooong1 };
+enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
+enum class lt3 { s3, loooooooooooooooooooong3 };
+enum class lt4 : unsigned { s4, loooooooooooooooooooong4 };
+
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
     constexpr Color cr = Color::RED;
@@ -487,6 +492,16 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
+
+
+    REQUIRE(enum_name(lt1::s1) == "s1");
+    REQUIRE(enum_name(lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
+    REQUIRE(enum_name(lt2::s2) == "s2");
+    REQUIRE(enum_name(lt2::loooooooooooooooooooong2) == "loooooooooooooooooooong2");
+    REQUIRE(enum_name(lt3::s3) == "s3");
+    REQUIRE(enum_name(lt3::loooooooooooooooooooong3) == "loooooooooooooooooooong3");
+    REQUIRE(enum_name(lt4::s4) == "s4");
+    REQUIRE(enum_name(lt4::loooooooooooooooooooong4) == "loooooooooooooooooooong4");
   }
 
   SECTION("static storage") {

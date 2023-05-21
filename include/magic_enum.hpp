@@ -442,9 +442,9 @@ constexpr auto n() noexcept {
     if (name[0] == '(' || name[0] == '-' || (name[0] >= '0' && name[0] <= '9')) {
       name = string_view{};
     }
-    constexpr auto prefix = n<decltype(V)>().size() + 2;
-    if (name.size() >= prefix) {
-      name.remove_prefix(prefix);
+    constexpr auto prefix = n<decltype(V)>().size();
+    if (name.size() > prefix && name[prefix] == ':') {
+      name.remove_prefix(prefix + 2);
     }
 #elif defined(__GNUC__)
     auto name = string_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
@@ -458,17 +458,17 @@ constexpr auto n() noexcept {
     if (name[0] == '(') {
       name = string_view{};
     }
-    constexpr auto prefix = n<decltype(V)>().size() + 2;
-    if (name.size() >= prefix) {
-      name.remove_prefix(prefix);
+    constexpr auto prefix = n<decltype(V)>().size();
+    if (name.size() > prefix && name[prefix] == ':') {
+      name.remove_prefix(prefix + 2);
     }
 #elif defined(_MSC_VER)
     string_view name;
     if ((__FUNCSIG__[5] == '_' && __FUNCSIG__[35] != '(') || (__FUNCSIG__[5] == 'c' && __FUNCSIG__[41] != '(')) {
       name = string_view{__FUNCSIG__ + 35, sizeof(__FUNCSIG__) - 52};
-      constexpr auto prefix = n<decltype(V)>().size() + 2;
-      if (name.size() >= prefix) {
-        name.remove_prefix(prefix);
+      constexpr auto prefix = n<decltype(V)>().size();
+      if (name.size() > prefix && name[prefix] == ':') {
+        name.remove_prefix(prefix + 2);
       }
     }
 #else
