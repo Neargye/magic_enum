@@ -39,7 +39,7 @@ namespace magic_enum {
 namespace detail {
 
 template <typename E, typename... Es>
-inline constexpr auto subtypes_v = subtype_v<std::decay_t<E>>;
+inline constexpr auto subtypes_v = subtype_v<E>;
 
 template <enum_subtype S, typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
@@ -90,7 +90,7 @@ template <detail::enum_subtype S, typename... Es>
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
-  return enum_fuse<detail::subtypes_v<Es...>>(values...);
+  return enum_fuse<detail::subtypes_v<std::decay_t<Es>...>>(values...);
 }
 
 } // namespace magic_enum
