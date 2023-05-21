@@ -37,7 +37,7 @@
 #if !defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT)
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT 1
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
-#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
+#endif
 
 namespace magic_enum::customize {
   // customize enum to enable/disable automatic std::format
@@ -72,7 +72,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
   }
 };
 
-#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
+#endif
 
 #if defined(FMT_VERSION)
 
@@ -99,11 +99,11 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
   }
 };
 
-#endif // FMT_VERSION
+#endif
 
 #if defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE)
 #  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT
 #  undef MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
-#endif // MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT_AUTO_DEFINE
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP

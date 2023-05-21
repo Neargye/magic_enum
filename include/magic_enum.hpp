@@ -189,6 +189,8 @@ constexpr customize_t enum_type_name() noexcept {
   return default_tag;
 }
 
+static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum::customize requires same string_view::value_type and string::value_type");
+
 } // namespace magic_enum::customize
 
 namespace detail {
@@ -292,11 +294,6 @@ constexpr std::size_t find(string_view str, char c) noexcept {
   } else {
     return str.find(c);
   }
-}
-
-template <typename T, std::size_t N, std::size_t... I>
-constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
-  return {{a[I]...}};
 }
 
 template <typename BinaryPredicate>
@@ -589,6 +586,7 @@ constexpr int reflected_max() noexcept {
   }
 }
 
+#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
 template <std::size_t N>
 constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
   auto count = std::size_t{0};
@@ -600,6 +598,24 @@ constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
 
   return count;
 }
+#else
+template <typename T, std::size_t N, std::size_t... I>
+constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
+  return {{a[I]...}};
+}
+
+template <std::size_t N>
+constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
+  auto count = std::size_t{0};
+  for (std::size_t i = 0; i < N; ++i) {
+    if (valid[i]) {
+      ++count;
+    }
+  }
+
+  return count;
+}
+#endif
 
 template <typename E, enum_subtype S, int Min, std::size_t... I>
 constexpr auto values(std::index_sequence<I...>) noexcept {
@@ -608,14 +624,22 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
   constexpr std::size_t count = values_count(valid);
 
   if constexpr (count > 0) {
+#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
+    std::array<E, count> values = {};
+
+#else
     E values[count] = {};
+#endif
     for (std::size_t i = 0, v = 0; v < count; ++i) {
       if (valid[i]) {
         values[v++] = value<E, Min, S>(i);
       }
     }
-
+#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
+    return values;
+#else
     return to_array(values, std::make_index_sequence<count>{});
+#endif
   } else {
     return std::array<E, 0>{};
   }
