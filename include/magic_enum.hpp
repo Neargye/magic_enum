@@ -370,6 +370,15 @@ constexpr I log2(I value) noexcept {
   }
 }
 
+#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
+#define MAGIC_ENUM_ARRAY_CONSTEXPR
+#else
+template <typename T, std::size_t N, std::size_t... I>
+constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
+  return {{a[I]...}};
+}
+#endif
+
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
@@ -586,7 +595,6 @@ constexpr int reflected_max() noexcept {
   }
 }
 
-#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
 template <std::size_t N>
 constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
   auto count = std::size_t{0};
@@ -598,24 +606,6 @@ constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
 
   return count;
 }
-#else
-template <typename T, std::size_t N, std::size_t... I>
-constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
-  return {{a[I]...}};
-}
-
-template <std::size_t N>
-constexpr std::size_t values_count(const bool (&valid)[N]) noexcept {
-  auto count = std::size_t{0};
-  for (std::size_t i = 0; i < N; ++i) {
-    if (valid[i]) {
-      ++count;
-    }
-  }
-
-  return count;
-}
-#endif
 
 template <typename E, enum_subtype S, int Min, std::size_t... I>
 constexpr auto values(std::index_sequence<I...>) noexcept {
@@ -624,9 +614,8 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
   constexpr std::size_t count = values_count(valid);
 
   if constexpr (count > 0) {
-#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
+#if defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
     std::array<E, count> values = {};
-
 #else
     E values[count] = {};
 #endif
@@ -635,7 +624,7 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
         values[v++] = value<E, Min, S>(i);
       }
     }
-#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
+#if defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
     return values;
 #else
     return to_array(values, std::make_index_sequence<count>{});
@@ -1601,5 +1590,11 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 #elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
+
+#undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
+#undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
+#undef MAGIC_ENUM_ARRAY_CONSTEXPR
+#undef MAGIC_ENUM_FOR_EACH_256
+#undef MAGIC_ENUM_CASE
 
 #endif // NEARGYE_MAGIC_ENUM_HPP
