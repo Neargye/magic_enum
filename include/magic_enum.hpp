@@ -58,9 +58,6 @@
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 #include <string_view>
 #endif
-#if !defined(MAGIC_ENUM_NO_STREAMS)
-#include <iosfwd>
-#endif
 
 #if defined(__clang__)
 #  pragma clang diagnostic push
@@ -1466,81 +1463,6 @@ inline constexpr auto as_flags = AsFlags ? detail::enum_subtype::flags : detail:
 
 template <bool AsFlags = true>
 inline constexpr auto as_common = AsFlags ? detail::enum_subtype::common : detail::enum_subtype::flags;
-
-#if !defined(MAGIC_ENUM_NO_STREAMS)
-
-namespace ostream_operators {
-
-template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
-  using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
-
-  if constexpr (detail::supported<D>::value) {
-    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-      if (const auto name = enum_flags_name<D>(value); !name.empty()) {
-        for (const auto c : name) {
-          os.put(c);
-        }
-        return os;
-      }
-    } else {
-      if (const auto name = enum_name<D>(value); !name.empty()) {
-        for (const auto c : name) {
-          os.put(c);
-        }
-        return os;
-      }
-    }
-  }
-  return (os << static_cast<U>(value));
-}
-
-template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, optional<E> value) {
-  return value ? (os << *value) : os;
-}
-
-} // namespace magic_enum::ostream_operators
-
-namespace istream_operators {
-
-template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
-std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& is, E& value) {
-  using D = std::decay_t<E>;
-
-  std::basic_string<Char, Traits> s;
-  is >> s;
-  if constexpr (detail::supported<D>::value) {
-    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-      if (const auto v = enum_flags_cast<D>(s)) {
-        value = *v;
-      } else {
-        is.setstate(std::basic_ios<Char>::failbit);
-      }
-    } else {
-      if (const auto v = enum_cast<D>(s)) {
-        value = *v;
-      } else {
-        is.setstate(std::basic_ios<Char>::failbit);
-      }
-    }
-  } else {
-    is.setstate(std::basic_ios<Char>::failbit);
-  }
-  return is;
-}
-
-} // namespace magic_enum::istream_operators
-
-namespace iostream_operators {
-
-using namespace ostream_operators;
-using namespace istream_operators;
-
-} // namespace magic_enum::iostream_operators
-
-#endif
 
 namespace bitwise_operators {
 

@@ -19,6 +19,7 @@
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
+* [`istream_operators` istream operators for enums.](#istream_operators)
 * [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
 * [`containers::array` array container for enums.](#containersarray)
 * [`containers::bitset` bitset container for enums.](#containersbitset)
@@ -511,8 +512,9 @@ basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, E value
 
 template <typename Char, typename Traits, typename E>
 basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optional<E> value);
-
 ```
+
+* You should add the required file `<magic_enum_iostream.hpp>`.
 
 * Out-of-the-box ostream operators for all enums.
 
@@ -522,6 +524,25 @@ basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optiona
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
+  ```
+
+## `istream_operators`
+
+```cpp
+template <typename Char, typename Traits, typename E>
+basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& value);
+```
+
+* You should add the required file `<magic_enum_iostream.hpp>`.
+
+* Out-of-the-box istream operators for all enums.
+
+* Examples
+
+  ```cpp
+  using namespace magic_enum::istream_operators; // out-of-the-box istream operators for enums.
+  Color color;
+  std::cin >> color;
   ```
 
 ## `bitwise_operators`
