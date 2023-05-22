@@ -68,7 +68,7 @@
 #  pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // May be used uninitialized 'return {};'.
 #elif defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable : 26495) // Variable 'static_string<N>::chars_' is uninitialized.
+#  pragma warning(disable : 26495) // Variable 'static_str<N>::chars_' is uninitialized.
 #  pragma warning(disable : 28020) // Arithmetic overflow: Using operator '-' on a 4 byte value and then casting the result to a 8 byte value.
 #  pragma warning(disable : 26451) // The expression '0<=_Param_(1)&&_Param_(1)<=1-1' is not true at this call.
 #  pragma warning(disable : 4514) // Unreferenced inline function has been removed.
@@ -95,7 +95,7 @@
 // Enum value must be less or equals than MAGIC_ENUM_RANGE_MAX. By default MAGIC_ENUM_RANGE_MAX = 128.
 // If need another max range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MAX.
 #if !defined(MAGIC_ENUM_RANGE_MAX)
-#  define MAGIC_ENUM_RANGE_MAX 128
+#  define MAGIC_ENUM_RANGE_MAX 127
 #endif
 
 // Improve ReSharper C++ intellisense performance with builtins, avoiding unnecessary template instantiations.
@@ -224,10 +224,23 @@ struct range_max : std::integral_constant<int, MAGIC_ENUM_RANGE_MAX> {};
 template <typename T>
 struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std::integral_constant<decltype(customize::enum_range<T>::max), customize::enum_range<T>::max> {};
 
+struct str_view {
+  const char* str_ = nullptr;
+  std::size_t size_ = 0;
+
+  constexpr const char* data() const noexcept { return str_; }
+
+  constexpr std::size_t size() const noexcept { return size_; }
+};
+
 template <std::uint16_t N>
-class static_string {
+class static_str {
  public:
-  constexpr explicit static_string(string_view str) noexcept : static_string{str, std::make_integer_sequence<std::uint16_t, N>{}} {
+  constexpr explicit static_str(str_view str) noexcept : static_str{str.str_, std::make_integer_sequence<std::uint16_t, N>{}} {
+    assert(str.size() == N);
+  }
+
+  constexpr explicit static_str(string_view str) noexcept : static_str{str.data(), std::make_integer_sequence<std::uint16_t, N>{}} {
     assert(str.size() == N);
   }
 
@@ -239,17 +252,19 @@ class static_string {
 
  private:
   template <std::uint16_t... I>
-  constexpr static_string(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
+  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
 
   char chars_[static_cast<std::size_t>(N) + 1];
 };
 
 template <>
-class static_string<0> {
+class static_str<0> {
  public:
-  constexpr explicit static_string() = default;
+  constexpr explicit static_str() = default;
 
-  constexpr explicit static_string(string_view) noexcept {}
+  constexpr explicit static_str(str_view) noexcept {}
+
+  constexpr explicit static_str(string_view) noexcept {}
 
   constexpr const char* data() const noexcept { return nullptr; }
 
@@ -386,26 +401,26 @@ constexpr auto n() noexcept {
   if constexpr (supported<E>::value) {
 #if defined(MAGIC_ENUM_GET_TYPE_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
-    constexpr auto name = name_ptr ? string_view{name_ptr} : string_view{};
+    constexpr auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
-    auto name = string_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+    auto name = str_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
 #elif defined(__GNUC__)
-    auto name = string_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (name[name.size() - 1] == ']') {
-      name.remove_suffix(1);
-      name.remove_prefix(49);
+    auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
+    if (name.str_[name.size_ - 1] == ']') {
+      name.size_ -= 50;
+      name.str_ += 49;
     } else {
-      name.remove_suffix(3);
-      name.remove_prefix(37);
+      name.size_ -= 40;
+      name.str_ += 37;
     }
 #elif defined(_MSC_VER)
-    auto name = string_view{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
+    auto name = str_view{__FUNCSIG__ + 40, sizeof(__FUNCSIG__) - 57};
 #else
-    auto name = string_view{};
+    auto name = str_view{};
 #endif
     return name;
   } else {
-    return string_view{}; // Unsupported compiler or Invalid customize.
+    return str_view{}; // Unsupported compiler or Invalid customize.
   }
 }
 
@@ -416,12 +431,12 @@ constexpr auto type_name() noexcept {
   if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
     constexpr auto name = custom.second;
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-    return static_string<name.size()>{name};
+    return static_str<name.size()>{name};
   } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
-    return static_string<0>{};
+    return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<E>();
-    return static_string<name.size()>{name};
+    return static_str<name.size()>{name};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
@@ -437,47 +452,50 @@ constexpr auto n() noexcept {
   if constexpr (supported<decltype(V)>::value) {
 #if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
-    constexpr auto name = name_ptr ? string_view{name_ptr} : string_view{};
+    constexpr auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
-    auto name = string_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
-    if (name[0] == '(' || name[0] == '-' || (name[0] >= '0' && name[0] <= '9')) {
-      name = string_view{};
+    auto name = str_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+    if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
+      name = str_view{};;
     }
     constexpr auto prefix = n<decltype(V)>().size();
-    if (name.size() > prefix && name[prefix] == ':') {
-      name.remove_prefix(prefix + 2);
+    if (name.size_ > prefix && name.str_[prefix] == ':') {
+      name.size_ -= (prefix + 2);
+      name.str_ += (prefix + 2);
     }
 #elif defined(__GNUC__)
-    auto name = string_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (name[name.size() - 1] == ']') {
-      name.remove_suffix(1);
-      name.remove_prefix(54);
+    auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
+    if (name.str_[name.size_ - 1] == ']') {
+      name.size_ -= 55;
+      name.str_ += 54;
     } else {
-      name.remove_suffix(3);
-      name.remove_prefix(37);
+      name.size_ -= 40;
+      name.str_ += 37;
     }
-    if (name[0] == '(') {
-      name = string_view{};
+    if (name.str_[0] == '(') {
+      name = str_view{};
     }
     constexpr auto prefix = n<decltype(V)>().size();
-    if (name.size() > prefix && name[prefix] == ':') {
-      name.remove_prefix(prefix + 2);
+    if (name.size_ > prefix && name.str_[prefix] == ':') {
+      name.size_ -= (prefix + 2);
+      name.str_ += (prefix + 2);
     }
 #elif defined(_MSC_VER)
-    string_view name;
+    str_view name;
     if ((__FUNCSIG__[5] == '_' && __FUNCSIG__[35] != '(') || (__FUNCSIG__[5] == 'c' && __FUNCSIG__[41] != '(')) {
-      name = string_view{__FUNCSIG__ + 35, sizeof(__FUNCSIG__) - 52};
+      name = str_view{__FUNCSIG__ + 35, sizeof(__FUNCSIG__) - 52};
       constexpr auto prefix = n<decltype(V)>().size();
-      if (name.size() > prefix && name[prefix] == ':') {
-        name.remove_prefix(prefix + 2);
+      if (name.size_ > prefix && name.str_[prefix] == ':') {
+        name.size_ -= (prefix + 2);
+        name.str_ += (prefix + 2);
       }
     }
 #else
-    auto name = string_view{};
+    auto name = str_view{};
 #endif
     return name;
   } else {
-    return string_view{}; // Unsupported compiler or Invalid customize.
+    return str_view{}; // Unsupported compiler or Invalid customize.
   }
 }
 
@@ -488,12 +506,12 @@ constexpr auto enum_name() noexcept {
   if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
     constexpr auto name = custom.second;
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-    return static_string<name.size()>{name};
+    return static_str<name.size()>{name};
   } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
-    return static_string<0>{};
+    return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<V>();
-    return static_string<name.size()>{name};
+    return static_str<name.size()>{name};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
