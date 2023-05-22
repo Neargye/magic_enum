@@ -37,10 +37,15 @@
 #include <catch2/catch.hpp>
 
 #include <magic_enum_containers.hpp>
+#include <magic_enum_iostream.hpp>
 
 #include <functional>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+template <>
+struct magic_enum::customize::enum_range<Color> {
+  static constexpr bool is_flags = true;
+};
 
 enum class Empty {};
 

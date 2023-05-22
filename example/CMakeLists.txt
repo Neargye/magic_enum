@@ -20,9 +20,9 @@ endfunction()
 
 make_example(example)
 make_example(enum_flag_example)
-#make_example(example_containers_array) TODO
-#make_example(example_containers_bitset) TODO
-#make_example(example_containers_set) TODO
+make_example(example_containers_array)
+make_example(example_containers_bitset)
+make_example(example_containers_set)
 make_example(example_custom_name)
 make_example(example_switch)
 if(MAGIC_ENUM_OPT_ENABLE_NONASCII)

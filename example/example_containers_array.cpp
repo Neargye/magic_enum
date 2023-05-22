@@ -25,6 +25,10 @@
 #include <magic_enum_containers.hpp>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+template <>
+struct magic_enum::customize::enum_range<Color> {
+  static constexpr bool is_flags = true;
+};
 
 struct RGB {
 
@@ -37,7 +41,6 @@ struct RGB {
   [[nodiscard]] constexpr bool operator==(RGB rgb) const noexcept { return std::equal_to{}(r, rgb.r) && std::equal_to{}(g, rgb.g) && std::equal_to{}(b, rgb.b); }
 
   friend std::ostream& operator<<(std::ostream& ostream, RGB rgb) {
-
     ostream << "R=" << static_cast<std::uint32_t>(rgb.r) << " G=" << static_cast<std::uint32_t>(rgb.g) << " B=" << static_cast<std::uint32_t>(rgb.b);
     return ostream;
   }
