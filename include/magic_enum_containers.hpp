@@ -580,9 +580,9 @@ public:
       }
     }
   }
-
-  template <typename V = E>
-  constexpr explicit bitset(std::enable_if_t<magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, E> starter) : a{{}} {
+  template <class V,
+           std::enable_if_t<std::is_same_v<V, E> && magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, int> = 0>
+  constexpr explicit bitset(V starter) : a{{}} {
     auto u = enum_underlying(starter);
     for (E v : enum_values<E>()) {
       if (auto ul = enum_underlying(v); (ul & u) != 0) {
@@ -803,6 +803,9 @@ private:
   container_type a;
 };
 
+template <class V, int = 0>
+explicit bitset(V starter) -> bitset<V>;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                           SET                                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -847,13 +850,13 @@ public:
       insert(e);
     }
   }
-
-  template <typename V = E>
-  constexpr explicit set(std::enable_if_t<magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, E> starter) {
+  template <class V,
+           std::enable_if_t<std::is_same_v<V, E> &&magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, int> = 0>
+  constexpr explicit set(V starter) {
     auto u = enum_underlying(starter);
     for (E v : enum_values<E>()) {
       if ((enum_underlying(v) & u) != 0) {
-        (*this)[v] = true;
+        insert(v);
       }
     }
   }
@@ -1094,6 +1097,10 @@ private:
   container_type a;
   std::size_t s{};
 };
+
+
+template <class V, int = 0>
+explicit set(V starter) -> set<V>;
 
 } // namespace magic_enum::containers
 
