@@ -447,7 +447,6 @@ TEST_CASE("enum_count") {
 
   constexpr auto s6 = enum_count<MaxUsedAsInvalid>();
   REQUIRE(s6 == 2);
-
 }
 
 enum lt1 { s1, loooooooooooooooooooong1 };
