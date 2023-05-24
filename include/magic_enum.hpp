@@ -134,6 +134,23 @@ MAGIC_ENUM_USING_ALIAS_STRING
 using std::string;
 #endif
 
+using char_type = string_view::value_type;
+static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum::customize requires same string_view::value_type and string::value_type");
+static_assert([] {
+  if constexpr (std::is_same_v<char_type, wchar_t>) {
+    constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr const wchar_t wc[] = L"abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    static_assert(std::size(c) == std::size(wc), "magic_enum::customize identifier characters are multichars in wchar_t.");
+
+    for (std::size_t i = 0; i < std::size(c); ++i) {
+      if (c[i] != wc[i]) {
+        return false;
+      }
+    }
+  }
+  return true;
+} (), "magic_enum::customize wchar_t is not compatible with ASCII.");
+
 namespace customize {
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 128.
@@ -163,7 +180,7 @@ enum class customize_tag {
 class customize_t : public std::pair<detail::customize_tag, string_view> {
  public:
   constexpr customize_t(string_view srt) : std::pair<detail::customize_tag, string_view>{detail::customize_tag::custom_tag, srt} {}
-  constexpr customize_t(const char* srt) : customize_t{string_view{srt}} {}
+  constexpr customize_t(const char_type* srt) : customize_t{string_view{srt}} {}
   constexpr customize_t(detail::customize_tag tag) : std::pair<detail::customize_tag, string_view>{tag, string_view{}} {
     assert(tag != detail::customize_tag::custom_tag);
   }
@@ -185,8 +202,6 @@ template <typename E>
 constexpr customize_t enum_type_name() noexcept {
   return default_tag;
 }
-
-static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum::customize requires same string_view::value_type and string::value_type");
 
 } // namespace magic_enum::customize
 
@@ -244,7 +259,7 @@ class static_str {
     assert(str.size() == N);
   }
 
-  constexpr const char* data() const noexcept { return chars_; }
+  constexpr const char_type* data() const noexcept { return chars_; }
 
   constexpr std::uint16_t size() const noexcept { return N; }
 
@@ -252,9 +267,12 @@ class static_str {
 
  private:
   template <std::uint16_t... I>
-  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
+  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{static_cast<char_type>(str[I])..., '\0'} {}
 
-  char chars_[static_cast<std::size_t>(N) + 1];
+  template <std::uint16_t... I>
+  constexpr static_str(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
+
+  char_type chars_[static_cast<std::size_t>(N) + 1];
 };
 
 template <>
@@ -266,7 +284,7 @@ class static_str<0> {
 
   constexpr explicit static_str(string_view) noexcept {}
 
-  constexpr const char* data() const noexcept { return nullptr; }
+  constexpr const char_type* data() const noexcept { return nullptr; }
 
   constexpr std::uint16_t size() const noexcept { return 0; }
 
@@ -275,18 +293,18 @@ class static_str<0> {
 
 template <typename Op = std::equal_to<>>
 class case_insensitive {
-  static constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
+  static constexpr char_type to_lower(char_type c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char_type>(c + ('a' - 'A')) : c;
   }
 
  public:
   template <typename L, typename R>
-  constexpr auto operator()(L lhs,R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char> && std::is_same_v<std::decay_t<R>, char>, bool> {
+  constexpr auto operator()(L lhs,R rhs) const noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<L>, char_type> && std::is_same_v<std::decay_t<R>, char_type>, bool> {
     return Op{}(to_lower(lhs), to_lower(rhs));
   }
 };
 
-constexpr std::size_t find(string_view str, char c) noexcept {
+constexpr std::size_t find(string_view str, char_type c) noexcept {
 #if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
 // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
@@ -317,7 +335,7 @@ constexpr bool is_default_predicate() noexcept {
 template <typename BinaryPredicate>
 constexpr bool is_nothrow_invocable() {
   return is_default_predicate<BinaryPredicate>() ||
-         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char, char>;
+         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
 }
 
 template <typename BinaryPredicate>
@@ -785,7 +803,7 @@ struct enable_if_enum<true, R> {
 };
 
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
-using enable_if_t = typename enable_if_enum<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate, char, char>, R>::type;
+using enable_if_t = typename enable_if_enum<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, R>::type;
 
 template <typename T, std::enable_if_t<std::is_enum_v<std::decay_t<T>>, int> = 0>
 using enum_concept = T;
@@ -1225,7 +1243,7 @@ template <detail::enum_subtype S, typename E>
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] auto enum_flags_name(E value, char sep = '|') -> detail::enable_if_t<E, string> {
+[[nodiscard]] auto enum_flags_name(E value, char_type sep = '|') -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
