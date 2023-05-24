@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -76,6 +76,7 @@ struct MyStringView {
   constexpr std::size_t find(char c) const { return str.find(c); } // required
   constexpr MyStringView substr(std::size_t p, std::size_t n) { return str.substr(p, n); } // required
   constexpr void remove_prefix(std::size_t n) { str.remove_prefix(n); } // required
+  constexpr void remove_suffix(std::size_t n) { str.remove_suffix(n); } // required
   friend constexpr bool operator==(MyStringView lhs, MyStringView rhs); // required
 
   constexpr MyStringView(const char* cstr) : str{ cstr } {}

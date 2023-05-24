@@ -6,7 +6,7 @@ permissions: read-all
 
 jobs:
   build:
-    runs-on: ${{matrix.config.os}}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -14,7 +14,7 @@ jobs:
         - { os: windows-2019, vs: "Visual Studio 2019" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#visual-studio-enterprise-2019
         - { os: windows-2022, vs: "Visual Studio 2022" } # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2022-Readme.md#visual-studio-enterprise-2022
 
-    name: "${{matrix.config.vs}}"
+    name: "${{ matrix.config.vs }}"
     steps:
     - uses: actions/checkout@v3
 
@@ -25,9 +25,9 @@ jobs:
         mkdir build
         cd build
         cmake .. -A Win32
-        cmake --build . --config Release
+        cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
-        cmake --build . --config Debug
+        cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Build x64
@@ -37,9 +37,9 @@ jobs:
         mkdir build
         cd build
         cmake .. -A x64
-        cmake --build . --config Release
+        cmake --build . -j 4 --config Release
         ctest --output-on-failure -C Release
-        cmake --build . --config Debug
+        cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test

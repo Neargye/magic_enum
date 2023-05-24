@@ -12,8 +12,6 @@ cc_library(
 
 _TESTS = [
     "test",
-    "test_aliases",
-    "test_containers",
     "test_flags",
 ]
 

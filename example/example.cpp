@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include <magic_enum.hpp>
+#include <magic_enum_iostream.hpp>
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
@@ -80,7 +81,7 @@ int main() {
     std::cout << " " << c; // Ostream operator for enum.
   }
   std::cout << std::endl;
-  // Color sequence: RED BLUE GREEN
+  // Color values: RED BLUE GREEN
 
   enum class Flags { A = 1, B = 2, C = 4, D = 8 };
   using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for all enums.

@@ -5,11 +5,11 @@
 // | |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
 // |_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
 //                __/ | https://github.com/Neargye/magic_enum
-//               |___/  version 0.8.2
+//               |___/  version 0.9.0
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2019 - 2022 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2019 - 2023 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -38,30 +38,33 @@ namespace magic_enum {
 
 namespace detail {
 
-template <typename E>
+template <typename E, typename... Es>
+inline constexpr auto subtypes_v = subtype_v<E>;
+
+template <enum_subtype S, typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash) {
     if (const auto index = enum_index(value)) {
-      return (*hash << log2(enum_count<E>() + 1)) | *index;
+      return (*hash << log2(enum_count<E, S>() + 1)) | *index;
     }
   }
   return {};
 }
 
-template <typename E>
+template <enum_subtype S, typename E>
 constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
-  return fuse_one_enum(0, value);
+  return fuse_one_enum<S>(0, value);
 }
 
-template <typename E, typename... Es>
+template <enum_subtype S, typename E, typename... Es>
 constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
-  return fuse_one_enum(fuse_enum(tail...), head);
+  return fuse_one_enum<S>(fuse_enum<S>(tail...), head);
 }
 
-template <typename... Es>
+template <enum_subtype S, typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
-  const auto fuse = fuse_enum(values...);
+  const auto fuse = fuse_enum<S>(values...);
   if (fuse) {
     return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
@@ -71,17 +74,23 @@ constexpr auto typesafe_fuse_enum(Es... values) noexcept {
 } // namespace magic_enum::detail
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
-template <typename... Es>
+template <detail::enum_subtype S, typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
-  static_assert((detail::log2(enum_count<std::decay_t<Es>>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
+  static_assert((detail::log2(enum_count<std::decay_t<Es>, S>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
 #if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
-  const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
+  const auto fuse = detail::fuse_enum<S, std::decay_t<Es>...>(values...);
 #else
-  const auto fuse = detail::typesafe_fuse_enum<std::decay_t<Es>...>(values...);
+  const auto fuse = detail::typesafe_fuse_enum<S, std::decay_t<Es>...>(values...);
 #endif
   return assert(fuse), fuse;
+}
+
+// Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
+template <typename... Es>
+[[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
+  return enum_fuse<detail::subtypes_v<std::decay_t<Es>...>>(values...);
 }
 
 } // namespace magic_enum

@@ -1,5 +1,6 @@
 include(CheckCXXCompilerFlag)
 
+set(CMAKE_CXX_STANDARD 17)
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -25,6 +26,5 @@ make_example(example_containers_set)
 make_example(example_custom_name)
 make_example(example_switch)
 if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-    set(OPTIONS ${OPTIONS} -DMAGIC_ENUM_ENABLE_NONASCII)
     make_example(example_nonascii_name)
 endif()
