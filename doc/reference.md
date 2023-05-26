@@ -14,7 +14,7 @@
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
 * [`enum_for_each` calls a function with all enum constexpr value.](#enum_for_each)
-* [`enum_flags` API from enum-flags.](#enum_flags)
+* [`enum_flags_*` functions for flags.](#enum_flags)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
 * [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
@@ -34,7 +34,7 @@
 
 * To add custom enum or type names see the [example](../example/example_custom_name.cpp).
 
-* To change the type of strings or ortional, use special macros:
+* To change the type of strings or optional, use special macros:
 
   ```cpp
   #include <my_lib/string.hpp>
@@ -292,7 +292,7 @@ template <typename E>
 constexpr bool enum_contains(string_view value) noexcept;
 
 template <typename E, typename BinaryPredicate>
-constexpr optional<E> enum_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+constexpr bool enum_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
 ```
 
 * Checks whether enum contains enumerator with such value.
@@ -330,7 +330,7 @@ constexpr string_view enum_type_name() noexcept;
 
 ```cpp
 template <typename... Es>
-[[nodiscard]] constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
+constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 ```
 
 * You should add the required file `<magic_enum_fuse.hpp>`.
@@ -387,9 +387,10 @@ constexpr auto enum_for_each(Lambda&& lambda);
 * Examples
 
   ```cpp
-  magic_enum::enum_for_each<Color>([] (auto val) {
-    constexpr Color c_color = val;
-    // ...
+  underlying_type_t<Color> sum{};
+  enum_for_each<Color>([&sum](auto val) {
+    constexpr underlying_type_t<Color> v = enum_integer(val());
+    sum += v;
   });
   ```
 
@@ -418,16 +419,27 @@ template <typename E>
 constexpr bool enum_flags_contains(string_view value) noexcept;
 
 template <typename E, typename BinaryPredicate>
-constexpr optional<E> enum_flags_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
+constexpr bool enum_flags_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
 ```
 
 * Examples
 
   ```cpp
-  auto directions_name = magic_enum::enum_flags_name(Directions::Up | Directions::Right);
-  // directions_name -> "Directions::Up|Directions::Right"
-  ```
+  enum Directions : std::uint64_t {
+    Left = 1,
+    Down = 2,
+    Up = 4,
+    Right = 8,
+  };
+  template <>
+  struct magic_enum::customize::enum_range<Directions> {
+    static constexpr bool is_flags = true;
+  };
 
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // directions_name -> "Directions::Up|Directions::Right"
+  magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
+  magic_enum::enum_flags_cast(3); // -> "Directions::Left|Directions::Down"
+  ```
 
 ## `is_unscoped_enum`
 
@@ -584,7 +596,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 ## `containers::array`
 
 ```cpp
-template<typename E, typename V, typename Index = default_indexing<E>>
+template <typename E, typename V, typename Index = default_indexing<E>>
 struct array {
 
   constexpr reference at(E pos);
@@ -637,7 +649,7 @@ struct array {
 
   constexpr size_type max_size() const noexcept;
 
-  constexpr void fill( const V& value );
+  constexpr void fill(const V& value);
 
   constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>);
 
@@ -674,7 +686,7 @@ struct array {
 ## `containers::bitset`
 
 ```cpp
-template<typename E, typename Index = default_indexing<E>>
+template <typename E, typename Index = default_indexing<E>>
 class bitset {
 
   constexpr explicit bitset(detail::raw_access_t = raw_access) noexcept;
@@ -685,28 +697,27 @@ class bitset {
                             string_view sv,
                             string_view::size_type pos = 0,
                             string_view::size_type n = string_view::npos,
-                            char zero = '0',
-                            char one = '1');
+                            char_type zero = '0',
+                            char_type one = '1');
 
   constexpr explicit bitset(detail::raw_access_t,
-                            const char* str,
+                            const char_type* str,
                             std::size_t n = ~std::size_t{},
-                            char zero = '0',
-                            char one = '1');
+                            char_type zero = '0',
+                            char_type one = '1');
 
   constexpr bitset(std::initializer_list<E> starters);
 
-  template<typename V = E>
-  constexpr explicit bitset(std::enable_if_t<magic_enum::detail::is_flags_v<V>, E> starter);
+  constexpr explicit bitset(E starter);
 
-  template<typename Cmp = std::equal_to<>>
+  template <typename Cmp = std::equal_to<>>
   constexpr explicit bitset(string_view sv,
                             Cmp&& cmp = {},
-                            char sep = '|');
+                            char_type sep = '|');
 
-  friend constexpr bool operator==( const bitset& lhs, const bitset& rhs ) noexcept;
+  friend constexpr bool operator==(const bitset& lhs, const bitset& rhs) noexcept;
 
-  friend constexpr bool operator!=( const bitset& lhs, const bitset& rhs ) noexcept;
+  friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept;
 
   constexpr bool operator[](E pos) const noexcept;
 
@@ -750,14 +761,13 @@ class bitset {
 
   friend constexpr bitset operator^(const bitset& lhs, const bitset& rhs) noexcept;
 
-  template<typename V = E>
-  constexpr explicit operator std::enable_if_t<magic_enum::detail::is_flags_v<V>, E>() const;
+  constexpr explicit operator E() const;
 
-  string to_string(char sep = '|') const;
+  string to_string(char_type sep = '|') const;
 
   string to_string(detail::raw_access_t,
-                                 char zero = '0',
-                                 char one = '1') const;
+                   char_type zero = '0',
+                   char_type one = '1') const;
 
   constexpr unsigned long long to_ullong(detail::raw_access_t raw) const;
 
@@ -793,18 +803,17 @@ class bitset {
 ## `containers::set`
 
 ```cpp
-template<typename E, typename CExprLess = std::less<E>>
+template <typename E, typename CExprLess = std::less<E>>
 class set {
 
   constexpr set() noexcept = default;
 
-  template<typename InputIt>
+  template <typename InputIt>
   constexpr set(InputIt first, InputIt last);
 
   constexpr set(std::initializer_list<E> ilist);
 
-  template<typename V = E>
-  constexpr explicit set(std::enable_if_t<magic_enum::detail::is_flags_v<V>, E> starter);
+  constexpr explicit set(E starter);
 
   constexpr set(const set&) noexcept = default;
 
@@ -848,15 +857,15 @@ class set {
 
   constexpr iterator insert(const_iterator hint, value_type&& value) noexcept;
 
-  template< class InputIt >
+  template <typename InputIt>
   constexpr void insert(InputIt first, InputIt last) noexcept;
 
   constexpr void insert(std::initializer_list<value_type> ilist) noexcept;
 
-  template<class... Args>
-  constexpr std::pair<iterator,bool> emplace(Args&&... args) noexcept;
+  template <typename... Args>
+  constexpr std::pair<iterator, bool> emplace(Args&&... args) noexcept;
 
-  template<class... Args>
+  template <typename... Args>
   constexpr iterator emplace_hint(const_iterator, Args&&... args) noexcept;
 
   constexpr iterator erase(const_iterator pos) noexcept;
@@ -865,39 +874,39 @@ class set {
 
   constexpr size_type erase(const key_type& key) noexcept;
 
-  template<class K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept;
 
   void swap(set& other) noexcept;
 
   constexpr size_type count(const key_type& key) const noexcept;
 
-  template<typename K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const;
 
   constexpr const_iterator find(const key_type & key) const noexcept;
 
-  template<class K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const;
 
   constexpr bool contains(const key_type& key) const noexcept;
 
-  template<typename K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const noexcept;
 
   constexpr std::pair<const_iterator,const_iterator> equal_range(const key_type& key) const noexcept;
 
-  template<typename K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range(const K& x) const noexcept;
 
   constexpr const_iterator lower_bound(const key_type& key) const noexcept;
 
-  template<typename K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const noexcept;
 
   constexpr const_iterator upper_bound(const key_type& key) const noexcept;
 
-  template<typename K, typename KC = key_compare>
+  template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const noexcept;
 
   constexpr key_compare key_comp() const;
@@ -916,7 +925,7 @@ class set {
 
   constexpr friend bool operator>=(const set& lhs, const set& rhs) noexcept;
 
-  template<typename Pred>
+  template <typename Pred>
   size_type erase_if(Pred pred);
 }
 ```
