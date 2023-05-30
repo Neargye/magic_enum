@@ -242,17 +242,13 @@ struct range_max<T, std::void_t<decltype(customize::enum_range<T>::max)>> : std:
 struct str_view {
   const char* str_ = nullptr;
   std::size_t size_ = 0;
-
-  constexpr const char* data() const noexcept { return str_; }
-
-  constexpr std::size_t size() const noexcept { return size_; }
 };
 
 template <std::uint16_t N>
 class static_str {
  public:
   constexpr explicit static_str(str_view str) noexcept : static_str{str.str_, std::make_integer_sequence<std::uint16_t, N>{}} {
-    assert(str.size() == N);
+    assert(str.size_ == N);
   }
 
   constexpr explicit static_str(string_view str) noexcept : static_str{str.data(), std::make_integer_sequence<std::uint16_t, N>{}} {
@@ -454,7 +450,7 @@ constexpr auto type_name() noexcept {
     return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<E>();
-    return static_str<name.size()>{name};
+    return static_str<name.size_>{name};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
@@ -524,7 +520,7 @@ constexpr auto enum_name() noexcept {
     return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
     constexpr auto name = n<V>();
-    return static_str<name.size()>{name};
+    return static_str<name.size_>{name};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
@@ -548,7 +544,7 @@ constexpr bool is_valid() noexcept {
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return name.size() != 0;
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
-    return n<v>().size() != 0;
+    return n<v>().size_ != 0;
   } else {
     return false;
   }
