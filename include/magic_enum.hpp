@@ -501,12 +501,15 @@ constexpr auto n() noexcept {
       name.size_ -= (prefix + 2);
       name.str_ += (prefix + 2);
     }
+    std::size_t p = 0;
     for (std::size_t i = 0; i < name.size_; ++i) {
       if (name.str_[i] == ':') {
-        name.size_ -= (i + 2);
-        name.str_ += (i + 2);
-        break;
+        p = i + 1;
       }
+    }
+    if (p > 0) {
+      name.size_ -= p;
+      name.str_ += p;
     }
     return name;
   } else {

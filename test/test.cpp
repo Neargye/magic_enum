@@ -462,6 +462,38 @@ class foo2 {
   enum lt6 { s6, loooooooooooooooooooong6 };
 };
 
+namespace boo1 {
+enum lt1 { s1, loooooooooooooooooooong1 };
+enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
+enum class lt3 { s3, loooooooooooooooooooong3 };
+enum class lt4 : unsigned { s4, loooooooooooooooooooong4 };
+class foo1 {
+ public:
+  enum class lt5 { s5, loooooooooooooooooooong5 };
+};
+class foo2 {
+ public:
+  enum lt6 { s6, loooooooooooooooooooong6 };
+};
+} // namespace boo1
+
+namespace boo2 {
+namespace boo3 {
+enum lt1 { s1, loooooooooooooooooooong1 };
+enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
+enum class lt3 { s3, loooooooooooooooooooong3 };
+enum class lt4 : unsigned { s4, loooooooooooooooooooong4 };
+class foo1 {
+ public:
+  enum class lt5 { s5, loooooooooooooooooooong5 };
+};
+class foo2 {
+ public:
+  enum lt6 { s6, loooooooooooooooooooong6 };
+};
+} // namespace boo2::boo3
+} // namespace boo2
+
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
     constexpr Color cr = Color::RED;
@@ -501,7 +533,6 @@ TEST_CASE("enum_name") {
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
 
-
     REQUIRE(enum_name(lt1::s1) == "s1");
     REQUIRE(enum_name(lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
     REQUIRE(enum_name(lt2::s2) == "s2");
@@ -517,6 +548,38 @@ TEST_CASE("enum_name") {
 
     REQUIRE_FALSE(enum_name((foo1::lt5)12).size());
     REQUIRE_FALSE(enum_name((foo2::lt6)12).size());
+
+    REQUIRE(enum_name(boo1::lt1::s1) == "s1");
+    REQUIRE(enum_name(boo1::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
+    REQUIRE(enum_name(boo1::lt2::s2) == "s2");
+    REQUIRE(enum_name(boo1::lt2::loooooooooooooooooooong2) == "loooooooooooooooooooong2");
+    REQUIRE(enum_name(boo1::lt3::s3) == "s3");
+    REQUIRE(enum_name(boo1::lt3::loooooooooooooooooooong3) == "loooooooooooooooooooong3");
+    REQUIRE(enum_name(boo1::lt4::s4) == "s4");
+    REQUIRE(enum_name(boo1::lt4::loooooooooooooooooooong4) == "loooooooooooooooooooong4");
+    REQUIRE(enum_name(boo1::foo1::lt5::s5) == "s5");
+    REQUIRE(enum_name(boo1::foo1::lt5::loooooooooooooooooooong5) == "loooooooooooooooooooong5");
+    REQUIRE(enum_name(boo1::foo2::s6) == "s6");
+    REQUIRE(enum_name(boo1::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
+
+    REQUIRE_FALSE(enum_name((boo1::foo1::lt5)12).size());
+    REQUIRE_FALSE(enum_name((boo1::foo2::lt6)12).size());
+
+    REQUIRE(enum_name(boo2::boo3::lt1::s1) == "s1");
+    REQUIRE(enum_name(boo2::boo3::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
+    REQUIRE(enum_name(boo2::boo3::lt2::s2) == "s2");
+    REQUIRE(enum_name(boo2::boo3::lt2::loooooooooooooooooooong2) == "loooooooooooooooooooong2");
+    REQUIRE(enum_name(boo2::boo3::lt3::s3) == "s3");
+    REQUIRE(enum_name(boo2::boo3::lt3::loooooooooooooooooooong3) == "loooooooooooooooooooong3");
+    REQUIRE(enum_name(boo2::boo3::lt4::s4) == "s4");
+    REQUIRE(enum_name(boo2::boo3::lt4::loooooooooooooooooooong4) == "loooooooooooooooooooong4");
+    REQUIRE(enum_name(boo2::boo3::foo1::lt5::s5) == "s5");
+    REQUIRE(enum_name(boo2::boo3::foo1::lt5::loooooooooooooooooooong5) == "loooooooooooooooooooong5");
+    REQUIRE(enum_name(boo2::boo3::foo2::s6) == "s6");
+    REQUIRE(enum_name(boo2::boo3::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
+
+    REQUIRE_FALSE(enum_name((boo2::boo3::foo1::lt5)12).size());
+    REQUIRE_FALSE(enum_name((boo2::boo3::foo2::lt6)12).size());
   }
 
   SECTION("static storage") {
