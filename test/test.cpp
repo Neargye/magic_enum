@@ -453,6 +453,14 @@ enum lt1 { s1, loooooooooooooooooooong1 };
 enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
 enum class lt3 { s3, loooooooooooooooooooong3 };
 enum class lt4 : unsigned { s4, loooooooooooooooooooong4 };
+class foo1 {
+ public:
+  enum class lt5 { s5, loooooooooooooooooooong5 };
+};
+class foo2 {
+ public:
+  enum lt6 { s6, loooooooooooooooooooong6 };
+};
 
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
@@ -502,6 +510,10 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(lt3::loooooooooooooooooooong3) == "loooooooooooooooooooong3");
     REQUIRE(enum_name(lt4::s4) == "s4");
     REQUIRE(enum_name(lt4::loooooooooooooooooooong4) == "loooooooooooooooooooong4");
+    REQUIRE(enum_name(foo1::lt5::s5) == "s5");
+    REQUIRE(enum_name(foo1::lt5::loooooooooooooooooooong5) == "loooooooooooooooooooong5");
+    REQUIRE(enum_name(foo2::s6) == "s6");
+    REQUIRE(enum_name(foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
   }
 
   SECTION("static storage") {

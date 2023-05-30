@@ -470,16 +470,11 @@ constexpr auto n() noexcept {
   if constexpr (supported<decltype(V)>::value) {
 #if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
-    constexpr auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
+    auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
     auto name = str_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
     if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
       name = str_view{};;
-    }
-    constexpr auto prefix = n<decltype(V)>().size();
-    if (name.size_ > prefix && name.str_[prefix] == ':') {
-      name.size_ -= (prefix + 2);
-      name.str_ += (prefix + 2);
     }
 #elif defined(__GNUC__)
     auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
@@ -493,24 +488,26 @@ constexpr auto n() noexcept {
     if (name.str_[0] == '(') {
       name = str_view{};
     }
+#elif defined(_MSC_VER)
+    str_view name;
+    if ((__FUNCSIG__[5] == '_' && __FUNCSIG__[35] != '(') || (__FUNCSIG__[5] == 'c' && __FUNCSIG__[41] != '(')) {
+      name = str_view{__FUNCSIG__ + 35, sizeof(__FUNCSIG__) - 52};
+    }
+#else
+    auto name = str_view{};
+#endif
     constexpr auto prefix = n<decltype(V)>().size();
     if (name.size_ > prefix && name.str_[prefix] == ':') {
       name.size_ -= (prefix + 2);
       name.str_ += (prefix + 2);
     }
-#elif defined(_MSC_VER)
-    str_view name;
-    if ((__FUNCSIG__[5] == '_' && __FUNCSIG__[35] != '(') || (__FUNCSIG__[5] == 'c' && __FUNCSIG__[41] != '(')) {
-      name = str_view{__FUNCSIG__ + 35, sizeof(__FUNCSIG__) - 52};
-      constexpr auto prefix = n<decltype(V)>().size();
-      if (name.size_ > prefix && name.str_[prefix] == ':') {
-        name.size_ -= (prefix + 2);
-        name.str_ += (prefix + 2);
+    for (std::size_t i = 0; i < name.size_; ++i) {
+      if (name.str_[i] == ':') {
+        name.size_ -= (i + 2);
+        name.str_ += (i + 2);
+        break;
       }
     }
-#else
-    auto name = str_view{};
-#endif
     return name;
   } else {
     return str_view{}; // Unsupported compiler or Invalid customize.
