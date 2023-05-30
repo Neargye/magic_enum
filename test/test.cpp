@@ -514,6 +514,9 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(foo1::lt5::loooooooooooooooooooong5) == "loooooooooooooooooooong5");
     REQUIRE(enum_name(foo2::s6) == "s6");
     REQUIRE(enum_name(foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
+
+    REQUIRE_FALSE(enum_name((foo1::lt5)12).size());
+    REQUIRE_FALSE(enum_name((foo2::lt6)12).size());
   }
 
   SECTION("static storage") {
