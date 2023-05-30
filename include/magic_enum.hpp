@@ -496,11 +496,6 @@ constexpr auto n() noexcept {
 #else
     auto name = str_view{};
 #endif
-    constexpr auto prefix = n<decltype(V)>().size();
-    if (name.size_ > prefix && name.str_[prefix] == ':') {
-      name.size_ -= (prefix + 2);
-      name.str_ += (prefix + 2);
-    }
     std::size_t p = 0;
     for (std::size_t i = 0; i < name.size_; ++i) {
       if (name.str_[i] == ':') {
