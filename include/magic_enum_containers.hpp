@@ -546,7 +546,7 @@ class bitset {
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = '0', char_type one = '1')
+  constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
       : a{{}} {
     std::size_t i{};
     for (auto c : sv.substr(pos, n)) {
@@ -562,8 +562,8 @@ class bitset {
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{}, char_type zero = '0', char_type one = '1')
-      : bitset(std::string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
+  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{}, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
+      : bitset(string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
     if constexpr (magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags) {
@@ -591,7 +591,7 @@ class bitset {
   }
 
   template <typename Cmp = std::equal_to<>>
-  constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = '|') {
+  constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = static_cast<char_type>('|')) {
     for (std::size_t to{}; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
       if (auto v = enum_cast<E>(sv.substr(0, to), cmp)) {
         set(v);
@@ -756,7 +756,7 @@ class bitset {
     return res;
   }
 
-  [[nodiscard]] string to_string(char_type sep = '|') const {
+  [[nodiscard]] string to_string(char_type sep = static_cast<char_type>('|')) const {
     string name;
 
     for (auto& e : enum_values<E>()) {
@@ -771,7 +771,7 @@ class bitset {
     return name;
   }
 
-  [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = '0', char_type one = '1') const {
+  [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1')) const {
     string name;
     name.reserve(size());
     for (std::size_t i{}; i < size(); ++i) {

@@ -138,8 +138,8 @@ using char_type = string_view::value_type;
 static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum::customize requires same string_view::value_type and string::value_type");
 static_assert([] {
   if constexpr (std::is_same_v<char_type, wchar_t>) {
-    constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    constexpr const wchar_t wc[] = L"abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr const char     c[] =  "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789|";
+    constexpr const wchar_t wc[] = L"abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789|";
     static_assert(std::size(c) == std::size(wc), "magic_enum::customize identifier characters are multichars in wchar_t.");
 
     for (std::size_t i = 0; i < std::size(c); ++i) {
@@ -263,10 +263,10 @@ class static_str {
 
  private:
   template <std::uint16_t... I>
-  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{static_cast<char_type>(str[I])..., '\0'} {}
+  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{static_cast<char_type>(str[I])..., static_cast<char_type>('\0')} {}
 
   template <std::uint16_t... I>
-  constexpr static_str(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., '\0'} {}
+  constexpr static_str(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., static_cast<char_type>('\0')} {}
 
   char_type chars_[static_cast<std::size_t>(N) + 1];
 };
@@ -290,7 +290,7 @@ class static_str<0> {
 template <typename Op = std::equal_to<>>
 class case_insensitive {
   static constexpr char_type to_lower(char_type c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char_type>(c + ('a' - 'A')) : c;
+    return (c >= static_cast<char_type>('A') && c <= static_cast<char_type>('Z')) ? static_cast<char_type>(c + (static_cast<char_type>('a') - static_cast<char_type>('A'))) : c;
   }
 
  public:
@@ -1234,7 +1234,7 @@ template <detail::enum_subtype S, typename E>
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
 template <typename E>
-[[nodiscard]] auto enum_flags_name(E value, char_type sep = '|') -> detail::enable_if_t<E, string> {
+[[nodiscard]] auto enum_flags_name(E value, char_type sep = static_cast<char_type>('|')) -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
