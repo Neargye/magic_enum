@@ -5,7 +5,7 @@
 // | |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
 // |_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
 //                __/ | https://github.com/Neargye/magic_enum
-//               |___/  version 0.8.2
+//               |___/  version 0.9.1
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
@@ -36,22 +36,22 @@
 
 namespace magic_enum {
 
-// Checks whether `flags` contains `flag`.
-// Note: If `flag` equals 0, it returns true, as we consider that 0 is contained
-// in `flags`.
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr bool contains(E flags, E flag) noexcept {
-  using namespace magic_enum::bitwise_operators;
-  return (flags & flag) == flag;
+// Checks whether `flags set` contains `flag`.
+// Note: If `flag` equals 0, it returns false, as 0 is not a flag.
+template <typename E>
+constexpr auto enum_flags_test(E flags, E flag) noexcept -> detail::enable_if_t<E, bool> {
+  using U = underlying_type_t<E>;
+
+  return static_cast<bool>(static_cast<U>(flags) & static_cast<U>(flag));
 }
 
-// Checks whether `flags1` and `flags2` have common flags.
-// Note: If `flags1` or `flags2` equals 0, it returns false, as O is not a flag, and therfore cannot have any matching flag.
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr bool any_flag_match(E flags1, E flags2) noexcept {
-  auto flags1_integer = magic_enum::enum_integer<E>(flags1);
-  auto flags2_integer = magic_enum::enum_integer<E>(flags2);
-  return (0 != (flags1_integer & flags2_integer));
+// Checks whether `lhs flags set` and `rhs flags set` have common flags.
+// Note: If `lhs flags set` or `rhs flags set` equals 0, it returns false, as 0 is not a flag, and therfore cannot have any matching flag.
+template <typename E>
+constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t<E, bool> {
+  using U = underlying_type_t<E>;
+
+  return (static_cast<U>(lhs) & static_cast<U>(rhs)) != 0;
 }
 
 } // namespace magic_enum
