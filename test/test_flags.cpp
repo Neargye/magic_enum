@@ -33,6 +33,7 @@
 #include <catch2/catch.hpp>
 
 #include <magic_enum.hpp>
+#include <magic_enum_flags.hpp>
 #include <magic_enum_fuse.hpp>
 #include <magic_enum_iostream.hpp>
 
@@ -48,6 +49,7 @@ struct magic_enum::customize::enum_range<Color> {
 };
 
 enum class Numbers : int {
+  none = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -59,6 +61,7 @@ struct magic_enum::customize::enum_range<Numbers> {
 };
 
 enum Directions : std::uint64_t {
+  NoDirection = 0,
   Left = std::uint64_t{1} << 10,
   Down = std::uint64_t{1} << 20,
   Up = std::uint64_t{1} << 31,
@@ -70,6 +73,7 @@ struct magic_enum::customize::enum_range<Directions> {
 };
 
 enum number : unsigned long {
+  no_number = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -722,3 +726,41 @@ TEST_CASE("format-base") {
 }
 
 #endif
+
+TEST_CASE("contains") {
+  REQUIRE(contains(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(contains(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE(contains(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(contains(Numbers::none, Numbers::one));
+  REQUIRE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE(contains(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE(contains(Left|Right, NoDirection));
+  REQUIRE(contains(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(contains(Left|Up|Down, Right));
+
+  REQUIRE(contains(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(contains(number::one|number::two|number::four, number::three));
+  REQUIRE(contains(number::one|number::two|number::four, number::no_number));
+}
+
+TEST_CASE("any_flag_match") {
+  REQUIRE(any_flag_match(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(any_flag_match(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE_FALSE(any_flag_match(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(any_flag_match(Numbers::none, Numbers::one));
+  REQUIRE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE_FALSE(any_flag_match(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE_FALSE(any_flag_match(Left|Right, NoDirection));
+  REQUIRE(any_flag_match(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(any_flag_match(Left|Up|Down, Right));
+
+  REQUIRE(any_flag_match(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(any_flag_match(number::one|number::two|number::four, number::three));
+  REQUIRE_FALSE(any_flag_match(number::one|number::two|number::four, number::no_number));
+}
