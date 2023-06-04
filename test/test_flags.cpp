@@ -727,7 +727,7 @@ TEST_CASE("format-base") {
 
 #endif
 
-TEST_CASE("contains") {
+TEST_CASE("enum_flags_test") {
   REQUIRE(enum_flags_test(Color::RED|Color::GREEN, Color::RED));
   REQUIRE_FALSE(enum_flags_test(Color::RED|Color::GREEN, Color::BLUE));
 
@@ -746,7 +746,7 @@ TEST_CASE("contains") {
   REQUIRE_FALSE(enum_flags_test(number::one|number::two|number::four, number::no_number));
 }
 
-TEST_CASE("any_flag_match") {
+TEST_CASE("enum_flags_test_any") {
   REQUIRE(enum_flags_test_any(Color::RED|Color::GREEN, Color::RED));
   REQUIRE_FALSE(enum_flags_test_any(Color::RED|Color::GREEN, Color::BLUE));
 
@@ -763,4 +763,8 @@ TEST_CASE("any_flag_match") {
   REQUIRE(enum_flags_test_any(number::one|number::two|number::four, number::one));
   REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::three));
   REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::no_number));
+
+  REQUIRE(enum_flags_test(Numbers::none, Numbers::none) == enum_flags_test_any(Numbers::none, Numbers::none));
+  REQUIRE(enum_flags_test(Numbers::one, Numbers::none) == enum_flags_test_any(Numbers::one, Numbers::none));
+  REQUIRE(enum_flags_test(Numbers::none, Numbers::one) == enum_flags_test_any(Numbers::none, Numbers::one));
 }
