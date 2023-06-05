@@ -397,7 +397,7 @@ constexpr I log2(I value) noexcept {
 }
 
 #if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
-#define MAGIC_ENUM_ARRAY_CONSTEXPR
+#define MAGIC_ENUM_ARRAY_CONSTEXPR 1
 #else
 template <typename T, std::size_t N, std::size_t... I>
 constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
@@ -513,7 +513,11 @@ constexpr auto n() noexcept {
   }
 }
 
-#if defined(_MSC_VER) && _MSC_VER < 1920
+#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1920
+#define MAGIC_ENUM_VS_2017_WORKAROUND 1
+#endif
+
+#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
 template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
@@ -548,7 +552,7 @@ constexpr auto enum_name() noexcept {
   } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
     return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
-#if defined(_MSC_VER) && _MSC_VER < 1920
+#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
     constexpr auto name = n<E, V>();
 #else
     constexpr auto name = n<V>();
@@ -577,7 +581,7 @@ constexpr bool is_valid() noexcept {
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return name.size() != 0;
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
-#if defined(_MSC_VER) && _MSC_VER < 1920
+#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
     return n<E, v>().size_ != 0;
 #else
     return n<v>().size_ != 0;
@@ -1575,6 +1579,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 
 #undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
 #undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
+#undef MAGIC_ENUM_VS_2017_WORKAROUND
 #undef MAGIC_ENUM_ARRAY_CONSTEXPR
 #undef MAGIC_ENUM_FOR_EACH_256
 
