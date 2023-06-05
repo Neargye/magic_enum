@@ -422,6 +422,8 @@ template <typename E, typename BinaryPredicate>
 constexpr bool enum_flags_contains(string_view value, BinaryPredicate p) noexcept(is_nothrow_invocable_v<BinaryPredicate>);
 ```
 
+* You should add the required file `<magic_enum_flags.hpp>`.
+
 * Examples
 
   ```cpp
@@ -437,8 +439,15 @@ constexpr bool enum_flags_contains(string_view value, BinaryPredicate p) noexcep
   };
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // directions_name -> "Directions::Up|Directions::Right"
+
   magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
+
   magic_enum::enum_flags_cast(3); // -> "Directions::Left|Directions::Down"
+
+  magic_enum::enum_flags_test(Left|Down, Down); // -> "true"
+  magic_enum::enum_flags_test(Left|Down, Right); // -> "false"
+
+  magic_enum::enum_flags_test_any(Left|Down|Right, Down|Right); // -> "true"
   ```
 
 ## `is_unscoped_enum`

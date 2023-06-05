@@ -33,6 +33,8 @@
 #define NEARGYE_MAGIC_ENUM_IOSTREAM_HPP
 
 #include "magic_enum.hpp"
+#include "magic_enum_flags.hpp"
+
 #include <iosfwd>
 
 namespace magic_enum {

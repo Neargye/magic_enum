@@ -33,6 +33,7 @@
 #define NEARGYE_MAGIC_ENUM_FORMAT_HPP
 
 #include "magic_enum.hpp"
+#include "magic_enum_flags.hpp"
 
 #if !defined(MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT)
 #  define MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT 1

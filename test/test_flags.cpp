@@ -761,6 +761,7 @@ TEST_CASE("enum_flags_test_any") {
   REQUIRE_FALSE(enum_flags_test_any(Left|Up|Down, Right));
 
   REQUIRE(enum_flags_test_any(number::one|number::two|number::four, number::one));
+  REQUIRE(enum_flags_test_any(number::one|number::two|number::four, number::one|number::two));
   REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::three));
   REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::no_number));
 

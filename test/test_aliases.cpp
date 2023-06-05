@@ -97,6 +97,7 @@ constexpr bool operator==(MyStringView lhs, MyStringView rhs) {
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = MyStringView;
 
 #include <magic_enum.hpp>
+#include <magic_enum_flags.hpp>
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 
