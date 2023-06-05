@@ -34,6 +34,15 @@
 
 #include "magic_enum.hpp"
 
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // May be used uninitialized 'return {};'.
+#elif defined(_MSC_VER)
+#  pragma warning(push)
+#endif
+
 namespace magic_enum {
 
 // Returns name from enum-flags value.
@@ -179,5 +188,13 @@ constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t
 }
 
 } // namespace magic_enum
+
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_FLAGS_HPP
