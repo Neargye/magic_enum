@@ -568,7 +568,7 @@ inline constexpr auto enum_name_v = enum_name<E, V>();
 
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
-#if defined(__clang__) && __clang_major__ >= 16 && 0
+#if defined(__clang__) && __clang_major__ >= 16
   // https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
   constexpr E v = __builtin_bit_cast(E, V);
 #else
