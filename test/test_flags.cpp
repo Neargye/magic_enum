@@ -33,6 +33,7 @@
 #include <catch2/catch.hpp>
 
 #include <magic_enum.hpp>
+#include <magic_enum_flags.hpp>
 #include <magic_enum_fuse.hpp>
 #include <magic_enum_iostream.hpp>
 
@@ -48,6 +49,7 @@ struct magic_enum::customize::enum_range<Color> {
 };
 
 enum class Numbers : int {
+  none = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -59,6 +61,7 @@ struct magic_enum::customize::enum_range<Numbers> {
 };
 
 enum Directions : std::uint64_t {
+  NoDirection = 0,
   Left = std::uint64_t{1} << 10,
   Down = std::uint64_t{1} << 20,
   Up = std::uint64_t{1} << 31,
@@ -70,6 +73,7 @@ struct magic_enum::customize::enum_range<Directions> {
 };
 
 enum number : unsigned long {
+  no_number = 0,
   one = 1 << 1,
   two = 1 << 2,
   three = 1 << 3,
@@ -722,3 +726,45 @@ TEST_CASE("format-base") {
 }
 
 #endif
+
+TEST_CASE("enum_flags_test") {
+  REQUIRE(enum_flags_test(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(enum_flags_test(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE_FALSE(enum_flags_test(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(enum_flags_test(Numbers::none, Numbers::one));
+  REQUIRE(enum_flags_test(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(enum_flags_test(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE_FALSE(enum_flags_test(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE_FALSE(enum_flags_test(Left|Right, NoDirection));
+  REQUIRE(enum_flags_test(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(enum_flags_test(Left|Up|Down, Right));
+
+  REQUIRE(enum_flags_test(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(enum_flags_test(number::one|number::two|number::four, number::three));
+  REQUIRE_FALSE(enum_flags_test(number::one|number::two|number::four, number::no_number));
+}
+
+TEST_CASE("enum_flags_test_any") {
+  REQUIRE(enum_flags_test_any(Color::RED|Color::GREEN, Color::RED));
+  REQUIRE_FALSE(enum_flags_test_any(Color::RED|Color::GREEN, Color::BLUE));
+
+  REQUIRE_FALSE(enum_flags_test_any(Numbers::none, Numbers::none));
+  REQUIRE_FALSE(enum_flags_test_any(Numbers::none, Numbers::one));
+  REQUIRE(enum_flags_test_any(Numbers::one|Numbers::two|Numbers::many, Numbers::many));
+  REQUIRE_FALSE(enum_flags_test_any(Numbers::one|Numbers::two|Numbers::many, Numbers::three));
+  REQUIRE_FALSE(enum_flags_test_any(Numbers::one|Numbers::two|Numbers::many, Numbers::none));
+
+  REQUIRE_FALSE(enum_flags_test_any(Left|Right, NoDirection));
+  REQUIRE(enum_flags_test_any(Left|Right|Up|Down, Right));
+  REQUIRE_FALSE(enum_flags_test_any(Left|Up|Down, Right));
+
+  REQUIRE(enum_flags_test_any(number::one|number::two|number::four, number::one));
+  REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::three));
+  REQUIRE_FALSE(enum_flags_test_any(number::one|number::two|number::four, number::no_number));
+
+  REQUIRE(enum_flags_test(Numbers::none, Numbers::none) == enum_flags_test_any(Numbers::none, Numbers::none));
+  REQUIRE(enum_flags_test(Numbers::one, Numbers::none) == enum_flags_test_any(Numbers::one, Numbers::none));
+  REQUIRE(enum_flags_test(Numbers::none, Numbers::one) == enum_flags_test_any(Numbers::none, Numbers::one));
+}
