@@ -207,12 +207,6 @@ constexpr customize_t enum_type_name() noexcept {
 
 namespace detail {
 
-template <auto V, typename E = std::decay_t<decltype(V)>, std::enable_if_t<std::is_enum_v<E>, int> = 0>
-using enum_constant = std::integral_constant<E, V>;
-
-template <typename... T>
-inline constexpr bool always_false_v = false;
-
 template <typename T>
 struct supported
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
@@ -220,6 +214,12 @@ struct supported
 #else
     : std::false_type {};
 #endif
+
+template <auto V, typename E = std::decay_t<decltype(V)>, std::enable_if_t<std::is_enum_v<E>, int> = 0>
+using enum_constant = std::integral_constant<E, V>;
+
+template <typename... T>
+inline constexpr bool always_false_v = false;
 
 template <typename T, typename = void>
 struct has_is_flags : std::false_type {};
@@ -497,9 +497,10 @@ constexpr auto n() noexcept {
     auto name = str_view{};
 #endif
     std::size_t p = 0;
-    for (std::size_t i = 0; i < name.size_; ++i) {
+    for (std::size_t i = name.size_; i > 0; --i) {
       if (name.str_[i] == ':') {
         p = i + 1;
+        break;
       }
     }
     if (p > 0) {
@@ -512,6 +513,30 @@ constexpr auto n() noexcept {
   }
 }
 
+#if defined(_MSC_VER) && _MSC_VER < 1920
+template <typename E, E V>
+constexpr auto n() noexcept {
+  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
+
+  str_view name = str_view{__FUNCSIG__, sizeof(__FUNCSIG__) - 17};
+  std::size_t p = 0;
+  for (std::size_t i = name.size_; i > 0; --i) {
+    if (name.str_[i] == ',' || name.str_[i] == ':') {
+      p = i + 1;
+      break;
+    }
+  }
+  if (p > 0) {
+    name.size_ -= p;
+    name.str_ += p;
+  }
+  if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
+    name = str_view{};
+  }
+  return name;
+}
+#endif
+
 template <typename E, E V>
 constexpr auto enum_name() noexcept {
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
@@ -523,7 +548,11 @@ constexpr auto enum_name() noexcept {
   } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
     return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
+#if defined(_MSC_VER) && _MSC_VER < 1920
+    constexpr auto name = n<E, V>();
+#else
     constexpr auto name = n<V>();
+#endif
     return static_str<name.size_>{name};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
@@ -548,7 +577,11 @@ constexpr bool is_valid() noexcept {
     static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
     return name.size() != 0;
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
+#if defined(_MSC_VER) && _MSC_VER < 1920
+    return n<E, v>().size_ != 0;
+#else
     return n<v>().size_ != 0;
+#endif
   } else {
     return false;
   }

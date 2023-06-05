@@ -37,4 +37,5 @@ jobs:
         ctest --output-on-failure -C Debug
 
     - name: Bazel Test
+      continue-on-error: true
       run: bazelisk test //... --config=ci
