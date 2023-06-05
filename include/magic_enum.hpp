@@ -397,7 +397,7 @@ constexpr I log2(I value) noexcept {
 }
 
 #if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
-#define MAGIC_ENUM_ARRAY_CONSTEXPR 1
+#  define MAGIC_ENUM_ARRAY_CONSTEXPR 1
 #else
 template <typename T, std::size_t N, std::size_t... I>
 constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N], std::index_sequence<I...>) noexcept {
@@ -514,7 +514,7 @@ constexpr auto n() noexcept {
 }
 
 #if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1920
-#define MAGIC_ENUM_VS_2017_WORKAROUND 1
+#  define MAGIC_ENUM_VS_2017_WORKAROUND 1
 #endif
 
 #if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
