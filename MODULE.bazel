@@ -1,6 +1,6 @@
 module(
     name = "magic_enum",
-    version = "0.9.1",
+    version = "0.9.2",
     compatibility_level = 0,
 )
 
