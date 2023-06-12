@@ -79,7 +79,7 @@ constexpr auto enum_for_each(F&& f) {
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  constexpr auto count = detail::count_v<D, S>;
+  constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
     const std::ptrdiff_t index = (static_cast<std::ptrdiff_t>(*i) + n);
@@ -107,7 +107,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  constexpr auto count = detail::count_v<D, S>;
+  constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
     const std::ptrdiff_t index = (static_cast<std::ptrdiff_t>(*i) - n);
