@@ -93,7 +93,7 @@ constexpr auto result_type() noexcept {
 template <typename E, enum_subtype S, typename Result, typename F, typename D = std::decay_t<E>, typename R = typename decltype(result_type<D, S, Result, F>())::type>
 using result_t = std::enable_if_t<std::is_enum_v<D> && !std::is_same_v<R, nonesuch>, R>;
 
-#if !defined(MAGIC_ENUM_ENABLE_HASH)
+#if !defined(MAGIC_ENUM_ENABLE_HASH) && !defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
 
 template <typename T = void>
 inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
@@ -147,7 +147,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-#if defined(MAGIC_ENUM_ENABLE_HASH)
+#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
@@ -170,7 +170,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
 
-#if defined(MAGIC_ENUM_ENABLE_HASH)
+#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
