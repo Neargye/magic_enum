@@ -84,7 +84,7 @@ template <detail::enum_subtype S, typename... Es>
 #else
   const auto fuse = detail::typesafe_fuse_enum<S, std::decay_t<Es>...>(values...);
 #endif
-  return assert(fuse), fuse;
+  return MAGIC_ENUM_ASSERT(fuse), fuse;
 }
 
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.

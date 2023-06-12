@@ -295,14 +295,6 @@ TEST_CASE("containers_set") {
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set_not_const.size());
 }
 
-TEST_CASE("containers_flat_set") {
-
-  // constexpr magic_enum::containers::flat_set color_flat_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
-  // REQUIRE_FALSE(color_flat_set_filled.empty());
-  // REQUIRE(color_flat_set_filled.size() == 3);
-  // REQUIRE(magic_enum::enum_count<Color>() == color_flat_set_filled.size());
-}
-
 TEST_CASE("map_like_container") {
 
   using namespace magic_enum::ostream_operators;

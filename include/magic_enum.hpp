@@ -37,7 +37,6 @@
 #define MAGIC_ENUM_VERSION_PATCH 2
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -46,17 +45,24 @@
 #include <utility>
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
-#include MAGIC_ENUM_CONFIG_FILE
+#  include MAGIC_ENUM_CONFIG_FILE
 #endif
 
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
-#include <optional>
+#  include <optional>
 #endif
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING)
-#include <string>
+#  include <string>
 #endif
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
-#include <string_view>
+#  include <string_view>
+#endif
+
+#if defined(MAGIC_ENUM_NO_ASSERT)
+#  define MAGIC_ENUM_ASSERT(...) static_cast<void>(0)
+#else
+#  include <cassert>
+#  define MAGIC_ENUM_ASSERT(...) assert((__VA_ARGS__))
 #endif
 
 #if defined(__clang__)
@@ -182,7 +188,7 @@ class customize_t : public std::pair<detail::customize_tag, string_view> {
   constexpr customize_t(string_view srt) : std::pair<detail::customize_tag, string_view>{detail::customize_tag::custom_tag, srt} {}
   constexpr customize_t(const char_type* srt) : customize_t{string_view{srt}} {}
   constexpr customize_t(detail::customize_tag tag) : std::pair<detail::customize_tag, string_view>{tag, string_view{}} {
-    assert(tag != detail::customize_tag::custom_tag);
+    MAGIC_ENUM_ASSERT(tag != detail::customize_tag::custom_tag);
   }
 };
 
@@ -248,11 +254,11 @@ template <std::uint16_t N>
 class static_str {
  public:
   constexpr explicit static_str(str_view str) noexcept : static_str{str.str_, std::make_integer_sequence<std::uint16_t, N>{}} {
-    assert(str.size_ == N);
+    MAGIC_ENUM_ASSERT(str.size_ == N);
   }
 
   constexpr explicit static_str(string_view str) noexcept : static_str{str.data(), std::make_integer_sequence<std::uint16_t, N>{}} {
-    assert(str.size() == N);
+    MAGIC_ENUM_ASSERT(str.size() == N);
   }
 
   constexpr const char_type* data() const noexcept { return chars_; }
@@ -387,7 +393,7 @@ constexpr I log2(I value) noexcept {
   static_assert(std::is_integral_v<I>, "magic_enum::detail::log2 requires integral type.");
 
   if constexpr (std::is_same_v<I, bool>) { // bool special case
-    return assert(false), value;
+    return MAGIC_ENUM_ASSERT(false), value;
   } else {
     auto ret = I{0};
     for (; value > I{1}; value >>= I{1}, ++ret) {}
@@ -1155,11 +1161,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using D = std::decay_t<E>;
 
   if constexpr (detail::is_sparse_v<D, S>) {
-    return assert((index < detail::count_v<D, S>)), detail::values_v<D, S>[index];
+    return MAGIC_ENUM_ASSERT(index < detail::count_v<D, S>), detail::values_v<D, S>[index];
   } else {
     constexpr auto min = (S == detail::enum_subtype::flags) ? detail::log2(detail::min_v<D, S>) : detail::min_v<D, S>;
 
-    return assert((index < detail::count_v<D, S>)), detail::value<D, min, S>(index);
+    return MAGIC_ENUM_ASSERT(index < detail::count_v<D, S>), detail::value<D, min, S>(index);
   }
 }
 

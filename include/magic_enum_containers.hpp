@@ -398,7 +398,7 @@ struct array {
   }
 
   constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>) {
-    for (std::size_t i{}; i < a.size(); ++i) {
+    for (std::size_t i = 0; i < a.size(); ++i) {
       auto v = std::move(other.a[i]);
       other.a[i] = std::move(a[i]);
       a[i] = std::move(v);
@@ -514,7 +514,7 @@ class bitset {
   [[nodiscard]] constexpr T to_(detail::raw_access_t) const {
     T res{};
     T flag{1};
-    for (std::size_t i{}; i < size(); ++i, flag <<= 1) {
+    for (std::size_t i = 0; i < size(); ++i, flag <<= 1) {
       if (const_reference{this, i}) {
         if (i >= sizeof(T) * 8) {
           throw std::overflow_error("cannot represent enum in this type");
@@ -535,7 +535,7 @@ class bitset {
 
   constexpr explicit bitset(detail::raw_access_t, unsigned long long val) : a{{}} {
     unsigned long long bit{1};
-    for (std::size_t i{}; i < (sizeof(val) * 8); ++i, bit <<= 1) {
+    for (std::size_t i = 0; i < (sizeof(val) * 8); ++i, bit <<= 1) {
       if ((val & bit) > 0) {
         if (i >= enum_count<E>()) {
           throw std::out_of_range("enum bitset::constructor: Upper bit set in raw number");
@@ -548,21 +548,21 @@ class bitset {
 
   constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
       : a{{}} {
-    std::size_t i{};
+    std::size_t i = 0;
     for (auto c : sv.substr(pos, n)) {
       if (c == one) {
         if (i >= enum_count<E>()) {
-          throw std::out_of_range("enum bitset::constructor: Upper bit set in raw string");
+          MAGIC_ENUM_THROW(std::out_of_range("enum bitset::constructor: Upper bit set in raw string"));
         }
         reference{this, i} = true;
       } else if (c != zero) {
-        throw std::invalid_argument("enum bitset::constructor: unrecognized character in raw string");
+        MAGIC_ENUM_THROW(std::invalid_argument("enum bitset::constructor: unrecognized character in raw string"));
       }
       ++i;
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{}, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
+  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{0}, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
       : bitset(string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
@@ -592,7 +592,7 @@ class bitset {
 
   template <typename Cmp = std::equal_to<>>
   constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = static_cast<char_type>('|')) {
-    for (std::size_t to{}; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
+    for (std::size_t to = 0; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
       if (auto v = enum_cast<E>(sv.substr(0, to), cmp)) {
         set(v);
       } else {
@@ -628,7 +628,7 @@ class bitset {
       return true;
     }
 
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
+    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
       auto check = ~a[i];
       if (check) {
         return false;
@@ -652,7 +652,7 @@ class bitset {
   [[nodiscard]] constexpr bool none() const noexcept { return !any(); }
 
   [[nodiscard]] constexpr std::size_t count() const noexcept {
-    std::size_t c{};
+    std::size_t c = 0;
     for (auto& v : a) {
       c += detail::popcount(v);
     }
@@ -664,21 +664,21 @@ class bitset {
   [[nodiscard]] constexpr std::size_t max_size() const noexcept { return enum_count<E>(); }
 
   constexpr bitset& operator&=(const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i) {
+    for (std::size_t i = 0; i < base_type_count; ++i) {
       a[i] &= other.a[i];
     }
     return *this;
   }
 
   constexpr bitset& operator|=(const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i) {
+    for (std::size_t i = 0; i < base_type_count; ++i) {
       a[i] |= other.a[i];
     }
     return *this;
   }
 
   constexpr bitset& operator^=(const bitset& other) noexcept {
-    for (std::size_t i{}; i < base_type_count; ++i) {
+    for (std::size_t i = 0; i < base_type_count; ++i) {
       a[i] ^= other.a[i];
     }
     return *this;
@@ -686,7 +686,7 @@ class bitset {
 
   [[nodiscard]] constexpr bitset operator~() const noexcept {
     bitset res;
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
+    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
       res.a[i] = ~a[i];
     }
 
@@ -697,8 +697,8 @@ class bitset {
   }
 
   constexpr bitset& set() noexcept {
-    for (std::size_t i{}; i < base_type_count - (not_interested > 0); ++i) {
-      a[i] = ~base_type{};
+    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
+      a[i] = ~base_type{0};
     }
 
     if constexpr (not_interested > 0) {
@@ -774,7 +774,7 @@ class bitset {
   [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1')) const {
     string name;
     name.reserve(size());
-    for (std::size_t i{}; i < size(); ++i) {
+    for (std::size_t i = 0; i < size(); ++i) {
       name.append(1, const_reference{this, i} ? one : zero);
     }
     return name;
@@ -964,7 +964,7 @@ class set {
 
   template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept {
-    size_type c{};
+    size_type c = 0;
     for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last;) {
       c += erase(*first++);
     }
@@ -981,7 +981,7 @@ class set {
 
   template <typename K, typename KC = key_compare>
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const {
-    size_type c{};
+    size_type c = 0;
     for (auto [first, last] = detail::equal_range(index_type::values_v->begin(), index_type::values_v->end(), x, key_compare{}); first != last; ++first) {
       c += count(*first);
     }
@@ -1091,7 +1091,7 @@ class set {
 
  private:
   container_type a;
-  std::size_t s{};
+  std::size_t s = 0;
 };
 
 template <typename V, int = 0>
