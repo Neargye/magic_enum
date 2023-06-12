@@ -1358,19 +1358,6 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
   return static_cast<bool>(enum_cast<D, S>(value, std::move(p)));
 }
 
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, detail::enable_if_t<E, int> = 0>
-constexpr auto enum_for_each(F&& f) {
-  using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
-  constexpr auto sep = std::make_index_sequence<detail::count_v<D, S>>{};
-
-  if constexpr (detail::all_invocable<D, S, F>(sep)) {
-    return detail::for_each<D, S>(std::forward<F>(f), sep);
-  } else {
-    static_assert(detail::always_false_v<D>, "magic_enum::enum_for_each requires invocable of all enum value.");
-  }
-}
-
 template <bool AsFlags = true>
 inline constexpr auto as_flags = AsFlags ? detail::enum_subtype::flags : detail::enum_subtype::common;
 
