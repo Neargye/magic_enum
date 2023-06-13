@@ -528,6 +528,10 @@ template <typename E, E V>
 constexpr auto n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
+#  if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
+  constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
+  auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
+#  else
   str_view name = str_view{__FUNCSIG__, sizeof(__FUNCSIG__) - 17};
   std::size_t p = 0;
   for (std::size_t i = name.size_; i > 0; --i) {
@@ -544,6 +548,7 @@ constexpr auto n() noexcept {
     name = str_view{};
   }
   return name;
+#  endif
 }
 #endif
 
