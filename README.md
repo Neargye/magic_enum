@@ -292,7 +292,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
 ## Integration
 
-* You should add the required file [magic_enum.hpp](include/magic_enum.hpp).
+* You should add the required file [magic_enum.hpp](include/magic_enum.hpp), and optionally other headers from [include dir](include/) or [release archive](https://github.com/Neargye/magic_enum/releases/latest). Alternatively, you can build the library with CMake.
 
 * If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic-enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
 
