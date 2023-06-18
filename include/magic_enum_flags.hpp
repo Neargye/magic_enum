@@ -57,12 +57,15 @@ template <typename E>
   auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
     if (const auto v = static_cast<U>(enum_value<D, S>(i)); (static_cast<U>(value) & v) != 0) {
-      check_value |= v;
-      const auto n = detail::names_v<D, S>[i];
-      if (!name.empty()) {
-        name.append(1, sep);
+      if (const auto n = detail::names_v<D, S>[i]; !n.empty()) {
+        check_value |= v;
+        if (!name.empty()) {
+          name.append(1, sep);
+        }
+        name.append(n.data(), n.size());
+      } else {
+        return {}; // Value out of range.
       }
-      name.append(n.data(), n.size());
     }
   }
 
