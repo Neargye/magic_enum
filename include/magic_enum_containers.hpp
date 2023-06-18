@@ -176,8 +176,8 @@ class indexing {
   }
 };
 
-template <typename E, typename Less>
-class indexing<E, Less, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && (std::is_same_v<Less, std::less<E>> || std::is_same_v<Less, std::less<>>)>> {
+template <typename E, typename Cmp>
+class indexing<E, Cmp, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && (std::is_same_v<Cmp, std::less<E>> || std::is_same_v<Cmp, std::less<>>)>> {
  public:
    static constexpr auto& values = enum_values<E>();
 
@@ -192,40 +192,31 @@ class indexing<E, Less, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && (std
   [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept { return enum_index(val); }
 };
 
-template <typename Less>
-struct indexing<void, Less, void> {
+template <typename Cmp>
+struct indexing<void, Cmp, void> {
   using is_transparent = std::true_type;
 
   template <typename E>
-  [[nodiscard]] static constexpr const E* begin() noexcept {
-    return indexing<E, Less>::begin();
-  }
-
-  template <typename E>
-  [[nodiscard]] static constexpr const E* end() noexcept {
-    return indexing<E, Less>::end();
-  }
-
-  template <typename E>
-  [[nodiscard]] constexpr optional<std::size_t> at(E val) noexcept {
-    return indexing<E, Less>::at(val);
+  [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept {
+    return indexing<E, Cmp>::at(val);
   }
 };
 
-template <typename E = void, typename OP = std::less<>, typename = void>
+template <typename E = void, typename Cmp = std::less<>, typename = void>
 struct name_sort_impl {
-  [[nodiscard]] constexpr bool operator()(E e1, E e2) const noexcept { return OP{}(enum_name(e1), enum_name(e2)); }
+  [[nodiscard]] constexpr bool operator()(E e1, E e2) const noexcept { return Cmp{}(enum_name(e1), enum_name(e2)); }
 };
 
-template <typename OP>
-struct name_sort_impl<void, OP> {
+template <typename Cmp>
+struct name_sort_impl<void, Cmp> {
   using is_transparent = std::true_type;
-  template <typename S = OP, typename = void>
-  struct FullCmp : S {};
 
-  template <typename S>
-  struct FullCmp<S, std::enable_if_t<!std::is_invocable_v<S, string_view, string_view> && std::is_invocable_v<S, char_type, char_type>>> {
-    [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const noexcept { return lexicographical_compare<S>(s1, s2); }
+  template <typename C = Cmp, typename = void>
+  struct FullCmp : C {};
+
+  template <typename C>
+  struct FullCmp<C, std::enable_if_t<!std::is_invocable_v<C, string_view, string_view> && std::is_invocable_v<C, char_type, char_type>>> {
+    [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const noexcept { return lexicographical_compare<C>(s1, s2); }
   };
 
   template <typename E1, typename E2>
@@ -377,9 +368,15 @@ struct array {
     MAGIC_ENUM_THROW(std::out_of_range("enum array::at: unrecognized position"));
   }
 
-  [[nodiscard]] constexpr reference operator[](E pos) { return a[*index_type::at(pos)]; }
+  [[nodiscard]] constexpr reference operator[](E pos) {
+    auto i = index_type::at(pos);
+    return MAGIC_ENUM_ASSERT(i), a[*i];
+  }
 
-  [[nodiscard]] constexpr const_reference operator[](E pos) const { return a[*index_type::at(pos)]; }
+  [[nodiscard]] constexpr const_reference operator[](E pos) const {
+    auto i = index_type::at(pos);
+    return MAGIC_ENUM_ASSERT(i), a[*i];
+  }
 
   [[nodiscard]] constexpr reference front() noexcept { return a.front(); }
 
@@ -644,13 +641,21 @@ class bitset {
 
   [[nodiscard]] friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept { return !detail::equal(lhs.a, rhs.a); }
 
-  [[nodiscard]] constexpr bool operator[](E pos) const { return static_cast<bool>(const_reference(this, *index_type::at(pos))); }
+  [[nodiscard]] constexpr bool operator[](E pos) const {
+    if (auto i = index_type::at(pos)) {
+      return static_cast<bool>(const_reference(this, *i));
+    }
+    return false;
+  }
 
-  [[nodiscard]] constexpr reference operator[](E pos) { return reference{this, *index_type::at(pos)}; }
+  [[nodiscard]] constexpr reference operator[](E pos) {
+    auto i = index_type::at(pos);
+    return MAGIC_ENUM_ASSERT(i), reference{this, *i};
+  }
 
   constexpr bool test(E pos) const {
-    if (auto ix = index_type::at(pos)) {
-      return static_cast<bool>(const_reference(this, *ix));
+    if (auto i = index_type::at(pos)) {
+      return static_cast<bool>(const_reference(this, *i));
     }
     MAGIC_ENUM_THROW(std::out_of_range("enum bitset::test: unrecognized position"));
   }
@@ -740,8 +745,8 @@ class bitset {
   }
 
   constexpr bitset& set(E pos, bool value = true) {
-    if (auto ix = index_type::at(pos)) {
-      reference{this, *ix} = value;
+    if (auto i = index_type::at(pos)) {
+      reference{this, *i} = value;
       return *this;
     }
     MAGIC_ENUM_THROW(std::out_of_range("enum bitset::set: unrecognized position"));
@@ -750,8 +755,8 @@ class bitset {
   constexpr bitset& reset() noexcept { return *this = bitset{}; }
 
   constexpr bitset& reset(E pos) {
-    if (auto ix = index_type::at(pos)) {
-      reference{this, *ix} = false;
+    if (auto i = index_type::at(pos)) {
+      reference{this, *i} = false;
       return *this;
     }
     MAGIC_ENUM_THROW(std::out_of_range("enum bitset::reset: unrecognized position"));
@@ -836,9 +841,9 @@ explicit bitset(V starter) -> bitset<V>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                           SET                                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E, typename CExprLess = std::less<E>>
+template <typename E, typename Cmp = std::less<E>>
 class set {
-  using index_type = detail::indexing<E, CExprLess>;
+  using index_type = detail::indexing<E, Cmp>;
   struct Getter {
     constexpr const E& operator()(const set*, const E* p) const noexcept { return *p; }
   };
@@ -852,8 +857,8 @@ class set {
   using value_type = E;
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
-  using key_compare = CExprLess;
-  using value_compare = CExprLess;
+  using key_compare = Cmp;
+  using value_compare = Cmp;
   using reference = value_type&;
   using const_reference = const value_type&;
   using pointer = value_type*;
