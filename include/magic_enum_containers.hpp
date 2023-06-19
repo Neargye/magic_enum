@@ -358,14 +358,14 @@ struct array {
     if (auto index = index_type::at(pos)) {
       return a[*index];
     }
-    MAGIC_ENUM_THROW(std::out_of_range("enum array::at: unrecognized position"));
+    MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::array::at Unrecognized position"));
   }
 
   constexpr const_reference at(E pos) const {
     if (auto index = index_type::at(pos)) {
       return a[*index];
     }
-    MAGIC_ENUM_THROW(std::out_of_range("enum array::at: unrecognized position"));
+    MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::array::at: Unrecognized position"));
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
@@ -546,7 +546,7 @@ class bitset {
     for (std::size_t i = 0; i < size(); ++i, flag <<= 1) {
       if (const_reference{this, i}) {
         if (i >= sizeof(T) * 8) {
-          MAGIC_ENUM_THROW(std::overflow_error("cannot represent enum in this type"));
+          MAGIC_ENUM_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
         }
         res |= flag;
       }
@@ -567,7 +567,7 @@ class bitset {
     for (std::size_t i = 0; i < (sizeof(val) * 8); ++i, bit <<= 1) {
       if ((val & bit) > 0) {
         if (i >= enum_count<E>()) {
-          MAGIC_ENUM_THROW(std::out_of_range("enum bitset::constructor: Upper bit set in raw number"));
+          MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::bitset::constructor: Upper bit set in raw number"));
         }
 
         reference{this, i} = true;
@@ -581,11 +581,11 @@ class bitset {
     for (auto c : sv.substr(pos, n)) {
       if (c == one) {
         if (i >= enum_count<E>()) {
-          MAGIC_ENUM_THROW(std::out_of_range("enum bitset::constructor: Upper bit set in raw string"));
+          MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::bitset::constructor: Upper bit set in raw string"));
         }
         reference{this, i} = true;
       } else if (c != zero) {
-        MAGIC_ENUM_THROW(std::invalid_argument("enum bitset::constructor: unrecognized character in raw string"));
+        MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized character in raw string"));
       }
       ++i;
     }
@@ -615,7 +615,7 @@ class bitset {
       }
     }
     if (u != 0) {
-      MAGIC_ENUM_THROW(std::invalid_argument("enum bitset::constructor: unrecognized enum value in flag"));
+      MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in flag"));
     }
   }
 
@@ -625,14 +625,14 @@ class bitset {
       if (auto v = enum_cast<E>(sv.substr(0, to), cmp)) {
         set(v);
       } else {
-        MAGIC_ENUM_THROW(std::invalid_argument("enum bitset::constructor: unrecognized enum value in string"));
+        MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in string"));
       }
     }
     if (!sv.empty()) {
       if (auto v = enum_cast<E>(sv, cmp)) {
         set(v);
       } else {
-        MAGIC_ENUM_THROW(std::invalid_argument("enum bitset::constructor: unrecognized enum value in string"));
+        MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in string"));
       }
     }
   }
@@ -642,10 +642,8 @@ class bitset {
   [[nodiscard]] friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept { return !detail::equal(lhs.a, rhs.a); }
 
   [[nodiscard]] constexpr bool operator[](E pos) const {
-    if (auto i = index_type::at(pos)) {
-      return static_cast<bool>(const_reference(this, *i));
-    }
-    return false;
+    auto i = index_type::at(pos);
+    return MAGIC_ENUM_ASSERT(i), static_cast<bool>(const_reference(this, *i));
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
@@ -657,7 +655,7 @@ class bitset {
     if (auto i = index_type::at(pos)) {
       return static_cast<bool>(const_reference(this, *i));
     }
-    MAGIC_ENUM_THROW(std::out_of_range("enum bitset::test: unrecognized position"));
+    MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::bitset::test: Unrecognized position"));
   }
 
   [[nodiscard]] constexpr bool all() const noexcept {
@@ -749,7 +747,7 @@ class bitset {
       reference{this, *i} = value;
       return *this;
     }
-    MAGIC_ENUM_THROW(std::out_of_range("enum bitset::set: unrecognized position"));
+    MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::bitset::set: Unrecognized position"));
   }
 
   constexpr bitset& reset() noexcept { return *this = bitset{}; }
@@ -759,7 +757,7 @@ class bitset {
       reference{this, *i} = false;
       return *this;
     }
-    MAGIC_ENUM_THROW(std::out_of_range("enum bitset::reset: unrecognized position"));
+    MAGIC_ENUM_THROW(std::out_of_range("magic_enum::containers::bitset::reset: Unrecognized position"));
   }
 
   constexpr bitset& flip() noexcept { return *this = ~*this; }
