@@ -158,19 +158,15 @@ class indexing {
   static constexpr auto indices = get_indices();
 
  public:
-  static constexpr auto& values = indices.first;
+  [[nodiscard]] static constexpr const E* begin() noexcept { return indices.first.data(); }
 
-  [[nodiscard]] static constexpr const E* begin() noexcept {
-    return values.data();
-  }
+  [[nodiscard]] static constexpr const E* end() noexcept { return indices.first.data() + indices.first.size(); }
 
-  [[nodiscard]] static constexpr const E* end() noexcept {
-    return values.data() + values.size();
-  }
+  [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return &indices.first[i]; }
 
   [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept {
-    if (auto opt = enum_index(val)) {
-      return indices.second[*opt];
+    if (auto i = enum_index(val)) {
+      return indices.second[*i];
     }
     return {};
   }
@@ -178,16 +174,14 @@ class indexing {
 
 template <typename E, typename Cmp>
 class indexing<E, Cmp, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && (std::is_same_v<Cmp, std::less<E>> || std::is_same_v<Cmp, std::less<>>)>> {
- public:
    static constexpr auto& values = enum_values<E>();
 
-   [[nodiscard]] static constexpr const E* begin() noexcept {
-     return values.data();
-   }
+ public:
+   [[nodiscard]] static constexpr const E* begin() noexcept { return values.data(); }
 
-   [[nodiscard]] static constexpr const E* end() noexcept {
-     return values.data() + values.size();
-   }
+   [[nodiscard]] static constexpr const E* end() noexcept { return values.data() + values.size(); }
+
+  [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return &values[i]; }
 
   [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept { return enum_index(val); }
 };
@@ -941,7 +935,7 @@ class set {
         ++s;
       }
 
-      return {iterator{this, index_type::begin(), index_type::end(), &(index_type::values[*i])}, r};
+      return {iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)}, r};
     }
     return {end(), false};
   }
@@ -1024,7 +1018,7 @@ class set {
 
   [[nodiscard]] constexpr const_iterator find(const key_type& key) const noexcept {
     if (auto i = index_type::at(key); i && a.test(key)) {
-      return const_iterator{this, index_type::begin(), index_type::end(), &(index_type::values[*i])};
+      return const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)};
     }
     return end();
   }
@@ -1055,7 +1049,7 @@ class set {
 
   [[nodiscard]] constexpr const_iterator lower_bound(const key_type& key) const noexcept {
     if (auto i = index_type::at(key)) {
-      auto it = const_iterator{this, index_type::begin(), index_type::end(), &(index_type::values[*i])};
+      auto it = const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)};
       return a.test(key) ? it : std::next(it);
     }
     return end();
@@ -1069,7 +1063,7 @@ class set {
 
   [[nodiscard]] constexpr const_iterator upper_bound(const key_type& key) const noexcept {
     if (auto i = index_type::at(key)) {
-      return std::next(const_iterator{this, index_type::begin(), index_type::end(), &(index_type::values[*i])});
+      return std::next(const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)});
     }
     return end();
   }
@@ -1096,8 +1090,8 @@ class set {
       return false;
     }
 
-    for (auto& e : index_type::values) {
-      if (auto c = rhs.contains(e); c != lhs.contains(e)) {
+    for (auto it = index_type::begin(); it != index_type::end(); ++it) {
+      if (auto c = rhs.contains(*it); c != lhs.contains(*it)) {
         return c;
       }
     }
