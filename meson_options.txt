@@ -6,13 +6,6 @@ option(
 )
 
 option(
-    'noascii',
-    type : 'boolean',
-    value : false,
-    description : 'Enable support for non-ASCII enumeration identifier'
-)
-
-option(
     'hash',
     type : 'boolean',
     value : false,
