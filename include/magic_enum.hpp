@@ -438,6 +438,17 @@ constexpr auto n() noexcept {
 #else
     auto name = str_view{};
 #endif
+    std::size_t p = 0;
+    for (std::size_t i = name.size_; i > 0; --i) {
+      if (name.str_[i] == ':') {
+        p = i + 1;
+        break;
+      }
+    }
+    if (p > 0) {
+      name.size_ -= p;
+      name.str_ += p;
+    }
     return name;
   } else {
     return str_view{}; // Unsupported compiler or Invalid customize.
