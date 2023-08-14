@@ -54,6 +54,12 @@ int main() {
     std::cout << "BLUE = " << to_integer(c2.value()) << std::endl; // BLUE = 0
   }
 
+  // Case insensitive enum_cast.
+  c2 = magic_enum::enum_cast<Color>("blue", magic_enum::case_insensitive);
+  if (c2.has_value()) {
+    std::cout << "BLUE = " << to_integer(c2.value()) << std::endl; // BLUE = 0
+  }
+
   // Integer value to enum value.
   auto c3 = magic_enum::enum_cast<Color>(10);
   if (c3.has_value()) {

@@ -92,6 +92,13 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p) noexcept(i
         // color.value() -> Color::GREEN
     }
 
+    // case insensitive enum_cast
+    auto color = magic_enum::enum_cast<Color>(value, magic_enum::case_insensitive);
+
+    // enum_cast with BinaryPredicate
+    auto color = magic_enum::enum_cast<Color>(value, [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }
+
+    // enum_cast with default
     auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
     ```
 
