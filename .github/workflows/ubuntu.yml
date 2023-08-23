@@ -75,4 +75,5 @@ jobs:
 
     - name: Bazel Test
       continue-on-error: true
+      working-directory: test
       run: bazelisk test //... --config=ci

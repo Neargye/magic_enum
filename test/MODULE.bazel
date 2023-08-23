@@ -1,7 +1,6 @@
 module(name = "magic_enum_tests")
 
 bazel_dep(name = "magic_enum")
-bazel_dep(name = "platforms", version = "0.0.6")
-bazel_dep(name = "rules_cc", version = "0.0.6")
+bazel_dep(name = "rules_cc", version = "0.0.8")
 
 local_path_override(module_name = "magic_enum", path = "..")
