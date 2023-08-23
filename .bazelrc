@@ -4,15 +4,6 @@ build --incompatible_use_platforms_repo_for_constraints
 build --enable_runfiles
 build --incompatible_strict_action_env
 
-build:linux --host_platform=@magic_enum//bazel/platforms:linux
-build:linux --platforms=@magic_enum//bazel/platforms:linux
-
-build:macos --host_platform=@magic_enum//bazel/platforms:macos
-build:macos --platforms=@magic_enum//bazel/platforms:macos
-
-build:windows --host_platform=@magic_enum//bazel/platforms:windows
-build:windows --platforms=@magic_enum//bazel/platforms:windows
-
 common:ci --announce_rc
 test:ci --test_output=errors
 build:ci --curses=no
