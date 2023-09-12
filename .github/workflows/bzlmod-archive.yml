@@ -1,0 +1,19 @@
+name: Bzlmod Archive
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # A release archive is required for bzlmod
+  # See: https://blog.bazel.build/2023/02/15/github-archive-checksum.html
+  upload-archive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: git archive -o "${{ format('{0}-{1}.tar.gz', github.event.repository.name, github.event.release.tag_name) }}" HEAD
+      - run: gh release upload ${{ github.event.release.tag_name }} *.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
