@@ -115,4 +115,4 @@
 * Intellisense Visual Studio may have some problems analyzing `magic_enum`.
 
 * Enums in template may work incorrectly (especially on Сlang)
-  See (#164)[https://github.com/Neargye/magic_enum/issues/164], (#65)[https://github.com/Neargye/magic_enum/issues/65]
+  See [#164](https://github.com/Neargye/magic_enum/issues/164), [#65](https://github.com/Neargye/magic_enum/issues/65)
