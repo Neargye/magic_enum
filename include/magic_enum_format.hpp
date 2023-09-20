@@ -80,8 +80,8 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && mag
 #include <fmt/format.h>
 
 template <typename E>
-struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && magic_enum::customize::enum_format_enabled<E>(), char>> : fmt::formatter<std::string_view, char> {
-  auto format(E e, format_context& ctx) {
+struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && magic_enum::customize::enum_format_enabled<E>(), char>> : fmt::formatter<std::string_view> {
+  auto format(E e, format_context& ctx) const {
     static_assert(std::is_same_v<char, string_view::value_type>, "formatter requires string_view::value_type type same as char.");
     using D = std::decay_t<E>;
 
