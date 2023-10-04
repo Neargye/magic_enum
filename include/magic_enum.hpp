@@ -423,10 +423,20 @@ constexpr auto n() noexcept {
     constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
     constexpr auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
-    auto name = str_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+    str_view name;
+    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+      static_assert(always_false_v<E>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
+      return str_view{};
+    } else {
+      name.size_ = sizeof(__PRETTY_FUNCTION__) - 36;
+      name.str_ = __PRETTY_FUNCTION__ + 34;
+    }
 #elif defined(__GNUC__)
     auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (name.str_[name.size_ - 1] == ']') {
+    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+      static_assert(always_false_v<E>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
+      return str_view{};
+    } else if (name.str_[name.size_ - 1] == ']') {
       name.size_ -= 50;
       name.str_ += 49;
     } else {
@@ -489,7 +499,14 @@ constexpr auto n() noexcept {
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
     auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
-    auto name = str_view{__PRETTY_FUNCTION__ + 34, sizeof(__PRETTY_FUNCTION__) - 36};
+    str_view name;
+    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+      static_assert(always_false_v<decltype(V)>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
+      return str_view{};
+    } else {
+      name.size_ = sizeof(__PRETTY_FUNCTION__) - 36;
+      name.str_ = __PRETTY_FUNCTION__ + 34;
+    }
     if (name.size_ > 22 && name.str_[0] == '(' && name.str_[1] == 'a' && name.str_[10] == ' ' && name.str_[22] == ':') {
       name.size_ -= 23;
       name.str_ += 23;
@@ -499,7 +516,10 @@ constexpr auto n() noexcept {
     }
 #elif defined(__GNUC__)
     auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (name.str_[name.size_ - 1] == ']') {
+    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+      static_assert(always_false_v<decltype(V)>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
+      return str_view{};
+    } else if (name.str_[name.size_ - 1] == ']') {
       name.size_ -= 55;
       name.str_ += 54;
     } else {
