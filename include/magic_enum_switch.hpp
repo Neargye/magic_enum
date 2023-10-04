@@ -101,22 +101,13 @@ inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow
 template <>
 inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
-template <typename R, typename F, typename... Args>
-constexpr R invoke_r(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
-  if constexpr (std::is_void_v<R>) {
-    std::forward<F>(f)(std::forward<Args>(args)...);
-  } else {
-    return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));
-  }
-}
-
 template <std::size_t I, std::size_t End, typename R, typename E, enum_subtype S, typename F, typename Def>
 constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
   if constexpr(I < End) {
     constexpr auto v = enum_constant<enum_value<E, I, S>()>{};
     if (value == v) {
       if constexpr (std::is_invocable_r_v<R, F, decltype(v)>) {
-        return invoke_r<R>(std::forward<F>(f), v);
+        return static_cast<R>(std::forward<F>(f)(v));
       } else {
         return def();
       }
