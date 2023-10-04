@@ -424,7 +424,7 @@ constexpr auto n() noexcept {
     constexpr auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
     str_view name;
-    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
       static_assert(always_false_v<E>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
       return str_view{};
     } else {
@@ -433,7 +433,7 @@ constexpr auto n() noexcept {
     }
 #elif defined(__GNUC__)
     auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
       static_assert(always_false_v<E>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
       return str_view{};
     } else if (name.str_[name.size_ - 1] == ']') {
@@ -500,7 +500,7 @@ constexpr auto n() noexcept {
     auto name = name_ptr ? str_view{name_ptr, std::char_traits<char>::length(name_ptr)} : str_view{};
 #elif defined(__clang__)
     str_view name;
-    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
       static_assert(always_false_v<decltype(V)>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
       return str_view{};
     } else {
@@ -516,7 +516,7 @@ constexpr auto n() noexcept {
     }
 #elif defined(__GNUC__)
     auto name = str_view{__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1};
-    if (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
+    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
       static_assert(always_false_v<decltype(V)>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
       return str_view{};
     } else if (name.str_[name.size_ - 1] == ']') {
