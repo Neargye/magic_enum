@@ -718,7 +718,7 @@ constexpr void valid_count(bool* valid, std::size_t& count) noexcept {
     }                                                       \
   }
 
-  MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_V);
+  MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_V)
 
   if constexpr ((I + 256) < Size) {
     valid_count<E, S, Size, Min, I + 256>(valid, count);
