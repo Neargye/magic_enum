@@ -510,6 +510,11 @@ class a_foo2 {
 };
 } // namespace
 
+enum class LargeNumbers {
+    First = -1024,
+    Second = 1024
+};
+
 TEST_CASE("enum_name") {
   SECTION("automatic storage") {
     constexpr Color cr = Color::RED;
@@ -645,6 +650,13 @@ TEST_CASE("enum_name") {
 
     REQUIRE(enum_name<Binary::ONE>() == "ONE");
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
+  }
+
+  SECTION("empty if the value is out of range") {
+    const auto ln_value = GENERATE(LargeNumbers::First, LargeNumbers::Second);
+    const auto ln_name = enum_name(ln_value);
+
+    REQUIRE(ln_name.empty());
   }
 }
 
