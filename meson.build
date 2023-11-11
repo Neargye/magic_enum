@@ -4,7 +4,7 @@ project(
     version: '0.9.4',
 )
 
-magic_enum_include = include_directories('include')
+magic_enum_include = include_directories('include/magic_enum')
 
 magic_enum_args = []
 
