@@ -982,7 +982,7 @@ class set {
 
   constexpr size_type erase(const key_type& key) noexcept {
     typename container_type::reference ref = a[key];
-    bool res = ref;
+    bool res = static_cast<bool>(ref);
     if (res) {
       --s;
     }

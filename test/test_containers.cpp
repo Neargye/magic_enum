@@ -270,6 +270,12 @@ TEST_CASE("containers_set") {
   REQUIRE_FALSE(color_set.empty());
   REQUIRE(color_set.size() == 3);
   REQUIRE(magic_enum::enum_count<Color>() == color_set.size());
+  color_set.erase(Color::RED);
+  color_set.erase(Color::GREEN);
+  REQUIRE(magic_enum::enum_count<Color>() - 2 == color_set.size());
+  REQUIRE(color_set.count(Color::RED) == 0);
+  REQUIRE_FALSE(color_set.contains(Color::GREEN));
+  REQUIRE(color_set.contains(Color::BLUE));
 
   auto color_set_compare = magic_enum::containers::set<Color>();
   color_set_compare.insert(Color::BLUE);
