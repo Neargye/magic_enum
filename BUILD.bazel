@@ -11,5 +11,5 @@ cc_library(
     name = "magic_enum",
     hdrs = glob(["include/magic_enum/*.hpp"]),
     copts = COPTS,
-    includes = ["include"],
+    includes = ["include/magic_enum"],
 )
