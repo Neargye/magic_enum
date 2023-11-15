@@ -255,7 +255,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   color_rgb_array[Color::RED] = {255, 0, 0};
   color_rgb_array[Color::GREEN] = {0, 255, 0};
   color_rgb_array[Color::BLUE] = {0, 0, 255};
-  std::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
+  magic_enum::containers::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
   ```
 
 * `containers::bitset` bitset container for enums.
