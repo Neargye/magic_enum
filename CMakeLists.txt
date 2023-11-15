@@ -42,13 +42,11 @@ target_include_directories(${PROJECT_NAME}
             $<BUILD_INTERFACE:${INCLUDES}>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-
 if(MAGIC_ENUM_OPT_INSTALL)
     list(APPEND CMAKE_MODULE_PATH "${ADDITIONAL_MODULES_DIR}/GenPkgConfig")
     include(GenPkgConfig)
     include(CPackComponent)
     include(CMakePackageConfigHelpers)
-    
 
     install(TARGETS "${PROJECT_NAME}"
         EXPORT ${PROJECT_NAME}

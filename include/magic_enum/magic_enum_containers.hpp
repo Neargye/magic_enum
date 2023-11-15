@@ -523,7 +523,7 @@ class bitset {
       return *this;
     }
 
-    [[nodiscard]] constexpr explicit operator bool() const noexcept { return (parent->a[num_index] & bit_index) > 0; }
+    [[nodiscard]] constexpr operator bool() const noexcept { return (parent->a[num_index] & bit_index) > 0; }
 
     [[nodiscard]] constexpr bool operator~() const noexcept { return !static_cast<bool>(*this); }
 
@@ -982,7 +982,7 @@ class set {
 
   constexpr size_type erase(const key_type& key) noexcept {
     typename container_type::reference ref = a[key];
-    bool res = static_cast<bool>(ref);
+    bool res = ref;
     if (res) {
       --s;
     }
@@ -1126,42 +1126,42 @@ template <typename V, int = 0>
 explicit set(V starter) -> set<V>;
 
 template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < magic_enum::enum_count<E>()), V&> get(magic_enum::containers::array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
   return a.a[I];
 }
 
 template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < magic_enum::enum_count<E>()), V&&> get(magic_enum::containers::array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
   return std::move(a.a[I]);
 }
 
 template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < magic_enum::enum_count<E>()), const V&> get(const magic_enum::containers::array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
   return a.a[I];
 }
 
 template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < magic_enum::enum_count<E>()), const V&&> get(const magic_enum::containers::array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
   return std::move(a.a[I]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), V&> get(magic_enum::containers::array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&> get(array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), V&&> get(magic_enum::containers::array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&&> get(array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), const V&> get(const magic_enum::containers::array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&> get(const array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), const V&&> get(const magic_enum::containers::array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&&> get(const array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 
