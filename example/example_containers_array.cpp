@@ -53,13 +53,13 @@ int main() {
 
   constexpr magic_enum::containers::array<Color, RGB> color_rgb_initializer {{{{color_max, 0, 0}, {0, color_max, 0}, {0, 0, color_max}}}};
 
-  std::cout << std::get<0>(color_rgb_initializer) << std::endl; // R=255 G=0 B=0
-  std::cout << std::get<1>(color_rgb_initializer) << std::endl; // R=0 G=255 B=0
-  std::cout << std::get<2>(color_rgb_initializer) << std::endl; // R=0 G=0 B=255
+  std::cout << magic_enum::containers::get<0>(color_rgb_initializer) << std::endl; // R=255 G=0 B=0
+  std::cout << magic_enum::containers::get<1>(color_rgb_initializer) << std::endl; // R=0 G=255 B=0
+  std::cout << magic_enum::containers::get<2>(color_rgb_initializer) << std::endl; // R=0 G=0 B=255
 
-  std::cout << std::get<Color::RED>(color_rgb_initializer) << std::endl; // R=255 G=0 B=0
-  std::cout << std::get<Color::GREEN>(color_rgb_initializer) << std::endl; // R=0 G=255 B=0
-  std::cout << std::get<Color::BLUE>(color_rgb_initializer) << std::endl; // R=0 G=0 B=255
+  std::cout << magic_enum::containers::get<Color::RED>(color_rgb_initializer) << std::endl; // R=255 G=0 B=0
+  std::cout << magic_enum::containers::get<Color::GREEN>(color_rgb_initializer) << std::endl; // R=0 G=255 B=0
+  std::cout << magic_enum::containers::get<Color::BLUE>(color_rgb_initializer) << std::endl; // R=0 G=0 B=255
 
   return 0;
 }

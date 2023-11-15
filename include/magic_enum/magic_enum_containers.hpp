@@ -1125,10 +1125,6 @@ class set {
 template <typename V, int = 0>
 explicit set(V starter) -> set<V>;
 
-} // namespace magic_enum::containers
-
-namespace std {
-
 template <auto I, typename E, typename V, typename Index>
 constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < magic_enum::enum_count<E>()), V&> get(magic_enum::containers::array<E, V, Index>& a) noexcept {
   return a.a[I];
@@ -1169,6 +1165,6 @@ constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum
   return std::move(a[Enum]);
 }
 
-} // namespace std
+} // namespace magic_enum::containers
 
 #endif // NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
