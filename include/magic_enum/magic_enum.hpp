@@ -60,7 +60,7 @@
 
 #if defined(MAGIC_ENUM_NO_ASSERT)
 #  define MAGIC_ENUM_ASSERT(...) static_cast<void>(0)
-#else
+#elif !defined(MAGIC_ENUM_ASSERT)
 #  include <cassert>
 #  define MAGIC_ENUM_ASSERT(...) assert((__VA_ARGS__))
 #endif
