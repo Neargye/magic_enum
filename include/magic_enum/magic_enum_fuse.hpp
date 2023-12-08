@@ -90,6 +90,7 @@ template <detail::enum_subtype S, typename... Es>
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
+  static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
   return enum_fuse<detail::subtypes_v<std::decay_t<Es>...>>(values...);
 }
 

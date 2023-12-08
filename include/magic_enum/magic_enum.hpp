@@ -218,9 +218,9 @@ namespace detail {
 template <typename T>
 struct supported
 #if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
-    : std::true_type {};
+  : std::true_type {};
 #else
-    : std::false_type {};
+  : std::false_type {};
 #endif
 
 template <auto V, typename E = std::decay_t<decltype(V)>, std::enable_if_t<std::is_enum_v<E>, int> = 0>
@@ -881,6 +881,17 @@ constexpr U values_ors() noexcept {
   return ors;
 }
 
+template <typename E, enum_subtype S>
+struct is_valid_enum
+#if defined(MAGIC_ENUM_NO_CHECK_VALID_ENUM_TYPE)
+  : std::true_type {};
+#else
+  : std::bool_constant<std::is_enum_v<E> & (count_v<E, S> > 0)> {};
+#endif
+
+template <typename E, enum_subtype S>
+inline constexpr auto is_valid_enum_v = is_valid_enum<std::decay_t<E>, S>{};
+
 template <bool, typename R>
 struct enable_if_enum {};
 
@@ -1180,6 +1191,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::is_sparse_v<D, S>) {
     return MAGIC_ENUM_ASSERT(index < detail::count_v<D, S>), detail::values_v<D, S>[index];
@@ -1194,6 +1206,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, std::size_t I, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   static_assert(I < detail::count_v<D, S>, "magic_enum::enum_value out of range.");
 
   return enum_value<D, S>(I);
@@ -1202,7 +1215,10 @@ template <typename E, std::size_t I, detail::enum_subtype S = detail::subtype_v<
 // Returns std::array with enum values, sorted by enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_t<E, detail::values_t<E, S>> {
-  return detail::values_v<std::decay_t<E>, S>;
+  using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+
+  return detail::values_v<D, S>;
 }
 
 // Returns integer value from enum value.
@@ -1223,6 +1239,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
@@ -1255,14 +1272,17 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   return enum_index<D, S>(value);
 }
 
 // Obtains index in enum values from static storage enum variable.
 template <auto V, detail::enum_subtype S = detail::subtype_v<std::decay_t<decltype(V)>>>
-[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
-  constexpr auto index = enum_index<std::decay_t<decltype(V)>, S>(V);
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {\
+  using D = std::decay_t<decltype(V)>;
+  constexpr auto index = enum_index<D, S>(V);
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   static_assert(index, "magic_enum::enum_index enum value does not have a index.");
 
   return *index;
@@ -1283,6 +1303,7 @@ template <auto V>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if (const auto i = enum_index<D, S>(value)) {
     return detail::names_v<D, S>[*i];
@@ -1295,6 +1316,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_name(E value) -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   return enum_name<D, S>(value);
 }
@@ -1302,13 +1324,19 @@ template <detail::enum_subtype S, typename E>
 // Returns std::array with names, sorted by enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_t<E, detail::names_t<E, S>> {
-  return detail::names_v<std::decay_t<E>, S>;
+  using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+
+  return detail::names_v<D, S>;
 }
 
 // Returns std::array with pairs (value, name), sorted by enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_t<E, detail::entries_t<E, S>> {
-  return detail::entries_v<std::decay_t<E>, S>;
+  using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+
+  return detail::entries_v<D, S>;
 }
 
 // Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
@@ -1319,6 +1347,7 @@ inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
@@ -1352,6 +1381,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);

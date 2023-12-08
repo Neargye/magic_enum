@@ -197,10 +197,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
   using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
-
-  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
-  Color color = Color::BLUE;
-  std::cout << color << std::endl; // "BLUE"
   ```
 
 * Bitwise operator for enum

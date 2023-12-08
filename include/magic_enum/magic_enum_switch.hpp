@@ -137,6 +137,7 @@ template <typename Result = detail::default_result_type, typename E, detail::enu
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
@@ -160,6 +161,7 @@ template <typename Result, typename E, detail::enum_subtype S = detail::subtype_
 constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(

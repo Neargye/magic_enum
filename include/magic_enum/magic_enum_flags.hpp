@@ -52,6 +52,7 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   string name;
   auto check_value = U{0};
@@ -82,6 +83,7 @@ template <typename E>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
@@ -117,6 +119,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
+  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
