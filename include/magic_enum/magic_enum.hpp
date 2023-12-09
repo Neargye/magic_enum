@@ -886,7 +886,7 @@ struct is_valid_enum
 #if defined(MAGIC_ENUM_NO_CHECK_VALID_ENUM_TYPE)
   : std::true_type {};
 #else
-  : std::bool_constant<std::is_enum_v<E> & (count_v<E, S> > 0)> {};
+  : std::bool_constant<std::is_enum_v<E> && (count_v<E, S> > 0)> {};
 #endif
 
 template <typename E, enum_subtype S>
@@ -1281,8 +1281,8 @@ template <detail::enum_subtype S, typename E>
 template <auto V, detail::enum_subtype S = detail::subtype_v<std::decay_t<decltype(V)>>>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {\
   using D = std::decay_t<decltype(V)>;
-  constexpr auto index = enum_index<D, S>(V);
   static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  constexpr auto index = enum_index<D, S>(V);
   static_assert(index, "magic_enum::enum_index enum value does not have a index.");
 
   return *index;
