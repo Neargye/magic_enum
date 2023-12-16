@@ -23,9 +23,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
-#undef  MAGIC_ENUM_RANGE_MIN
+#define MAGIC_ENUM_NO_CHECK_VALID_ENUM_TYPE
 #define MAGIC_ENUM_RANGE_MIN -120
-#undef  MAGIC_ENUM_RANGE_MAX
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
 #include <magic_enum_fuse.hpp>
@@ -1246,4 +1245,32 @@ TEST_CASE("enum_prev_value_circular") {
   REQUIRE(enum_prev_value_circular(Color::RED, -2) == Color::BLUE);
   REQUIRE(enum_prev_value_circular(Color::RED, -3) == Color::RED);
   REQUIRE(enum_prev_value_circular(Color::RED, -4) == Color::GREEN);
+}
+
+TEST_CASE("valid_enum") {
+  //enum Forward1;
+  enum Forward2 : uint32_t;
+  enum class Forward3;
+  enum class Forward4 : uint32_t;
+  enum Empty1 {};
+  enum Empty2 : uint32_t {};
+  enum class Empty3 {};
+  enum class Empty4 : uint32_t {};
+
+  //REQUIRE(magic_enum::detail::is_valid_enum_v<Forward1, as_flags<true>>);
+  //REQUIRE(magic_enum::detail::is_valid_enum_v<Forward1, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward2, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward2, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward3, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward3, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward4, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Forward4, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty1, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty1, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty2, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty2, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty3, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty3, as_flags<false>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty4, as_flags<true>>);
+  REQUIRE(magic_enum::detail::is_valid_enum_v<Empty4, as_flags<false>>);
 }
