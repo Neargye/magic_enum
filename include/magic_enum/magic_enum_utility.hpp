@@ -67,7 +67,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F,
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
-  static_assert(detail::is_valid_enum_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   constexpr auto sep = std::make_index_sequence<detail::count_v<D, S>>{};
 
   if constexpr (detail::all_invocable<D, S, F>(sep)) {
