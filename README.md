@@ -167,7 +167,7 @@ If you like this project, please consider donating to one of the funds that help
     static constexpr bool is_flags = true;
   };
 
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // directions_name -> "Directions::Up|Directions::Right"
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Directions::Up|Directions::Right"
   magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
   magic_enum::enum_flags_cast(3); // -> "Directions::Left|Directions::Down"
   ```
