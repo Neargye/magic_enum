@@ -1,16 +1,3 @@
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://bit.ly/3OMysM8)
-
-```text
- __  __             _        ______                          _____
-|  \/  |           (_)      |  ____|                        / ____|_     _
-| \  / | __ _  __ _ _  ___  | |__   _ __  _   _ _ __ ___   | |   _| |_ _| |_
-| |\/| |/ _` |/ _` | |/ __| |  __| | '_ \| | | | '_ ` _ \  | |  |_   _|_   _|
-| |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
-|_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
-               __/ |
-              |___/
-```
-
 [![Github releases](https://img.shields.io/github/release/Neargye/magic_enum.svg)](https://github.com/Neargye/magic_enum/releases)
 [![Conan package](https://img.shields.io/badge/Conan-package-blueviolet)](https://conan.io/center/recipes/magic_enum)
 [![Vcpkg package](https://img.shields.io/badge/Vcpkg-package-blueviolet)](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum)
@@ -24,13 +11,15 @@
 
 Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
 
+If you like this project, please consider donating to one of the funds that help victims of the war in Ukraine: https://u24.gov.ua.
+
 ## Documentation
 
 * [Reference](doc/reference.md)
 * [Limitations](doc/limitations.md)
 * [Integration](#Integration)
 
-## [Examples](example/)
+## [Features & Examples](example/)
 
 * Enum value to string
 
@@ -194,9 +183,15 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * IOstream operator for enum
 
   ```cpp
-  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operators for enums.
+  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operators for enums.
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
+  ```
+
+  ```cpp
+  using magic_enum::iostream_operators::operator>>; // out-of-the-box istream operators for enums.
+  Color color;
+  std::cin >> color;
   ```
 
 * Bitwise operator for enum
