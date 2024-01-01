@@ -871,7 +871,7 @@ inline constexpr bool is_sparse_v = is_sparse<E, S>();
 
 template <typename E, enum_subtype S>
 struct is_reflected
-#if defined(MAGIC_ENUM_NO_CHECK_VALID_ENUM_TYPE)
+#if defined(MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM)
   : std::true_type {};
 #else
   : std::bool_constant<std::is_enum_v<E> && (count_v<E, S> != 0)> {};
