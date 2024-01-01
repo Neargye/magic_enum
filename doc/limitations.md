@@ -16,6 +16,10 @@
   };
   ```
 
+  * `MAGIC_ENUM_RANGE_MAX/MAGIC_ENUM_RANGE_MIN` does not affect the maximum amount of flags.
+
+  * If enum is declared as flags, then it will not reflect the value of zero and is logically AND.
+
 * Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
 
   * By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.

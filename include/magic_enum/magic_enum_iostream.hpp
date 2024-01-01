@@ -105,8 +105,8 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
 
 namespace iostream_operators {
 
-using namespace ostream_operators;
-using namespace istream_operators;
+using magic_enum::ostream_operators::operator<<;
+using magic_enum::istream_operators::operator>>;
 
 } // namespace magic_enum::iostream_operators
 

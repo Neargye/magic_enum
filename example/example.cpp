@@ -70,7 +70,7 @@ int main() {
   auto c4_integer = magic_enum::enum_integer(Color::RED);
   std::cout << "RED = " << c4_integer << std::endl; // RED = -10
 
-  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for all enums.
+  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operator for all enums.
   // Ostream operator for enum.
   std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
 

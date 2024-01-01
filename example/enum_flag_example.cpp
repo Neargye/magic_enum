@@ -64,7 +64,7 @@ int main() {
   auto f4_integer = magic_enum::enum_integer(AnimalFlags::HasClaws);
   std::cout << "HasClaws = " << f4_integer << std::endl; // HasClaws = 1024
 
-  using namespace magic_enum::ostream_operators; // out-of-the-box ostream operator for enum-flags.
+  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operator for enum-flags.
   // Ostream operator for enum-flags.
   std::cout << f1 << " " << f2 << " " << f3 << std::endl; // Endangered CanFly|EatsFish HasClaws|EatsFish
 
