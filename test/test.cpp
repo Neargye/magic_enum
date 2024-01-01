@@ -23,7 +23,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
-#define MAGIC_ENUM_NO_CHECK_VALID_ENUM_TYPE
+#define MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 #define MAGIC_ENUM_RANGE_MIN -120
 #define MAGIC_ENUM_RANGE_MAX 120
 #include <magic_enum.hpp>
