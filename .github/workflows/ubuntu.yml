@@ -28,7 +28,7 @@ jobs:
     name: "${{ format('{0} NONASCII={1}', matrix.compiler.cc, matrix.compiler.nonascii) }}"
     runs-on: ${{ matrix.compiler.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Configure clang
       run: |
