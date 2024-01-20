@@ -1,32 +1,37 @@
 # Limitations
 
-* This library uses a compiler-specific hack (based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`).
+* This library uses a compiler-specific hack based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`.
 
-* To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.</br>
-  If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
+* To check if magic_enum is supported with your compiler, use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.
+  If magic_enum is used on an unsupported compiler, a compilation error will occur.
+  To suppress the error, define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
 
-* Enum can't reflect if the enum is a forward declaration.
+* magic_enum can't reflect if the enum is a forward declaration.
 
-* For enum-flags add `is_flags` to specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
+## Enum Flags
+
+* For enum flags, add `is_flags` to specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
   ```cpp
-  enum class Directions { Up = 1 << 1, Down = 1 << 2, Right = 1 << 3, Left = 1 << 4 };
+  enum class Directions { Up = 1 << 0, Down = 1 << 1, Right = 1 << 2, Left = 1 << 3 };
   template <>
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
   ```
 
-  * `MAGIC_ENUM_RANGE_MAX/MAGIC_ENUM_RANGE_MIN` does not affect the maximum amount of flags.
+* `MAGIC_ENUM_RANGE_MAX` / `MAGIC_ENUM_RANGE_MIN` does not affect the maximum number of enum flags.
 
-  * If enum is declared as flags, then it will not reflect the value of zero and is logically AND.
+* If an enum is declared as a flag enum, then it will not reflect the value of zero.
 
-* Enum value must be in range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
+## Enum Range
 
-  * By default `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 128`.
+* Enum values must be in the range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
 
-  * `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MAX`.
+* By default, `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 127`.
 
-  * If need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
+* `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MAX`.
+
+* If you need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
 
     ```cpp
     #define MAGIC_ENUM_RANGE_MIN 0
@@ -34,7 +39,7 @@
     #include <magic_enum.hpp>
     ```
 
-  * If need another range for specific enum type, add specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
+  * If you need another range for specific enum type, add specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
 
     ```cpp
     #include <magic_enum.hpp>
@@ -49,60 +54,64 @@
     };
     ```
 
-* `magic_enum` [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). Work with enum-aliases is compiler-implementation-defined.
+## Aliasing
 
-  ```cpp
-  enum ShapeKind {
-    ConvexBegin = 0,
-    Box = 0, // Won't work.
-    Sphere = 1,
-    ConvexEnd = 2,
-    Donut = 2, // Won't work too.
-    Banana = 3,
-    COUNT = 4
-  };
-  // magic_enum::enum_cast<ShapeKind>("Box") -> nullopt
-  // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
-  ```
+`magic_enum` [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). How magic_enum works with aliases is compiler-implementation-defined.
 
-  One of the possible workaround the issue:
+```cpp
+enum ShapeKind {
+  ConvexBegin = 0,
+  Box = 0, // Won't work.
+  Sphere = 1,
+  ConvexEnd = 2,
+  Donut = 2, // Won't work too.
+  Banana = 3,
+  COUNT = 4
+};
+// magic_enum::enum_cast<ShapeKind>("Box") -> nullopt
+// magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
+```
 
-  ```cpp
-  enum ShapeKind {
-    // Convex shapes, see ConvexBegin and ConvexEnd below.
-    Box = 0,
-    Sphere = 1,
+One of the possible workaround the issue:
 
-    // Non-convex shapes.
-    Donut = 2,
-    Banana = 3,
+```cpp
+enum ShapeKind {
+  // Convex shapes, see ConvexBegin and ConvexEnd below.
+  Box = 0,
+  Sphere = 1,
 
-    COUNT = Banana + 1,
+  // Non-convex shapes.
+  Donut = 2,
+  Banana = 3,
 
-    // Non-reflected aliases.
-    ConvexBegin = Box,
-    ConvexEnd = Sphere + 1
-  };
-  // magic_enum::enum_cast<ShapeKind>("Box") -> ShapeKind::Box
-  // magic_enum::enum_name(ShapeKind::Box) -> "Box"
+  COUNT = Banana + 1,
 
   // Non-reflected aliases.
-  // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> nullopt
-  // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
-  ```
+  ConvexBegin = Box,
+  ConvexEnd = Sphere + 1
+};
+// magic_enum::enum_cast<ShapeKind>("Box") -> ShapeKind::Box
+// magic_enum::enum_name(ShapeKind::Box) -> "Box"
 
-  On some compiler enum-aliases not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), macro `MAGIC_ENUM_SUPPORTED_ALIASES` will be undefined.
+// Non-reflected aliases.
+// magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> nullopt
+// magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
+```
 
-  ```cpp
-  enum Number {
-    one = 1,
-    ONE = 1
-  };
-  // magic_enum::enum_cast<Number>("one") -> nullopt
-  // magic_enum::enum_name(Number::one) -> ""
-  // magic_enum::enum_cast<Number>("ONE") -> nullopt
-  // magic_enum::enum_name(Number::ONE) -> ""
-  ```
+On some compilers, enum aliases are not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), macro `MAGIC_ENUM_SUPPORTED_ALIASES` will be undefined.
+
+```cpp
+enum Number {
+  one = 1,
+  ONE = 1
+};
+// magic_enum::enum_cast<Number>("one") -> nullopt
+// magic_enum::enum_name(Number::one) -> ""
+// magic_enum::enum_cast<Number>("ONE") -> nullopt
+// magic_enum::enum_name(Number::ONE) -> ""
+```
+
+## Other Compiler Issues
 
 * If you hit a message like this:
 
@@ -112,11 +121,11 @@
   ```
 
   Change the limit for the number of constexpr evaluated:
-  * MSVC `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
-  * Clang `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
-  * GCC `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
+  * MSVC: `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
+  * Clang: `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
+  * GCC: `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
-* Intellisense Visual Studio may have some problems analyzing `magic_enum`.
+* Visual Studio's Intellisense may have some problems analyzing magic_enum.
 
-* Enums in template may work incorrectly (especially on Сlang)
+* Enums in templates may not work incorrectly (especially on Сlang).
   See [#164](https://github.com/Neargye/magic_enum/issues/164), [#65](https://github.com/Neargye/magic_enum/issues/65)
