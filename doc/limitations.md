@@ -10,7 +10,7 @@
 
 ## Enum Flags
 
-* For enum flags, add `is_flags` to specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
+* For enum flags, add `is_flags` to specialization `enum_range` for necessary enum type. Specializations of `enum_range` must be injected in `namespace magic_enum::customize`.
   ```cpp
   enum class Directions { Up = 1 << 0, Down = 1 << 1, Right = 1 << 2, Left = 1 << 3 };
   template <>
@@ -31,7 +31,7 @@
 
 * `MAGIC_ENUM_RANGE = (MAGIC_ENUM_RANGE_MAX - MAGIC_ENUM_RANGE_MIN)` must be less than `UINT16_MAX`.
 
-* If you need another range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
+* If you need a different range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
 
     ```cpp
     #define MAGIC_ENUM_RANGE_MIN 0
@@ -39,20 +39,20 @@
     #include <magic_enum.hpp>
     ```
 
-  * If you need another range for specific enum type, add specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
+* If you need a different range for a specific enum type, add the specialization `enum_range` for the enum type. Specializations of `enum_range` must be injected in `namespace magic_enum::customize`.
 
-    ```cpp
-    #include <magic_enum.hpp>
+  ```cpp
+  #include <magic_enum.hpp>
 
-    enum class number { one = 100, two = 200, three = 300 };
+  enum class number { one = 100, two = 200, three = 300 };
 
-    template <>
-    struct magic_enum::customize::enum_range<number> {
-      static constexpr int min = 100;
-      static constexpr int max = 300;
-      // (max - min) must be less than UINT16_MAX.
-    };
-    ```
+  template <>
+  struct magic_enum::customize::enum_range<number> {
+    static constexpr int min = 100;
+    static constexpr int max = 300;
+    // (max - min) must be less than UINT16_MAX.
+  };
+  ```
 
 ## Aliasing
 
