@@ -21,7 +21,7 @@
 
 * `MAGIC_ENUM_RANGE_MAX` / `MAGIC_ENUM_RANGE_MIN` does not affect the maximum number of enum flags.
 
-* If an enum is declared as a flag enum, then it will not reflect the value of zero.
+* If an enum is declared as a flag enum, its zero value will not be reflected.
 
 ## Enum Range
 
@@ -56,7 +56,7 @@
 
 ## Aliasing
 
-`magic_enum` [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). How magic_enum works with aliases is compiler-implementation-defined.
+magic_enum [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). How magic_enum works with aliases is compiler-implementation-defined.
 
 ```cpp
 enum ShapeKind {
@@ -72,7 +72,7 @@ enum ShapeKind {
 // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
 ```
 
-One of the possible workaround the issue:
+One possible workaround for the issue is to define the enum values you want reflected before their aliases:
 
 ```cpp
 enum ShapeKind {
@@ -127,5 +127,5 @@ enum Number {
 
 * Visual Studio's Intellisense may have some problems analyzing magic_enum.
 
-* Enums in templates may not work incorrectly (especially on Сlang).
+* Enums in templates may not work correctly (especially on Сlang).
   See [#164](https://github.com/Neargye/magic_enum/issues/164), [#65](https://github.com/Neargye/magic_enum/issues/65)
