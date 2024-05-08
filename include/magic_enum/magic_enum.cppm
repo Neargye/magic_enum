@@ -37,6 +37,7 @@ namespace containers {
     using magic_enum::enum_count;
     using magic_enum::enum_integer;
     using magic_enum::enum_names;
+    using magic_enum::enum_entries;
     using magic_enum::enum_fuse;
     using magic_enum::enum_switch;
     using magic_enum::enum_for_each;
