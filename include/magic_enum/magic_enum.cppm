@@ -57,3 +57,9 @@ namespace containers {
     using magic_enum::underlying_type;
     using magic_enum::underlying_type_t;
 }
+
+#if defined(__cpp_lib_format)
+export namespace std {
+    using std::formatter;
+}
+#endif
