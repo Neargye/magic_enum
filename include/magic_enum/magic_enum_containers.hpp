@@ -36,10 +36,14 @@
 #include "magic_enum.hpp"
 
 #if !defined(MAGIC_ENUM_NO_EXCEPTION) && (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND))
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <stdexcept>
+#endif
 #  define MAGIC_ENUM_THROW(...) throw (__VA_ARGS__)
 #else
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <cstdlib>
+#endif
 #  define MAGIC_ENUM_THROW(...) std::abort()
 #endif
 

@@ -36,6 +36,7 @@
 #define MAGIC_ENUM_VERSION_MINOR 9
 #define MAGIC_ENUM_VERSION_PATCH 5
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -43,11 +44,13 @@
 #include <limits>
 #include <type_traits>
 #include <utility>
+#endif
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
 #  include MAGIC_ENUM_CONFIG_FILE
 #endif
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #  include <optional>
 #endif
@@ -56,6 +59,7 @@
 #endif
 #if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 #  include <string_view>
+#endif
 #endif
 
 #if defined(MAGIC_ENUM_NO_ASSERT)
