@@ -1,11 +1,11 @@
 module;
 
+export module magic_enum;
+
 #ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
 #endif
 #include <magic_enum_all.hpp>
-
-export module magic_enum;
 
 export namespace magic_enum {
 namespace customize {
