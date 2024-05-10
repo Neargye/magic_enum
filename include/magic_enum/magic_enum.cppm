@@ -1,11 +1,18 @@
 module;
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
+#include <magic_enum_all.hpp>
+#endif
+
 export module magic_enum;
 
 #ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
-#endif
+
+extern "C++" {
 #include <magic_enum_all.hpp>
+}
+#endif
 
 export namespace magic_enum {
 namespace customize {
