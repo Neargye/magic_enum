@@ -10,7 +10,10 @@ export module magic_enum;
 import std;
 
 extern "C++" {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
 #include <magic_enum_all.hpp>
+#pragma clang diagnostic pop
 }
 #endif
 
