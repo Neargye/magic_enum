@@ -264,8 +264,8 @@ struct FilteredIterator {
   constexpr explicit FilteredIterator(const FilteredIterator<OtherParent, OtherIterator, Getter, Predicate>& other)
       : parent(other.parent), first(other.first), last(other.last), current(other.current), getter(other.getter), predicate(other.predicate) {}
 
-  constexpr FilteredIterator(Parent p, Iterator begin, Iterator end, Iterator curr, Getter getter = {}, Predicate pred = {})
-      : parent(p), first(std::move(begin)), last(std::move(end)), current(std::move(curr)), getter{std::move(getter)}, predicate{std::move(pred)} {
+  constexpr FilteredIterator(Parent p, Iterator begin, Iterator end, Iterator curr, Getter get = {}, Predicate pred = {})
+      : parent(p), first(std::move(begin)), last(std::move(end)), current(std::move(curr)), getter{std::move(get)}, predicate{std::move(pred)} {
     if (current == first && !predicate(parent, current)) {
       ++*this;
     }
@@ -501,9 +501,9 @@ class bitset {
     std::size_t num_index;
     base_type bit_index;
 
-    constexpr reference_impl(parent_t parent, std::size_t ix) noexcept : reference_impl(parent, std::pair{ix / bits_per_base, base_type{1} << (ix % bits_per_base)}) {}
+    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, std::pair{i / bits_per_base, base_type{1} << (i % bits_per_base)}) {}
 
-    constexpr reference_impl(parent_t parent, std::pair<std::size_t, base_type> ix) noexcept : parent(parent), num_index(std::get<0>(ix)), bit_index(std::get<1>(ix)) {}
+    constexpr reference_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
 
    public:
     constexpr reference_impl& operator=(bool v) noexcept {

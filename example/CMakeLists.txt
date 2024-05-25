@@ -2,7 +2,7 @@ include(CheckCXXCompilerFlag)
 
 set(CMAKE_CXX_STANDARD 17)
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-    set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
+    set(OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(OPTIONS /W4 /WX)
     if(HAS_PERMISSIVE_FLAG)

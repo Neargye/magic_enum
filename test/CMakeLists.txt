@@ -12,7 +12,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     check_cxx_compiler_flag(/std:c++latest HAS_CPPLATEST_FLAG)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_VERBOSE_MAKEFILE ON)
-    set(OPTIONS -Wall -Wextra -pedantic-errors -Werror)
+    set(OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
 
     check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
     check_cxx_compiler_flag(-std=c++23 HAS_CPP23_FLAG)
