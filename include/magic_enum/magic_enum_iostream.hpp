@@ -35,7 +35,9 @@
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <iosfwd>
+#endif
 
 namespace magic_enum {
 

@@ -1,8 +1,22 @@
 module;
 
+#include <version>
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <magic_enum_all.hpp>
+#endif
 
 export module magic_enum;
+
+#ifdef MAGIC_ENUM_USE_STD_MODULE
+import std;
+
+extern "C++" {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
+#include <magic_enum_all.hpp>
+#pragma clang diagnostic pop
+}
+#endif
 
 export namespace magic_enum {
 namespace customize {
@@ -54,3 +68,9 @@ namespace containers {
     using magic_enum::underlying_type;
     using magic_enum::underlying_type_t;
 }
+
+#if defined(__cpp_lib_format)
+export namespace std {
+    using std::formatter;
+}
+#endif
