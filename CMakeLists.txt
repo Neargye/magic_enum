@@ -22,6 +22,7 @@ endif()
 option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${IS_TOPLEVEL_PROJECT})
 option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${IS_TOPLEVEL_PROJECT})
 option(MAGIC_ENUM_OPT_INSTALL "Generate and install magic_enum target" ${IS_TOPLEVEL_PROJECT})
+option(MAGIC_ENUM_OPT_INSTALL_PACKAGE_XML "Include package.xml when installing" ${MAGIC_ENUM_OPT_INSTALL})
 
 if(MAGIC_ENUM_OPT_BUILD_EXAMPLES)
     add_subdirectory(example)
@@ -121,7 +122,10 @@ if(MAGIC_ENUM_OPT_INSTALL)
         INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}"
     )
 
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/package.xml
-            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
+    if (MAGIC_ENUM_OPT_INSTALL_PACKAGE_XML)
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/package.xml
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
+    endif()
+
     include(CPack)
 endif()
