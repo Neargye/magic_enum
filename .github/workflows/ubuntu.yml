@@ -29,6 +29,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Configure clang
+      run: |
+        if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
+          sudo apt update
+          sudo apt install ${{ matrix.compiler.cc }} -y
+        fi
+
+    - name: Configure gcc
+      run: |
+        if [[ "${{ matrix.compiler.cc }}" == "gcc"* ]]; then
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt install ${{ matrix.compiler.cxx }} -y
+        fi
+
     - name: Build Release
       run: |
         rm -rf build
