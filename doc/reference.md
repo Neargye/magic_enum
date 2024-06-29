@@ -10,6 +10,7 @@
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
+* [`enum_reflected` returns true if the enum value is in the range of values that can be reflected..](#enum_reflected)
 * [`enum_type_name` returns type name of enum.](#enum_type_name)
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
@@ -315,6 +316,21 @@ constexpr bool enum_contains(string_view value, BinaryPredicate p) noexcept(is_n
   magic_enum::enum_contains<Color>("GREEN"); // -> true
   magic_enum::enum_contains<Color>("fda"); // -> false
   ```
+
+## `enum_reflected`
+
+```cpp
+template <typename E>
+constexpr bool enum_contains(E value) noexcept;
+
+template <typename E>
+constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
+
+template <typename E>
+constexpr bool enum_contains(string_view value) noexcept;
+```
+
+* Returns true if the enum value is in the range of values that can be reflected.
 
 ## `enum_type_name`
 

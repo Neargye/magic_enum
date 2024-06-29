@@ -1414,6 +1414,35 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
   return static_cast<bool>(enum_cast<D, S>(value, std::move(p)));
 }
 
+// Returns true if the enum value is in the range of values that can be reflected.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_reflected(E value) noexcept -> detail::enable_if_t<E, bool> {
+  using D = std::decay_t<E>;
+
+  if constexpr (detail::is_reflected_v<D, S>) {
+    constexpr auto min = detail::reflected_min<E, S>();
+    constexpr auto max = detail::reflected_max<E, S>();
+    return value >= min && value <= max;
+  }
+  return false;
+}
+
+// Returns true if the enum value is in the range of values that can be reflected.
+template <detail::enum_subtype S, typename E>
+[[nodiscard]] constexpr auto enum_reflected(E value) noexcept -> detail::enable_if_t<E, bool> {
+  using D = std::decay_t<E>;
+
+  return enum_cast<D, S>(value);
+}
+
+// Returns true if the enum integer value is in the range of values that can be reflected.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_reflected(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
+  using D = std::decay_t<E>;
+
+  return enum_cast<D, S>(value);
+}
+
 template <bool AsFlags = true>
 inline constexpr auto as_flags = AsFlags ? detail::enum_subtype::flags : detail::enum_subtype::common;
 
