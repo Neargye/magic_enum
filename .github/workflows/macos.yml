@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macos-11  } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
-        - { os: macos-12 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-12-Readme.md#xcode
+        - { os: macos-13 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-13-Readme.md#xcode
+        - { os: macos-14 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-14-Readme.md#xcode
 
     name: "${{ matrix.config.os }}"
     steps:
