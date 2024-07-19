@@ -621,14 +621,14 @@ class bitset {
   constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = static_cast<char_type>('|')) {
     for (std::size_t to = 0; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
       if (auto v = enum_cast<E>(sv.substr(0, to), cmp)) {
-        set(v);
+        set(*v);
       } else {
         MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in string"));
       }
     }
     if (!sv.empty()) {
       if (auto v = enum_cast<E>(sv, cmp)) {
-        set(v);
+        set(*v);
       } else {
         MAGIC_ENUM_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in string"));
       }
