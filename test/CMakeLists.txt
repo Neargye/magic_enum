@@ -6,7 +6,29 @@ endif()
 
 if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
   find_package(PkgConfig)
-  pkg_check_modules(magic_enum REQUIRED magic_enum)
+  pkg_check_modules(magic_enum magic_enum)
+  if(NOT magic_enum_FOUND)
+    message(
+      WARNING
+        "magic_enum via pkgconfig is not found. \
+Next code will try check possible places for some platforms, \
+but there's no guarantee. \
+If you know where the magic_enum pkgconfig files (.pc) are, \
+then specify yourself variable \$\{CMAKE_PREFIX_PATH\} \
+with folder like /a/path/to/magic_enum (for POSIX-like pathes), \
+where in the folder exists share/pkgconfig/magic_enum.pc ."
+    )
+    if(UNIX AND EXISTS "/usr/local/share/pkgconfig/magic_enum.pc")
+      message(DEBUG "\$\{CMAKE_PREFIX_PATH\} : ${CMAKE_PREFIX_PATH} ")
+      set(CMAKE_PREFIX_PATH "/usr/local")
+      message(DEBUG "\$\{CMAKE_PREFIX_PATH\} : ${CMAKE_PREFIX_PATH} ")
+      pkg_check_modules(magic_enum magic_enum)
+    endif()
+    # code place for future workarounds for other platforms...
+    if(NOT magic_enum_FOUND)
+      message(FATAL_ERROR "Could not find magic_enum's config. Read a warning above.")
+    endif()
+  endif()
   message(DEBUG "magic_enum_FOUND : ${magic_enum_FOUND}")
   message(DEBUG "magic_enum_LIBRARIES: ${magic_enum_LIBRARIES}")
   message(DEBUG "magic_enum_LINK_LIBRARIES: ${magic_enum_LINK_LIBRARIES}")

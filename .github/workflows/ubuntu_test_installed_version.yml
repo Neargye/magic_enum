@@ -30,6 +30,7 @@ jobs:
       - name: install library
         run: |
           cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release --log-level=DEBUG -DCMAKE_INSTALL_PREFIX=./install_dir
+          cmake --build ./build -j$(nproc)
           cmake --install ./build --prefix ./install_dir
           rm -rf build
 
@@ -37,12 +38,12 @@ jobs:
         run: CMAKE_PREFIX_PATH="./install_dir" cmake -S. -Bbuild2 -DMAGIC_ENUM_OPT_TEST_INSTALLED_VERSION=1 --log-level=DEBUG
 
       - name: build with installed version via cmake
-        run: cmake --build build2 --config Debug -j4 --verbose
+        run: cmake --build build2 --config Debug -j$(nproc) --verbose
 
       - name: test
         run: |
           cd build2
-          ctest --build-config Debug -j4
+          ctest --build-config Debug -j$(nproc)
 
       - name: clear 
         run: rm -rf build2
@@ -51,9 +52,9 @@ jobs:
         run: CMAKE_PREFIX_PATH="./install_dir" cmake -S. -Bbuild3 -DMAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG=1 -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=1 --log-level=DEBUG
 
       - name: build with installed version via pkgconfig
-        run: cmake --build build3 --config Debug -j4 --verbose
+        run: cmake --build build3 --config Debug -j$(nproc) --verbose
 
       - name: test
         run: |
           cd build3
-          ctest --build-config Debug -j4
+          ctest --build-config Debug -j$(nproc)
