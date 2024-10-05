@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 enum class Language : int {
     日本語 = 10,

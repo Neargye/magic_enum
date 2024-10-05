@@ -22,7 +22,7 @@
 
 #include <iostream>
 
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 

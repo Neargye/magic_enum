@@ -23,8 +23,8 @@
 #include <iostream>
 #include <string>
 
-#include <magic_enum.hpp>
-#include <magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 enum class AnimalFlags : std::uint64_t { HasClaws = 1 << 10, CanFly = 1 << 20, EatsFish = 1 << 30, Endangered = std::uint64_t{1} << 40 };
 // Add specialization `is_flags` to define that enum are flags.

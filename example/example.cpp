@@ -22,8 +22,8 @@
 
 #include <iostream>
 
-#include <magic_enum.hpp>
-#include <magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 

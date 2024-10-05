@@ -1,4 +1,6 @@
-build/
+build*/
+cmake_build*/
+install_dir/
 .vscode/
 .vs/
 
