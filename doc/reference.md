@@ -321,13 +321,10 @@ constexpr bool enum_contains(string_view value, BinaryPredicate p) noexcept(is_n
 
 ```cpp
 template <typename E>
-constexpr bool enum_contains(E value) noexcept;
+constexpr bool enum_reflected(E value) noexcept;
 
 template <typename E>
-constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
-
-template <typename E>
-constexpr bool enum_contains(string_view value) noexcept;
+constexpr bool enum_reflected(underlying_type_t<E> value) noexcept;
 ```
 
 * Returns true if the enum value is in the range of values that can be reflected.
