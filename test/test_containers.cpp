@@ -33,8 +33,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
-#include <magic_enum_containers.hpp>
-#include <magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum_containers.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 #include <functional>
 

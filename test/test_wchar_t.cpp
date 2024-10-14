@@ -25,8 +25,8 @@
 
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::wstring_view;
 #define MAGIC_ENUM_USING_ALIAS_STRING      using string      = std::wstring;
-#include <magic_enum.hpp>
-#include <magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 #include <array>
 #include <cctype>

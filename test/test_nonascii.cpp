@@ -27,9 +27,9 @@
 #define MAGIC_ENUM_RANGE_MIN -120
 #undef  MAGIC_ENUM_RANGE_MAX
 #define MAGIC_ENUM_RANGE_MAX 120
-#include <magic_enum.hpp>
-#include <magic_enum_fuse.hpp>
-#include <magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_fuse.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 #include <array>
 #include <cctype>

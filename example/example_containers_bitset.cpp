@@ -28,7 +28,7 @@
 
 #include <iostream>
 
-#include <magic_enum_containers.hpp>
+#include <magic_enum/magic_enum_containers.hpp>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
