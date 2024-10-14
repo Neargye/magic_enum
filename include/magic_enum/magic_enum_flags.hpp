@@ -70,6 +70,14 @@ template <typename E>
   constexpr auto S = detail::enum_subtype::flags;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
+  // There might be a name for value 0 (when no flags are set).
+  if constexpr(enum_contains<E>(0)) {
+    if(static_cast<U>(value) == 0) {
+      constexpr string_view zeroName = detail::enum_name_v<D, static_cast<D>(0)>;
+      return string(zeroName);
+    }
+  }
+
   string name;
   auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
