@@ -1,7 +1,7 @@
 project(
     'magic_enum', ['cpp'],
     default_options: ['cpp_std=c++17'],
-    version: '0.9.6',
+    version: '0.9.7',
 )
 
 magic_enum_include = include_directories('include')
