@@ -42,7 +42,7 @@ template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash) {
     if (const auto index = enum_index(value)) {
-      return (*hash << log2(enum_count<E>() + 1)) | *index;
+      return (*hash << log2((enum_count<E>() << 1) - 1)) | *index;
     }
   }
   return {};
