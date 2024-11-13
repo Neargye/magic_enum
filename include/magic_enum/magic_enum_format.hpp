@@ -63,7 +63,7 @@ template <typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : std::formatter<std::string_view, char> {
   template <class FormatContext>
   auto format(E e, FormatContext& ctx) const {
-    return formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
+    return std::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
   }
 };
 
@@ -75,7 +75,7 @@ template <typename E>
 struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : fmt::formatter<std::string_view, char> {
   template <class FormatContext>
   auto format(E e, FormatContext& ctx) const {
-    return formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
+    return fmt::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
   }
 };
 
