@@ -120,10 +120,23 @@ function(configure_pkg_config_file_vars TARGET _NAME _INSTALL_LIB_DIR _INSTALL_I
 	string(REPLACE "," "$<COMMA>" NEEDS_LIBS_ESCAPED "${NEEDS_LIBS}")
 	string(REPLACE ">" "$<ANGLE-R>" NEEDS_LIBS_ESCAPED "${NEEDS_LIBS_ESCAPED}")
 
-	list(APPEND header "prefix=${CMAKE_INSTALL_PREFIX}")
-	list(APPEND header "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIB_DIR}>,libdir=\${prefix}/${INSTALL_LIB_DIR},>")
-	list(APPEND header "$<IF:$<BOOL:${PUBLIC_INCLUDES}>,includedir=\${prefix}/${INSTALL_INCLUDE_DIR},>")
+	# Only use prefix if paths are not absolute like they are with nix
+	# See also: https://github.com/NixOS/nixpkgs/issues/144170
+	if(NOT(IS_ABSOLUTE ${INSTALL_LIB_DIR} AND IS_ABSOLUTE ${INSTALL_INCLUDE_DIR}))
+            list(APPEND header "prefix=${CMAKE_INSTALL_PREFIX}")
+        endif()
 
+        if(IS_ABSOLUTE ${INSTALL_LIB_DIR})
+            list(APPEND header "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIB_DIR}>,libdir=${INSTALL_LIB_DIR},>")
+        else()
+            list(APPEND header "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIB_DIR}>,libdir=\${prefix}/${INSTALL_LIB_DIR},>")
+        endif()
+
+        if(IS_ABSOLUTE ${INSTALL_INCLUDE_DIR})
+            list(APPEND header "$<IF:$<BOOL:${PUBLIC_INCLUDES}>,includedir=${INSTALL_INCLUDE_DIR},>")
+        else()
+            list(APPEND header "$<IF:$<BOOL:${PUBLIC_INCLUDES}>,includedir=\${prefix}/${INSTALL_INCLUDE_DIR},>")
+        endif()
 
 	list(APPEND libSpecific "Name: ${_NAME}")
 	if(_DESCRIPTION)
