@@ -43,7 +43,7 @@
   #define MAGIC_ENUM_USING_ALIAS_STRING using string = my_lib::String;
   #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = my_lib::StringView;
   #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
-  #include <magic_enum.hpp>
+  #include <magic_enum/magic_enum.hpp>
   ```
 
 * Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined

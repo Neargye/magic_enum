@@ -25,6 +25,8 @@ If you like this project, please consider donating to one of the funds that help
 * Enum value to string
 
   ```cpp
+  #include <magic_enum/magic_enum.hpp>
+  //....
   Color color = Color::RED;
   auto color_name = magic_enum::enum_name(color);
   // color_name -> "RED"

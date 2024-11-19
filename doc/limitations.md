@@ -34,13 +34,13 @@
     ```cpp
     #define MAGIC_ENUM_RANGE_MIN 0
     #define MAGIC_ENUM_RANGE_MAX 256
-    #include <magic_enum.hpp>
+    #include <magic_enum/magic_enum.hpp>
     ```
 
 * If you need a different range for a specific enum type, add the specialization `enum_range` for the enum type. Specializations of `enum_range` must be injected in `namespace magic_enum::customize`.
 
   ```cpp
-  #include <magic_enum.hpp>
+  #include <magic_enum/magic_enum.hpp>
 
   enum class number { one = 100, two = 200, three = 300 };
 
