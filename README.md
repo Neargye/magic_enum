@@ -22,11 +22,24 @@ If you like this project, please consider donating to one of the funds that help
 
 ## [Features & Examples](example/)
 
-* Enum value to string
+* Basic
 
   ```cpp
   #include <magic_enum/magic_enum.hpp>
-  //....
+  #include <iostream>
+
+  enum class Color : { RED = -10, BLUE = 0, GREEN = 10 };
+
+  int main() {
+    Color c1 = Color::RED;
+    std::cout << magic_enum::enum_name(c1) << std::endl; // RED
+    return 0;
+  }
+  ```
+
+* Enum value to string
+
+  ```cpp
   Color color = Color::RED;
   auto color_name = magic_enum::enum_name(color);
   // color_name -> "RED"
