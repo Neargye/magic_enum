@@ -1,6 +1,9 @@
 module;
 
 #include <version>
+#if __has_include(<fmt/base.h>)
+#include <fmt/base.h>
+#endif
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <magic_enum/magic_enum_all.hpp>
 #endif
@@ -72,5 +75,11 @@ namespace containers {
 #if defined(__cpp_lib_format)
 export namespace std {
     using std::formatter;
+}
+#endif
+
+#if defined(FMT_VERSION)
+export namespace fmt {
+    using fmt::formatter;
 }
 #endif
