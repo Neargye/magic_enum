@@ -52,10 +52,10 @@ namespace magic_enum::containers {
 namespace detail {
 
 template <typename T, typename = void>
-static constexpr bool is_transparent_v{};
+inline constexpr bool is_transparent_v{};
 
 template <typename T>
-static constexpr bool is_transparent_v<T, std::void_t<typename T::is_transparent>>{true};
+inline constexpr bool is_transparent_v<T, std::void_t<typename T::is_transparent>>{true};
 
 template <typename Eq = std::equal_to<>, typename T1, typename T2>
 constexpr bool equal(T1&& t1, T2&& t2, Eq&& eq = {}) {
