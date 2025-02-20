@@ -621,26 +621,37 @@ constexpr auto enum_name() noexcept {
 template <typename E, E V>
 inline constexpr auto enum_name_v = enum_name<E, V>();
 
+// CWG1766: Values outside the range of the values of an enumeration
+// https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
+#if defined(__clang__) && __clang_major__ >= 16
+template <typename E, auto V, typename = void>
+inline constexpr bool is_enum_constexpr_static_cast_valid = false;
+template <typename E, auto V>
+inline constexpr bool is_enum_constexpr_static_cast_valid<E, V, std::void_t<std::integral_constant<E, static_cast<E>(V)>>> = true;
+#else
+template <typename, auto>
+inline constexpr bool is_enum_constexpr_static_cast_valid = true;
+#endif
+
 template <typename E, auto V>
 constexpr bool is_valid() noexcept {
-#if defined(__clang__) && __clang_major__ >= 16
-  // https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
-  constexpr E v = __builtin_bit_cast(E, V);
-#else
-  constexpr E v = static_cast<E>(V);
-#endif
-  [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
-  static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-  if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
-    constexpr auto name = custom.second;
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-    return name.size() != 0;
-  } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
+  if constexpr (is_enum_constexpr_static_cast_valid<E, V>) {
+    constexpr E v = static_cast<E>(V);
+    [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
+    static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
+    if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
+      constexpr auto name = custom.second;
+      static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+      return name.size() != 0;
+    } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
 #if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
-    return n<E, v>().size_ != 0;
+      return n<E, v>().size_ != 0;
 #else
-    return n<v>().size_ != 0;
+      return n<v>().size_ != 0;
 #endif
+    } else {
+      return false;
+    }
   } else {
     return false;
   }
