@@ -1,8 +1,8 @@
 module;
 
 #include <version>
-#if __has_include(<fmt/base.h>)
-#include <fmt/base.h>
+#if __has_include(<fmt/format.h>)
+#include <fmt/format.h>
 #endif
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <magic_enum/magic_enum_all.hpp>
