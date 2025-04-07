@@ -418,7 +418,7 @@ template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
 template <typename E>
-constexpr auto n() noexcept {
+constexpr auto __cdecl n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<E>::value) {
@@ -494,7 +494,7 @@ template <typename E>
 inline constexpr auto type_name_v = type_name<E>();
 
 template <auto V>
-constexpr auto n() noexcept {
+constexpr auto __cdecl n() noexcept {
   static_assert(is_enum_v<decltype(V)>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<decltype(V)>::value) {
@@ -566,7 +566,7 @@ constexpr auto n() noexcept {
 
 #if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
 template <typename E, E V>
-constexpr auto n() noexcept {
+constexpr auto __cdecl n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
 #  if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
