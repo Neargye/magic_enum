@@ -49,17 +49,17 @@ struct magic_enum::customize::enum_range<Color> {
   static constexpr bool is_flags = true;
 };
 
-enum class Numbers : int {
-  none = 0,
-  one = 1 << 1,
-  two = 1 << 2,
-  three = 1 << 3,
-  many = 1 << 30,
-};
-template <>
-struct magic_enum::customize::enum_range<Numbers> {
-  static constexpr bool is_flags = true;
-};
+namespace Namespace {
+    enum class Numbers : int {
+        none = 0,
+        one = 1 << 1,
+        two = 1 << 2,
+        three = 1 << 3,
+        many = 1 << 30,
+    };
+    magic_enum::customize::adl_info<true> adl_magic_enum_define_range(Numbers);
+}
+using Namespace::Numbers;
 
 enum Directions : std::uint64_t {
   NoDirection = 0,
