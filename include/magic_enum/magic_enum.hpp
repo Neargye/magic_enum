@@ -163,15 +163,57 @@ static_assert([] {
   return true;
 } (), "magic_enum::customize wchar_t is not compatible with ASCII.");
 
+namespace detail {
+    template<typename E, typename = void>
+    constexpr inline bool has_is_flags_adl = false;
+
+    template<typename E>
+    constexpr inline bool has_is_flags_adl < E, std::void_t<decltype(decltype(adl_magic_enum_define_range(E{}))::is_flags) > > = decltype(adl_magic_enum_define_range(E{}))::is_flags;
+
+    template<typename E, typename = void>
+    constexpr inline auto has_minmax_adl = std::pair<int, int>(MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX);
+
+    template<typename E>
+    constexpr inline auto has_minmax_adl < E, std::void_t<decltype(decltype(adl_magic_enum_define_range(E{}))::max), decltype(decltype(adl_magic_enum_define_range(E{}))::max) >> =
+        std::pair<int, int>(decltype(adl_magic_enum_define_range(E{}))::min, decltype(adl_magic_enum_define_range(E{}))::max);
+}
+
+
+
 namespace customize {
+
+template<auto... Vs>
+struct adl_info { static_assert(sizeof...(Vs) && !sizeof...(Vs), "adl_info parameter types must be either 2 ints exactly or 1 bool for the is_flgas"); };
+
+template<int Min, int Max>
+struct adl_info<Min, Max> {
+    static constexpr int min = Min;
+    static constexpr int max = Max;
+};
+
+template<bool IsFlags>
+struct adl_info<IsFlags> {
+    static constexpr bool is_flags = IsFlags;
+};
 
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 127.
 // If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
 // If need another range for specific enum type, add specialization enum_range for necessary enum type.
-template <typename E>
+template <typename E, typename = void>
 struct enum_range {
-  static constexpr int min = MAGIC_ENUM_RANGE_MIN;
-  static constexpr int max = MAGIC_ENUM_RANGE_MAX;
+    static constexpr int min = MAGIC_ENUM_RANGE_MIN;
+    static constexpr int max = MAGIC_ENUM_RANGE_MAX;
+};
+
+template <typename E>
+struct enum_range < E, decltype(void(adl_magic_enum_define_range(E{}))) > {
+    static constexpr int min = detail::has_minmax_adl<E>.first;
+    static constexpr int max = detail::has_minmax_adl<E>.second;
+    static constexpr bool is_flags = detail::has_is_flags_adl<E>;
+
+    static_assert(is_flags || min != MAGIC_ENUM_RANGE_MIN || max != MAGIC_ENUM_RANGE_MAX, 
+        "adl_magic_enum_define_range is declared for this enum but does not define any constants.\n"
+        "be sure that the member names are static and are not mispelled.");
 };
 
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");

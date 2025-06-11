@@ -99,6 +99,29 @@ struct magic_enum::customize::enum_range<Binary> {
   static constexpr int max = 64;
 };
 
+namespace We::Need::To::Go::Deeper {
+    enum class Dimension : short { Overworld = 1000, Nether, TheEnd = Overworld + 128 };
+    enum class Flaggy : std::uint64_t { Flag0 = 1 << 0, Flag32 = std::uint64_t(1) << 32 };
+
+    auto adl_magic_enum_define_range(Dimension)
+    {
+        enum {
+            min = 1000,
+            max = 1000 + 128
+        } e{};
+        return e;
+    }
+
+    struct FlaggyData {
+        static constexpr bool is_flags = true;
+    };
+
+    // not defined!
+    FlaggyData adl_magic_enum_define_range(Flaggy);
+}
+using We::Need::To::Go::Deeper::Dimension;
+using We::Need::To::Go::Deeper::Flaggy;
+
 enum class BoolTest : bool { Yay, Nay };
 
 using namespace magic_enum;
@@ -112,6 +135,12 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
     REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
     REQUIRE_FALSE(enum_cast<Color>("None").has_value());
+
+    constexpr auto dim = enum_cast<Dimension>("Nether");
+    REQUIRE(dim.value() == Dimension::Nether);
+    REQUIRE(enum_cast<Dimension&>("Nether").value() == Dimension::Nether);
+    REQUIRE(enum_cast<Dimension>("theend", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Dimension::TheEnd);
+    REQUIRE_FALSE(enum_cast<Dimension>("Aether").has_value());
 
     constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
@@ -427,6 +456,13 @@ TEST_CASE("enum_values") {
 
   constexpr auto& s6 = enum_values<MaxUsedAsInvalid>();
   REQUIRE(s6 == std::array<MaxUsedAsInvalid, 2>{{MaxUsedAsInvalid::ONE, MaxUsedAsInvalid::TWO}});
+
+  constexpr auto& s7 = enum_values<Dimension>();
+  REQUIRE(s7 == std::array<Dimension, 3>{{Dimension::Overworld, Dimension::Nether, Dimension::TheEnd}});
+
+  constexpr auto& s8 = enum_values<Flaggy>();
+  REQUIRE(s8 == std::array<Flaggy, 2>{{Flaggy::Flag0, Flaggy::Flag32}});
+
 }
 
 TEST_CASE("enum_count") {
@@ -931,6 +967,10 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<BadColor, as_common<>>() == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor, as_common<>> == 0);
+
+    REQUIRE(magic_enum::customize::enum_range<Dimension>::min == 1000);
+    REQUIRE(magic_enum::customize::enum_range<Dimension>::max == 1000 + 128);
+    REQUIRE_FALSE(magic_enum::customize::enum_range<Dimension>::is_flags);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<Color, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
