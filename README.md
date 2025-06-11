@@ -28,7 +28,7 @@ If you like this project, please consider donating to one of the funds that help
   #include <magic_enum/magic_enum.hpp>
   #include <iostream>
 
-  enum class Color : { RED = -10, BLUE = 0, GREEN = 10 };
+  enum class Color { RED = -10, BLUE = 0, GREEN = 10 };
 
   int main() {
     Color c1 = Color::RED;
