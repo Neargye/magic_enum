@@ -7,11 +7,11 @@ module;
 
 export module magic_enum;
 
-#ifdef MAGIC_ENUM_USE_STD_MODULE
+#if defined(MAGIC_ENUM_USE_STD_MODULE)
 import std;
 
 extern "C++" {
-#ifdef __clang__
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
 #elif defined(_MSC_VER)
@@ -21,7 +21,7 @@ extern "C++" {
 
 #include <magic_enum/magic_enum_all.hpp>
 
-#ifdef __clang__
+#if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(_MSC_VER)
 #pragma warning(pop)
