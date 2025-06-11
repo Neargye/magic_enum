@@ -131,7 +131,7 @@ template <typename E>
 // Obtains enum-flags value from name.
 // Returns optional with enum-flags value.
 template <typename E, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_flags_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_flags_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
   using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
@@ -185,7 +185,7 @@ template <typename E>
 
 // Checks whether enum-flags contains enumerator with such name.
 template <typename E, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_flags_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_flags_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
   return static_cast<bool>(enum_flags_cast<D>(value, std::move(p)));

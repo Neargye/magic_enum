@@ -374,19 +374,15 @@ constexpr std::size_t find(string_view str, char_type c) noexcept {
 }
 
 template <typename BinaryPredicate>
-constexpr bool is_default_predicate() noexcept {
-  return std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> ||
-         std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
-}
+inline constexpr bool is_default_predicate_v = std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> || std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
+
 
 template <typename BinaryPredicate>
-constexpr bool is_nothrow_invocable() {
-  return is_default_predicate<BinaryPredicate>() ||
-         std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
-}
+inline constexpr bool is_nothrow_invocable_v = is_default_predicate_v<BinaryPredicate> || std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
+
 
 template <typename BinaryPredicate>
-constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(is_nothrow_invocable<BinaryPredicate>()) {
+constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(is_nothrow_invocable_v<BinaryPredicate>) {
 #if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
   // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
   // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
@@ -395,7 +391,7 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
   constexpr bool workaround = false;
 #endif
 
-  if constexpr (!is_default_predicate<BinaryPredicate>() || workaround) {
+  if constexpr (!is_default_predicate_v<BinaryPredicate> || workaround) {
     if (lhs.size() != rhs.size()) {
       return false;
     }
@@ -1412,12 +1408,12 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Obtains enum value from name.
 // Returns optional with enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-  if constexpr (detail::is_default_predicate<BinaryPredicate>()) {
+  if constexpr (detail::is_default_predicate_v<BinaryPredicate>) {
     return detail::constexpr_switch<&detail::names_v<D, S>, detail::case_call_t::index>(
         [](std::size_t i) { return optional<D>{detail::values_v<D, S>[i]}; },
         value,
@@ -1461,7 +1457,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
 // Checks whether enum contains enumerator with such name.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable<BinaryPredicate>()) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
   return static_cast<bool>(enum_cast<D, S>(value, std::move(p)));
