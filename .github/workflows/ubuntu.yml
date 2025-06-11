@@ -10,20 +10,17 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-10",   cxx: "g++-10",     os: "ubuntu-20.04", nonascii: "TRUE" }
-        - { cc: "gcc-10",   cxx: "g++-10",     os: "ubuntu-20.04", nonascii: "FALSE" }
         - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "TRUE" }
         - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04", nonascii: "FALSE" }
         - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04", nonascii: "FALSE" }
-        - { cc: "clang-10", cxx: "clang++-10", os: "ubuntu-20.04", nonascii: "FALSE" }
-        - { cc: "clang-11", cxx: "clang++-11", os: "ubuntu-20.04", nonascii: "FALSE" }
-        - { cc: "clang-12", cxx: "clang++-12", os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", nonascii: "FALSE" }
         - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE" }
+        - { cc: "clang-17", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE" }
+        - { cc: "clang-18", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE" }
 
     name: "${{ format('{0} NONASCII={1}', matrix.compiler.cc, matrix.compiler.nonascii) }}"
     runs-on: ${{ matrix.compiler.os }}
