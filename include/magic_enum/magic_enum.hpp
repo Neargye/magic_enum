@@ -163,6 +163,11 @@ static_assert([] {
   return true;
 } (), "magic_enum::customize wchar_t is not compatible with ASCII.");
 
+namespace customize {
+    template <typename E, typename = void>
+    struct enum_range;
+}
+
 namespace detail {
     template<typename E, typename = void>
     constexpr inline bool has_is_flags_adl = false;
@@ -176,6 +181,13 @@ namespace detail {
     template<typename E>
     constexpr inline auto has_minmax_adl < E, std::void_t<decltype(decltype(adl_magic_enum_define_range(E{}))::max), decltype(decltype(adl_magic_enum_define_range(E{}))::max) >> =
         std::pair<int, int>(decltype(adl_magic_enum_define_range(E{}))::min, decltype(adl_magic_enum_define_range(E{}))::max);
+
+    template<typename E,typename = void>
+    constexpr inline std::size_t prefix_length_or_zero = 0;
+
+    template<typename E>
+    constexpr inline auto prefix_length_or_zero<E, std::void_t<decltype(customize::enum_range<E>::prefix_length)>> = std::size_t{ customize::enum_range<E>::prefix_length };
+
 }
 
 
@@ -199,7 +211,7 @@ struct adl_info<IsFlags> {
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 127.
 // If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
 // If need another range for specific enum type, add specialization enum_range for necessary enum type.
-template <typename E, typename = void>
+template <typename E,typename /*= void*/>
 struct enum_range {
     static constexpr int min = MAGIC_ENUM_RANGE_MIN;
     static constexpr int max = MAGIC_ENUM_RANGE_MAX;
@@ -300,6 +312,9 @@ class static_str {
  public:
   constexpr explicit static_str(str_view str) noexcept : static_str{str.str_, std::make_integer_sequence<std::uint16_t, N>{}} {
     MAGIC_ENUM_ASSERT(str.size_ == N);
+  }
+
+  constexpr explicit static_str(const char* const str) noexcept : static_str{ str, std::make_integer_sequence<std::uint16_t, N>{} } {
   }
 
   constexpr explicit static_str(string_view str) noexcept : static_str{str.data(), std::make_integer_sequence<std::uint16_t, N>{}} {
@@ -650,7 +665,7 @@ constexpr auto enum_name() noexcept {
 #else
     constexpr auto name = n<V>();
 #endif
-    return static_str<name.size_>{name};
+    return static_str<name.size_ - prefix_length_or_zero<E>>{name.str_ + prefix_length_or_zero<E>};
   } else {
     static_assert(always_false_v<E>, "magic_enum::customize invalid.");
   }
