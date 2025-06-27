@@ -98,6 +98,14 @@
 #  define MAGIC_ENUM_SUPPORTED_ALIASES 1
 #endif
 
+// Specify the calling convention for compilers that need it in order to get reliable mangled names under different
+// compiler flags. In particular, MSVC allows changing the default calling convention on x86.
+#if defined(__clang__) || defined(__GNUC__)
+#define MAGIC_ENUM_CALLING_CONVENTION
+#elif defined(_MSC_VER)
+#define MAGIC_ENUM_CALLING_CONVENTION __cdecl
+#endif
+
 // Enum value must be greater or equals than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
 // If need another min range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN.
 #if !defined(MAGIC_ENUM_RANGE_MIN)
@@ -456,7 +464,7 @@ template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
 template <typename E>
-constexpr auto n() noexcept {
+constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<E>::value) {
@@ -532,7 +540,7 @@ template <typename E>
 inline constexpr auto type_name_v = type_name<E>();
 
 template <auto V>
-constexpr auto n() noexcept {
+constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   static_assert(is_enum_v<decltype(V)>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<decltype(V)>::value) {
@@ -604,7 +612,7 @@ constexpr auto n() noexcept {
 
 #if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
 template <typename E, E V>
-constexpr auto n() noexcept {
+constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
 #  if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
