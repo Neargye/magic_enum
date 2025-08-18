@@ -1363,6 +1363,15 @@ template <detail::enum_subtype S, typename E>
   return enum_name<D, S>(value);
 }
 
+// Returns a vector of names from containers' enum.
+// If one enum value of the container does not have a name or value out of range, returns empty string.
+template <typename E, template<typename, typename...> typename Container, typename... Args> 
+[[nodiscard]] constexpr auto enum_name(const Container<E, Args...>& values) -> std::vector<std::string_view> {
+  std::vector<std::string_view> result;
+  for (const auto& v: values) result.push_back(magic_enum::enum_name(v));
+  return result;
+}
+
 // Returns std::array with names, sorted by enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_t<E, detail::names_t<E, S>> {
