@@ -8,6 +8,7 @@
 * [`enum_name` returns name from enum value.](#enum_name)
 * [`enum_names` obtains string enum name sequence.](#enum_names)
 * [`enum_entries` obtains pair (value enum, string enum name) sequence.](#enum_entries)
+* [`customize::enum_range`](#customizeenum_range)
 * [`enum_index` obtains index in enum value sequence from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
 * [`enum_reflected` returns true if the enum value is in the range of values that can be reflected..](#enum_reflected)
@@ -62,6 +63,7 @@
   #define MAGIC_ENUM_RANGE_MIN 0
   #define MAGIC_ENUM_RANGE_MAX 255
   ```
+
 
 ## `enum_cast`
 
@@ -275,6 +277,62 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
   // color_entries[0].first -> Color::RED
   // color_entries[0].second -> "RED"
   ```
+
+## `customize::enum_range`
+
+```cpp
+namespace customize {
+template <typename E,typename = void>
+struct enum_range {
+  constexpr static std::size_t prefix_length = 0;
+  constexpr static bool is_flags = false;
+  constexpr static int min = MAGIC_ENUM_MIN_RANGE;
+  constexpr static int max = MAGIC_ENUM_MAX_RANGE;
+};
+}
+
+```
+
+* Defined in header `<magic_enum/magic_enum.hpp>`
+
+* A customization point for controlling `magic_enum` defaults
+
+* It has a defaulted second `void` typename template parameter for SFINAE.
+
+* `is_flags` tells `magic_enum` whether this enum should be considered to be a bitflag enum. It is not required to be defined if not defined it will be assumed to be `false`
+
+* `prefix_length` tells `magic_enum` how many characters to remove from the start of the names for all string functions. It is not required to be defined if not defined it will be assumed to be `0`
+
+* `min` and `max` are not required to be defined if `is_flags` is defined because they are ignored for enum flags.
+  otherwise they are required.
+
+* Examples
+
+  * Controlling prefix length
+
+    ```cpp
+    enum CStyleAnimals {
+      CStyleAnimals_Giraffe,
+      CStyleAnimals_Elephant,
+      CStyleAnimals_Lion,
+    };
+
+    template<>
+    struct magic_enum::customize::enum_range<CStyleAnimals> {
+        // sizeof counts null terminator subtract 1 to get length
+        constexpr static auto prefix_length = sizeof("CStyleAnimals_")-1;
+        constexpr static int min = CStyleAnimals_Giraffe; // required
+        constexpr static int max = CStyleAnimals_Lion;    // required
+    };
+  
+    CStyleAnimals animal = CStyleAnimals_Giraffe;
+    auto animal_name = magic_enum::enum_name(animal);
+    // animal_name => "Giraffe"
+    auto animal_from_string = magic_enum::enum_cast<CStyleAnimals>(animal_name);
+    // animal_from_string.value() == CStyleAnimals_Giraffe 
+    ```
+
+
 
 ## `enum_index`
 
@@ -512,31 +570,24 @@ constexpr bool enum_flags_contains(string_view value, BinaryPredicate p) noexcep
   magic_enum::enum_flags_test_any(Left|Down|Right, Down|Right); // -> "true"
   ```
 
-* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `my_adl_info_struct adl_magic_enum_define_range(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a struct with `static constexpr` data members containing the same parameters as `magic_enum::customize::enum_range<my_enum_type>`
-  ```cpp
-  namespace Deeply::Nested::Namespace {
-  enum class my_enum_type { ... };
-  struct my_adl_info_struct {
-    static constexpr bool is_flags = true;
-    // you can also set min and max here (see Limitations document)
-    // static constexpr int min = ...;
-    // static constexpr int max = ...;
-  };
-  // - magic_enum will find this function by ADL
-  // - no need to ever define this function
-  my_adl_info_struct adl_magic_enum_define_range(my_enum_type); 
-  }
-  ```
+* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `adl_magic_enum_define_range(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
 
-* As a shorthand, if you only want to set `is_flags` and not `min` or `max`, you can also use `magic_enum::customize::adl_info<is_flags_bool>` to avoid having to define `my_adl_info_struct` in your code:
-  ```cpp
-  namespace Deeply::Nested::Namespace {
-  enum class my_enum_type { ... };
+```cpp
+namespace Deeply::Nested::Namespace {
+  enum class my_enum_type { my_enum_value1,my_enum_value2 };
+
   // - magic_enum will find this function by ADL
-  // - no need to ever define this function
-  magic_enum::customize::adl_info<true> adl_magic_enum_define_range(my_enum_type); 
+  // - uses builder pattern
+  // - use auto to not have to name the type yourself
+  auto adl_magic_enum_define_range(my_enum_type)
+  {
+    return magic_enum::customize::adl_info()
+    .minmax<10,10>() // the min max search range
+    .flag<true>() // whether it is a flag enum
+    .prefix<sizeof("my_enum_")-1>(); // how many characters to trim from the start of each enum entry.
   }
-  ```
+}
+```
 
 ## `is_unscoped_enum`
 

@@ -57,7 +57,10 @@ namespace Namespace {
         three = 1 << 3,
         many = 1 << 30,
     };
-    magic_enum::customize::adl_info<true> adl_magic_enum_define_range(Numbers);
+    auto adl_magic_enum_define_range(Numbers)
+    {
+      return magic_enum::customize::adl_info().flag<true>();
+    }
 }
 using Namespace::Numbers;
 
@@ -91,6 +94,24 @@ struct magic_enum::customize::enum_range<number> {
   static constexpr bool is_flags = true;
 };
 
+enum CStyleFlags {
+    CStyleFlags_A = 1 << 0,
+    CStyleFlags_B = 1 << 1,
+    CStyleFlags_C = 1 << 2,
+    CStyleFlags_D = 1 << 3,
+    CStyleFlags_E = 1 << 4,
+    CStyleFlags_F = 1 << 5,
+    CStyleFlags_G = 1 << 6,
+    CStyleFlags_H = 1 << 7,
+    CStyleFlags_I = 1 << 8,
+};
+
+template <>
+struct magic_enum::customize::enum_range<CStyleFlags> {
+    static constexpr bool is_flags = true;
+    static constexpr auto prefix_length = sizeof("CStyleFlags_")-1;
+};
+
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_fuse.hpp>
 
@@ -116,6 +137,13 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_flags_cast<Color&>("GREEN|RED|RED").value() == (Color::GREEN | Color::RED));
     REQUIRE_FALSE(enum_flags_cast<Color&>("GREEN|RED|None").has_value());
     REQUIRE_FALSE(enum_flags_cast<Color>("None").has_value());
+
+    REQUIRE(enum_flags_cast<CStyleFlags>("A|B|C|D").value() == (CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_D));
+    REQUIRE(enum_flags_cast<CStyleFlags>("a|e|f", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == (CStyleFlags_A | CStyleFlags_E | CStyleFlags_F));
+    REQUIRE_FALSE(enum_flags_cast<CStyleFlags>("blue|E|F|C", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).has_value());
+    REQUIRE(enum_flags_cast<CStyleFlags>("H|I|F|F|F").value() == (CStyleFlags_H | CStyleFlags_I | CStyleFlags_F));
+    REQUIRE(enum_flags_cast<CStyleFlags>("E|B|C|A").value() == (CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_E));
+
 
     constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
@@ -504,6 +532,8 @@ TEST_CASE("enum_flags_name") {
   REQUIRE(enum_flags_name(number::four) == "four");
   REQUIRE(nto_name == "one|three");
   REQUIRE(enum_flags_name(static_cast<number>(0)).empty());
+
+  REQUIRE(enum_flags_name(CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_D) == "A|B|C|D");
 }
 
 TEST_CASE("enum_names") {

@@ -105,22 +105,36 @@ namespace We::Need::To::Go::Deeper {
 
     auto adl_magic_enum_define_range(Dimension)
     {
-        enum {
-            min = 1000,
-            max = 1000 + 128
-        } e{};
-        return e;
+      return magic_enum::customize::adl_info().minmax<1000,1000+128>();
     }
 
-    struct FlaggyData {
-        static constexpr bool is_flags = true;
-    };
-
     // not defined!
-    FlaggyData adl_magic_enum_define_range(Flaggy);
+    auto adl_magic_enum_define_range(Flaggy)
+    {
+      return magic_enum::customize::adl_info().flag<true>();
+    }
 }
 using We::Need::To::Go::Deeper::Dimension;
 using We::Need::To::Go::Deeper::Flaggy;
+
+enum CStyleEnum {
+    CStyleEnum_A = -36,
+    CStyleEnum_B,
+    CStyleEnum_C,
+    CStyleEnum_D,
+    CStyleEnum_F,
+    CStyleEnum_G,
+    CStyleEnum_H = 36
+};
+
+template <>
+struct magic_enum::customize::enum_range<CStyleEnum> {
+    static constexpr auto prefix_length = sizeof("CStyleEnum_") - 1;
+    static constexpr int min = -100;
+    static constexpr int max = 100;
+};
+
+
 
 enum class BoolTest : bool { Yay, Nay };
 
@@ -141,6 +155,13 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<Dimension&>("Nether").value() == Dimension::Nether);
     REQUIRE(enum_cast<Dimension>("theend", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Dimension::TheEnd);
     REQUIRE_FALSE(enum_cast<Dimension>("Aether").has_value());
+
+    constexpr auto cstyle = enum_cast<CStyleEnum>("A");
+    REQUIRE(cstyle.value() == CStyleEnum_A);
+    REQUIRE(enum_cast<const CStyleEnum&>("H").value() == CStyleEnum_H);
+    REQUIRE_FALSE(enum_cast<CStyleEnum>("CStyleEnum_H").has_value());
+    REQUIRE(enum_cast<CStyleEnum>("d", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }) == CStyleEnum_D);
+    REQUIRE_FALSE(enum_cast<CStyleEnum>("Q").has_value());
 
     constexpr auto no = enum_cast<Numbers>("one");
     REQUIRE(no.value() == Numbers::one);
