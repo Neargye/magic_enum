@@ -57,7 +57,7 @@ namespace Namespace {
         three = 1 << 3,
         many = 1 << 30,
     };
-    auto adl_magic_enum_define_range(Numbers)
+    auto magic_enum_define_range_adl(Numbers)
     {
       return magic_enum::customize::adl_info().flag<true>();
     }

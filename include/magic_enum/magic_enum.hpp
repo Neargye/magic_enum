@@ -218,8 +218,8 @@ struct enum_range {
 };
 
 template <typename E>
-struct enum_range<E, decltype(void(adl_magic_enum_define_range(E{}))) >
-: decltype(adl_magic_enum_define_range(E{})) {};
+struct enum_range<E, decltype(void(magic_enum_define_range_adl(E{}))) >
+: decltype(magic_enum_define_range_adl(E{})) {};
 
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 

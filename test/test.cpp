@@ -103,13 +103,13 @@ namespace We::Need::To::Go::Deeper {
     enum class Dimension : short { Overworld = 1000, Nether, TheEnd = Overworld + 128 };
     enum class Flaggy : std::uint64_t { Flag0 = 1 << 0, Flag32 = std::uint64_t(1) << 32 };
 
-    auto adl_magic_enum_define_range(Dimension)
+    auto magic_enum_define_range_adl(Dimension)
     {
       return magic_enum::customize::adl_info().minmax<1000,1000+128>();
     }
 
     // not defined!
-    auto adl_magic_enum_define_range(Flaggy)
+    auto magic_enum_define_range_adl(Flaggy)
     {
       return magic_enum::customize::adl_info().flag<true>();
     }

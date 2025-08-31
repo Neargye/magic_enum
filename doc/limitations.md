@@ -23,7 +23,7 @@
 
 * If an enum is declared as a flag enum, its zero value will not be reflected.
 
-* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `adl_magic_enum_define_range(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
+* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `magic_enum_define_range_adl(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
 
   ```cpp
   namespace Deeply::Nested::Namespace {
@@ -32,7 +32,7 @@
   // - magic_enum will find this function by ADL
   // - uses builder pattern
   // - use auto to not have to name the type yourself
-  auto adl_magic_enum_define_range(my_enum_type)
+  auto magic_enum_define_range_adl(my_enum_type)
   {
     return magic_enum::customize::adl_info()
     .minmax<10,10>() // the min max search range
