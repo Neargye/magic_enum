@@ -203,7 +203,7 @@ struct adl_info_holder {
     constexpr static adl_info_holder<IsFlags,Min,Max,prefix_len> prefix() { return {};}
 };
 
-adl_info_holder<> adl_info()
+constexpr adl_info_holder<> adl_info()
 {
      return {};
 }
