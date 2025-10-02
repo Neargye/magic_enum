@@ -1,11 +1,4 @@
 option(
-    'test',
-    type : 'boolean',
-    value : true,
-    description : 'Build and run tests'
-)
-
-option(
     'hash',
     type : 'boolean',
     value : false,

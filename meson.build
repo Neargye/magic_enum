@@ -27,6 +27,4 @@ pkg.generate(
   extra_cflags: magic_enum_args,
 )
 
-if get_option('test')
-    subdir('test')
-endif
+subdir('test')
