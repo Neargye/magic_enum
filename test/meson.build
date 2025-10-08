@@ -10,6 +10,7 @@ foreach test_name, test_src : test_files
         test_name.underscorify(),
         test_src,
 
+        build_by_default: false,
         dependencies: [magic_enum_dep, catch2_dep],
     )
 
