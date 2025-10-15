@@ -318,7 +318,14 @@ class static_str {
 
   constexpr std::uint16_t size() const noexcept { return N; }
 
-  constexpr operator string_view() const noexcept { return {data(), size()}; }
+  // MSVC C++20/23 module compatibility: explicit conversion method
+  [[nodiscard]] constexpr string_view str() const noexcept { 
+      return string_view(data(), size()); 
+  }
+
+  #if !defined(MAGIC_ENUM_USE_STD_MODULE) || !defined(_MSC_VER)
+  constexpr operator string_view() const noexcept { return str(); }
+  #endif
 
  private:
   template <std::uint16_t... I>
@@ -886,7 +893,8 @@ inline constexpr auto max_v = (count_v<E, S> > 0) ? static_cast<U>(values_v<E, S
 
 template <typename E, enum_subtype S, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
-  constexpr auto names = std::array<string_view, sizeof...(I)>{{enum_name_v<E, values_v<E, S>[I]>...}};
+  // MSVC module compatibility: explicit call to str() instead of implicit conversion
+  constexpr auto names = std::array<string_view, sizeof...(I)>{{enum_name_v<E, values_v<E, S>[I]>.str()...}};
   return names;
 }
 
