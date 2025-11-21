@@ -181,7 +181,7 @@ namespace detail {
   constexpr inline std::size_t prefix_length_or_zero = 0;
 
   template<typename E>
-  inline auto prefix_length_or_zero<E, std::void_t<decltype(customize::enum_range<E>::prefix_length)>> = std::size_t{ customize::enum_range<E>::prefix_length };
+  constexpr inline auto prefix_length_or_zero<E, std::void_t<decltype(customize::enum_range<E>::prefix_length)>> = std::size_t{customize::enum_range<E>::prefix_length};
 }
 
 namespace customize {
@@ -335,11 +335,14 @@ class static_str<0> {
 
   constexpr static_str(string_view) noexcept {}
 
-  constexpr const char_type* data() const noexcept { return nullptr; }
+  constexpr const char_type* data() const noexcept { return chars_; }
 
   constexpr std::uint16_t size() const noexcept { return 0; }
 
-  constexpr string_view str() const noexcept { return ""; }
+  constexpr string_view str() const noexcept { return string_view(data(), size()); }
+
+private:
+  static constexpr char_type chars_[1] = {};
 };
 
 template <typename Op = std::equal_to<>>
@@ -1215,7 +1218,7 @@ using enum_constant = detail::enum_constant<V>;
 // Returns type name of enum.
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_t<E, string_view> {
-  constexpr string_view name = detail::type_name_v<std::decay_t<E>>;
+  constexpr string_view name = detail::type_name_v<std::decay_t<E>>.str();
   static_assert(!name.empty(), "magic_enum::enum_type_name enum type does not have a name.");
 
   return name;
@@ -1346,7 +1349,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   if (const auto i = enum_index<D, S>(value)) {
     return detail::names_v<D, S>[*i];
   }
-  return "";
+  return detail::static_str<0>{}.str();
 }
 
 // Returns name from enum value.

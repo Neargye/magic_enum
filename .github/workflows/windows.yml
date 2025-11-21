@@ -12,7 +12,7 @@ jobs:
       matrix:
         config:
         - { os: windows-2022, vs: "Visual Studio 2022" }
-        - { os: windows-2025, vs: "Visual Studio 2022" }
+        - { os: windows-2025, vs: "Visual Studio 2025" }
 
     name: "${{ matrix.config.vs }}"
     steps:
