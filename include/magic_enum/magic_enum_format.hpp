@@ -59,6 +59,8 @@ std::string format_as(E e) {
 
 #if defined(__cpp_lib_format)
 
+#include <format>
+
 template <typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : std::formatter<std::string_view, char> {
   template <class FormatContext>

@@ -329,11 +329,11 @@ class static_str {
 template <>
 class static_str<0> {
  public:
-  constexpr explicit static_str() = default;
+  constexpr static_str() noexcept = default;
 
-  constexpr explicit static_str(str_view) noexcept {}
+  constexpr static_str(str_view) noexcept {}
 
-  constexpr explicit static_str(string_view) noexcept {}
+  constexpr static_str(string_view) noexcept {}
 
   constexpr const char_type* data() const noexcept { return nullptr; }
 
