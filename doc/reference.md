@@ -282,7 +282,7 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 
 ```cpp
 namespace customize {
-template <typename E,typename = void>
+template <typename E, typename = void>
 struct enum_range {
   constexpr static std::size_t prefix_length = 0;
   constexpr static bool is_flags = false;
