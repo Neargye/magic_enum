@@ -11,7 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macos-13 }
         - { os: macos-14 }
         - { os: macos-15 }
 
