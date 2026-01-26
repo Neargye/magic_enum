@@ -177,7 +177,7 @@ namespace customize {
 }
 
 namespace detail {
-  template<typename E,typename = void>
+  template<typename E, typename = void>
   constexpr inline std::size_t prefix_length_or_zero = 0;
 
   template<typename E>
@@ -190,17 +190,17 @@ template <bool IsFlags = false, int Min = MAGIC_ENUM_RANGE_MIN, int Max = MAGIC_
 struct adl_info_holder {
   constexpr static int max = Max;
   constexpr static int min = Min;
-  constexpr static bool is_flags =IsFlags;
+  constexpr static bool is_flags = IsFlags;
   constexpr static std::size_t prefix_length = PrefixLength;
 
-  template<int min,int max>
-  constexpr static adl_info_holder<IsFlags,min,max,PrefixLength> minmax() { return {}; }
+  template<int min, int max>
+  constexpr static adl_info_holder<IsFlags, min, max, PrefixLength> minmax() { return {}; }
 
   template<bool is_flag>
-  constexpr static adl_info_holder<is_flag,Min,Max,PrefixLength> flag() { return {}; }
+  constexpr static adl_info_holder<is_flag, Min, Max, PrefixLength> flag() { return {}; }
 
   template<std::size_t prefix_len>
-  constexpr static adl_info_holder<IsFlags,Min,Max,prefix_len> prefix() { return {}; }
+  constexpr static adl_info_holder<IsFlags, Min, Max, prefix_len> prefix() { return {}; }
 };
 
 constexpr adl_info_holder<> adl_info() { return {}; }
@@ -208,7 +208,7 @@ constexpr adl_info_holder<> adl_info() { return {}; }
 // Enum value must be in range [MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]. By default MAGIC_ENUM_RANGE_MIN = -128, MAGIC_ENUM_RANGE_MAX = 127.
 // If need another range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN and MAGIC_ENUM_RANGE_MAX.
 // If need another range for specific enum type, add specialization enum_range for necessary enum type.
-template <typename E,typename /*= void*/>
+template <typename E, typename>
 struct enum_range {
   static constexpr int min = MAGIC_ENUM_RANGE_MIN;
   static constexpr int max = MAGIC_ENUM_RANGE_MAX;
@@ -261,7 +261,7 @@ namespace detail {
 
 template <typename T>
 struct supported
-#if defined(MAGIC_ENUM_SUPPORTED) && MAGIC_ENUM_SUPPORTED || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
+#if defined(MAGIC_ENUM_SUPPORTED) || defined(MAGIC_ENUM_NO_CHECK_SUPPORT)
   : std::true_type {};
 #else
   : std::false_type {};
@@ -840,22 +840,7 @@ constexpr enum_subtype subtype(std::true_type) noexcept {
   } else if constexpr (has_is_flags<E>::value) {
     return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
   } else {
-#if defined(MAGIC_ENUM_AUTO_IS_FLAGS)
-    constexpr auto flags_values = values<E, enum_subtype::flags>();
-    constexpr auto default_values = values<E, enum_subtype::common>();
-    if (flags_values.size() == 0 || default_values.size() > flags_values.size()) {
-      return enum_subtype::common;
-    }
-    for (std::size_t i = 0; i < default_values.size(); ++i) {
-      const auto v = static_cast<U>(default_values[i]);
-      if (v != 0 && (v & (v - 1)) != 0) {
-        return enum_subtype::common;
-      }
-    }
-    return enum_subtype::flags;
-#else
     return enum_subtype::common;
-#endif
   }
 }
 
@@ -1503,8 +1488,8 @@ template <detail::enum_subtype S, typename E>
 template <bool AsFlags = true>
 inline constexpr auto as_flags = AsFlags ? detail::enum_subtype::flags : detail::enum_subtype::common;
 
-template <bool AsFlags = true>
-inline constexpr auto as_common = AsFlags ? detail::enum_subtype::common : detail::enum_subtype::flags;
+template <bool AsCommon = true>
+inline constexpr auto as_common = AsCommon ? detail::enum_subtype::common : detail::enum_subtype::flags;
 
 namespace bitwise_operators {
 
