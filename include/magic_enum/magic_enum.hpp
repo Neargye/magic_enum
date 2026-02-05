@@ -1252,7 +1252,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
 // Returns integer value from enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> detail::enable_if_t<E, underlying_type_t<E>> {
+[[nodiscard]] constexpr auto enum_integer(E value) noexcept -> underlying_type_t<E> {
   return static_cast<underlying_type_t<E>>(value);
 }
 
