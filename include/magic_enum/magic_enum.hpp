@@ -1258,7 +1258,8 @@ template <typename E>
 
 // Returns underlying value from enum value.
 template <typename E>
-[[nodiscard]] constexpr auto enum_underlying(E value) noexcept -> -> underlying_type_t<E> {
+[[nodiscard]] constexpr auto enum_underlying(E value) noexcept -> underlying_type_t<E>
+{
   return static_cast<underlying_type_t<E>>(value);
 }
 
