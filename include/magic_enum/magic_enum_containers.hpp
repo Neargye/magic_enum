@@ -324,8 +324,7 @@ struct FilteredIterator {
   [[nodiscard]] friend constexpr bool operator!=(const FilteredIterator& lhs, const FilteredIterator& rhs) { return lhs.current != rhs.current; }
 };
 
-template<class T> constexpr int countr_zero(T x) noexcept
-{
+template<class T> constexpr int countr_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
 #elif __has_include(<intrin.h>)
@@ -346,8 +345,7 @@ template<class T> constexpr int countr_zero(T x) noexcept
 #endif
 }
 
-template<class T> constexpr int countl_zero(T x) noexcept
-{
+template<class T> constexpr int countl_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
 #elif __has_include(<intrin.h>)
@@ -368,8 +366,7 @@ template<class T> constexpr int countl_zero(T x) noexcept
 #endif
 }
 
-template<class T> constexpr int bit_width(T x) noexcept
-{
+template<class T> constexpr int bit_width(T x) noexcept {
 #if __cpp_lib_int_pow2 >= 202002L
   return std::bit_width(x);
 #else
@@ -663,8 +660,7 @@ class bitset {
 
     constexpr iterator_impl& operator++() noexcept {
       if (num_index >= base_type_count || (num_index == base_type_count - 1 && bit_index > last_value_max)) {
-        if ((bit_index <<= 1) == 0)
-        {
+        if ((bit_index <<= 1) == 0) {
           ++num_index;
           bit_index = base_type{1};
         }
