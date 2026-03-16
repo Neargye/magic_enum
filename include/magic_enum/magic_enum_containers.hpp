@@ -621,8 +621,8 @@ class bitset {
     friend class bitset;
 
     parent_t parent = nullptr;
-    std::size_t num_index;
-    base_type bit_index;
+    std::size_t num_index = 0;
+    base_type bit_index = 0;
    public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = const E;
