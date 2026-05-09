@@ -30,6 +30,7 @@
 #  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
 #endif
 
+#include <new>
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
