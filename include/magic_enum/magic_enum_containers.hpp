@@ -33,15 +33,19 @@
 #ifndef NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 #define NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 
+#include "magic_enum/detail/config.hpp"
+
+#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+
 #include "magic_enum.hpp"
 
 #if !defined(MAGIC_ENUM_NO_EXCEPTION) && (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND))
-#ifndef MAGIC_ENUM_USE_STD_MODULE
+#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
 #  include <stdexcept>
 #endif
 #  define MAGIC_ENUM_THROW(...) throw (__VA_ARGS__)
 #else
-#ifndef MAGIC_ENUM_USE_STD_MODULE
+#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
 #  include <cstdlib>
 #endif
 #  define MAGIC_ENUM_THROW(...) std::abort()
@@ -328,6 +332,8 @@ using default_indexing = detail::indexing<E>;
 template <typename Cmp = std::less<>>
 using comparator_indexing = detail::indexing<void, Cmp>;
 
+MAGIC_ENUM_BEGIN_MODULE_EXPORT
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                          ARRAY                                                            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,6 +453,8 @@ struct array {
   container_type a;
 };
 
+MAGIC_ENUM_END_MODULE_EXPORT
+
 namespace detail {
 
 template <typename E, typename T, std::size_t N, std::size_t... I>
@@ -460,6 +468,8 @@ constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&&a)[N], std::index_sequ
 }
 
 } // namespace detail
+
+MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 template <typename E, typename T, std::size_t N>
 constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T (&a)[N]) {
@@ -1169,6 +1179,10 @@ constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(En
   return std::move(a[Enum]);
 }
 
+MAGIC_ENUM_END_MODULE_EXPORT
+
 } // namespace magic_enum::containers
+
+#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_CONTAINERS_HPP

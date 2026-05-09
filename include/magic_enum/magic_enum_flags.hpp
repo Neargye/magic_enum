@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FLAGS_HPP
 #define NEARGYE_MAGIC_ENUM_FLAGS_HPP
 
+#include "magic_enum/detail/config.hpp"
+
+#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+
 #include "magic_enum.hpp"
 
 #if defined(__clang__)
@@ -60,6 +64,8 @@ constexpr U values_ors() noexcept {
 }
 
 } // namespace magic_enum::detail
+
+MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 // Returns name from enum-flags value.
 // If enum-flags value does not have name or value out of range, returns empty string.
@@ -209,6 +215,8 @@ constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t
   return (static_cast<U>(lhs) & static_cast<U>(rhs)) != 0;
 }
 
+MAGIC_ENUM_END_MODULE_EXPORT
+
 } // namespace magic_enum
 
 #if defined(__clang__)
@@ -218,5 +226,7 @@ constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t
 #elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
+
+#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_FLAGS_HPP

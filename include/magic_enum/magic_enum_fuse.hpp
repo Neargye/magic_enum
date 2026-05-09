@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FUSE_HPP
 #define NEARGYE_MAGIC_ENUM_FUSE_HPP
 
+#include "magic_enum/detail/config.hpp"
+
+#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+
 #include "magic_enum.hpp"
 
 namespace magic_enum {
@@ -70,6 +74,8 @@ constexpr auto typesafe_fuse_enum(Es... values) noexcept {
 
 } // namespace magic_enum::detail
 
+MAGIC_ENUM_BEGIN_MODULE_EXPORT
+
 // Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
@@ -84,6 +90,10 @@ template <typename... Es>
   return MAGIC_ENUM_ASSERT(fuse), fuse;
 }
 
+MAGIC_ENUM_END_MODULE_EXPORT
+
 } // namespace magic_enum
+
+#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_FUSE_HPP

@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FORMAT_HPP
 #define NEARGYE_MAGIC_ENUM_FORMAT_HPP
 
+#include "magic_enum/detail/config.hpp"
+
+#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
@@ -55,11 +59,13 @@ std::string format_as(E e) {
   return std::to_string(magic_enum::enum_integer<D>(e));
 }
 
-} // namespace magic_enum::format
+} // namespace magic_enum::detail
+
+MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 #if defined(__cpp_lib_format)
 
-#ifndef MAGIC_ENUM_USE_STD_MODULE
+#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
 #include <format>
 #endif
 
@@ -84,5 +90,9 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 };
 
 #endif
+
+MAGIC_ENUM_END_MODULE_EXPORT
+
+#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP
