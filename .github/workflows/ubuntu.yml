@@ -73,7 +73,8 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }}
+          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
+          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
         cmake --build build -j 4 --config Release
         ctest --test-dir build --output-on-failure -C Release
 
@@ -84,7 +85,8 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }}
+          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
+          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
         cmake --build build -j 4 --config Debug
         ctest --test-dir build --output-on-failure -C Debug
 
