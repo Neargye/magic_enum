@@ -32,7 +32,7 @@
 #ifndef NEARGYE_MAGIC_ENUM_UTILITY_HPP
 #define NEARGYE_MAGIC_ENUM_UTILITY_HPP
 
-#include "magic_enum/detail/config.hpp"
+#include "detail/config.hpp"
 
 #if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
 
