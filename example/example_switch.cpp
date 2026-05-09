@@ -21,7 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <cassert>
 #include <iostream>
+#include <optional>
 
 #define MAGIC_ENUM_ENABLE_HASH
 #include <magic_enum/magic_enum_switch.hpp>

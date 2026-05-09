@@ -1,6 +1,8 @@
 include(CheckCXXCompilerFlag)
 
-set(CMAKE_CXX_STANDARD 17)
+if(NOT MAGIC_ENUM_USE_MODULES)
+    set(CMAKE_CXX_STANDARD 17)
+endif()
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     set(OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
