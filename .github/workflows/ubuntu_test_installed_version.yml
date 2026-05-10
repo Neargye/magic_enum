@@ -77,6 +77,9 @@ jobs:
 
       - name: build with installed module version via cmake
         run: cmake --build build2 -j$(nproc) --target test_flags-cpp20 --verbose
+      
+      - name: test
+        run: ctest --test-dir build2 -VV -R test_flags-cpp20
 
       - name: clear 
         run: rm -rf build2
