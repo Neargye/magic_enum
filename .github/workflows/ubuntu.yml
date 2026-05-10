@@ -29,7 +29,7 @@ jobs:
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE" }
 
-    name: "${{ format('{0} NONASCII={1}', matrix.compiler.cc, matrix.compiler.nonascii) }}"
+    name: "${{ format('{0} NONASCII={1} MODULES={2}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules) }}"
     runs-on: ${{ matrix.compiler.os }}
     steps:
     - uses: actions/checkout@v6
