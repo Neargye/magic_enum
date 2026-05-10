@@ -35,6 +35,7 @@ a local magic_enum via pkgconfig" NO
 )
 
 if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION} OR ${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
+  enable_testing()
   add_subdirectory(test)
   return()
 endif()
