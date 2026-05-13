@@ -84,6 +84,7 @@ namespace containers {
     using magic_enum::is_scoped_enum_v;
     using magic_enum::underlying_type;
     using magic_enum::underlying_type_t;
+    using magic_enum::case_insensitive;
 }
 
 #if defined(__cpp_lib_format)
