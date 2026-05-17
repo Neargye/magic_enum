@@ -12,7 +12,7 @@ jobs:
       matrix:
         config:
         - { os: windows-2022, vs: "Visual Studio 2022" } # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md#visual-studio-enterprise-2022
-        - { os: windows-2025, vs: "Visual Studio 2025" } # https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md#visual-studio-enterprise-2025
+        - { os: windows-2025, vs: "Visual Studio 2026" } # https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md#visual-studio-enterprise-2026
 
     name: "${{ matrix.config.vs }}"
     steps:
