@@ -76,6 +76,8 @@ namespace containers {
     using magic_enum::enum_index;
     using magic_enum::enum_flags_name;
     using magic_enum::enum_flags_contains;
+    using magic_enum::enum_flags_test;
+    using magic_enum::enum_flags_test_any;
     using magic_enum::enum_flags_cast;
     using magic_enum::enum_type_name;
     using magic_enum::is_unscoped_enum;
