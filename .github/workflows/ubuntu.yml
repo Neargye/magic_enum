@@ -10,26 +10,28 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "TRUE", modules: "FALSE" }
-        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE" }
-        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE" }
-        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "TRUE",  modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
+        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
+        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
+        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
 
-    name: "${{ format('{0} NONASCII={1} MODULES={2}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules) }}"
+    name: "${{ format('{0} NONASCII={1} MODULES={2} IMPORT_STD={3}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules, matrix.compiler.import_std) }}"
     runs-on: ${{ matrix.compiler.os }}
     steps:
     - uses: actions/checkout@v6
@@ -38,24 +40,22 @@ jobs:
       run: |
         if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          # Add repositories based on Ubuntu version
-          if [[ "${{ matrix.compiler.os }}" == "ubuntu-22.04" ]]; then
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-13 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main"
-          elif [[ "${{ matrix.compiler.os }}" == "ubuntu-24.04" ]]; then
-            sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main"
-            sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble main"
-          fi
+
+          clang_version="${{ matrix.compiler.cc }}"
+          clang_version="${clang_version#clang-}"
+
+          sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${clang_version} main"
           sudo apt update
           sudo apt install ${{ matrix.compiler.cc }} -y
+
+          if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
+            # Note: std module is currently supported only with libc++
+            sudo apt install -y \
+              "libclang-rt-${clang_version}-dev" \
+              "libc++-${clang_version}-dev" \
+              "libc++abi-${clang_version}-dev" \
+              "clang-tools-${clang_version}"
+          fi
         fi
 
     - name: Configure gcc
@@ -87,6 +87,21 @@ jobs:
           -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
           -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
           ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
+        cmake --build build -j 4 --config Debug
+        ctest --test-dir build --output-on-failure -C Debug
+
+    - name: Build with `import std;`
+      if: ${{matrix.compiler.import_std == 'TRUE'}}
+      run: |
+        rm -rf build
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
+          -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
+          -GNinja \
+          -DCMAKE_CXX_MODULE_STD:BOOL=TRUE \
+          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD:STRING=0e5b6991-d74f-4b3d-a41c-cf096e0b2508 \
+          -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++"
         cmake --build build -j 4 --config Debug
         ctest --test-dir build --output-on-failure -C Debug
 
