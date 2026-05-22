@@ -80,9 +80,9 @@ if(MAGIC_ENUM_USE_MODULES)
     PRIVATE ${ARGN}
   )
   if((CMAKE_CXX_STANDARD IN_LIST CMAKE_CXX_COMPILER_IMPORT_STD) AND CMAKE_CXX_MODULE_STD)
-    message("magic_enum: using import std")
+    message("${name}: using import std")
     target_compile_features(${name} PRIVATE cxx_std_23)
-    target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_IMPORT_STD)
+    target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_STD_MODULE)
   endif()
 
   set(__scope PUBLIC)

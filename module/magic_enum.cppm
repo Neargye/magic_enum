@@ -1,15 +1,17 @@
 module;
 
+#define MAGIC_ENUM_INTERFACE_UNIT
+
 #include <version>
 #if __has_include(<fmt/format.h>)
 #include <fmt/format.h>
 #endif
+
 #ifndef MAGIC_ENUM_USE_STD_MODULE
+
 #if defined(__cpp_lib_format)
 #include <format>
 #endif
-
-#define MAGIC_ENUM_INTERFACE_UNIT
 
 #include <magic_enum/magic_enum.hpp>
 #ifndef MAGIC_ENUM_USING_ALIAS_STRING
@@ -22,11 +24,21 @@ module;
 #include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
-#endif
+#else // MAGIC_ENUM_USE_STD_MODULE
+/*
+Note: MAGIC_ENUM_CONFIG_FILE may include STL headers,
+      it is required to attach them to global module fragement
+      otherwise there can me conflicting declarations with std module.
+*/
+#ifdef MAGIC_ENUM_CONFIG_FILE
+#  include MAGIC_ENUM_CONFIG_FILE
+#endif // MAGIC_ENUM_CONFIG_FILE
+
+#endif // MAGIC_ENUM_USE_STD_MODULE
 
 export module magic_enum;
 
-#if defined(MAGIC_ENUM_USE_STD_MODULE)
+#ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
 
 extern "C++" {
@@ -38,7 +50,16 @@ extern "C++" {
 #pragma warning(disable : 5244)
 #endif
 
-#include <magic_enum/magic_enum_all.hpp>
+#include <magic_enum/magic_enum.hpp>
+#ifndef MAGIC_ENUM_USING_ALIAS_STRING
+#include <magic_enum/magic_enum_containers.hpp>
+#endif
+#include <magic_enum/magic_enum_flags.hpp>
+#include <magic_enum/magic_enum_format.hpp>
+#include <magic_enum/magic_enum_fuse.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum_switch.hpp>
+#include <magic_enum/magic_enum_utility.hpp>
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
