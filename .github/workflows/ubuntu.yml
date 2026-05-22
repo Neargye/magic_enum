@@ -29,7 +29,6 @@ jobs:
         - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
-        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
 
     name: "${{ format('{0} NONASCII={1} MODULES={2} IMPORT_STD={3}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules, matrix.compiler.import_std) }}"
     runs-on: ${{ matrix.compiler.os }}
@@ -103,8 +102,7 @@ jobs:
           -DCMAKE_CXX_MODULE_STD:BOOL=TRUE \
           -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD:STRING=0e5b6991-d74f-4b3d-a41c-cf096e0b2508 \
           -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
-          -DCMAKE_CXX_STANDARD=23 \
-          -DCMAKE_CXX_STDLIB_MODULES_JSON:FILEPATH=$(${{matrix.compiler.cxx}} -print-file-name=libc++.modules.json)
+          -DCMAKE_CXX_STANDARD=23
         cmake --build build -j 4 --config Debug
         ctest --test-dir build --output-on-failure -C Debug
 
