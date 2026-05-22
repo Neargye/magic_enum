@@ -93,8 +93,8 @@ magic_enum_make_library(magic_enum_module_test_aliases-cpp${CMAKE_CXX_STANDARD}
   "MAGIC_ENUM_CONFIG_FILE=\"../../test/aliases.hpp\""
 )
 magic_enum_make_library(magic_enum_module_test_wchar_t-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_USING_ALIAS_STRING_VIEW=using string_view = std::wstring_view"
-  "MAGIC_ENUM_USING_ALIAS_STRING=using string = std::wstring"
+  "MAGIC_ENUM_USING_ALIAS_STRING_VIEW=using string_view = std::wstring_view\\$<SEMICOLON>"
+  "MAGIC_ENUM_USING_ALIAS_STRING=using string = std::wstring\\$<SEMICOLON>"
 )
 
 endif()

@@ -146,14 +146,14 @@ using std::optional;
 
 // If need another string_view type, define the macro MAGIC_ENUM_USING_ALIAS_STRING_VIEW.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
-MAGIC_ENUM_USING_ALIAS_STRING_VIEW;
+MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 #else
 using std::string_view;
 #endif
 
 // If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
-MAGIC_ENUM_USING_ALIAS_STRING;
+MAGIC_ENUM_USING_ALIAS_STRING
 #else
 using std::string;
 #endif
