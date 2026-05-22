@@ -80,6 +80,14 @@ magic_enum_make_library(magic_enum_module_test-cpp${CMAKE_CXX_STANDARD}
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
   MAGIC_ENUM_RANGE_MIN=-120
   MAGIC_ENUM_RANGE_MAX=120
+  "MAGIC_ENUM_EXPORT_DETAIL=\
+  using detail::reflected_min\\$<SEMICOLON>\
+  using detail::reflected_max\\$<SEMICOLON>\
+  using detail::min_v\\$<SEMICOLON>\
+  using detail::max_v\\$<SEMICOLON>\
+  using detail::is_reflected_v\\$<SEMICOLON>\
+  using detail::cmp_less\\$<SEMICOLON>\
+  "
 )
 magic_enum_make_library(magic_enum_module_test_aliases-cpp${CMAKE_CXX_STANDARD}
   "MAGIC_ENUM_CONFIG_FILE=\"../../test/aliases.hpp\""
