@@ -116,8 +116,6 @@ using magic_enum::istream_operators::operator>>;
 
 } // namespace magic_enum::iostream_operators
 
-MAGIC_ENUM_END_MODULE_EXPORT
-
 } // namespace magic_enum
 
 #endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
