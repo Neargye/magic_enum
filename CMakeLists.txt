@@ -117,40 +117,44 @@ if(MAGIC_ENUM_OPT_INSTALL)
   include(CMakePackageConfigHelpers)
 
   if(MAGIC_ENUM_USE_MODULES)
-    install(
-      TARGETS "${PROJECT_NAME}"
-      EXPORT ${PROJECT_NAME}
-      INCLUDES
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-      FILE_SET HEADERS
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}"
-      FILE_SET CXX_MODULES
-        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}"
-      CXX_MODULES_BMI
-        DESTINATION ""
-    )
-  else()
-    install(
-      TARGETS "${PROJECT_NAME}"
-      EXPORT ${PROJECT_NAME}
-      INCLUDES
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-      # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for
-      # includes!
-      # Headers are installed separately! Includes only marks the headers for
-      # export
-    )
 
-    if(NOT DEFINED PROJECT_INCLUDE_HEADER_PATTERN)
-      set(PROJECT_INCLUDE_HEADER_PATTERN "*")
-    endif()
-
-    install(
-      DIRECTORY ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}
+  install(
+    TARGETS "${PROJECT_NAME}"
+    EXPORT ${PROJECT_NAME}
+    INCLUDES
       DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-      FILES_MATCHING
-      PATTERN "${PROJECT_INCLUDE_HEADER_PATTERN}"
-    )
+    FILE_SET HEADERS
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}"
+    FILE_SET CXX_MODULES
+      DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}"
+    CXX_MODULES_BMI
+      DESTINATION ""
+  )
+
+  else()
+
+  install(
+    TARGETS "${PROJECT_NAME}"
+    EXPORT ${PROJECT_NAME}
+    INCLUDES
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for
+    # includes!
+    # Headers are installed separately! Includes only marks the headers for
+    # export
+  )
+
+  if(NOT DEFINED PROJECT_INCLUDE_HEADER_PATTERN)
+    set(PROJECT_INCLUDE_HEADER_PATTERN "*")
+  endif()
+
+  install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    FILES_MATCHING
+    PATTERN "${PROJECT_INCLUDE_HEADER_PATTERN}"
+  )
+
   endif()
 
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
