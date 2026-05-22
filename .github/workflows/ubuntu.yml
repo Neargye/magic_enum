@@ -43,8 +43,9 @@ jobs:
 
           clang_version="${{ matrix.compiler.cc }}"
           clang_version="${clang_version#clang-}"
+          ubuntu_codename="$(lsb_release -cs)"
 
-          sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${clang_version} main"
+          sudo apt-add-repository "deb http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main"
           sudo apt update
           sudo apt install ${{ matrix.compiler.cc }} -y
 
