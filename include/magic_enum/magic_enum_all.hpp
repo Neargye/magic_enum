@@ -32,9 +32,9 @@
 #ifndef NEARGYE_MAGIC_ENUM_ALL_HPP
 #define NEARGYE_MAGIC_ENUM_ALL_HPP
 
-#include "detail/config.hpp"
-
-#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
 
 #include "magic_enum.hpp"
 #include "magic_enum_containers.hpp"
@@ -45,6 +45,6 @@
 #include "magic_enum_switch.hpp"
 #include "magic_enum_utility.hpp"
 
-#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_ALL_HPP

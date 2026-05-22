@@ -32,20 +32,18 @@
 #ifndef NEARGYE_MAGIC_ENUM_IOSTREAM_HPP
 #define NEARGYE_MAGIC_ENUM_IOSTREAM_HPP
 
-#include "detail/config.hpp"
-
-#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
 
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
-#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
+#if !defined(MAGIC_ENUM_USE_STD_MODULE)
 #include <iosfwd>
 #endif
 
 namespace magic_enum {
-
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 namespace ostream_operators {
 
@@ -122,6 +120,6 @@ MAGIC_ENUM_END_MODULE_EXPORT
 
 } // namespace magic_enum
 
-#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_IOSTREAM_HPP

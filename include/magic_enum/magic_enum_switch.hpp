@@ -32,9 +32,9 @@
 #ifndef NEARGYE_MAGIC_ENUM_SWITCH_HPP
 #define NEARGYE_MAGIC_ENUM_SWITCH_HPP
 
-#include "detail/config.hpp"
-
-#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
 
 #include "magic_enum.hpp"
 
@@ -137,8 +137,6 @@ constexpr decltype(auto) constexpr_switch(F&& f, E value, Def&& def) {
 
 } // namespace magic_enum::detail
 
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
-
 template <typename Result = detail::default_result_type, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
@@ -187,11 +185,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   return enum_switch<Result, E, S>(std::forward<F>(f), value, std::forward<Result>(result));
 }
 
-MAGIC_ENUM_END_MODULE_EXPORT
-
 } // namespace magic_enum
-
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 template <>
 struct std::common_type<magic_enum::detail::nonesuch, magic_enum::detail::nonesuch> : magic_enum::detail::identity<magic_enum::detail::nonesuch> {};
@@ -202,8 +196,6 @@ struct std::common_type<T, magic_enum::detail::nonesuch> : magic_enum::detail::i
 template <typename T>
 struct std::common_type<magic_enum::detail::nonesuch, T> : magic_enum::detail::identity<T> {};
 
-MAGIC_ENUM_END_MODULE_EXPORT
-
-#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_SWITCH_HPP

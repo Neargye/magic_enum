@@ -36,11 +36,11 @@
 #define MAGIC_ENUM_VERSION_MINOR 9
 #define MAGIC_ENUM_VERSION_PATCH 8
 
-#include "detail/config.hpp"
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
 
-#if !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
-
-#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
+#if !defined(MAGIC_ENUM_USE_STD_MODULE)
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +54,7 @@
 #  include MAGIC_ENUM_CONFIG_FILE
 #endif
 
-#if !defined(MAGIC_ENUM_INTERFACE_UNIT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
+#if !defined(MAGIC_ENUM_USE_STD_MODULE)
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #  include <optional>
 #endif
@@ -176,10 +176,8 @@ static_assert([] {
 } (), "magic_enum::customize wchar_t is not compatible with ASCII.");
 
 namespace customize {
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
   template <typename E, typename = void>
   struct enum_range;
-MAGIC_ENUM_END_MODULE_EXPORT
 }
 
 namespace detail {
@@ -191,8 +189,6 @@ namespace detail {
 }
 
 namespace customize {
-
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 template <bool IsFlags = false, int Min = MAGIC_ENUM_RANGE_MIN, int Max = MAGIC_ENUM_RANGE_MAX, std::size_t PrefixLength = 0>
 struct adl_info_holder {
@@ -225,8 +221,6 @@ struct enum_range {
 template <typename E>
 struct enum_range<E, decltype(void(magic_enum_define_range_adl(E{})))> : decltype(magic_enum_define_range_adl(E{})) {};
 
-MAGIC_ENUM_END_MODULE_EXPORT
-
 static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
 
 namespace detail {
@@ -238,8 +232,6 @@ enum class customize_tag {
 };
 
 } // namespace magic_enum::customize::detail
-
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 class customize_t : public std::pair<detail::customize_tag, string_view> {
  public:
@@ -266,8 +258,6 @@ template <typename E>
 constexpr customize_t enum_type_name() noexcept {
   return default_tag;
 }
-
-MAGIC_ENUM_END_MODULE_EXPORT
 
 } // namespace magic_enum::customize
 
@@ -430,8 +420,6 @@ constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] Bina
   }
 }
 
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
-
 template <typename L, typename R>
 constexpr bool cmp_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::cmp_less requires integral type.");
@@ -451,8 +439,6 @@ constexpr bool cmp_less(L lhs, R rhs) noexcept {
     return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
   }
 }
-
-MAGIC_ENUM_END_MODULE_EXPORT
 
 template <typename I>
 constexpr I log2(I value) noexcept {
@@ -743,8 +729,6 @@ constexpr E value(std::size_t i) noexcept {
   return static_cast<E>(ualue<E, O, S>(i));
 }
 
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
-
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 constexpr int reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
@@ -776,8 +760,6 @@ constexpr int reflected_max() noexcept {
     }
   }
 }
-
-MAGIC_ENUM_END_MODULE_EXPORT
 
 #define MAGIC_ENUM_FOR_EACH_256(T)                                                                                                                                                                 \
   T(  0)T(  1)T(  2)T(  3)T(  4)T(  5)T(  6)T(  7)T(  8)T(  9)T( 10)T( 11)T( 12)T( 13)T( 14)T( 15)T( 16)T( 17)T( 18)T( 19)T( 20)T( 21)T( 22)T( 23)T( 24)T( 25)T( 26)T( 27)T( 28)T( 29)T( 30)T( 31) \
@@ -884,15 +866,11 @@ using values_t = decltype((values_v<D, S>));
 template <typename E, enum_subtype S>
 inline constexpr auto count_v = values_v<E, S>.size();
 
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
-
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 inline constexpr auto min_v = (count_v<E, S> > 0) ? static_cast<U>(values_v<E, S>.front()) : U{0};
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 inline constexpr auto max_v = (count_v<E, S> > 0) ? static_cast<U>(values_v<E, S>.back()) : U{0};
-
-MAGIC_ENUM_END_MODULE_EXPORT
 
 template <typename E, enum_subtype S, std::size_t... I>
 constexpr auto names(std::index_sequence<I...>) noexcept {
@@ -944,12 +922,8 @@ struct is_reflected
   : std::bool_constant<std::is_enum_v<E> && (count_v<E, S> != 0)> {};
 #endif
 
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
-
 template <typename E, enum_subtype S>
 inline constexpr bool is_reflected_v = is_reflected<std::decay_t<E>, S>{};
-
-MAGIC_ENUM_END_MODULE_EXPORT
 
 template <bool, typename R>
 struct enable_if_enum {};
@@ -1196,8 +1170,6 @@ constexpr decltype(auto) constexpr_switch(
 #endif
 
 } // namespace magic_enum::detail
-
-MAGIC_ENUM_BEGIN_MODULE_EXPORT
 
 // Checks is magic_enum supported compiler.
 inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
@@ -1562,8 +1534,6 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 
 } // namespace magic_enum::bitwise_operators
 
-MAGIC_ENUM_END_MODULE_EXPORT
-
 } // namespace magic_enum
 
 #if defined(__clang__)
@@ -1580,6 +1550,6 @@ MAGIC_ENUM_END_MODULE_EXPORT
 #undef MAGIC_ENUM_ARRAY_CONSTEXPR
 #undef MAGIC_ENUM_FOR_EACH_256
 
-#endif // !defined(MAGIC_ENUM_USE_MODULES) || defined(MAGIC_ENUM_INTERFACE_UNIT)
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_HPP

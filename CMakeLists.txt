@@ -73,7 +73,6 @@ if(MAGIC_ENUM_USE_MODULES)
         "${INCLUDES}/magic_enum_iostream.hpp"
         "${INCLUDES}/magic_enum_switch.hpp"
         "${INCLUDES}/magic_enum_utility.hpp"
-        "${INCLUDES}/detail/config.hpp"
   )
   target_compile_features(${name} PUBLIC cxx_std_20)
   target_compile_definitions(${name}
