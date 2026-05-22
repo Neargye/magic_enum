@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.14...4.20)
 
+if(MAGIC_ENUM_USE_MODULES)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 20)
+  endif()
+endif()
+
 project(
   magic_enum
   VERSION "0.9.8"
@@ -43,13 +50,6 @@ endif()
 set(INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/include/magic_enum")
 set(MODULE "${CMAKE_CURRENT_SOURCE_DIR}/module")
 set(EXPORT_NAMESPACE "${PROJECT_NAME}::")
-
-if(MAGIC_ENUM_USE_MODULES)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 20)
-  endif()
-endif()
 
 function(magic_enum_make_library name)
 
