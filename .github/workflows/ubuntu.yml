@@ -19,7 +19,7 @@ jobs:
         - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
