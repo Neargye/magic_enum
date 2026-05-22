@@ -39,7 +39,7 @@ import magic_enum;
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
-#if !defined(MAGIC_ENUM_USE_STD_MODULE)
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <iosfwd>
 #endif
 

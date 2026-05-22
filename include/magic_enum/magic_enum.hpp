@@ -40,7 +40,7 @@
 import magic_enum;
 #else
 
-#if !defined(MAGIC_ENUM_USE_STD_MODULE)
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +54,7 @@ import magic_enum;
 #  include MAGIC_ENUM_CONFIG_FILE
 #endif
 
-#if !defined(MAGIC_ENUM_USE_STD_MODULE)
+#ifndef MAGIC_ENUM_USE_STD_MODULE
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #  include <optional>
 #endif
