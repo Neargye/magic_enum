@@ -28,7 +28,7 @@ module;
 /*
 Note: MAGIC_ENUM_CONFIG_FILE may include STL headers,
       it is required to attach them to global module fragement
-      otherwise there can me conflicting declarations with std module.
+      otherwise there can be conflicting declarations with std module.
 */
 #ifdef MAGIC_ENUM_CONFIG_FILE
 #  include MAGIC_ENUM_CONFIG_FILE
