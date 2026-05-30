@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FUSE_HPP
 #define NEARGYE_MAGIC_ENUM_FUSE_HPP
 
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
+
 #include "magic_enum.hpp"
 
 namespace magic_enum {
@@ -85,5 +89,7 @@ template <typename... Es>
 }
 
 } // namespace magic_enum
+
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_FUSE_HPP

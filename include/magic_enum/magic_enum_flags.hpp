@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_FLAGS_HPP
 #define NEARGYE_MAGIC_ENUM_FLAGS_HPP
 
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
+
 #include "magic_enum.hpp"
 
 #if defined(__clang__)
@@ -218,5 +222,7 @@ constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t
 #elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
+
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_FLAGS_HPP

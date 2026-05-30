@@ -33,6 +33,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 #define NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
+
 #include "magic_enum.hpp"
 
 #if !defined(MAGIC_ENUM_NO_EXCEPTION) && (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND))
@@ -1170,5 +1174,7 @@ constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(En
 }
 
 } // namespace magic_enum::containers
+
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_CONTAINERS_HPP

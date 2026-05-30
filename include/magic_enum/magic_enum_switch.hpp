@@ -32,6 +32,10 @@
 #ifndef NEARGYE_MAGIC_ENUM_SWITCH_HPP
 #define NEARGYE_MAGIC_ENUM_SWITCH_HPP
 
+#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
+import magic_enum;
+#else
+
 #include "magic_enum.hpp"
 
 namespace magic_enum {
@@ -191,5 +195,7 @@ struct std::common_type<T, magic_enum::detail::nonesuch> : magic_enum::detail::i
 
 template <typename T>
 struct std::common_type<magic_enum::detail::nonesuch, T> : magic_enum::detail::identity<T> {};
+
+#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_SWITCH_HPP

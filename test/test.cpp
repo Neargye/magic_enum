@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <new>
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 

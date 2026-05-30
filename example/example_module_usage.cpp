@@ -20,48 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <new>
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include <iostream>
 
-#include "aliases.hpp"
+import magic_enum;
 
-#include <magic_enum/magic_enum.hpp>
-#include <magic_enum/magic_enum_flags.hpp>
-using namespace magic_enum;
-using namespace magic_enum::bitwise_operators;
+enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
-enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
+int main() {
+    for (const auto c : magic_enum::enum_values<Color>()) {
+        std::cout << magic_enum::enum_name(c) << '\n';
+    }
 
-TEST_CASE("optional") {
-  constexpr auto cr = enum_cast<Color>("RED");
-  REQUIRE(cr.has_value());
-  REQUIRE(cr.value() == Color::RED);
+    constexpr auto result = magic_enum::enum_integer(Color::RED) + magic_enum::enum_integer(Color::GREEN);
+    if (result == magic_enum::enum_integer(Color::BLUE)) {
+        std::cout << "RED + GREEN == BLUE\n";
+    }
 
-  constexpr auto cn = enum_cast<Color>("NONE");
-  REQUIRE_FALSE(cn.has_value());
-}
+    using magic_enum::iostream_operators::operator<<;
+    constexpr auto c = Color::GREEN;
+    std::cout << "Color: " << Color::RED << " " << c << '\n';
 
-TEST_CASE("string") {
-  auto cr = enum_flags_name(Color::RED);
-  REQUIRE_FALSE(cr.empty());
-  REQUIRE(cr.compare("RED") == 0);
-
-  auto crg = enum_flags_name(Color::RED | Color::GREEN);
-  REQUIRE_FALSE(crg.empty());
-  REQUIRE(crg.compare("RED|GREEN") == 0);
-
-  auto cn = enum_flags_name(Color{0});
-  REQUIRE(cn.empty());
-  REQUIRE(cn.size() == 0);
-}
-
-TEST_CASE("string_view") {
-  auto cr = enum_name(Color::RED);
-  REQUIRE_FALSE(cr.empty());
-  REQUIRE(cr.compare("RED") == 0);
-
-  auto cn = enum_name(Color{0});
-  REQUIRE(cn.empty());
-  REQUIRE(cn.size() == 0);
+    return 0;
 }

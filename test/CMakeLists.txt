@@ -74,12 +74,39 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
+if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+
+magic_enum_make_library(magic_enum_module_test-cpp${CMAKE_CXX_STANDARD}
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+  MAGIC_ENUM_RANGE_MIN=-120
+  MAGIC_ENUM_RANGE_MAX=120
+  "MAGIC_ENUM_EXPORT_DETAIL=\
+  using detail::reflected_min\\$<SEMICOLON>\
+  using detail::reflected_max\\$<SEMICOLON>\
+  using detail::min_v\\$<SEMICOLON>\
+  using detail::max_v\\$<SEMICOLON>\
+  using detail::is_reflected_v\\$<SEMICOLON>\
+  using detail::cmp_less\\$<SEMICOLON>\
+  "
+)
+magic_enum_make_library(magic_enum_module_test_aliases-cpp${CMAKE_CXX_STANDARD}
+  "MAGIC_ENUM_CONFIG_FILE=\"../../test/aliases.hpp\""
+)
+magic_enum_make_library(magic_enum_module_test_wchar_t-cpp${CMAKE_CXX_STANDARD}
+  "MAGIC_ENUM_USING_ALIAS_STRING_VIEW=using string_view = std::wstring_view\\$<SEMICOLON>"
+  "MAGIC_ENUM_USING_ALIAS_STRING=using string = std::wstring\\$<SEMICOLON>"
+)
+
+endif()
+
 function(make_test src target std)
   add_executable(${target} ${src})
   target_compile_options(${target} PRIVATE ${OPTIONS})
   target_include_directories(${target} PRIVATE 3rdparty/Catch2/include)
   if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
     target_include_directories(${target} PRIVATE ${magic_enum_INCLUDE_DIRS})
+  elseif(TARGET magic_enum_module_${target})
+    target_link_libraries(${target} PRIVATE magic_enum_module_${target})
   else()
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
   endif()
@@ -94,6 +121,8 @@ function(make_test src target std)
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
+if(NOT MAGIC_ENUM_USE_MODULES)
+
 make_test(test.cpp test-cpp17 c++17)
 make_test(test_flags.cpp test_flags-cpp17 c++17)
 make_test(test_aliases.cpp test_aliases-cpp17 c++17)
@@ -104,7 +133,9 @@ if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
   make_test(test_nonascii.cpp test_nonascii-cpp17 c++17)
 endif()
 
-if(HAS_CPP20_FLAG)
+endif()
+
+if(HAS_CPP20_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 20)))
   make_test(test.cpp test-cpp20 c++20)
   make_test(test_flags.cpp test_flags-cpp20 c++20)
   make_test(test_aliases.cpp test_aliases-cpp20 c++20)
@@ -115,7 +146,7 @@ if(HAS_CPP20_FLAG)
   endif()
 endif()
 
-if(HAS_CPP23_FLAG)
+if(HAS_CPP23_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 23)))
   make_test(test.cpp test-cpp23 c++23)
   make_test(test_flags.cpp test_flags-cpp23 c++23)
   make_test(test_aliases.cpp test_aliases-cpp23 c++23)
