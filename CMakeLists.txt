@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.14...4.20)
 
+if(MAGIC_ENUM_USE_MODULES AND CMAKE_VERSION VERSION_LESS "3.28")
+  message(FATAL_ERROR "MAGIC_ENUM_USE_MODULES requires CMake >= 3.28")
+endif()
+
 if(MAGIC_ENUM_USE_MODULES)
-  set(CMAKE_CXX_EXTENSIONS OFF)
   if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 20)
   endif()
@@ -76,24 +79,26 @@ if(MAGIC_ENUM_USE_MODULES)
   )
   target_compile_features(${name} PUBLIC cxx_std_20)
   target_compile_definitions(${name}
-    PUBLIC MAGIC_ENUM_USE_MODULES
     PRIVATE ${ARGN}
   )
-  if((CMAKE_CXX_STANDARD IN_LIST CMAKE_CXX_COMPILER_IMPORT_STD) AND CMAKE_CXX_MODULE_STD)
+  set_target_properties(${name} PROPERTIES CXX_EXTENSIONS OFF)
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30" AND
+     CMAKE_CXX_STANDARD IN_LIST CMAKE_CXX_COMPILER_IMPORT_STD AND
+     CMAKE_CXX_MODULE_STD)
     message("${name}: using import std")
     target_compile_features(${name} PRIVATE cxx_std_23)
     target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_STD_MODULE)
   endif()
 
-  set(__scope PUBLIC)
+  set(_scope PUBLIC)
 else()
   add_library(${name} INTERFACE)
-  set(__scope INTERFACE)
+  set(_scope INTERFACE)
 endif()
 
 add_library(${EXPORT_NAMESPACE}${name} ALIAS ${name})
 target_include_directories(
-  ${name} ${__scope} $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  ${name} ${_scope} $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -123,10 +128,8 @@ if(MAGIC_ENUM_OPT_INSTALL)
     EXPORT ${PROJECT_NAME}
     INCLUDES
       DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for
-    # includes!
-    # Headers are installed separately! Includes only marks the headers for
-    # export
+    # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for includes!
+    # Headers are installed separately! Includes only marks the headers for export
   )
 
   if(NOT DEFINED PROJECT_INCLUDE_HEADER_PATTERN)

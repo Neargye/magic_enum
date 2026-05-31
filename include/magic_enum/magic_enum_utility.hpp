@@ -32,10 +32,6 @@
 #ifndef NEARGYE_MAGIC_ENUM_UTILITY_HPP
 #define NEARGYE_MAGIC_ENUM_UTILITY_HPP
 
-#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
-import magic_enum;
-#else
-
 #include "magic_enum.hpp"
 
 namespace magic_enum {
@@ -138,7 +134,5 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 }
 
 } // namespace magic_enum
-
-#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_UTILITY_HPP

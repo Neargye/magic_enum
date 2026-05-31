@@ -32,10 +32,6 @@
 #ifndef NEARGYE_MAGIC_ENUM_IOSTREAM_HPP
 #define NEARGYE_MAGIC_ENUM_IOSTREAM_HPP
 
-#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
-import magic_enum;
-#else
-
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
@@ -117,7 +113,5 @@ using magic_enum::istream_operators::operator>>;
 } // namespace magic_enum::iostream_operators
 
 } // namespace magic_enum
-
-#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
 #endif // NEARGYE_MAGIC_ENUM_IOSTREAM_HPP

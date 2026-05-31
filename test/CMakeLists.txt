@@ -58,7 +58,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(CMAKE_VERBOSE_MAKEFILE ON)
   set(OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
 
-  # Clang 22+ treats __COUNTER__ as C2y extension, but Catch2 v2 uses it
+  # Clang 22+ treats __COUNTER__ as C2y extension; but doctest uses it
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22.0")
     set(OPTIONS ${OPTIONS} -Wno-c2y-extensions)
   endif()
@@ -77,24 +77,13 @@ endif()
 if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
 
 magic_enum_make_library(magic_enum_module_test-cpp${CMAKE_CXX_STANDARD}
-  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
-  MAGIC_ENUM_RANGE_MIN=-120
-  MAGIC_ENUM_RANGE_MAX=120
-  "MAGIC_ENUM_EXPORT_DETAIL=\
-  using detail::reflected_min\\$<SEMICOLON>\
-  using detail::reflected_max\\$<SEMICOLON>\
-  using detail::min_v\\$<SEMICOLON>\
-  using detail::max_v\\$<SEMICOLON>\
-  using detail::is_reflected_v\\$<SEMICOLON>\
-  using detail::cmp_less\\$<SEMICOLON>\
-  "
+  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_test_config.hpp\""
 )
 magic_enum_make_library(magic_enum_module_test_aliases-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_CONFIG_FILE=\"../../test/aliases.hpp\""
+  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/aliases.hpp\""
 )
 magic_enum_make_library(magic_enum_module_test_wchar_t-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_USING_ALIAS_STRING_VIEW=using string_view = std::wstring_view\\$<SEMICOLON>"
-  "MAGIC_ENUM_USING_ALIAS_STRING=using string = std::wstring\\$<SEMICOLON>"
+  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_wchar_t_test_config.hpp\""
 )
 
 endif()
@@ -102,7 +91,8 @@ endif()
 function(make_test src target std)
   add_executable(${target} ${src})
   target_compile_options(${target} PRIVATE ${OPTIONS})
-  target_include_directories(${target} PRIVATE 3rdparty/Catch2/include)
+  target_compile_definitions(${target} PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
+  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
     target_include_directories(${target} PRIVATE ${magic_enum_INCLUDE_DIRS})
   elseif(TARGET magic_enum_module_${target})

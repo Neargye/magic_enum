@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #include <new>
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::wstring_view;
 #define MAGIC_ENUM_USING_ALIAS_STRING      using string      = std::wstring;
@@ -50,7 +50,7 @@ using namespace magic_enum;
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
 TEST_CASE("enum_cast") {
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>(L"red");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>(L"GREEN").value() == Color::GREEN);
@@ -58,7 +58,7 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<Color>(L"None").has_value());
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
@@ -81,7 +81,7 @@ TEST_CASE("enum_count") {
 }
 
 TEST_CASE("enum_name") {
-  SECTION("automatic storage") {
+  SUBCASE("automatic storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -93,7 +93,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<as_flags<false>>(static_cast<Color>(0)).empty());
   }
 
-  SECTION("static storage") {
+  SUBCASE("static storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name<cr>();
     constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};

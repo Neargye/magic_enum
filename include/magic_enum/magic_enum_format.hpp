@@ -32,10 +32,6 @@
 #ifndef NEARGYE_MAGIC_ENUM_FORMAT_HPP
 #define NEARGYE_MAGIC_ENUM_FORMAT_HPP
 
-#if defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
-import magic_enum;
-#else
-
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
@@ -89,6 +85,4 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 
 #endif
 
-#endif // defined(MAGIC_ENUM_USE_MODULES) && !defined(MAGIC_ENUM_INTERFACE_UNIT)
 
-#endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP

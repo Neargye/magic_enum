@@ -30,8 +30,8 @@
 #endif
 
 #include <new>
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
@@ -120,7 +120,7 @@ using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 
 TEST_CASE("enum_cast") {
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("RED");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
@@ -176,7 +176,7 @@ TEST_CASE("enum_cast") {
     REQUIRE_FALSE(enum_cast<number>("None").has_value());
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_cast<Color>(1);
     REQUIRE(cr.value() == Color::RED);
@@ -256,7 +256,7 @@ TEST_CASE("enum_index") {
 }
 
 TEST_CASE("enum_contains") {
-  SECTION("value") {
+  SUBCASE("value") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_contains(Color::RED);
     Color cg = Color::GREEN;
@@ -298,7 +298,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_flags_contains(number::three | number::one));
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     REQUIRE(enum_contains<Color>(1));
     REQUIRE(enum_contains<Color&>(2));
     REQUIRE(enum_contains<const Color>(4));
@@ -337,7 +337,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<number>(0));
   }
 
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto cr = "RED";
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
@@ -462,7 +462,7 @@ TEST_CASE("enum_count") {
 }
 
 TEST_CASE("enum_name") {
-  SECTION("automatic storage") {
+  SUBCASE("automatic storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -659,35 +659,35 @@ TEST_CASE("istream_operators") {
 }
 
 TEST_CASE("bitwise_operators") {
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
     REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
     REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
     REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
   }
 
-  SECTION("operator|") {
+  SUBCASE("operator|") {
     REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
   }
 
-  SECTION("operator&") {
+  SUBCASE("operator&") {
     REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
   }
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
   }
 
-  SECTION("operator|=") {
+  SUBCASE("operator|=") {
     Color x1 = Color::RED;
     x1 |= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
@@ -705,7 +705,7 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
   }
 
-  SECTION("operator&=") {
+  SUBCASE("operator&=") {
     Color x1 = Color::RED;
     x1 &= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
@@ -723,7 +723,7 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
   }
 
-  SECTION("operator^=") {
+  SUBCASE("operator^=") {
     Color x1 = Color::RED;
     x1 ^= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));

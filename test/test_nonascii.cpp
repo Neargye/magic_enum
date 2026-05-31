@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 #undef  MAGIC_ENUM_RANGE_MIN
 #define MAGIC_ENUM_RANGE_MIN -120
@@ -50,7 +50,7 @@ using namespace magic_enum;
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
 TEST_CASE("enum_cast") {
-  SECTION("string") {
+  SUBCASE("string") {
       constexpr auto lang = enum_cast<Language>("日本語");
       REQUIRE(enum_cast<Language&>("한국어").value() == Language::한국어);
       REQUIRE(enum_cast<const Language>("English").value() == Language::English);
@@ -60,7 +60,7 @@ TEST_CASE("enum_cast") {
       REQUIRE_FALSE(enum_cast<Language>("Französisch").has_value());
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     constexpr auto lang = enum_cast<Language>(10);
     REQUIRE(enum_cast<Language&>(20).value() == Language::한국어);
     REQUIRE(enum_cast<const Language>(30).value() == Language::English);
@@ -91,7 +91,7 @@ TEST_CASE("enum_index") {
 }
 
 TEST_CASE("enum_contains") {
-  SECTION("value") {
+  SUBCASE("value") {
     constexpr auto lang = enum_contains(Language::日本語);
     Language korean = Language::한국어;
     REQUIRE(enum_contains<Language&>(korean));
@@ -100,7 +100,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(lang);
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     constexpr auto lang = enum_integer(Language::日本語);
     REQUIRE(enum_contains<Language&>(lang));
     REQUIRE(enum_contains<const Language>(Language::한국어));
@@ -108,7 +108,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<Language>(static_cast<Language>(0)));
   }
 
-  SECTION("string") {
+  SUBCASE("string") {
     auto lang = std::string{"日本語"};
     REQUIRE(enum_contains<Language&>("한국어"));
     REQUIRE(enum_contains<Language>("English"));
@@ -137,7 +137,7 @@ TEST_CASE("enum_count") {
 }
 
 TEST_CASE("enum_name") {
-  SECTION("automatic storage") {
+  SUBCASE("automatic storage") {
     constexpr Language lang = Language::日本語;
     constexpr auto lang_name = enum_name(lang);
     Language lk = Language::한국어;
@@ -149,7 +149,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(static_cast<Language>(0)).empty());
   }
 
-  SECTION("static storage") {
+  SUBCASE("static storage") {
     constexpr Language lang = Language::日本語;
     constexpr auto lang_name = enum_name<lang>();
     REQUIRE(enum_name<Language::한국어>() == "한국어");
@@ -204,36 +204,36 @@ TEST_CASE("istream_operators") {
 TEST_CASE("bitwise_operators") {
   using namespace magic_enum::bitwise_operators;
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(~Language::日本語) == ~enum_integer(Language::日本語));
   }
 
-  SECTION("operator|") {
+  SUBCASE("operator|") {
     REQUIRE(enum_integer(Language::日本語 | Language::한국어) == (enum_integer(Language::日本語) | enum_integer(Language::한국어)));
   }
 
-  SECTION("operator&") {
+  SUBCASE("operator&") {
     REQUIRE(enum_integer(Language::日本語 & Language::한국어) == (enum_integer(Language::日本語) & enum_integer(Language::한국어)));
 
   }
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(Language::日本語 ^ Language::한국어) == (enum_integer(Language::日本語) ^ enum_integer(Language::한국어)));
   }
 
-  SECTION("operator|=") {
+  SUBCASE("operator|=") {
     Language x5 = Language::日本語;
     x5 |= Language::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) | enum_integer(Language::한국어)));
   }
 
-  SECTION("operator&=") {
+  SUBCASE("operator&=") {
     Language x5 = Language::日本語;
     x5 &= Language::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) & enum_integer(Language::한국어)));
   }
 
-  SECTION("operator^=") {
+  SUBCASE("operator^=") {
     Language x5 = Language::日本語;
     x5 ^= Language::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(Language::日本語) ^ enum_integer(Language::한국어)));
@@ -248,13 +248,13 @@ TEST_CASE("enum_type_name") {
 }
 
 TEST_CASE("extrema") {
-  SECTION("min") {
+  SUBCASE("min") {
     REQUIRE(magic_enum::customize::enum_range<Language>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<Language, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Language, as_common<>> == 10);
   }
 
-  SECTION("max") {
+  SUBCASE("max") {
     REQUIRE(magic_enum::customize::enum_range<Language>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<Language, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Language, as_common<>> == 50);
@@ -263,7 +263,7 @@ TEST_CASE("extrema") {
 
 /* LanguageFlag tests */
 TEST_CASE("flag enum_cast") {
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto lang = enum_cast<LanguageFlag>("日本語");
     REQUIRE(enum_cast<LanguageFlag&>("한국어").value() == LanguageFlag::한국어);
     REQUIRE(enum_cast<const LanguageFlag>("English").value() == LanguageFlag::English);
@@ -272,7 +272,7 @@ TEST_CASE("flag enum_cast") {
     REQUIRE_FALSE(enum_cast<LanguageFlag>("None").has_value());
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     constexpr auto lang = enum_cast<LanguageFlag>(1 << 1);
     REQUIRE(enum_cast<LanguageFlag&>(1 << 2).value() == LanguageFlag::한국어);
     REQUIRE(enum_cast<const LanguageFlag>(1 << 3).value() == LanguageFlag::English);
@@ -293,7 +293,7 @@ TEST_CASE("flag enum_index") {
 }
 
 TEST_CASE("flag enum_contains") {
-  SECTION("value") {
+  SUBCASE("value") {
     constexpr auto lang = enum_index<LanguageFlag>(LanguageFlag::日本語);
     LanguageFlag korean = LanguageFlag::한국어;
     REQUIRE(enum_contains<LanguageFlag&>(korean));
@@ -303,7 +303,7 @@ TEST_CASE("flag enum_contains") {
     REQUIRE_FALSE(enum_contains(static_cast<LanguageFlag>(0)));
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     constexpr auto lang = enum_contains<LanguageFlag&>(1 << 1);
     REQUIRE(lang);
     REQUIRE(enum_contains<const LanguageFlag>(1 << 2));
@@ -312,7 +312,7 @@ TEST_CASE("flag enum_contains") {
     REQUIRE_FALSE(enum_contains(static_cast<LanguageFlag>(0)));
   }
 
-  SECTION("string") {
+  SUBCASE("string") {
     auto lang = std::string{"日本語"};
     REQUIRE(enum_contains<LanguageFlag&>("한국어"));
     REQUIRE(enum_contains<LanguageFlag>("English"));
@@ -342,7 +342,7 @@ TEST_CASE("flag enum_count") {
 }
 
 TEST_CASE("flag enum_name") {
-  SECTION("automatic storage") {
+  SUBCASE("automatic storage") {
     constexpr LanguageFlag lang = LanguageFlag::日本語;
     constexpr auto lang_name = enum_name(lang);
     LanguageFlag lk = LanguageFlag::한국어;
@@ -409,35 +409,35 @@ TEST_CASE("flag istream_operators") {
 
 TEST_CASE("flag bitwise_operators") {
   using namespace magic_enum::bitwise_operators;
-  SECTION("operator~") {
+  SUBCASE("operator~") {
     REQUIRE(enum_integer(~LanguageFlag::日本語) == ~enum_integer(LanguageFlag::日本語));
   }
 
-  SECTION("operator|") {
+  SUBCASE("operator|") {
     REQUIRE(enum_integer(LanguageFlag::日本語 | LanguageFlag::한국어) == (enum_integer(LanguageFlag::日本語) | enum_integer(LanguageFlag::한국어)));
   }
 
-  SECTION("operator&") {
+  SUBCASE("operator&") {
     REQUIRE(enum_integer(LanguageFlag::日本語 & LanguageFlag::한국어) == (enum_integer(LanguageFlag::日本語) & enum_integer(LanguageFlag::한국어)));
   }
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(LanguageFlag::日本語 ^ LanguageFlag::한국어) == (enum_integer(LanguageFlag::日本語) ^ enum_integer(LanguageFlag::한국어)));
   }
 
-  SECTION("operator|=") {
+  SUBCASE("operator|=") {
     LanguageFlag x5 = LanguageFlag::日本語;
     x5 |= LanguageFlag::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(LanguageFlag::日本語) | enum_integer(LanguageFlag::한국어)));
   }
 
-  SECTION("operator&=") {
+  SUBCASE("operator&=") {
     LanguageFlag x5 = LanguageFlag::日本語;
     x5 &= LanguageFlag::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(LanguageFlag::日本語) & enum_integer(LanguageFlag::한국어)));
   }
 
-  SECTION("operator^=") {
+  SUBCASE("operator^=") {
     LanguageFlag x5 = LanguageFlag::日本語;
     x5 ^= LanguageFlag::한국어;
     REQUIRE(enum_integer(x5) == (enum_integer(LanguageFlag::日本語) ^ enum_integer(LanguageFlag::한국어)));

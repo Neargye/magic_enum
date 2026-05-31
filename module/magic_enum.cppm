@@ -1,7 +1,5 @@
 module;
 
-#define MAGIC_ENUM_INTERFACE_UNIT
-
 #include <version>
 #if __has_include(<fmt/format.h>)
 #include <fmt/format.h>
@@ -120,6 +118,7 @@ namespace containers {
     using magic_enum::enum_values;
     using magic_enum::enum_count;
     using magic_enum::enum_integer;
+    using magic_enum::enum_underlying;
     using magic_enum::enum_names;
     using magic_enum::enum_entries;
     using magic_enum::enum_fuse;

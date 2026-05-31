@@ -353,6 +353,25 @@ If you like this project, please consider donating to one of the funds that help
   target_link_libraries(your_executable magic_enum::magic_enum)
   ```
 
+* **C++20 modules** are supported as an alternative to the header-only mode, requires CMake 3.28+.
+
+  Configure with CMake:
+  ```cmake
+  cmake -DMAGIC_ENUM_USE_MODULES=ON -G Ninja ...
+  ```
+
+  Then use `import` instead of `#include`:
+  ```cpp
+  import magic_enum;
+
+  enum class Color { RED, GREEN, BLUE };
+  auto name = magic_enum::enum_name(Color::RED); // "RED"
+  ```
+
+  Caveats:
+  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit — ODR violation.
+  - `import std;` is opt-in: add `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_IMPORT_STD=ON` (requires CMake 3.30+).
+
 ## Compiler compatibility
 
 * Clang/LLVM >= 5

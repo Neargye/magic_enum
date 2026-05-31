@@ -3,6 +3,7 @@ cmake_build*/
 install_dir/
 .vscode/
 .vs/
+copilot-instructions.md
 
 ### C++ gitignore ###
 # Prerequisites

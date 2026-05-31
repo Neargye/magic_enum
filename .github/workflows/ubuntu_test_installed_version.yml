@@ -40,18 +40,18 @@ jobs:
       - name: build with installed version via cmake
         run: cmake --build build2 --config Debug -j$(nproc) --verbose
 
-      - name: test
+      - name: test (cmake)
         run: |
           cd build2
           ctest --build-config Debug -j$(nproc)
 
-      - name: clear 
+      - name: clear
         run: rm -rf build2
-      
+
       - name: configure clang
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
+          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm.list
           sudo apt update
           sudo apt install clang-19 -y
       
@@ -78,10 +78,10 @@ jobs:
       - name: build with installed module version via cmake
         run: cmake --build build2 -j$(nproc) --target test_flags-cpp20 --verbose
       
-      - name: test
+      - name: test (modules)
         run: ctest --test-dir build2 -VV -R test_flags-cpp20
 
-      - name: clear 
+      - name: clear
         run: rm -rf build2
 
       - name: configure with installed version via pkgconfig
@@ -90,7 +90,7 @@ jobs:
       - name: build with installed version via pkgconfig
         run: cmake --build build3 --config Debug -j$(nproc) --verbose
 
-      - name: test
+      - name: test (pkgconfig)
         run: |
           cd build3
           ctest --build-config Debug -j$(nproc)

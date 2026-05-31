@@ -1,4 +1,4 @@
-catch2_dep = declare_dependency(include_directories: '3rdparty/Catch2/include')
+doctest_dep = declare_dependency(include_directories: '.')
 
 test_files = {
     'basic test': files('test.cpp'),
@@ -11,7 +11,7 @@ foreach test_name, test_src : test_files
         test_src,
 
         build_by_default: false,
-        dependencies: [magic_enum_dep, catch2_dep],
+        dependencies: [magic_enum_dep, doctest_dep],
     )
 
     test(test_name, test_exe)

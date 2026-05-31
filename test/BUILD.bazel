@@ -14,14 +14,12 @@ _COPTS = select({
 [cc_test(
     name = test,
     srcs = ["{}.cpp".format(test)],
-    deps = ["@magic_enum", ":catch2"],
+    deps = ["@magic_enum", ":doctest"],
     copts = _COPTS,
 ) for test in _TESTS]
 
-# bazel central registry has a catch2 module, but is newer than the one included
-# in this repository
 cc_library(
-    name = "catch2",
-    includes = ["3rdparty/Catch2/include"],
-    hdrs = ["3rdparty/Catch2/include/catch2/catch.hpp"],
+    name = "doctest",
+    includes = ["."],
+    hdrs = ["doctest/doctest.h"],
 )

@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #include <new>
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 #define MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 #define MAGIC_ENUM_RANGE_MIN -120
@@ -144,7 +144,7 @@ using namespace magic_enum;
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
 TEST_CASE("enum_cast") {
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
@@ -201,7 +201,7 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<BoolTest>("Nay").has_value());
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_cast<Color>(-12);
     REQUIRE(cr.value() == Color::RED);
@@ -308,7 +308,7 @@ TEST_CASE("enum_index") {
 }
 
 TEST_CASE("enum_contains") {
-  SECTION("value") {
+  SUBCASE("value") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     constexpr auto cr = enum_contains(Color::RED);
     Color cg = Color::GREEN;
@@ -342,7 +342,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains(BoolTest::Yay));
   }
 
-  SECTION("integer") {
+  SUBCASE("integer") {
     REQUIRE(enum_contains<Color>(-12));
     REQUIRE(enum_contains<Color&>(7));
     REQUIRE(enum_contains<Color>(15));
@@ -377,7 +377,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<BoolTest>(0));
   }
 
-  SECTION("string") {
+  SUBCASE("string") {
     constexpr auto cr = "red";
     REQUIRE(enum_contains<Color>(cr));
     REQUIRE(enum_contains<Color&>("GREEN"));
@@ -573,7 +573,7 @@ enum class LargeNumbers {
 };
 
 TEST_CASE("enum_name") {
-  SECTION("automatic storage") {
+  SUBCASE("automatic storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name(cr);
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -676,7 +676,7 @@ TEST_CASE("enum_name") {
     REQUIRE_FALSE(enum_name((a_foo2::a_lt6)12).size());
   }
 
-  SECTION("static storage") {
+  SUBCASE("static storage") {
     constexpr Color cr = Color::RED;
     constexpr auto cr_name = enum_name<cr>();
     constexpr Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -709,7 +709,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
   }
 
-  SECTION("empty if the value is out of range") {
+  SUBCASE("empty if the value is out of range") {
     const auto ln_value = GENERATE(LargeNumbers::First, LargeNumbers::Second);
     const auto ln_name = enum_name(ln_value);
 
@@ -813,35 +813,35 @@ TEST_CASE("istream_operators") {
 TEST_CASE("bitwise_operators") {
   using namespace magic_enum::bitwise_operators;
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
     REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
     REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
     REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
   }
 
-  SECTION("operator|") {
+  SUBCASE("operator|") {
     REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
   }
 
-  SECTION("operator&") {
+  SUBCASE("operator&") {
     REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
   }
 
-  SECTION("operator^") {
+  SUBCASE("operator^") {
     REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
     REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
     REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
     REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
   }
 
-  SECTION("operator|=") {
+  SUBCASE("operator|=") {
     Color x1 = Color::RED;
     x1 |= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
@@ -859,7 +859,7 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
   }
 
-  SECTION("operator&=") {
+  SUBCASE("operator&=") {
     Color x1 = Color::RED;
     x1 &= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
@@ -877,7 +877,7 @@ TEST_CASE("bitwise_operators") {
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
   }
 
-  SECTION("operator^=") {
+  SUBCASE("operator^=") {
     Color x1 = Color::RED;
     x1 ^= Color::BLUE;
     REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
@@ -985,7 +985,7 @@ TEST_CASE("extrema") {
   REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(std::numeric_limits<std::uint64_t>::max()));
   REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(BadColor::NONE));
 
-  SECTION("min") {
+  SUBCASE("min") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<BadColor, as_common<>>() == 0);
     REQUIRE(magic_enum::detail::min_v<BadColor, as_common<>> == 0);
@@ -1017,7 +1017,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::min_v<MaxUsedAsInvalid, as_common<>> == 0);
   }
 
-  SECTION("max") {
+  SUBCASE("max") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<BadColor, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<BadColor, as_common<>> == 2);
@@ -1064,12 +1064,12 @@ TEST_CASE("cmp_less") {
   constexpr std::int64_t offset_int64_t = 17;
   constexpr std::int32_t offset_int32_t = 17;
 
-  SECTION("same signedness") {
+  SUBCASE("same signedness") {
     REQUIRE(cmp_less(-5, -3));
     REQUIRE(cmp_less(27U, 49U));
   }
 
-  SECTION("same signedness, different width") {
+  SUBCASE("same signedness, different width") {
     REQUIRE(cmp_less(uint32_t_max, uint64_t_max));
     REQUIRE_FALSE(cmp_less(uint64_t_max, uint32_t_max));
     REQUIRE(cmp_less(int64_t_min, int32_t_min));
@@ -1078,12 +1078,12 @@ TEST_CASE("cmp_less") {
     REQUIRE_FALSE(cmp_less(int32_t_min + offset_int32_t, int64_t_min + offset_int64_t));
   }
 
-  SECTION("left signed, right unsigned") {
+  SUBCASE("left signed, right unsigned") {
     REQUIRE(cmp_less(-5, 3U));
     REQUIRE(cmp_less(3, 5U));
   }
 
-  SECTION("left signed, right unsigned, different width") {
+  SUBCASE("left signed, right unsigned, different width") {
     REQUIRE(cmp_less(int32_t_max, uint64_t_max));
     REQUIRE_FALSE(cmp_less(int64_t_max, uint32_t_max));
     REQUIRE(cmp_less(int32_t_min, uint64_t_min));
@@ -1094,12 +1094,12 @@ TEST_CASE("cmp_less") {
     REQUIRE(cmp_less(int64_t_min + offset_int64_t, uint32_t_min));
   }
 
-  SECTION("left unsigned, right signed") {
+  SUBCASE("left unsigned, right signed") {
     REQUIRE_FALSE(cmp_less(3U, -5));
     REQUIRE(cmp_less(3U, 5));
   }
 
-  SECTION("left unsigned, right signed, different width") {
+  SUBCASE("left unsigned, right signed, different width") {
     REQUIRE(cmp_less(uint32_t_max, int64_t_max));
     REQUIRE_FALSE(cmp_less(uint64_t_max, int32_t_max));
     REQUIRE_FALSE(cmp_less(uint32_t_min, int64_t_min));
@@ -1110,13 +1110,13 @@ TEST_CASE("cmp_less") {
     REQUIRE_FALSE(cmp_less(uint64_t_min, int32_t_min + offset_int64_t));
   }
 
-  SECTION("bool, right") {
+  SUBCASE("bool, right") {
     REQUIRE(cmp_less(true, 5));
     REQUIRE(cmp_less(false, 1));
     REQUIRE_FALSE(cmp_less(false, -1));
   }
 
-  SECTION("left, bool") {
+  SUBCASE("left, bool") {
     REQUIRE_FALSE(cmp_less(5, true));
     REQUIRE_FALSE(cmp_less(1, false));
     REQUIRE(cmp_less(-1, false));
@@ -1134,7 +1134,7 @@ constexpr std::string_view DoWork<Color::GREEN>() {
 }
 
 TEST_CASE("enum_for_each") {
-  SECTION("no return type") {
+  SUBCASE("no return type") {
     underlying_type_t<Color> sum{};
     enum_for_each<Color>([&sum](auto val) {
       constexpr underlying_type_t<Color> v = enum_integer(val());
@@ -1143,14 +1143,14 @@ TEST_CASE("enum_for_each") {
     REQUIRE(sum == 10);
   }
 
-  SECTION("same return type") {
+  SUBCASE("same return type") {
     constexpr auto workResults = enum_for_each<Color>([](auto val) {
       return DoWork<val>();
     });
     REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
   }
 
-  SECTION("different return type") {
+  SUBCASE("different return type") {
     constexpr auto colorInts = enum_for_each<Color>([](auto val) {
       return val;
     });

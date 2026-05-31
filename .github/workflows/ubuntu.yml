@@ -26,7 +26,9 @@ jobs:
         - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
         - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
         - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
         - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
 
@@ -38,13 +40,13 @@ jobs:
     - name: Configure clang
       run: |
         if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
 
           clang_version="${{ matrix.compiler.cc }}"
           clang_version="${clang_version#clang-}"
           ubuntu_codename="$(lsb_release -cs)"
 
-          sudo apt-add-repository "deb http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main"
+          echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
           sudo apt update
           sudo apt install ${{ matrix.compiler.cc }} -y
 
@@ -94,13 +96,18 @@ jobs:
       if: ${{matrix.compiler.import_std == 'TRUE'}}
       run: |
         rm -rf build
+        cmake_ver=$(cmake --version | awk 'NR==1{print $3}')
+        if printf '%s\n' "3.30" "$cmake_ver" | sort -V -C; then
+          import_std_flag="-DCMAKE_CXX_IMPORT_STD=ON"
+        else
+          import_std_flag="-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD:STRING=0e5b6991-d74f-4b3d-a41c-cf096e0b2508"
+        fi
         cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -GNinja \
-          -DCMAKE_CXX_MODULE_STD:BOOL=TRUE \
-          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD:STRING=0e5b6991-d74f-4b3d-a41c-cf096e0b2508 \
+          $import_std_flag \
           -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
           -DCMAKE_CXX_STANDARD=23
         cmake --build build -j 4 --config Debug
