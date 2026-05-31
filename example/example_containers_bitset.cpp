@@ -51,6 +51,11 @@ int main() {
   std::cout << color_bitset.test(Color::RED) << std::endl; // false
   std::cout << color_bitset.test(Color::GREEN) << std::endl; // true
   std::cout << color_bitset.test(Color::BLUE) << std::endl; // true
+  std::cout << (color_bitset.find(Color::RED) != color_bitset.end()) << std::endl; // false
+  std::cout << (color_bitset.find(Color::GREEN) != color_bitset.end()) << std::endl; // true
+  std::cout << (color_bitset.find(Color::BLUE) != color_bitset.end()) << std::endl; // true
+  for (Color color : color_bitset) { std::cout << magic_enum::enum_name(color) << " "; } // GREEN BLUE
+  std::cout << std::endl;
 
   return 0;
 }
