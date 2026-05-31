@@ -68,6 +68,10 @@ jobs:
           sudo apt install ${{ matrix.compiler.cxx }} -y
         fi
 
+    - name: Install CMake (latest)
+      if: ${{ matrix.compiler.modules == 'TRUE' }}
+      run: pip install cmake --upgrade --break-system-packages
+
     - name: Build Release
       run: |
         rm -rf build
@@ -93,21 +97,15 @@ jobs:
         ctest --test-dir build --output-on-failure -C Debug
 
     - name: Build with `import std;`
-      if: ${{matrix.compiler.import_std == 'TRUE'}}
+      if: ${{ matrix.compiler.import_std == 'TRUE' }}
       run: |
         rm -rf build
-        cmake_ver=$(cmake --version | awk 'NR==1{print $3}')
-        if printf '%s\n' "3.30" "$cmake_ver" | sort -V -C; then
-          import_std_flag="-DCMAKE_CXX_IMPORT_STD=ON"
-        else
-          import_std_flag="-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD:STRING=0e5b6991-d74f-4b3d-a41c-cf096e0b2508"
-        fi
         cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -GNinja \
-          $import_std_flag \
+          -DCMAKE_CXX_IMPORT_STD=ON \
           -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
           -DCMAKE_CXX_STANDARD=23
         cmake --build build -j 4 --config Debug
