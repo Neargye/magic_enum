@@ -20,6 +20,6 @@ _COPTS = select({
 
 cc_library(
     name = "doctest",
-    includes = ["."],
+    strip_include_prefix = "/test",
     hdrs = ["doctest/doctest.h"],
 )
