@@ -1,4 +1,4 @@
-doctest_dep = declare_dependency(include_directories: '.')
+doctest_dep = declare_dependency(include_directories: '3rdparty')
 
 test_files = {
     'basic test': files('test.cpp'),
