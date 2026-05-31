@@ -85,4 +85,4 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 
 #endif
 
-
+#endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP
