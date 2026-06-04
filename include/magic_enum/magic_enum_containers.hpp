@@ -39,12 +39,12 @@
 #  include <bit>
 #endif
 
-#if !defined(__cpp_lib_bitops) || (__cpp_lib_bitops < 201907L)
-#  if __has_include(<intrin.h>)
-#    include <intrin.h>
-#    pragma intrinsic(_BitScanForward)
+#if (!defined(__cpp_lib_bitops) || (__cpp_lib_bitops < 201907L)) && defined(_MSC_VER) && !defined(__clang__)
+#  include <intrin.h>
+#  pragma intrinsic(_BitScanForward)
+#  pragma intrinsic(_BitScanReverse)
+#  ifdef _WIN64
 #    pragma intrinsic(_BitScanForward64)
-#    pragma intrinsic(_BitScanReverse)
 #    pragma intrinsic(_BitScanReverse64)
 #  endif
 #endif
@@ -327,20 +327,25 @@ struct FilteredIterator {
 template<class T> constexpr int countr_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
-#elif __has_include(<intrin.h>)
+#elif defined(_MSC_VER) && !defined(__clang__)
   unsigned long index;
   if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return _BitScanForward(&index, x) ? index : (sizeof(T) * 8);
+    return _BitScanForward(&index, static_cast<unsigned long>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
   } else {
-    return _BitScanForward64(&index, x) ? index : (sizeof(T) * 8);
+#  ifdef _WIN64
+    return _BitScanForward64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
+#  else
+    if (_BitScanForward(&index, static_cast<unsigned long>(x))) { return static_cast<int>(index); }
+    return _BitScanForward(&index, static_cast<unsigned long>(x >> 32)) ? static_cast<int>(index) + 32 : static_cast<int>(sizeof(T) * 8);
+#  endif
   }
 #else
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
-    return x ? __builtin_ctz(x) : (sizeof(T) * 8);
+    return x ? __builtin_ctz(static_cast<unsigned int>(x)) : static_cast<int>(sizeof(T) * 8);
   } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return x ? __builtin_ctzl(x) : (sizeof(T) * 8);
+    return x ? __builtin_ctzl(static_cast<unsigned long>(x)) : static_cast<int>(sizeof(T) * 8);
   } else {
-    return x ? __builtin_ctzll(x) : (sizeof(T) * 8);
+    return x ? __builtin_ctzll(static_cast<unsigned long long>(x)) : static_cast<int>(sizeof(T) * 8);
   }
 #endif
 }
@@ -348,20 +353,25 @@ template<class T> constexpr int countr_zero(T x) noexcept {
 template<class T> constexpr int countl_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
-#elif __has_include(<intrin.h>)
+#elif defined(_MSC_VER) && !defined(__clang__)
   unsigned long index;
   if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return _BitScanReverse(&index, x) ? ((sizeof(T) * 8) - index - 1) : (sizeof(T) * 8);
+    return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
   } else {
-    return _BitScanReverse64(&index, x) ? ((sizeof(T) * 8) - index - 1) : (sizeof(T) * 8);
+#  ifdef _WIN64
+    return _BitScanReverse64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+#  else
+    if (_BitScanReverse(&index, static_cast<unsigned long>(x >> 32))) { return static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 33; }
+    return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+#  endif
   }
 #else
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
-    return x ? __builtin_clz(x) : (sizeof(T) * 8);
+    return x ? __builtin_clz(static_cast<unsigned int>(x)) : static_cast<int>(sizeof(T) * 8);
   } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return x ? __builtin_clzl(x) : (sizeof(T) * 8);
-  } else if constexpr (sizeof(T) <= sizeof(unsigned long long)) {
-    return x ? __builtin_clzll(x) : (sizeof(T) * 8);
+    return x ? __builtin_clzl(static_cast<unsigned long>(x)) : static_cast<int>(sizeof(T) * 8);
+  } else {
+    return x ? __builtin_clzll(static_cast<unsigned long long>(x)) : static_cast<int>(sizeof(T) * 8);
   }
 #endif
 }
@@ -635,7 +645,14 @@ class bitset {
     constexpr iterator_impl& operator=(const iterator_impl&) noexcept = default;
     constexpr iterator_impl(iterator_impl&&) noexcept = default;
     constexpr iterator_impl& operator=(iterator_impl&&) noexcept = default;
+
+    template <typename OtherParent, typename = std::enable_if_t<std::is_convertible_v<OtherParent, parent_t>>>
+    constexpr iterator_impl(const iterator_impl<OtherParent>& other) noexcept
+        : parent(other.parent), num_index(other.num_index), bit_index(other.bit_index) {}
+
    private:
+    template <typename OtherParent>
+    friend class iterator_impl;
     constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, std::pair{i / bits_per_base, base_type{1} << (i % bits_per_base)}) {}
 
     constexpr iterator_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
@@ -722,7 +739,7 @@ class bitset {
   using reference = reference_impl<>;
   using const_reference = reference_impl<const bitset*>;
   using iterator = iterator_impl<>;
-  using const_iterator = iterator;
+  using const_iterator = iterator_impl<const bitset*>;
 
   constexpr explicit bitset(detail::raw_access_t = raw_access) noexcept : a{{}} {}
 
