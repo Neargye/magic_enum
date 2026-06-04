@@ -676,13 +676,6 @@ class bitset {
     [[nodiscard]] constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
     constexpr iterator_impl& operator++() noexcept {
-      if (num_index >= base_type_count || (num_index == base_type_count - 1 && bit_index > last_value_max)) {
-        if ((bit_index <<= 1) == 0) {
-          ++num_index;
-          bit_index = base_type{1};
-        }
-        return *this;
-      }
       base_type remaining_bits = parent->a[num_index] & ~((bit_index << 1) - 1);
       while (remaining_bits == 0 && ++num_index < base_type_count) {
         remaining_bits = parent->a[num_index];
@@ -701,15 +694,17 @@ class bitset {
     }
 
     constexpr iterator_impl& operator--() noexcept {
-      if (num_index >= base_type_count || (num_index == base_type_count - 1 && bit_index > last_value_max)) {
-        if ((bit_index >>= 1) == 0) {
-          --num_index;
-          bit_index = base_type{1} << (bits_per_base - 1);
-        }
-        return *this;
+      base_type search_mask;
+      if (num_index >= base_type_count) {
+        num_index = base_type_count - 1;
+        search_mask = last_value_max;
+      } else if (num_index == base_type_count - 1 && bit_index > last_value_max) {
+        search_mask = last_value_max;
+      } else {
+        search_mask = bit_index - 1;
       }
 
-      base_type remaining_bits = parent->a[num_index] & (bit_index - 1);
+      base_type remaining_bits = parent->a[num_index] & search_mask;
       while (remaining_bits == 0 && num_index != 0) {
         remaining_bits = parent->a[--num_index];
       }
