@@ -316,14 +316,14 @@ class static_str {
 
   constexpr string_view str() const noexcept { return string_view(data(), size()); }
 
+  char_type chars_[static_cast<std::size_t>(N) + 1];
+
  private:
   template <std::uint16_t... I>
   constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{static_cast<char_type>(str[I])..., static_cast<char_type>('\0')} {}
 
   template <std::uint16_t... I>
   constexpr static_str(string_view str, std::integer_sequence<std::uint16_t, I...>) noexcept : chars_{str[I]..., static_cast<char_type>('\0')} {}
-
-  char_type chars_[static_cast<std::size_t>(N) + 1];
 };
 
 template <>
@@ -341,7 +341,6 @@ class static_str<0> {
 
   constexpr string_view str() const noexcept { return string_view(data(), size()); }
 
-private:
   static constexpr char_type chars_[1] = {};
 };
 
