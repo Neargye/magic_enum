@@ -47,6 +47,11 @@ struct magic_enum::customize::enum_range<Color> {
 
 enum class Empty {};
 
+// Enums used by containers_bitset_iterator tests.
+enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, not_interested=4
+enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, not_interested=0 (edge case)
+enum class Flags9  { A, B, C, D, E, F, G, H, I };      // 9 values, uint16_t base_type
+
 struct RGB {
 
   std::uint8_t r {};
@@ -163,6 +168,11 @@ TEST_CASE("containers_array") {
   REQUIRE(from_to_array.at(Color::RED) == RGB{color_max, 0, 0});
   REQUIRE(from_to_array.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(from_to_array.at(Color::BLUE) == RGB{0, 0, color_max});
+
+  constexpr auto from_make_array = magic_enum::containers::make_array<Color>(RGB{color_max, 0, 0}, RGB{0, color_max, 0}, RGB{0, 0, color_max});
+  REQUIRE(from_make_array.at(Color::RED) == RGB{color_max, 0, 0});
+  REQUIRE(from_make_array.at(Color::GREEN) == RGB{0, color_max, 0});
+  REQUIRE(from_make_array.at(Color::BLUE) == RGB{0, 0, color_max});
 }
 
 TEST_CASE("containers_bitset") {
@@ -291,6 +301,13 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set_not_const.empty());
   REQUIRE(color_set_not_const.size() == 0);
   REQUIRE_FALSE(magic_enum::enum_count<Color>() == color_set_not_const.size());
+
+  magic_enum::containers::set<Color> color_set_assign {Color::RED, Color::BLUE};
+  color_set_assign = {Color::GREEN};
+  REQUIRE(color_set_assign.size() == 1);
+  REQUIRE(color_set_assign.contains(Color::GREEN));
+  REQUIRE_FALSE(color_set_assign.contains(Color::RED));
+  REQUIRE_FALSE(color_set_assign.contains(Color::BLUE));
 }
 
 TEST_CASE("map_like_container") {
@@ -310,5 +327,320 @@ TEST_CASE("map_like_container") {
   for (auto [key, value] : map) {
 
     std::cout << "Key=" << key << " Value=" << value << std::endl;
+  }
+}
+
+TEST_CASE("containers_bitset_iterator") {
+  using namespace magic_enum::bitwise_operators;
+
+  SUBCASE("empty - begin equals end") {
+    magic_enum::containers::bitset<Color> bs;
+    REQUIRE(bs.begin() == bs.end());
+    REQUIRE(bs.cbegin() == bs.cend());
+    std::size_t n = 0;
+    for ([[maybe_unused]] Color e : bs) { ++n; }
+    REQUIRE(n == 0);
+  }
+
+  SUBCASE("single element - first") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    REQUIRE(bs.begin() != bs.end());
+    REQUIRE(*bs.begin() == Color::RED);
+    auto it = bs.begin();
+    ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("single element - middle") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::GREEN);
+    REQUIRE(bs.begin() != bs.end());
+    REQUIRE(*bs.begin() == Color::GREEN);
+    auto it = bs.begin();
+    ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("single element - last") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::BLUE);
+    REQUIRE(bs.begin() != bs.end());
+    REQUIRE(*bs.begin() == Color::BLUE);
+    auto it = bs.begin();
+    ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("forward - order matches enum_values") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    constexpr auto expected = magic_enum::enum_values<Color>();
+    std::size_t i = 0;
+    for (Color e : bs) {
+      REQUIRE(i < expected.size());
+      REQUIRE(e == expected[i++]);
+    }
+    REQUIRE(i == expected.size());
+  }
+
+  SUBCASE("forward - partial - first and last only") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    bs.set(Color::BLUE);
+    auto it = bs.begin();
+    REQUIRE(*it == Color::RED);  ++it;
+    REQUIRE(*it == Color::BLUE); ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("forward - post-increment") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    auto it   = bs.begin();
+    auto prev = it++;
+    REQUIRE(*prev == Color::RED);
+    REQUIRE(*it   == Color::GREEN);
+  }
+
+  SUBCASE("backward - all set") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    auto it = bs.end();
+    --it; REQUIRE(*it == Color::BLUE);
+    --it; REQUIRE(*it == Color::GREEN);
+    --it; REQUIRE(*it == Color::RED);
+  }
+
+  SUBCASE("backward - partial - first and last only") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    bs.set(Color::BLUE);
+    auto it = bs.end();
+    --it; REQUIRE(*it == Color::BLUE);
+    --it; REQUIRE(*it == Color::RED);
+  }
+
+  SUBCASE("backward - post-decrement") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    auto it   = bs.end();
+    --it;
+    auto prev = it--;
+    REQUIRE(*prev == Color::BLUE);
+    REQUIRE(*it   == Color::GREEN);
+  }
+
+  SUBCASE("bidirectional - round-trip") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    auto it = bs.begin();
+    REQUIRE(*it == Color::RED);   ++it;
+    REQUIRE(*it == Color::GREEN); ++it;
+    REQUIRE(*it == Color::BLUE);  ++it;
+    REQUIRE(it == bs.end());
+    --it; REQUIRE(*it == Color::BLUE);
+    --it; REQUIRE(*it == Color::GREEN);
+    --it; REQUIRE(*it == Color::RED);
+  }
+
+  SUBCASE("find - present values") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::GREEN);
+    bs.set(Color::BLUE);
+    auto it = bs.find(Color::GREEN);
+    REQUIRE(it != bs.end());
+    REQUIRE(*it == Color::GREEN);
+    it = bs.find(Color::BLUE);
+    REQUIRE(it != bs.end());
+    REQUIRE(*it == Color::BLUE);
+  }
+
+  SUBCASE("find - absent values") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::GREEN);
+    REQUIRE(bs.find(Color::RED)  == bs.end());
+    REQUIRE(bs.find(Color::BLUE) == bs.end());
+  }
+
+  SUBCASE("find - empty bitset") {
+    magic_enum::containers::bitset<Color> bs;
+    for (Color e : magic_enum::enum_values<Color>())
+      REQUIRE(bs.find(e) == bs.end());
+  }
+
+  SUBCASE("find - all set, const bitset") {
+    const magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    for (Color e : magic_enum::enum_values<Color>()) {
+      auto it = bs.find(e);
+      REQUIRE(it != bs.end());
+      REQUIRE(*it == e);
+    }
+  }
+
+  SUBCASE("find - iterator can be incremented to next element") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    auto it = bs.find(Color::GREEN);
+    REQUIRE(*it == Color::GREEN);
+    ++it;
+    REQUIRE(*it == Color::BLUE);
+  }
+
+  SUBCASE("non-const begin returns mutable iterator") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    auto it = bs.begin();
+    REQUIRE_FALSE(check_const(it));
+  }
+
+  SUBCASE("cbegin/cend usable on non-const bitset") {
+    magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    magic_enum::containers::bitset<Color>::const_iterator cit = bs.cbegin();
+    std::size_t n = 0;
+    while (cit != bs.cend()) { ++n; ++cit; }
+    REQUIRE(n == 3);
+  }
+
+  SUBCASE("iterator to const_iterator implicit conversion") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    magic_enum::containers::bitset<Color>::iterator       it  = bs.begin();
+    magic_enum::containers::bitset<Color>::const_iterator cit = it;
+    REQUIRE(*it == *cit);
+    REQUIRE(it == cit);
+  }
+
+  SUBCASE("const range-for") {
+    const magic_enum::containers::bitset<Color> bs{ Color::RED | Color::GREEN | Color::BLUE };
+    std::size_t n = 0;
+    for ([[maybe_unused]] Color e : bs) { ++n; }
+    REQUIRE(n == 3);
+  }
+
+  SUBCASE("operator->") {
+    magic_enum::containers::bitset<Color> bs;
+    bs.set(Color::RED);
+    auto it = bs.begin();
+    REQUIRE(it.operator->() == &(*it));
+  }
+
+  // Regression check for the B7/MSB path used by reverse iteration.
+  SUBCASE("Nibble - single MSB element B7 (countl_zero regression)") {
+    magic_enum::containers::bitset<Nibble> bs;
+    bs.set(Nibble::B7);
+    REQUIRE(*bs.begin() == Nibble::B7);
+    auto it = bs.end();
+    --it;
+    REQUIRE(*it == Nibble::B7);
+  }
+
+  SUBCASE("Nibble - first and last (B0 and B7)") {
+    magic_enum::containers::bitset<Nibble> bs;
+    bs.set(Nibble::B0);
+    bs.set(Nibble::B7);
+    auto it = bs.begin();
+    REQUIRE(*it == Nibble::B0); ++it;
+    REQUIRE(*it == Nibble::B7); ++it;
+    REQUIRE(it == bs.end());
+    --it; REQUIRE(*it == Nibble::B7);
+    --it; REQUIRE(*it == Nibble::B0);
+  }
+
+  SUBCASE("Nibble - forward iteration all 8 values") {
+    magic_enum::containers::bitset<Nibble> bs;
+    for (Nibble e : magic_enum::enum_values<Nibble>()) { bs.set(e); }
+    constexpr auto expected = magic_enum::enum_values<Nibble>();
+    std::size_t i = 0;
+    for (Nibble e : bs) { REQUIRE(e == expected[i++]); }
+    REQUIRE(i == expected.size());
+  }
+
+  SUBCASE("Nibble - backward iteration all 8 values") {
+    magic_enum::containers::bitset<Nibble> bs;
+    for (Nibble e : magic_enum::enum_values<Nibble>()) { bs.set(e); }
+    constexpr auto expected = magic_enum::enum_values<Nibble>();
+    auto it = bs.end();
+    for (std::size_t j = expected.size(); j > 0; --j) {
+      --it;
+      REQUIRE(*it == expected[j - 1]);
+    }
+  }
+
+  SUBCASE("Nibble - partial middle elements") {
+    magic_enum::containers::bitset<Nibble> bs;
+    bs.set(Nibble::B2);
+    bs.set(Nibble::B5);
+    auto it = bs.begin();
+    REQUIRE(*it == Nibble::B2); ++it;
+    REQUIRE(*it == Nibble::B5); ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("Numbers - forward iteration partial") {
+    magic_enum::containers::bitset<Numbers> bs;
+    bs.set(Numbers::ONE);
+    bs.set(Numbers::THREE);
+    auto it = bs.begin();
+    REQUIRE(*it == Numbers::ONE);   ++it;
+    REQUIRE(*it == Numbers::THREE); ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("Numbers - backward iteration partial") {
+    magic_enum::containers::bitset<Numbers> bs;
+    bs.set(Numbers::ONE);
+    bs.set(Numbers::THREE);
+    auto it = bs.end();
+    --it; REQUIRE(*it == Numbers::THREE);
+    --it; REQUIRE(*it == Numbers::ONE);
+  }
+
+  SUBCASE("Numbers - all values forward and backward") {
+    magic_enum::containers::bitset<Numbers> bs;
+    for (Numbers e : magic_enum::enum_values<Numbers>()) { bs.set(e); }
+    constexpr auto expected = magic_enum::enum_values<Numbers>();
+    std::size_t i = 0;
+    for (Numbers e : bs) { REQUIRE(e == expected[i++]); }
+    REQUIRE(i == expected.size());
+    auto it = bs.end();
+    for (std::size_t j = expected.size(); j > 0; --j) {
+      --it; REQUIRE(*it == expected[j - 1]);
+    }
+  }
+
+  SUBCASE("Flags9 - forward iteration partial") {
+    magic_enum::containers::bitset<Flags9> bs;
+    bs.set(Flags9::A);
+    bs.set(Flags9::E);
+    bs.set(Flags9::I);
+    auto it = bs.begin();
+    REQUIRE(*it == Flags9::A); ++it;
+    REQUIRE(*it == Flags9::E); ++it;
+    REQUIRE(*it == Flags9::I); ++it;
+    REQUIRE(it == bs.end());
+  }
+
+  SUBCASE("Flags9 - backward from end") {
+    magic_enum::containers::bitset<Flags9> bs;
+    bs.set(Flags9::A);
+    bs.set(Flags9::I);
+    auto it = bs.end();
+    --it; REQUIRE(*it == Flags9::I);
+    --it; REQUIRE(*it == Flags9::A);
+  }
+
+  SUBCASE("Flags9 - all 9 values forward and backward") {
+    magic_enum::containers::bitset<Flags9> bs;
+    for (Flags9 e : magic_enum::enum_values<Flags9>()) { bs.set(e); }
+    constexpr auto expected = magic_enum::enum_values<Flags9>();
+    std::size_t i = 0;
+    for (Flags9 e : bs) { REQUIRE(e == expected[i++]); }
+    REQUIRE(i == expected.size());
+    auto it = bs.end();
+    for (std::size_t j = expected.size(); j > 0; --j) {
+      --it; REQUIRE(*it == expected[j - 1]);
+    }
+  }
+
+  SUBCASE("Flags9 - empty bitset") {
+    magic_enum::containers::bitset<Flags9> bs;
+    REQUIRE(bs.begin() == bs.end());
+    REQUIRE(bs.find(Flags9::A) == bs.end());
+    REQUIRE(bs.find(Flags9::I) == bs.end());
   }
 }

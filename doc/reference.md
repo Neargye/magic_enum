@@ -973,6 +973,17 @@ class bitset {
   // to_string -> "GREEN|BLUE"
   ```
 
+  ```cpp
+  std::uint8_t incoming = 0b00000011;
+  auto color_bitset = magic_enum::containers::bitset<Color> {magic_enum::containers::raw_access, incoming};
+  bool has_red = color_bitset.test(Color::RED);
+  bool has_green = color_bitset.test(Color::GREEN);
+  bool has_blue = color_bitset.test(Color::BLUE);
+
+  color_bitset.set(Color::BLUE);
+  auto raw_value = color_bitset.to_ulong(magic_enum::containers::raw_access);
+  ```
+
 ## `containers::set`
 
 ```cpp
@@ -1122,4 +1133,13 @@ class set {
   color_set.insert(Color::RED);
   std::size_t size = color_set.size();
   // size -> 3
+  ```
+
+  ```cpp
+  using name_set = magic_enum::containers::set<Color, magic_enum::containers::name_less<>>;
+  name_set color_set {Color::RED, Color::GREEN, Color::BLUE};
+
+  bool has_green = color_set.contains(std::string_view{"GREEN"});
+  auto it = color_set.find(std::string_view{"GREEN"});
+  auto range = color_set.equal_range(std::string_view{"GREEN"});
   ```

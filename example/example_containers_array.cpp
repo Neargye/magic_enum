@@ -38,7 +38,7 @@ struct RGB {
   std::uint8_t g {};
   std::uint8_t b {};
 
-  [[nodiscard]] constexpr bool empty() { return std::equal_to{}(r, g) && std::equal_to{}(g, b) && std::equal_to{}(b, 0); }
+  [[nodiscard]] constexpr bool empty() const { return std::equal_to{}(r, g) && std::equal_to{}(g, b) && std::equal_to{}(b, 0); }
 
   [[nodiscard]] constexpr bool operator==(RGB rgb) const noexcept { return std::equal_to{}(r, rgb.r) && std::equal_to{}(g, rgb.g) && std::equal_to{}(b, rgb.b); }
 
@@ -61,6 +61,11 @@ int main() {
   std::cout << magic_enum::containers::get<Color::RED>(color_rgb_initializer) << std::endl; // R=255 G=0 B=0
   std::cout << magic_enum::containers::get<Color::GREEN>(color_rgb_initializer) << std::endl; // R=0 G=255 B=0
   std::cout << magic_enum::containers::get<Color::BLUE>(color_rgb_initializer) << std::endl; // R=0 G=0 B=255
+
+  constexpr auto color_rgb_make = magic_enum::containers::make_array<Color>(RGB{color_max, 0, 0}, RGB{0, color_max, 0}, RGB{0, 0, color_max});
+  std::cout << magic_enum::containers::get<Color::RED>(color_rgb_make) << std::endl;   // R=255 G=0 B=0
+  std::cout << magic_enum::containers::get<Color::GREEN>(color_rgb_make) << std::endl; // R=0 G=255 B=0
+  std::cout << magic_enum::containers::get<Color::BLUE>(color_rgb_make) << std::endl;  // R=0 G=0 B=255
 
   return 0;
 }

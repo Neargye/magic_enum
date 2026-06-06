@@ -271,12 +271,10 @@ If you like this project, please consider donating to one of the funds that help
 * `containers::bitset` bitset container for enums.
 
   ```cpp
-  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
-  bool all = color_bitset_red_green.all();
-  // all -> false
-  // Color::BLUE is missing
-  bool test = color_bitset_red_green.test(Color::RED);
-  // test -> true
+  std::uint8_t incoming = 0b00000011;
+  auto color_bitset = magic_enum::containers::bitset<Color> {magic_enum::containers::raw_access, incoming};
+  color_bitset.set(Color::BLUE);
+  auto raw_value = color_bitset.to_ulong(magic_enum::containers::raw_access);
   ```
 
 * `containers::set` set container for enums.

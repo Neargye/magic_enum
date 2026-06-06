@@ -35,7 +35,7 @@
 
 #include "magic_enum.hpp"
 
-#if __has_include(<bit>)
+#if __has_include(<bit>) && (__cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L))
 #  include <bit>
 #endif
 
@@ -366,12 +366,14 @@ template<class T> constexpr int countl_zero(T x) noexcept {
 #  endif
   }
 #else
+  // __builtin_clz* counts leading zeros in the promoted type width, not in T.
+  // We must subtract the extra bits introduced by zero-extension.
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
-    return x ? __builtin_clz(static_cast<unsigned int>(x)) : static_cast<int>(sizeof(T) * 8);
+    return x ? __builtin_clz(static_cast<unsigned int>(x)) - static_cast<int>((sizeof(unsigned int) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
   } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return x ? __builtin_clzl(static_cast<unsigned long>(x)) : static_cast<int>(sizeof(T) * 8);
+    return x ? __builtin_clzl(static_cast<unsigned long>(x)) - static_cast<int>((sizeof(unsigned long) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
   } else {
-    return x ? __builtin_clzll(static_cast<unsigned long long>(x)) : static_cast<int>(sizeof(T) * 8);
+    return x ? __builtin_clzll(static_cast<unsigned long long>(x)) - static_cast<int>((sizeof(unsigned long long) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
   }
 #endif
 }
@@ -660,7 +662,7 @@ class bitset {
     [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept{
       for (std::size_t num_index = 0; num_index < base_type_count; ++num_index) {
         if (p->a[num_index] > 0) {
-          base_type bit_index = p->a[num_index] & -p->a[num_index];
+          base_type bit_index = static_cast<base_type>(p->a[num_index] & -p->a[num_index]);
           return iterator_impl(p, std::pair{num_index, bit_index});
         }
       }
@@ -676,14 +678,14 @@ class bitset {
     [[nodiscard]] constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
     constexpr iterator_impl& operator++() noexcept {
-      base_type remaining_bits = parent->a[num_index] & ~((bit_index << 1) - 1);
+      base_type remaining_bits = static_cast<base_type>(parent->a[num_index] & ~((bit_index << 1) - 1));
       while (remaining_bits == 0 && ++num_index < base_type_count) {
         remaining_bits = parent->a[num_index];
       }
       if (num_index >= base_type_count) {
         return *this = end(parent);
       }
-      bit_index = remaining_bits & -remaining_bits;
+      bit_index = static_cast<base_type>(remaining_bits & -remaining_bits);
       return *this;
     }
 
@@ -710,10 +712,10 @@ class bitset {
       }
       if (remaining_bits == 0) {
         num_index = std::numeric_limits<std::size_t>::max();
-        bit_index = base_type{1} << (bits_per_base - 1);
+        bit_index = static_cast<base_type>(base_type{1} << (bits_per_base - 1));
         return *this;
       }
-      bit_index = base_type{1} << (detail::bit_width(remaining_bits) - 1);
+      bit_index = static_cast<base_type>(base_type{1} << (detail::bit_width(remaining_bits) - 1));
       return *this;
     }
 
@@ -1098,9 +1100,11 @@ class set {
   constexpr set& operator=(const set&) noexcept = default;
   constexpr set& operator=(set&&) noexcept = default;
   constexpr set& operator=(std::initializer_list<E> ilist) {
+    clear();
     for (auto e : ilist) {
       insert(e);
     }
+    return *this;
   }
 
   constexpr const_iterator begin() const noexcept {
@@ -1169,7 +1173,7 @@ class set {
 
   template <typename... Args>
   constexpr std::pair<iterator, bool> emplace(Args&&... args) noexcept {
-    return insert({std::forward<Args>(args)...});
+    return insert(value_type{std::forward<Args>(args)...});
   }
 
   template <typename... Args>
@@ -1208,9 +1212,8 @@ class set {
   }
 
   void swap(set& other) noexcept {
-    set cp = *this;
-    *this = other;
-    other = cp;
+    std::swap(a, other.a);
+    std::swap(s, other.s);
   }
 
   [[nodiscard]] constexpr size_type count(const key_type& key) const noexcept { return index_type::at(key) && a[key]; }
