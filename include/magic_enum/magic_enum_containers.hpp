@@ -115,6 +115,8 @@ constexpr std::size_t popcount(T x) noexcept {
   return c;
 }
 
+namespace impl {
+
 template <typename Cmp = std::less<>, typename ForwardIt, typename E>
 constexpr ForwardIt lower_bound(ForwardIt first, ForwardIt last, E&& e, Cmp&& comp = {}) {
   auto count = std::distance(first, last);
@@ -131,10 +133,12 @@ constexpr ForwardIt lower_bound(ForwardIt first, ForwardIt last, E&& e, Cmp&& co
   return first;
 }
 
+} // namespace impl
+
 template <typename Cmp = std::less<>, typename BidirIt, typename E>
 constexpr auto equal_range(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
-  const auto first = lower_bound(begin, end, e, comp);
-  return std::pair{first, lower_bound(std::make_reverse_iterator(end), std::make_reverse_iterator(first), e, [&comp](auto&& lhs, auto&& rhs) { return comp(rhs, lhs); }).base()};
+  const auto first = impl::lower_bound(begin, end, e, comp);
+  return std::pair{first, impl::lower_bound(std::make_reverse_iterator(end), std::make_reverse_iterator(first), e, [&comp](auto&& lhs, auto&& rhs) { return comp(rhs, lhs); }).base()};
 }
 
 template <typename E = void, typename Cmp = std::less<E>, typename = void>
