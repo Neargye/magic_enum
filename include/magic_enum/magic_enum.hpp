@@ -947,6 +947,12 @@ struct is_unscoped_enum : std::false_type {};
 template <typename T>
 struct is_unscoped_enum<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
+template <typename T, bool = std::is_enum_v<T>>
+struct is_flags_enum : std::false_type {};
+
+template <typename T>
+struct is_flags_enum<T, true> : std::bool_constant<subtype_v<T> == enum_subtype::flags> {};
+
 template <typename T, bool = std::is_enum_v<std::decay_t<T>>>
 struct underlying_type {};
 
@@ -1187,6 +1193,13 @@ struct is_scoped_enum : detail::is_scoped_enum<T> {};
 
 template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
+
+// Returns true if T is a flags enumeration type (i.e., enum_range<T>::is_flags == true).
+template <typename T>
+struct is_flags_enum : detail::is_flags_enum<T> {};
+
+template <typename T>
+inline constexpr bool is_flags_v = is_flags_enum<T>::value;
 
 // If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
 // Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
