@@ -38,6 +38,7 @@
 #include <magic_enum/magic_enum_iostream.hpp>
 
 #include <functional>
+#include <unordered_set>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
@@ -251,6 +252,44 @@ TEST_CASE("containers_bitset") {
   REQUIRE_FALSE(color_bitset_red_green.all());
   REQUIRE(color_bitset_red_green.any());
   REQUIRE_FALSE(color_bitset_red_green.none());
+}
+
+TEST_CASE("containers_bitset_hash") {
+  using namespace magic_enum::bitwise_operators;
+  using magic_enum::containers::bitset;
+  using magic_enum::containers::raw_access;
+
+  std::hash<bitset<Color>> hasher;
+
+  // empty bitset has a stable hash
+  bitset<Color> empty;
+  REQUIRE(hasher(empty) == hasher(empty));
+
+  // equal bitsets produce the same hash
+  bitset<Color> a;
+  a.set(Color::RED);
+  a.set(Color::GREEN);
+  bitset<Color> b;
+  b.set(Color::RED);
+  b.set(Color::GREEN);
+  REQUIRE(hasher(a) == hasher(b));
+
+  // different bitsets produce different hashes
+  bitset<Color> c;
+  c.set(Color::BLUE);
+  REQUIRE(hasher(a) != hasher(c));
+
+  // hash matches std::hash<unsigned long long> applied to the same bit pattern
+  REQUIRE(hasher(a) == std::hash<unsigned long long>{}(a.to_ullong(raw_access)));
+
+  // usable as key in unordered_set
+  std::unordered_set<bitset<Color>> s;
+  s.insert(bitset<Color>{Color::RED});
+  s.insert(bitset<Color>{Color::GREEN});
+  s.insert(bitset<Color>{Color::RED});   // duplicate
+  REQUIRE(s.size() == 2);
+  REQUIRE(s.count(bitset<Color>{Color::RED}) == 1);
+  REQUIRE(s.count(bitset<Color>{Color::BLUE}) == 0);
 }
 
 TEST_CASE("containers_set") {

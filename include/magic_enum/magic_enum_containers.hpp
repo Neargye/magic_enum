@@ -480,17 +480,17 @@ struct array {
 
   [[nodiscard]] constexpr const_iterator cend() const noexcept { return a.cend(); }
 
-  [[nodiscard]] constexpr iterator rbegin() noexcept { return a.rbegin(); }
+  [[nodiscard]] constexpr reverse_iterator rbegin() noexcept { return a.rbegin(); }
 
-  [[nodiscard]] constexpr const_iterator rbegin() const noexcept { return a.rbegin(); }
+  [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept { return a.rbegin(); }
 
-  [[nodiscard]] constexpr const_iterator crbegin() const noexcept { return a.crbegin(); }
+  [[nodiscard]] constexpr const_reverse_iterator crbegin() const noexcept { return a.crbegin(); }
 
-  [[nodiscard]] constexpr iterator rend() noexcept { return a.rend(); }
+  [[nodiscard]] constexpr reverse_iterator rend() noexcept { return a.rend(); }
 
-  [[nodiscard]] constexpr const_iterator rend() const noexcept { return a.rend(); }
+  [[nodiscard]] constexpr const_reverse_iterator rend() const noexcept { return a.rend(); }
 
-  [[nodiscard]] constexpr const_iterator crend() const noexcept { return a.crend(); }
+  [[nodiscard]] constexpr const_reverse_iterator crend() const noexcept { return a.crend(); }
 
   [[nodiscard]] constexpr bool empty() const noexcept { return a.empty(); }
 
@@ -1025,7 +1025,7 @@ class bitset {
 
   [[nodiscard]] constexpr unsigned long long to_ullong(detail::raw_access_t raw) const { return to_<unsigned long long>(raw); }
 
-  [[nodiscard]] constexpr unsigned long long to_ulong(detail::raw_access_t raw) const { return to_<unsigned long>(raw); }
+  [[nodiscard]] constexpr unsigned long to_ulong(detail::raw_access_t raw) const { return to_<unsigned long>(raw); }
 
   friend std::ostream& operator<<(std::ostream& o, const bitset& bs) { return o << bs.to_string(); }
 
@@ -1381,5 +1381,12 @@ constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(En
 }
 
 } // namespace magic_enum::containers
+
+template <typename E, typename Index>
+struct std::hash<magic_enum::containers::bitset<E, Index>> {
+  std::size_t operator()(const magic_enum::containers::bitset<E, Index>& bs) const {
+    return std::hash<unsigned long long>{}(bs.to_ullong(magic_enum::containers::raw_access));
+  }
+};
 
 #endif // NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
