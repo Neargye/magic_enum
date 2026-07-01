@@ -16,7 +16,7 @@ jobs:
 
     name: "${{ matrix.config.vs }}"
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Build Win32
       shell: bash

@@ -35,7 +35,7 @@ jobs:
     name: "${{ format('{0} NONASCII={1} MODULES={2} IMPORT_STD={3}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules, matrix.compiler.import_std) }}"
     runs-on: ${{ matrix.compiler.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Configure clang
       run: |
