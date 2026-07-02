@@ -15,10 +15,10 @@
 * [`enum_type_name` returns type name of enum.](#enum_type_name)
 * [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
 * [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
-* [`enum_for_each` calls a function with all enum constexpr value.](#enum_for_each)
+* [`enum_for_each` calls a function with each enum value as a constexpr constant.](#enum_for_each)
 * [`enum_flags_*` functions for flags.](#enum_flags)
 * [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
-* [`is_scoped_enum` checks whether type is an Scoped enumeration.](#is_scoped_enum)
+* [`is_scoped_enum` checks whether type is a Scoped enumeration.](#is_scoped_enum)
 * [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
 * [`ostream_operators` ostream operators for enums.](#ostream_operators)
 * [`istream_operators` istream operators for enums.](#istream_operators)
@@ -84,7 +84,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
 
 * Returns `optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
 
-* If argument does not enum value, returns empty `optional`.
+* If argument does not match an enum value, returns empty `optional`.
 
 * Examples
 
@@ -104,7 +104,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
     auto color = magic_enum::enum_cast<Color>(value, [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); });
 
     // enum_cast with default
-    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
     ```
 
   * Integer to enum value.
@@ -116,7 +116,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
         // color.value() -> Color::BLUE
     }
 
-    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
+    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
     ```
 
 ## `enum_value`
@@ -204,7 +204,7 @@ constexpr underlying_type_t<E> enum_underlying(E value) noexcept;
   ```cpp
   Color color = Color::RED;
   auto color_integer = magic_enum::enum_integer(color);
-  // color -> 2
+  // color_integer -> -10
   ```
 
 ## `enum_name`
@@ -303,8 +303,7 @@ struct enum_range {
 
 * `prefix_length` tells `magic_enum` how many characters to remove from the start of the names for all string functions. It is not required to be defined if not defined it will be assumed to be `0`
 
-* `min` and `max` are not required to be defined if `is_flags` is defined because they are ignored for enum flags.
-  otherwise they are required.
+* `min` and `max` are optional for normal enums and default to `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX`. They are ignored for enum flags.
 
 * Examples
 
@@ -321,8 +320,8 @@ struct enum_range {
     struct magic_enum::customize::enum_range<CStyleAnimals> {
         // sizeof counts null terminator subtract 1 to get length
         constexpr static auto prefix_length = sizeof("CStyleAnimals_")-1;
-        constexpr static int min = CStyleAnimals_Giraffe; // required
-        constexpr static int max = CStyleAnimals_Lion;    // required
+        constexpr static int min = CStyleAnimals_Giraffe; // optional, narrows the search range
+        constexpr static int max = CStyleAnimals_Lion;    // optional, narrows the search range
     };
   
     CStyleAnimals animal = CStyleAnimals_Giraffe;
@@ -348,7 +347,7 @@ constexpr size_t enum_index() noexcept;
 
 * Returns index in enum values from enum value.
   * `enum_index(value)` returns `optional<size_t>` with index.
-  * `enum_index<value>()` returns index. If enum value does not have a index, occurs the compilation error `magic_enum::enum_index enum value does not have a index`.
+  * `enum_index<value>()` returns index. If enum value does not have an index, occurs the compilation error `magic_enum::enum_index enum value does not have a index`.
 
 * Examples
 
@@ -383,13 +382,13 @@ constexpr bool enum_contains(string_view value, BinaryPredicate p);
 
 * Checks whether enum contains enumerator with such value.
 
-* Returns true is enum contains value, otherwise false.
+* Returns true if enum contains value, otherwise false.
 
 * Examples
 
   ```cpp
   magic_enum::enum_contains(Color::GREEN); // -> true
-  magic_enum::enum_contains<Color>(2); // -> true
+  magic_enum::enum_contains<Color>(0); // -> true
   magic_enum::enum_contains<Color>(123); // -> false
   magic_enum::enum_contains<Color>("GREEN"); // -> true
   magic_enum::enum_contains<Color>("fda"); // -> false
@@ -442,7 +441,7 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 * Return type is `optional<enum_fuse_t>` where `enum_fuse_t` is an incomplete enum, it is unique for any given combination of `Es...`.
 
 * Switch/case statement over an incomplete enum is a Visual Studio warning C4064
-  * You have to silent (/wd4064) or ignore it.
+  * Suppress (/wd4064) or ignore it.
   * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `uintmax_t`).
 
 * Examples
@@ -451,7 +450,7 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
   switch (magic_enum::enum_fuse(color, direction).value()) {
     case magic_enum::enum_fuse(Color::RED, Directions::Up).value(): // ...
     case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
-    case magic_enum::enum_fuse(Directions::BLUE, Color::Down).value(): // Compilation error
+    case magic_enum::enum_fuse(Directions::Up, Color::RED).value(): // Compilation error
   // ...
   }
   ```
@@ -547,9 +546,9 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   };
   ```
 
-  * `MAGIC_ENUM_RANGE_MAX/MAGIC_ENUM_RANGE_MIN` does not affect the maximum amount of flags.
+  * `MAGIC_ENUM_RANGE_MAX` / `MAGIC_ENUM_RANGE_MIN` does not affect the maximum number of enum flags.
 
-  * If enum is declared as flags, then it will not reflect the value of zero and is logically AND.
+  * If an enum is declared as a flag enum, its zero value will not be reflected.
 
 * Examples
 
@@ -565,22 +564,23 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
+  using namespace magic_enum::bitwise_operators;
 
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Directions::Up|Directions::Right"
-  magic_enum::enum_flags_name(Directions::LeftAndDown); // -> "Directions::Left|Directions::Down"
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Directions::Up,Directions::Right"
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
+  magic_enum::enum_flags_name(Directions::LeftAndDown); // -> "Left|Down"
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
 
   magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
-  magic_enum::enum_flags_contains(Directions::LeftAndDown); // -> false
+  magic_enum::enum_flags_contains(Directions::LeftAndDown); // -> true
 
-  magic_enum::enum_flags_cast(3); // -> "Directions::Left|Directions::Down"
-  magic_enum::enum_flags_cast<Directions>("Directions::Left|Directions::Down"); // -> Directions::Left|Directions::Down
-  magic_enum::enum_flags_cast<Directions>("Left,Down", ','); // -> Directions::Left|Directions::Down
+  magic_enum::enum_flags_cast<Directions>(3).value(); // -> Directions::Left|Directions::Down
+  magic_enum::enum_flags_cast<Directions>("Left|Down").value(); // -> Directions::Left|Directions::Down
+  magic_enum::enum_flags_cast<Directions>("Left,Down", ',').value(); // -> Directions::Left|Directions::Down
 
-  magic_enum::enum_flags_test(Left|Down, Down); // -> true
-  magic_enum::enum_flags_test(Left|Down, Right); // -> false
+  magic_enum::enum_flags_test(Directions::Left | Directions::Down, Directions::Down); // -> true
+  magic_enum::enum_flags_test(Directions::Left | Directions::Down, Directions::Right); // -> false
 
-  magic_enum::enum_flags_test_any(Left|Down|Right, Down|Right); // -> true
+  magic_enum::enum_flags_test_any(Directions::Left | Directions::Down | Directions::Right, Directions::Down | Directions::Right); // -> true
   ```
 
 * Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `magic_enum_define_range_adl(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
@@ -641,9 +641,9 @@ inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
+* Checks whether type is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 
-* Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type.</br>
+* Provides the member constant value which is equal to true, if T is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type.</br>
   Otherwise, value is equal to false.
 
 * Examples

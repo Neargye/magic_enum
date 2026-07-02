@@ -61,7 +61,7 @@ If you like this project, please consider donating to one of the funds that help
   auto color = magic_enum::enum_cast<Color>(value, [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); });
 
   // enum_cast with default
-  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
   ```
 
 * Integer to enum value
@@ -73,7 +73,7 @@ If you like this project, please consider donating to one of the funds that help
     // color.value() -> Color::BLUE
   }
 
-  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::NONE);
+  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
   ```
 
 * Indexed access to enum value
@@ -155,7 +155,7 @@ If you like this project, please consider donating to one of the funds that help
 
   ```cpp
   magic_enum::enum_contains(Color::GREEN); // -> true
-  magic_enum::enum_contains<Color>(2); // -> true
+  magic_enum::enum_contains<Color>(0); // -> true
   magic_enum::enum_contains<Color>(123); // -> false
   magic_enum::enum_contains<Color>("GREEN"); // -> true
   magic_enum::enum_contains<Color>("fda"); // -> false
@@ -182,12 +182,13 @@ If you like this project, please consider donating to one of the funds that help
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
+  using namespace magic_enum::bitwise_operators;
 
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Directions::Up|Directions::Right"
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Directions::Up,Directions::Right"
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
+  magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
   magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
-  magic_enum::enum_flags_cast(3); // -> "Directions::Left|Directions::Down"
-  magic_enum::enum_flags_cast<Directions>("Left,Down", ','); // -> Directions::Left|Directions::Down
+  magic_enum::enum_flags_cast<Directions>(3).value(); // -> Directions::Left|Directions::Down
+  magic_enum::enum_flags_cast<Directions>("Left,Down", ',').value(); // -> Directions::Left|Directions::Down
   ```
 
 * Enum type name
@@ -235,7 +236,7 @@ If you like this project, please consider donating to one of the funds that help
   magic_enum::is_unscoped_enum_v<color> -> true
   ```
 
-* Checks whether type is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
+* Checks whether type is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
 
   ```cpp
   enum color { red, green, blue };
@@ -367,7 +368,7 @@ If you like this project, please consider donating to one of the funds that help
   ```
 
   Caveats:
-  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit — ODR violation.
+  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit; this is an ODR violation.
   - `import std;` is opt-in: add `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_IMPORT_STD=ON` (requires CMake 3.30+).
 
 ## Compiler compatibility
