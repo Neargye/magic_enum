@@ -28,8 +28,13 @@
 
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
+
+#include "test_helpers.hpp"
+
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
+using namespace magic_enum_tests;
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 
@@ -64,4 +69,37 @@ TEST_CASE("string_view") {
   auto cn = enum_name(Color{0});
   REQUIRE(cn.empty());
   REQUIRE(cn.size() == 0);
+}
+
+TEST_CASE("string_view lifetime and null termination") {
+  MyStringView static_name{};
+  static_name = enum_name<Color::BLUE>();
+  require_null_terminated(static_name, "BLUE");
+
+  MyStringView value_name{};
+  value_name = enum_name(Color::RED);
+  require_null_terminated(value_name, "RED");
+
+  MyStringView invalid_name{};
+  invalid_name = enum_name(Color{0});
+  require_null_terminated(invalid_name, "");
+
+  MyStringView type_name{};
+  type_name = enum_type_name<Color>();
+  require_null_terminated(type_name, "Color");
+
+  MyStringView array_name{};
+  array_name = enum_names<Color>()[1];
+  require_null_terminated(array_name, "GREEN");
+
+  MyStringView entry_name{};
+  entry_name = enum_entries<Color>()[2].second;
+  require_null_terminated(entry_name, "BLUE");
+
+  for (MyStringView name : enum_names<Color>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<Color>()) {
+    require_null_terminated(entry.second);
+  }
 }

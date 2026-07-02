@@ -13,7 +13,7 @@ _COPTS = select({
 })
 [cc_test(
     name = test,
-    srcs = ["{}.cpp".format(test)],
+    srcs = ["{}.cpp".format(test), "test_helpers.hpp"],
     deps = ["@magic_enum", ":doctest"],
     copts = _COPTS,
 ) for test in _TESTS]

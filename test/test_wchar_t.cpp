@@ -29,10 +29,11 @@
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
+#include "test_helpers.hpp"
+
 #include <array>
 #include <cctype>
 #include <string_view>
-#include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 template <>
@@ -46,6 +47,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 }
 
 using namespace magic_enum;
+using namespace magic_enum_tests;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
@@ -117,32 +119,48 @@ TEST_CASE("enum_entries") {
   REQUIRE(s1 == std::array<std::pair<Color, std::wstring_view>, 3>{{{Color::RED, L"red"}, {Color::GREEN, L"GREEN"}, {Color::BLUE, L"BLUE"}}});
 }
 
-TEST_CASE("ostream_operators") {
-  auto test_ostream = [](auto e, std::wstring name) {
-    using namespace magic_enum::ostream_operators;
-    std::wstringstream ss;
-    ss << e;
-    REQUIRE(ss);
-    REQUIRE(ss.str() == name);
-  };
+TEST_CASE("wstring_view lifetime and null termination") {
+  std::wstring_view static_name{};
+  static_name = enum_name<Color::BLUE>();
+  require_null_terminated(static_name, L"BLUE");
 
-  test_ostream(std::make_optional(Color::RED), L"red");
-  test_ostream(Color::GREEN, L"GREEN");
-  test_ostream(Color::BLUE, L"BLUE");
-  test_ostream(static_cast<Color>(0), L"0");
-  test_ostream(std::make_optional(static_cast<Color>(0)), L"0");
+  std::wstring_view customized_name{};
+  customized_name = enum_name(Color::RED);
+  require_null_terminated(customized_name, L"red");
+
+  std::wstring_view invalid_name{};
+  invalid_name = enum_name(static_cast<Color>(0));
+  require_null_terminated(invalid_name, L"");
+
+  std::wstring_view type_name{};
+  type_name = enum_type_name<Color>();
+  require_null_terminated(type_name, L"Color");
+
+  std::wstring_view array_name{};
+  array_name = enum_names<Color>()[1];
+  require_null_terminated(array_name, L"GREEN");
+
+  std::wstring_view entry_name{};
+  entry_name = enum_entries<Color>()[2].second;
+  require_null_terminated(entry_name, L"BLUE");
+
+  for (std::wstring_view name : enum_names<Color>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<Color>()) {
+    require_null_terminated(entry.second);
+  }
+}
+
+TEST_CASE("ostream_operators") {
+  require_ostream(std::make_optional(Color::RED), L"red");
+  require_ostream(Color::GREEN, L"GREEN");
+  require_ostream(Color::BLUE, L"BLUE");
+  require_ostream(static_cast<Color>(0), L"0");
+  require_ostream(std::make_optional(static_cast<Color>(0)), L"0");
 }
 
 TEST_CASE("istream_operators") {
-  auto test_istream = [](const auto e, std::wstring name) {
-    using namespace magic_enum::istream_operators;
-    std::wistringstream ss(name);
-    std::decay_t<decltype(e)> v;
-    ss >> v;
-    REQUIRE(ss);
-    REQUIRE(v == e);
-  };
-
-  test_istream(Color::GREEN, L"GREEN");
-  test_istream(Color::BLUE, L"BLUE");
+  require_istream(Color::GREEN, L"GREEN");
+  require_istream(Color::BLUE, L"BLUE");
 }

@@ -31,10 +31,12 @@
 #include <magic_enum/magic_enum_fuse.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
+#include "test_helpers.hpp"
+
 #include <array>
 #include <cctype>
+#include <string>
 #include <string_view>
-#include <sstream>
 
 enum class Language : int { 日本語 = 10, 한국어 = 20, English = 30, 😃 = 40, TVÅ = 50 };
 
@@ -46,6 +48,7 @@ enum class LanguageFlag : int {
 };
 
 using namespace magic_enum;
+using namespace magic_enum_tests;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
@@ -169,36 +172,48 @@ TEST_CASE("enum_entries") {
   REQUIRE(s5 == std::array<std::pair<Language, std::string_view>, 5>{{{Language::日本語, "日本語"}, {Language::한국어, "한국어"}, {Language::English, "English"}, {Language::😃, "😃"}, {Language::TVÅ, "TVÅ"}}});
 }
 
-TEST_CASE("ostream_operators") {
-  auto test_ostream = [](auto e, std::string name) {
-    using namespace magic_enum::ostream_operators;
-    std::stringstream ss;
-    ss << e;
-    REQUIRE(ss);
-    REQUIRE(ss.str() == name);
-  };
+TEST_CASE("nonascii string_view lifetime and null termination") {
+  std::string_view first_name{};
+  first_name = enum_name(enum_values<Language>()[0]);
+  require_null_terminated(first_name);
 
-  test_ostream(std::make_optional(Language::日本語), "日本語");
-  test_ostream(Language::한국어, "한국어");
-  test_ostream(Language::English, "English");
-  test_ostream(Language::😃, "😃");
-  test_ostream(static_cast<Language>(0), "0");
-  test_ostream(std::make_optional(static_cast<Language>(0)), "0");
+  std::string_view emoji_name{};
+  emoji_name = enum_name(enum_values<Language>()[3]);
+  require_null_terminated(emoji_name);
+
+  std::string_view invalid_name{};
+  invalid_name = enum_name(static_cast<Language>(0));
+  require_null_terminated(invalid_name, "");
+
+  std::string_view array_name{};
+  array_name = enum_names<Language>()[4];
+  require_null_terminated(array_name);
+
+  std::string_view entry_name{};
+  entry_name = enum_entries<Language>()[3].second;
+  require_null_terminated(entry_name);
+
+  for (std::string_view name : enum_names<Language>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<Language>()) {
+    require_null_terminated(entry.second);
+  }
+}
+
+TEST_CASE("ostream_operators") {
+  require_ostream(std::make_optional(Language::日本語), "日本語");
+  require_ostream(Language::한국어, "한국어");
+  require_ostream(Language::English, "English");
+  require_ostream(Language::😃, "😃");
+  require_ostream(static_cast<Language>(0), "0");
+  require_ostream(std::make_optional(static_cast<Language>(0)), "0");
 }
 
 TEST_CASE("istream_operators") {
-  auto test_istream = [](const auto e, std::string name) {
-    using namespace magic_enum::istream_operators;
-    std::istringstream ss(name);
-    std::decay_t<decltype(e)> v;
-    ss >> v;
-    REQUIRE(ss);
-    REQUIRE(v == e);
-  };
-
-  test_istream(Language::한국어, "한국어");
-  test_istream(Language::English, "English");
-  test_istream(Language::😃, "😃");
+  require_istream(Language::한국어, "한국어");
+  require_istream(Language::English, "English");
+  require_istream(Language::😃, "😃");
 }
 
 TEST_CASE("bitwise_operators") {
@@ -375,35 +390,50 @@ TEST_CASE("flag enum_entries") {
   REQUIRE(s5 == std::array<std::pair<LanguageFlag, std::string_view>, 4>{{{LanguageFlag::日本語, "日本語"}, {LanguageFlag::한국어, "한국어"}, {LanguageFlag::English, "English"}, {LanguageFlag::😃, "😃"}}});
 }
 
-TEST_CASE("flag ostream_operators") {
-  auto test_ostream = [](auto e, std::string name) {
-    using namespace magic_enum::ostream_operators;
-    std::stringstream ss;
-    ss << e;
-    REQUIRE(ss.str() == name);
-  };
+TEST_CASE("flag nonascii string lifetime and null termination") {
+  std::string_view first_name{};
+  first_name = enum_name(enum_values<LanguageFlag>()[0]);
+  require_null_terminated(first_name);
 
-  test_ostream(std::make_optional(LanguageFlag::日本語), "日本語");
-  test_ostream(LanguageFlag::한국어, "한국어");
-  test_ostream(LanguageFlag::English, "English");
-  test_ostream(LanguageFlag::😃, "😃");
-  test_ostream(static_cast<LanguageFlag>(0), "0");
-  test_ostream(std::make_optional(static_cast<LanguageFlag>(0)), "0");
+  std::string_view invalid_name{};
+  invalid_name = enum_name(static_cast<LanguageFlag>(0));
+  require_null_terminated(invalid_name, "");
+
+  std::string_view array_name{};
+  array_name = enum_names<LanguageFlag>()[3];
+  require_null_terminated(array_name);
+
+  std::string_view entry_name{};
+  entry_name = enum_entries<LanguageFlag>()[1].second;
+  require_null_terminated(entry_name);
+
+  auto flags_name = enum_flags_name(enum_values<LanguageFlag>()[0]);
+  require_c_str_null_terminated(flags_name);
+
+  auto empty_flags_name = enum_flags_name(static_cast<LanguageFlag>(0));
+  require_c_str_null_terminated(empty_flags_name, "");
+
+  for (std::string_view name : enum_names<LanguageFlag>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<LanguageFlag>()) {
+    require_null_terminated(entry.second);
+  }
+}
+
+TEST_CASE("flag ostream_operators") {
+  require_ostream(std::make_optional(LanguageFlag::日本語), "日本語");
+  require_ostream(LanguageFlag::한국어, "한국어");
+  require_ostream(LanguageFlag::English, "English");
+  require_ostream(LanguageFlag::😃, "😃");
+  require_ostream(static_cast<LanguageFlag>(0), "0");
+  require_ostream(std::make_optional(static_cast<LanguageFlag>(0)), "0");
 }
 
 TEST_CASE("flag istream_operators") {
-  auto test_istream = [](const auto e, std::string name) {
-    using namespace magic_enum::istream_operators;
-    std::istringstream ss(name);
-    std::decay_t<decltype(e)> v;
-    ss >> v;
-    REQUIRE(v == e);
-    REQUIRE(ss);
-  };
-
-  test_istream(LanguageFlag::한국어, "한국어");
-  test_istream(LanguageFlag::English, "English");
-  test_istream(LanguageFlag::😃, "😃");
+  require_istream(LanguageFlag::한국어, "한국어");
+  require_istream(LanguageFlag::English, "English");
+  require_istream(LanguageFlag::😃, "😃");
 }
 
 

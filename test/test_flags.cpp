@@ -39,10 +39,12 @@
 #include <magic_enum/magic_enum_iostream.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
+#include "test_helpers.hpp"
+
 #include <array>
 #include <cctype>
+#include <string>
 #include <string_view>
-#include <sstream>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
@@ -118,6 +120,7 @@ struct magic_enum::customize::enum_range<CStyleFlags> {
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
+using namespace magic_enum_tests;
 
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
@@ -588,74 +591,116 @@ TEST_CASE("enum_entries") {
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 4>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}, {number::four, "four"}}});
 }
 
+TEST_CASE("flags string lifetime and null termination") {
+  std::string_view value_name{};
+  value_name = enum_name(Color::RED);
+  require_null_terminated(value_name, "RED");
+
+  std::string_view static_name{};
+  static_name = enum_name<Color::BLUE>();
+  require_null_terminated(static_name, "BLUE");
+
+  std::string_view invalid_name{};
+  invalid_name = enum_name(Color::RED | Color::GREEN);
+  require_null_terminated(invalid_name, "");
+
+  std::string_view array_name{};
+  array_name = enum_names<Color>()[1];
+  require_null_terminated(array_name, "GREEN");
+
+  std::string_view entry_name{};
+  entry_name = enum_entries<Directions>()[3].second;
+  require_null_terminated(entry_name, "Right");
+
+  std::string_view prefixed_name{};
+  prefixed_name = enum_name(CStyleFlags_A);
+  require_null_terminated(prefixed_name, "A");
+
+  std::string_view prefixed_entry_name{};
+  prefixed_entry_name = enum_entries<CStyleFlags>()[0].second;
+  require_null_terminated(prefixed_entry_name, "A");
+
+  auto flags_name = enum_flags_name(Color::RED | Color::GREEN);
+  require_c_str_null_terminated(flags_name, "RED|GREEN");
+
+  auto empty_flags_name = enum_flags_name(static_cast<Color>(0));
+  require_c_str_null_terminated(empty_flags_name, "");
+
+  auto prefixed_flags_name = enum_flags_name(CStyleFlags_A | CStyleFlags_C);
+  require_c_str_null_terminated(prefixed_flags_name, "A|C");
+
+  for (std::string_view name : enum_names<Color>()) {
+    require_null_terminated(name);
+  }
+  for (std::string_view name : enum_names<Numbers>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<Color>()) {
+    require_null_terminated(entry.second);
+  }
+  for (const auto& entry : enum_entries<Directions>()) {
+    require_null_terminated(entry.second);
+  }
+  for (std::string_view name : enum_names<CStyleFlags>()) {
+    require_null_terminated(name);
+  }
+  for (const auto& entry : enum_entries<CStyleFlags>()) {
+    require_null_terminated(entry.second);
+  }
+}
+
 TEST_CASE("ostream_operators") {
-  auto test_ostream = [](auto e, std::string name) {
-    using namespace magic_enum::ostream_operators;
-    std::stringstream ss;
-    ss << e;
-    REQUIRE(ss.str() == name);
-  };
+  require_ostream(std::make_optional(Color::RED), "RED");
+  require_ostream(Color::GREEN, "GREEN");
+  require_ostream(Color::BLUE, "BLUE");
+  require_ostream(Color::BLUE | Color::RED, "RED|BLUE");
+  require_ostream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+  require_ostream(static_cast<Color>(0), "0");
+  require_ostream(std::make_optional(static_cast<Color>(0)), "0");
 
-  test_ostream(std::make_optional(Color::RED), "RED");
-  test_ostream(Color::GREEN, "GREEN");
-  test_ostream(Color::BLUE, "BLUE");
-  test_ostream(Color::BLUE | Color::RED, "RED|BLUE");
-  test_ostream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
-  test_ostream(static_cast<Color>(0), "0");
-  test_ostream(std::make_optional(static_cast<Color>(0)), "0");
+  require_ostream(std::make_optional(Numbers::one), "one");
+  require_ostream(Numbers::two, "two");
+  require_ostream(Numbers::three, "three");
+  require_ostream(Numbers::many, "many");
+  require_ostream(static_cast<Numbers>(0), "0");
+  require_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
 
-  test_ostream(std::make_optional(Numbers::one), "one");
-  test_ostream(Numbers::two, "two");
-  test_ostream(Numbers::three, "three");
-  test_ostream(Numbers::many, "many");
-  test_ostream(static_cast<Numbers>(0), "0");
-  test_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
+  require_ostream(std::make_optional(Directions::Up), "Up");
+  require_ostream(Directions::Down, "Down");
+  require_ostream(Directions::Right, "Right");
+  require_ostream(Directions::Left, "Left");
+  require_ostream(Directions::Right | Directions::Left, "Left|Right");
+  require_ostream(static_cast<Directions>(0), "0");
+  require_ostream(std::make_optional(static_cast<Directions>(0)), "0");
 
-  test_ostream(std::make_optional(Directions::Up), "Up");
-  test_ostream(Directions::Down, "Down");
-  test_ostream(Directions::Right, "Right");
-  test_ostream(Directions::Left, "Left");
-  test_ostream(Directions::Right | Directions::Left, "Left|Right");
-  test_ostream(static_cast<Directions>(0), "0");
-  test_ostream(std::make_optional(static_cast<Directions>(0)), "0");
-
-  test_ostream(std::make_optional(number::one), "one");
-  test_ostream(number::two, "two");
-  test_ostream(number::three, "three");
-  test_ostream(number::four, "four");
-  test_ostream(number::four | number::one, "one|four");
-  test_ostream(static_cast<number>(0), "0");
-  test_ostream(std::make_optional(static_cast<number>(0)), "0");
+  require_ostream(std::make_optional(number::one), "one");
+  require_ostream(number::two, "two");
+  require_ostream(number::three, "three");
+  require_ostream(number::four, "four");
+  require_ostream(number::four | number::one, "one|four");
+  require_ostream(static_cast<number>(0), "0");
+  require_ostream(std::make_optional(static_cast<number>(0)), "0");
 }
 
 TEST_CASE("istream_operators") {
-  auto test_istream = [](const auto e, std::string name) {
-    using namespace magic_enum::istream_operators;
-    std::istringstream ss(name);
-    std::decay_t<decltype(e)> v;
-    ss >> v;
-    REQUIRE(v == e);
-    REQUIRE(ss);
-  };
+  require_istream(Color::GREEN, "GREEN");
+  require_istream(Color::BLUE, "BLUE");
+  require_istream(Color::BLUE | Color::RED, "RED|BLUE");
+  require_istream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
 
-  test_istream(Color::GREEN, "GREEN");
-  test_istream(Color::BLUE, "BLUE");
-  test_istream(Color::BLUE | Color::RED, "RED|BLUE");
-  test_istream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+  require_istream(Numbers::two, "two");
+  require_istream(Numbers::three, "three");
+  require_istream(Numbers::many, "many");
 
-  test_istream(Numbers::two, "two");
-  test_istream(Numbers::three, "three");
-  test_istream(Numbers::many, "many");
+  require_istream(Directions::Down, "Down");
+  require_istream(Directions::Right, "Right");
+  require_istream(Directions::Left, "Left");
+  require_istream(Directions::Right | Directions::Left, "Left|Right");
 
-  test_istream(Directions::Down, "Down");
-  test_istream(Directions::Right, "Right");
-  test_istream(Directions::Left, "Left");
-  test_istream(Directions::Right | Directions::Left, "Left|Right");
-
-  test_istream(number::two, "two");
-  test_istream(number::three, "three");
-  test_istream(number::four, "four");
-  test_istream(number::four | number::one, "one|four");
+  require_istream(number::two, "two");
+  require_istream(number::three, "three");
+  require_istream(number::four, "four");
+  require_istream(number::four | number::one, "one|four");
 }
 
 TEST_CASE("bitwise_operators") {
