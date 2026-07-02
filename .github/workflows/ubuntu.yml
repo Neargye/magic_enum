@@ -34,83 +34,98 @@ jobs:
 
     name: "${{ format('{0} NONASCII={1} MODULES={2} IMPORT_STD={3}', matrix.compiler.cc, matrix.compiler.nonascii, matrix.compiler.modules, matrix.compiler.import_std) }}"
     runs-on: ${{ matrix.compiler.os }}
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
     steps:
     - uses: actions/checkout@v7
 
     - name: Configure clang
+      if: ${{ startsWith(matrix.compiler.cc, 'clang') }}
       run: |
-        if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
-          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
+        wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
 
-          clang_version="${{ matrix.compiler.cc }}"
-          clang_version="${clang_version#clang-}"
-          ubuntu_codename="$(lsb_release -cs)"
+        clang_version="${{ matrix.compiler.cc }}"
+        clang_version="${clang_version#clang-}"
+        ubuntu_codename="$(lsb_release -cs)"
 
-          echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
-          sudo apt update
-          sudo apt install ${{ matrix.compiler.cc }} -y
+        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+        sudo apt update
+        sudo apt install -y ${{ matrix.compiler.cc }}
 
-          if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
-            # Note: std module is currently supported only with libc++
-            sudo apt install -y \
-              "libclang-rt-${clang_version}-dev" \
-              "libc++-${clang_version}-dev" \
-              "libc++abi-${clang_version}-dev" \
-              "clang-tools-${clang_version}"
-          fi
+        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
+          # Note: std module is currently supported only with libc++.
+          sudo apt install -y \
+            "libclang-rt-${clang_version}-dev" \
+            "libc++-${clang_version}-dev" \
+            "libc++abi-${clang_version}-dev" \
+            "clang-tools-${clang_version}"
         fi
 
     - name: Configure gcc
+      if: ${{ startsWith(matrix.compiler.cc, 'gcc') }}
       run: |
-        if [[ "${{ matrix.compiler.cc }}" == "gcc"* ]]; then
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt update
-          sudo apt install ${{ matrix.compiler.cxx }} -y
-        fi
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt update
+        sudo apt install -y ${{ matrix.compiler.cxx }}
 
     - name: Install CMake (latest)
       if: ${{ matrix.compiler.modules == 'TRUE' }}
       run: pip install cmake --upgrade --break-system-packages
 
-    - name: Build Release
+    - name: Configure Release
       run: |
-        rm -rf build
-        cmake -S . -B build \
+        cmake -S . -B build-release \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
           -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
           ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
-        cmake --build build -j 4 --config Release
-        ctest --test-dir build --output-on-failure -C Release
+
+    - name: Build Release
+      run: cmake --build build-release --parallel --config Release
+
+    - name: Test Release
+      run: ctest --test-dir build-release --output-on-failure -C Release
+
+    - name: Configure Debug
+      run: |
+        cmake -S . -B build-debug \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
+          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
+          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
 
     - name: Build Debug
-      run: |
-        rm -rf build
-        cmake -S . -B build \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
-          -DMAGIC_ENUM_OPT_ENABLE_NONASCII:BOOL=${{ matrix.compiler.nonascii }} \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
-          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }}
-        cmake --build build -j 4 --config Debug
-        ctest --test-dir build --output-on-failure -C Debug
+      run: cmake --build build-debug --parallel --config Debug
 
-    - name: Build with `import std;`
+    - name: Test Debug
+      run: ctest --test-dir build-debug --output-on-failure -C Debug
+
+    - name: Configure with `import std;`
       if: ${{ matrix.compiler.import_std == 'TRUE' }}
       run: |
-        rm -rf build
-        cmake -S . -B build \
+        cmake -S . -B build-import-std \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -GNinja \
           -DCMAKE_CXX_IMPORT_STD=ON \
           -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
           -DCMAKE_CXX_STANDARD=23
-        cmake --build build -j 4 --config Debug
-        ctest --test-dir build --output-on-failure -C Debug
 
-    - name: Bazel Test
+    - name: Build with `import std;`
+      if: ${{ matrix.compiler.import_std == 'TRUE' }}
+      run: cmake --build build-import-std --parallel --config Debug
+
+    - name: Test with `import std;`
+      if: ${{ matrix.compiler.import_std == 'TRUE' }}
+      run: ctest --test-dir build-import-std --output-on-failure -C Debug
+
+  bazel:
+    name: Bazel
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Test
       working-directory: test
       run: bazelisk test //... --config=ci

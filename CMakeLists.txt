@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14...4.20)
+cmake_minimum_required(VERSION 3.22)
 
 if(MAGIC_ENUM_USE_MODULES AND CMAKE_VERSION VERSION_LESS "3.28")
   message(FATAL_ERROR "MAGIC_ENUM_USE_MODULES requires CMake >= 3.28")
