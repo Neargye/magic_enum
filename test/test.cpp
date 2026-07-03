@@ -1279,9 +1279,12 @@ TEST_CASE("multdimensional-switch-case") {
 
 #endif
 
-#if defined(__cpp_lib_format)
-
+#if __has_include(<format>)
 #include <format>
+#endif
+
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+
 #include <magic_enum/magic_enum_format.hpp>
 
 TEST_CASE("format-base") {

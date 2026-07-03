@@ -57,11 +57,13 @@ std::string format_as(E e) {
 
 } // namespace magic_enum::detail
 
-#if defined(__cpp_lib_format)
-
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#include <format>
+#  if __has_include(<format>)
+#    include <format>
+#  endif
 #endif
+
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 template <typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : std::formatter<std::string_view, char> {

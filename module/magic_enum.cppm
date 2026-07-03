@@ -7,7 +7,7 @@ module;
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 
-#if defined(__cpp_lib_format)
+#if __has_include(<format>)
 #include <format>
 #endif
 
@@ -155,7 +155,7 @@ namespace detail {
 #endif
 }
 
-#if defined(__cpp_lib_format)
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 export namespace std {
     using std::formatter;
 }
