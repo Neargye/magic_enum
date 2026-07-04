@@ -129,3 +129,26 @@ jobs:
     - name: Test
       working-directory: test
       run: bazelisk test //... --config=ci
+
+  meson:
+    name: Meson
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install Meson
+      run: |
+        sudo apt update
+        sudo apt install -y meson ninja-build
+
+    - name: Configure
+      run: meson setup build-meson
+
+    - name: Test
+      run: meson test -C build-meson --print-errorlogs
+
+    - name: Configure with hash
+      run: meson setup build-meson-hash -Dhash=true
+
+    - name: Test with hash
+      run: meson test -C build-meson-hash --print-errorlogs

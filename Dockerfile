@@ -20,7 +20,7 @@ RUN emerge --quiet --verbose --tree --verbose-conflicts --jobs=2 dev-vcs/git dev
 
 # RUN echo "Installing vcpkg..."
 # RUN git clone https://github.com/Microsoft/vcpkg.git && \
-# 		./vcpkg/bootstrap-vcpkg.sh -disableMetrics 
+# 		./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 #
 # COPY ./vcpkg.json ./vcpkg.json
 #
@@ -34,7 +34,7 @@ COPY . .
 RUN ls -lah
 
 # expected to be mounted at runtime as volume.
-# COPY resources/ ./resources/ 
+# COPY resources/ ./resources/
 
 
 RUN echo "Configuring project..."
@@ -59,7 +59,7 @@ RUN cmake --build build3 -j $(nproc) --verbose
 
 
 # RUN echo "what's with linking?"
-# RUN ls -lahR /usr/local/lib64  
+# RUN ls -lahR /usr/local/lib64
 # RUN lddtree /usr/local/lib64/libArby.so
 # RUN lddtree /usr/local/bin/Arby
 

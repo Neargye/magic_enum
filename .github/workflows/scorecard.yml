@@ -38,7 +38,7 @@ jobs:
           # - you want to enable the Branch-Protection check and you prefer not to use the new Repo Rules
           # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action#authentication-with-pat.
           # repo_token: ${{ secrets.SCORECARD_TOKEN }}
-      
+
           # - Publish results to OpenSSF REST API for easy access by consumers
           # - Allows the repository to include the Scorecard badge.
           # - See https://github.com/ossf/scorecard-action#publishing-results.
@@ -52,6 +52,6 @@ jobs:
           retention-days: 5
 
       - name: Upload to code scanning
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v3.29.5
+        uses: github/codeql-action/upload-sarif@8533807ff379ac610d2b2c389c47e7c629d31d13 # v4.36.3
         with:
           sarif_file: results.sarif
