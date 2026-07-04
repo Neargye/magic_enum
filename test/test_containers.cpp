@@ -252,6 +252,13 @@ TEST_CASE("containers_bitset") {
   REQUIRE_FALSE(color_bitset_red_green.all());
   REQUIRE(color_bitset_red_green.any());
   REQUIRE_FALSE(color_bitset_red_green.none());
+
+  constexpr magic_enum::containers::bitset<Color> color_bitset_raw_string {magic_enum::containers::raw_access, "101"};
+  REQUIRE(color_bitset_raw_string.to_string( {}, '0', '1' ) == "101");
+  REQUIRE(color_bitset_raw_string.to_ulong( {} ) == 5);
+  REQUIRE(color_bitset_raw_string.test(Color::RED));
+  REQUIRE_FALSE(color_bitset_raw_string.test(Color::GREEN));
+  REQUIRE(color_bitset_raw_string.test(Color::BLUE));
 }
 
 TEST_CASE("containers_bitset_hash") {
@@ -347,6 +354,45 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set_assign.contains(Color::GREEN));
   REQUIRE_FALSE(color_set_assign.contains(Color::RED));
   REQUIRE_FALSE(color_set_assign.contains(Color::BLUE));
+
+  magic_enum::containers::set<Color, magic_enum::containers::name_less<>> color_name_set {Color::RED, Color::GREEN, Color::BLUE};
+  constexpr magic_enum::string_view green_name = "GREEN";
+  constexpr magic_enum::string_view blue_name = "BLUE";
+  constexpr magic_enum::string_view purple_name = "PURPLE";
+  const std::string blue_name_string = "BLUE";
+  REQUIRE(color_name_set.contains(green_name));
+  REQUIRE(color_name_set.contains(blue_name_string));
+  REQUIRE(color_name_set.count(purple_name) == 0);
+  REQUIRE(color_name_set.key_comp()(Color::BLUE, "GREEN"));
+  REQUIRE(color_name_set.key_comp()("GREEN", Color::RED));
+  REQUIRE_FALSE(color_name_set.key_comp()("GREEN", Color::BLUE));
+  auto blue_by_literal = color_name_set.find("BLUE");
+  REQUIRE(blue_by_literal != color_name_set.end());
+  REQUIRE(*blue_by_literal == Color::BLUE);
+  auto blue_by_string_view = color_name_set.find(blue_name);
+  REQUIRE(blue_by_string_view != color_name_set.end());
+  REQUIRE(*blue_by_string_view == Color::BLUE);
+  auto blue_by_string = color_name_set.find(blue_name_string);
+  REQUIRE(blue_by_string != color_name_set.end());
+  REQUIRE(*blue_by_string == Color::BLUE);
+  REQUIRE(color_name_set.erase("GREEN") == 1);
+  REQUIRE_FALSE(color_name_set.contains(Color::GREEN));
+
+  magic_enum::containers::set<Color, magic_enum::containers::name_less_case_insensitive> color_ci_name_set {Color::RED, Color::GREEN, Color::BLUE};
+  constexpr magic_enum::string_view green_name_lower = "green";
+  constexpr magic_enum::string_view blue_name_lower = "blue";
+  const std::string blue_name_lower_string = "blue";
+  REQUIRE(color_ci_name_set.contains(green_name_lower));
+  REQUIRE(color_ci_name_set.contains(blue_name_lower_string));
+  auto blue_ci_by_literal = color_ci_name_set.find("blue");
+  REQUIRE(blue_ci_by_literal != color_ci_name_set.end());
+  REQUIRE(*blue_ci_by_literal == Color::BLUE);
+  auto blue_ci_by_string_view = color_ci_name_set.find(blue_name_lower);
+  REQUIRE(blue_ci_by_string_view != color_ci_name_set.end());
+  REQUIRE(*blue_ci_by_string_view == Color::BLUE);
+  auto blue_ci_by_string = color_ci_name_set.find(blue_name_lower_string);
+  REQUIRE(blue_ci_by_string != color_ci_name_set.end());
+  REQUIRE(*blue_ci_by_string == Color::BLUE);
 }
 
 TEST_CASE("map_like_container") {

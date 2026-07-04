@@ -120,7 +120,8 @@ namespace impl {
 template <typename Cmp = std::less<>, typename ForwardIt, typename E>
 constexpr ForwardIt lower_bound(ForwardIt first, ForwardIt last, E&& e, Cmp&& comp = {}) {
   auto count = std::distance(first, last);
-  for (auto it = first; count > 0;) {
+  while (count > 0) {
+    auto it = first;
     auto step = count / 2;
     std::advance(it, step);
     if (comp(*it, e)) {
@@ -235,6 +236,21 @@ struct name_sort_impl<void, Cmp> {
     [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const noexcept { return lexicographical_compare<C>(s1, s2); }
   };
 
+  template <typename T>
+  using cmp_arg_t = std::conditional_t<std::is_enum_v<std::decay_t<T>> || std::is_constructible_v<string_view, T>, string_view, T>;
+
+  template <typename T>
+  [[nodiscard]] static constexpr decltype(auto) cmp_arg(T&& value) noexcept {
+    using D = std::decay_t<T>;
+    if constexpr (std::is_enum_v<D>) {
+      return enum_name(value);
+    } else if constexpr (std::is_constructible_v<string_view, T>) {
+      return string_view{std::forward<T>(value)};
+    } else {
+      return std::forward<T>(value);
+    }
+  }
+
   template <typename E1, typename E2>
   [[nodiscard]] constexpr std::enable_if_t<
       // at least one of need to be an enum type
@@ -242,20 +258,11 @@ struct name_sort_impl<void, Cmp> {
       // if both is enum, only accept if the same enum
       (!std::is_enum_v<std::decay_t<E1>> || !std::is_enum_v<std::decay_t<E2>> || std::is_same_v<E1, E2>) &&
       // is invocable with comparator
-      (std::is_invocable_r_v<bool, FullCmp<>, std::conditional_t<std::is_enum_v<std::decay_t<E1>>, string_view, E1>, std::conditional_t<std::is_enum_v<std::decay_t<E2>>, string_view, E2>>),
+      (std::is_invocable_r_v<bool, FullCmp<>, cmp_arg_t<E1>, cmp_arg_t<E2>>),
       bool>
   operator()(E1 e1, E2 e2) const noexcept {
-    using D1 = std::decay_t<E1>;
-    using D2 = std::decay_t<E2>;
     constexpr FullCmp<> cmp{};
-
-    if constexpr (std::is_enum_v<D1> && std::is_enum_v<D2>) {
-      return cmp(enum_name(e1), enum_name(e2));
-    } else if constexpr (std::is_enum_v<D1>) {
-      return cmp(enum_name(e1), e2);
-    } else /* if constexpr (std::is_enum_v<D2>) */ {
-      return cmp(e1, enum_name(e2));
-    }
+    return cmp(cmp_arg(e1), cmp_arg(e2));
   }
 };
 
@@ -675,7 +682,7 @@ class bitset {
     [[nodiscard]] static constexpr iterator_impl end(parent_t p) noexcept {
       return iterator_impl(p, enum_count<E>());
     }
-  
+
    public:
     [[nodiscard]] constexpr reference operator*() const noexcept { return *Index::it(num_index * bits_per_base + static_cast<std::size_t>(detail::countr_zero(bit_index))); }
 
@@ -774,7 +781,7 @@ class bitset {
   }
 
   constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{0}, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
-      : bitset(string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
+      : bitset(detail::raw_access_t{}, string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
     if constexpr (magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags) {
