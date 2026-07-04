@@ -38,8 +38,8 @@ Issuees
 
 	6. `file(GENERATE` doesn't properly register dependencies
 	... so we have to use `add_custom_command` to say CMake that these files are generated
-	
-	7. And CMake `install(FILES` doesn't mean that the targets generating these files are automatically executed, 
-	
+
+	7. And CMake `install(FILES` doesn't mean that the targets generating these files are automatically executed,
+
 	So we have to use `ALL` in `add_custom_target`.
 

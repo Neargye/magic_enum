@@ -9,7 +9,7 @@ _MSVC_FLAGS = ["/std:c++17", "/permissive-"]
 _COPTS = select({
     "//conditions:default": ["-std=c++17"],
     "@rules_cc//cc/compiler:msvc-cl": _MSVC_FLAGS,
-    "@rules_cc//cc/compiler:clang-cl": _MSVC_FLAGS, 
+    "@rules_cc//cc/compiler:clang-cl": _MSVC_FLAGS,
 })
 [cc_test(
     name = test,

@@ -1,4 +1,4 @@
- 
+
 message(STATUS "objectsFile  ${objectsFile}")
 message(STATUS "pkgConfigFileFinal  ${pkgConfigFileFinal}")
 message(STATUS "pkgConfigFileUnlinished  ${pkgConfigFileUnlinished}")

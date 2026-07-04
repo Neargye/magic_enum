@@ -46,7 +46,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(OPTIONS /W4 /WX)
-  check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
+  check_cxx_compiler_flag(/permissive- HAS_PERMISSIVE_FLAG)
   if(HAS_PERMISSIVE_FLAG)
     set(OPTIONS ${OPTIONS} /permissive-)
   endif()

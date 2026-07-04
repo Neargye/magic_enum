@@ -126,8 +126,6 @@ if(MAGIC_ENUM_OPT_INSTALL)
   install(
     TARGETS "${PROJECT_NAME}"
     EXPORT ${PROJECT_NAME}
-    INCLUDES
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
     # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for includes!
     # Headers are installed separately! Includes only marks the headers for export
   )
@@ -148,8 +146,6 @@ if(MAGIC_ENUM_OPT_INSTALL)
   install(
     TARGETS "${PROJECT_NAME}"
     EXPORT ${PROJECT_NAME}
-    INCLUDES
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
     FILE_SET HEADERS
       DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}"
     FILE_SET CXX_MODULES
@@ -203,7 +199,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
     "${CMAKE_CONFIG_VERSION_FILE_NAME}"
     # VERSION "100500.100500.100500"  # any version of same bitness suits. CMake cannot compare to
     # infinity, so use a large number we expect to be greater than any future version
-    VERSION ${_VERSION}
+    VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion ARCH_INDEPENDENT
   )
   install(FILES "${CMAKE_CONFIG_VERSION_FILE_NAME}"
