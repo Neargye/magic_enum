@@ -49,7 +49,7 @@
 
 * Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined
   macros or constants, for example:
-  
+
   ```cpp
   #define MAGIC_ENUM_CONFIG_FILE "my_magic_enum_cfg.hpp"
   ```
@@ -323,12 +323,12 @@ struct enum_range {
         constexpr static int min = CStyleAnimals_Giraffe; // optional, narrows the search range
         constexpr static int max = CStyleAnimals_Lion;    // optional, narrows the search range
     };
-  
+
     CStyleAnimals animal = CStyleAnimals_Giraffe;
     auto animal_name = magic_enum::enum_name(animal);
     // animal_name => "Giraffe"
     auto animal_from_string = magic_enum::enum_cast<CStyleAnimals>(animal_name);
-    // animal_from_string.value() == CStyleAnimals_Giraffe 
+    // animal_from_string.value() == CStyleAnimals_Giraffe
     ```
 
 

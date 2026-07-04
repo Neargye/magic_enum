@@ -30,6 +30,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_fuse.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
 #include "test_helpers.hpp"
@@ -146,6 +147,13 @@ using namespace magic_enum_tests;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
+template <typename... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+template <typename... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");
@@ -241,11 +249,16 @@ TEST_CASE("enum_cast") {
 TEST_CASE("enum_integer") {
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
   constexpr auto cr = enum_integer(Color::RED);
+  constexpr auto cr_underlying = enum_underlying(Color::RED);
   Color cg = Color::GREEN;
   REQUIRE(cr == -12);
+  REQUIRE(cr_underlying == -12);
   REQUIRE(enum_integer<Color&>(cg) == 7);
+  REQUIRE(enum_underlying<Color&>(cg) == 7);
   REQUIRE(enum_integer(cm[2]) == 15);
+  REQUIRE(enum_underlying(cm[2]) == 15);
   REQUIRE(enum_integer(static_cast<Color>(0)) == 0);
+  REQUIRE(enum_underlying(static_cast<Color>(0)) == 0);
 
   constexpr auto no = enum_integer(Numbers::one);
   REQUIRE(no == 1);
@@ -940,6 +953,10 @@ TEST_CASE("bitwise_operators") {
 }
 
 TEST_CASE("type_traits") {
+  REQUIRE(std::is_same_v<Enum<Color>, Color>);
+  REQUIRE(std::is_same_v<underlying_type_t<const Color&>, int>);
+  REQUIRE(std::is_same_v<underlying_type<Directions>::type, std::underlying_type_t<Directions>>);
+
   REQUIRE_FALSE(is_unscoped_enum_v<Color>);
   REQUIRE_FALSE(is_unscoped_enum_v<Numbers>);
   REQUIRE(is_unscoped_enum_v<Directions>);
@@ -949,6 +966,43 @@ TEST_CASE("type_traits") {
   REQUIRE(is_scoped_enum_v<Numbers>);
   REQUIRE_FALSE(is_scoped_enum_v<Directions>);
   REQUIRE_FALSE(is_scoped_enum_v<number>);
+
+  REQUIRE_FALSE(is_flags_enum<Color>::value);
+  REQUIRE_FALSE(is_flags_v<Numbers>);
+  REQUIRE_FALSE(is_flags_v<Directions>);
+}
+
+TEST_CASE("enum_switch") {
+  SUBCASE("complete invocable") {
+    constexpr auto red = enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::RED);
+
+    REQUIRE(red == -12);
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::GREEN) == 7);
+  }
+
+  SUBCASE("partial invocable falls back to default result") {
+    const auto switcher = overloaded{
+      [](enum_constant<Color::RED>) { return 1; },
+      [](enum_constant<Color::BLUE>) { return 2; }
+    };
+
+    REQUIRE(enum_switch<int>(switcher, Color::RED, -1) == 1);
+    REQUIRE(enum_switch<int>(switcher, Color::BLUE, -1) == 2);
+    REQUIRE(enum_switch<int>(switcher, Color::GREEN, -1) == -1);
+  }
+
+  SUBCASE("invalid enum value falls back to default result") {
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, static_cast<Color>(0)) == 0);
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, static_cast<Color>(0), -1) == -1);
+  }
 }
 
 TEST_CASE("enum_type_name") {

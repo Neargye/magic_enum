@@ -37,6 +37,7 @@
 #include <magic_enum/magic_enum_flags.hpp>
 #include <magic_enum/magic_enum_fuse.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
+#include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
 #include "test_helpers.hpp"
@@ -121,6 +122,13 @@ struct magic_enum::customize::enum_range<CStyleFlags> {
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 using namespace magic_enum_tests;
+
+template <typename... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+template <typename... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
@@ -784,6 +792,44 @@ TEST_CASE("bitwise_operators") {
     number x4 = number::one;
     x4 ^= number::two;
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+}
+
+TEST_CASE("type_traits") {
+  REQUIRE(is_flags_enum<Color>::value);
+  REQUIRE(is_flags_v<Numbers>);
+  REQUIRE(is_flags_v<Directions>);
+  REQUIRE(is_flags_v<number>);
+}
+
+TEST_CASE("enum_switch") {
+  SUBCASE("dispatches flag enumerators") {
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::RED) == 1);
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::BLUE) == 4);
+  }
+
+  SUBCASE("combined flags fall back to default result") {
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::RED | Color::GREEN) == 0);
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, Color::RED | Color::GREEN, -1) == -1);
+  }
+
+  SUBCASE("partial invocable falls back to default result") {
+    const auto switcher = overloaded{
+      [](enum_constant<Color::RED>) { return 1; },
+      [](enum_constant<Color::BLUE>) { return 4; }
+    };
+
+    REQUIRE(enum_switch<int>(switcher, Color::RED, -1) == 1);
+    REQUIRE(enum_switch<int>(switcher, Color::BLUE, -1) == 4);
+    REQUIRE(enum_switch<int>(switcher, Color::GREEN, -1) == -1);
   }
 }
 
