@@ -766,34 +766,37 @@ constexpr int reflected_max() noexcept {
   T(192)T(193)T(194)T(195)T(196)T(197)T(198)T(199)T(200)T(201)T(202)T(203)T(204)T(205)T(206)T(207)T(208)T(209)T(210)T(211)T(212)T(213)T(214)T(215)T(216)T(217)T(218)T(219)T(220)T(221)T(222)T(223) \
   T(224)T(225)T(226)T(227)T(228)T(229)T(230)T(231)T(232)T(233)T(234)T(235)T(236)T(237)T(238)T(239)T(240)T(241)T(242)T(243)T(244)T(245)T(246)T(247)T(248)T(249)T(250)T(251)T(252)T(253)T(254)T(255)
 
+template <std::size_t N>
+struct valid_count_t {
+  std::uint16_t count = 0;
+  std::uint16_t offsets[N] = {};
+
+  constexpr void set(std::size_t i) noexcept {
+    offsets[count++] = static_cast<std::uint16_t>(i);
+  }
+};
+
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t I>
-constexpr void valid_count(bool* valid, std::size_t& count) noexcept {
+constexpr void valid_count(valid_count_t<Size>& vc) noexcept {
 #define MAGIC_ENUM_V(O)                                     \
   if constexpr ((I + O) < Size) {                           \
     if constexpr (is_valid<E, ualue<E, Min, S>(I + O)>()) { \
-      valid[I + O] = true;                                  \
-      ++count;                                              \
+      vc.set(I + O);                                        \
     }                                                       \
   }
 
   MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_V)
 
   if constexpr ((I + 256) < Size) {
-    valid_count<E, S, Size, Min, I + 256>(valid, count);
+    valid_count<E, S, Size, Min, I + 256>(vc);
   }
 #undef MAGIC_ENUM_V
 }
 
-template <std::size_t N>
-struct valid_count_t {
-  std::size_t count = 0;
-  bool valid[N] = {};
-};
-
 template <typename E, enum_subtype S, std::size_t Size, int Min>
 constexpr auto valid_count() noexcept {
   valid_count_t<Size> vc;
-  valid_count<E, S, Size, Min, 0>(vc.valid, vc.count);
+  valid_count<E, S, Size, Min, 0>(vc);
   return vc;
 }
 
@@ -807,9 +810,13 @@ constexpr auto values() noexcept {
 #else
     E values[vc.count] = {};
 #endif
-    for (std::size_t i = 0, v = 0; v < vc.count; ++i) {
-      if (vc.valid[i]) {
-        values[v++] = value<E, Min, S>(i);
+    if constexpr (vc.count == Size) {
+      for (std::size_t i = 0; i < vc.count; ++i) {
+        values[i] = value<E, Min, S>(i);
+      }
+    } else {
+      for (std::size_t i = 0; i < vc.count; ++i) {
+        values[i] = value<E, Min, S>(vc.offsets[i]);
       }
     }
 #if defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
@@ -828,6 +835,7 @@ constexpr auto values() noexcept {
   constexpr auto max = reflected_max<E, S>();
   constexpr auto range_size = max - min + 1;
   static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
+  static_assert(range_size <= (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
 
   return values<E, S, range_size, min>();
 }
