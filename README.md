@@ -369,7 +369,7 @@ If you like this project, please consider donating to one of the funds that help
 
   Caveats:
   - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit; this is an ODR violation.
-  - `import std;` is opt-in: add `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_IMPORT_STD=ON` (requires CMake 3.30+).
+  - `import std;` is opt-in and experimental (requires CMake 3.30+). Enable it with `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_MODULE_STD=ON` and set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` to the UUID documented by your CMake version before `project()`; for CMake 4.3, the UUID is `451f2fe2-a8a2-47c3-bc32-94786d8fc91b`.
 
 ## Compiler compatibility
 

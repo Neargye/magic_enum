@@ -35,7 +35,7 @@
 
 #include "magic_enum.hpp"
 
-#if __has_include(<bit>) && (__cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L))
+#if !defined(MAGIC_ENUM_USE_STD_MODULE) && __has_include(<bit>) && (__cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L))
 #  include <bit>
 #endif
 

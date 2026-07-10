@@ -20,7 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <iostream>
+#ifdef MAGIC_ENUM_TEST_IMPORT_STD
+import std;
+#else
+#  include <iostream>
+#endif
 
 import magic_enum;
 

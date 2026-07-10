@@ -16,6 +16,7 @@ jobs:
         - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
+        - { cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
         - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
@@ -104,13 +105,23 @@ jobs:
     - name: Configure with `import std;`
       if: ${{ matrix.compiler.import_std == 'TRUE' }}
       run: |
+        stdlib_options=()
+        if [[ "${{ matrix.compiler.cc }}" == clang-* ]]; then
+          stdlib_options+=("-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++")
+        else
+          stdlib_options+=("-DCMAKE_CXX_STDLIB_MODULES_JSON=$("${CXX}" -print-file-name=libstdc++.modules.json)")
+        fi
+
         cmake -S . -B build-import-std \
           -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=451f2fe2-a8a2-47c3-bc32-94786d8fc91b \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -GNinja \
-          -DCMAKE_CXX_IMPORT_STD=ON \
-          -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
-          -DCMAKE_CXX_STANDARD=23
+          -DCMAKE_CXX_MODULE_STD=ON \
+          -DCMAKE_CXX_STANDARD=23 \
+          -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+          -DCMAKE_CXX_EXTENSIONS=OFF \
+          "${stdlib_options[@]}"
 
     - name: Build with `import std;`
       if: ${{ matrix.compiler.import_std == 'TRUE' }}

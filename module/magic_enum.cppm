@@ -23,14 +23,15 @@ module;
 #include <magic_enum/magic_enum_utility.hpp>
 
 #else // MAGIC_ENUM_USE_STD_MODULE
-/*
-Note: MAGIC_ENUM_CONFIG_FILE may include STL headers,
-      it is required to attach them to global module fragement
-      otherwise there can be conflicting declarations with std module.
-*/
+
+// Note: MAGIC_ENUM_CONFIG_FILE may include STL headers, it is required to attach them to global module fragement otherwise there can be conflicting declarations with std module.
 #ifdef MAGIC_ENUM_CONFIG_FILE
 #  include MAGIC_ENUM_CONFIG_FILE
 #endif // MAGIC_ENUM_CONFIG_FILE
+
+#if !defined(MAGIC_ENUM_NO_ASSERT) && !defined(MAGIC_ENUM_ASSERT)
+#  include <cassert>
+#endif
 
 #endif // MAGIC_ENUM_USE_STD_MODULE
 
