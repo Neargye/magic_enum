@@ -7,6 +7,7 @@ module;
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 
+#  include <compare>
 #  if __has_include(<format>)
 #    include <format>
 #  endif
@@ -165,6 +166,14 @@ namespace detail {
 }
 #endif
 }
+
+#if defined(__cpp_lib_three_way_comparison) && __cpp_lib_three_way_comparison >= 201907L
+export namespace std {
+    using std::partial_ordering;
+    using std::strong_ordering;
+    using std::weak_ordering;
+}
+#endif
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 export namespace std {
