@@ -2,36 +2,36 @@ module;
 
 #include <version>
 #if __has_include(<fmt/format.h>)
-#include <fmt/format.h>
+#  include <fmt/format.h>
 #endif
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 
-#if __has_include(<format>)
-#include <format>
-#endif
+#  if __has_include(<format>)
+#    include <format>
+#  endif
 
-#include <magic_enum/magic_enum.hpp>
-#ifndef MAGIC_ENUM_USING_ALIAS_STRING
-#include <magic_enum/magic_enum_containers.hpp>
-#endif
-#include <magic_enum/magic_enum_flags.hpp>
-#include <magic_enum/magic_enum_format.hpp>
-#include <magic_enum/magic_enum_fuse.hpp>
-#include <magic_enum/magic_enum_iostream.hpp>
-#include <magic_enum/magic_enum_switch.hpp>
-#include <magic_enum/magic_enum_utility.hpp>
+#  include <magic_enum/magic_enum.hpp>
+#  ifndef MAGIC_ENUM_USING_ALIAS_STRING
+#    include <magic_enum/magic_enum_containers.hpp>
+#  endif
+#  include <magic_enum/magic_enum_flags.hpp>
+#  include <magic_enum/magic_enum_format.hpp>
+#  include <magic_enum/magic_enum_fuse.hpp>
+#  include <magic_enum/magic_enum_iostream.hpp>
+#  include <magic_enum/magic_enum_switch.hpp>
+#  include <magic_enum/magic_enum_utility.hpp>
 
 #else // MAGIC_ENUM_USE_STD_MODULE
 
 // Note: MAGIC_ENUM_CONFIG_FILE may include STL headers, it is required to attach them to global module fragement otherwise there can be conflicting declarations with std module.
-#ifdef MAGIC_ENUM_CONFIG_FILE
-#  include MAGIC_ENUM_CONFIG_FILE
-#endif // MAGIC_ENUM_CONFIG_FILE
+#  ifdef MAGIC_ENUM_CONFIG_FILE
+#    include MAGIC_ENUM_CONFIG_FILE
+#  endif // MAGIC_ENUM_CONFIG_FILE
 
-#if !defined(MAGIC_ENUM_NO_ASSERT) && !defined(MAGIC_ENUM_ASSERT)
-#  include <cassert>
-#endif
+#  if !defined(MAGIC_ENUM_NO_ASSERT) && !defined(MAGIC_ENUM_ASSERT)
+#    include <cassert>
+#  endif
 
 #endif // MAGIC_ENUM_USE_STD_MODULE
 
@@ -41,30 +41,30 @@ export module magic_enum;
 import std;
 
 extern "C++" {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 5244)
-#endif
+#  if defined(__clang__)
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
+#  elif defined(_MSC_VER)
+#    pragma warning(push)
+#    pragma warning(disable : 5244)
+#  endif
 
-#include <magic_enum/magic_enum.hpp>
-#ifndef MAGIC_ENUM_USING_ALIAS_STRING
-#include <magic_enum/magic_enum_containers.hpp>
-#endif
-#include <magic_enum/magic_enum_flags.hpp>
-#include <magic_enum/magic_enum_format.hpp>
-#include <magic_enum/magic_enum_fuse.hpp>
-#include <magic_enum/magic_enum_iostream.hpp>
-#include <magic_enum/magic_enum_switch.hpp>
-#include <magic_enum/magic_enum_utility.hpp>
+#  include <magic_enum/magic_enum.hpp>
+#  ifndef MAGIC_ENUM_USING_ALIAS_STRING
+#    include <magic_enum/magic_enum_containers.hpp>
+#  endif
+#  include <magic_enum/magic_enum_flags.hpp>
+#  include <magic_enum/magic_enum_format.hpp>
+#  include <magic_enum/magic_enum_fuse.hpp>
+#  include <magic_enum/magic_enum_iostream.hpp>
+#  include <magic_enum/magic_enum_switch.hpp>
+#  include <magic_enum/magic_enum_utility.hpp>
 
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif
+#  if defined(__clang__)
+#    pragma clang diagnostic pop
+#  elif defined(_MSC_VER)
+#    pragma warning(pop)
+#  endif
 }
 #endif
 

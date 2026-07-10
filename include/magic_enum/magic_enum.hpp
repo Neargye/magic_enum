@@ -37,13 +37,13 @@
 #define MAGIC_ENUM_VERSION_PATCH 8
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <limits>
-#include <type_traits>
-#include <utility>
+#  include <array>
+#  include <cstddef>
+#  include <cstdint>
+#  include <functional>
+#  include <limits>
+#  include <type_traits>
+#  include <utility>
 #endif
 
 #if defined(MAGIC_ENUM_CONFIG_FILE)
@@ -51,15 +51,15 @@
 #endif
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
-#  include <optional>
-#endif
-#if !defined(MAGIC_ENUM_USING_ALIAS_STRING)
-#  include <string>
-#endif
-#if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
-#  include <string_view>
-#endif
+#  if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
+#    include <optional>
+#  endif
+#  if !defined(MAGIC_ENUM_USING_ALIAS_STRING)
+#    include <string>
+#  endif
+#  if !defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
+#    include <string_view>
+#  endif
 #endif
 
 #if defined(MAGIC_ENUM_NO_ASSERT)
