@@ -70,14 +70,16 @@ jobs:
           CMAKE_PREFIX_PATH="./install_dir_module" cmake -S . -B build-installed-module \
             -GNinja \
             -DMAGIC_ENUM_OPT_TEST_INSTALLED_VERSION=1 \
+            -DMAGIC_ENUM_USE_MODULES=ON \
+            -DCMAKE_CXX_STANDARD=20 \
             -DCMAKE_CXX_COMPILER=clang++-19 \
             --log-level=DEBUG
 
       - name: build with installed module version via cmake
-        run: cmake --build build-installed-module --parallel --target test_flags-cpp20 --verbose
+        run: cmake --build build-installed-module --parallel --target test_flags-cpp20 test_module-cpp20 --verbose
 
       - name: test (modules)
-        run: ctest --test-dir build-installed-module -VV -R test_flags-cpp20
+        run: ctest --test-dir build-installed-module -VV -R "^(test_flags|test_module)-cpp20$"
 
       - name: clear
         run: rm -rf build-installed-module

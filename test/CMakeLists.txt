@@ -111,6 +111,11 @@ function(make_test src target std)
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
+function(make_module_test target std)
+  make_test(test_module.cpp ${target} ${std})
+  set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endfunction()
+
 if(NOT MAGIC_ENUM_USE_MODULES)
 
 make_test(test.cpp test-cpp17 c++17)
@@ -134,6 +139,9 @@ if(HAS_CPP20_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 2
   if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
     make_test(test_nonascii.cpp test_nonascii-cpp20 c++20)
   endif()
+  if(MAGIC_ENUM_USE_MODULES)
+    make_module_test(test_module-cpp20 c++20)
+  endif()
 endif()
 
 if(HAS_CPP23_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 23)))
@@ -144,6 +152,9 @@ if(HAS_CPP23_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 2
   make_test(test_wchar_t.cpp test_wchar_t-cpp23 c++23)
   if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
     make_test(test_nonascii.cpp test_nonascii-cpp23 c++23)
+  endif()
+  if(MAGIC_ENUM_USE_MODULES)
+    make_module_test(test_module-cpp23 c++23)
   endif()
 endif()
 

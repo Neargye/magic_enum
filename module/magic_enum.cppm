@@ -105,7 +105,15 @@ namespace bitwise_operators {
 namespace containers {
     using containers::array;
     using containers::bitset;
+    using containers::comparator_indexing;
+    using containers::default_indexing;
     using containers::get;
+    using containers::make_array;
+    using containers::name_greater;
+    using containers::name_greater_case_insensitive;
+    using containers::name_less;
+    using containers::name_less_case_insensitive;
+    using containers::raw_access;
     using containers::set;
     using containers::to_array;
 }
@@ -146,6 +154,8 @@ namespace containers {
     using magic_enum::is_unscoped_enum_v;
     using magic_enum::is_scoped_enum;
     using magic_enum::is_scoped_enum_v;
+    using magic_enum::is_flags_enum;
+    using magic_enum::is_flags_v;
     using magic_enum::underlying_type;
     using magic_enum::underlying_type_t;
 
