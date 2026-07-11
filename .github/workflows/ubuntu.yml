@@ -24,7 +24,6 @@ jobs:
         - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
         - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "TRUE"  }
         - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "FALSE", import_std: "FALSE" }
         - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", nonascii: "FALSE", modules: "TRUE",  import_std: "FALSE" }
@@ -49,8 +48,11 @@ jobs:
         clang_version="${{ matrix.compiler.cc }}"
         clang_version="${clang_version#clang-}"
         ubuntu_codename="$(lsb_release -cs)"
+        llvm_repository="http://apt.llvm.org/${ubuntu_codename}/"
+        llvm_suite="llvm-toolchain-${ubuntu_codename}-${clang_version}"
 
-        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] ${llvm_repository} ${llvm_suite} main" \
+          | sudo tee /etc/apt/sources.list.d/llvm.list
         sudo apt update
         sudo apt install -y ${{ matrix.compiler.cc }}
 
@@ -70,9 +72,14 @@ jobs:
         sudo apt update
         sudo apt install -y ${{ matrix.compiler.cxx }}
 
-    - name: Install CMake (latest)
+    - name: Install pinned CMake
       if: ${{ matrix.compiler.modules == 'TRUE' }}
-      run: pip install cmake --upgrade --break-system-packages
+      run: |
+        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
+          pip install --upgrade "cmake>=4.4.0" --break-system-packages
+        else
+          pip install cmake==4.3.4 --break-system-packages
+        fi
 
     - name: Configure Release
       run: |
@@ -86,7 +93,7 @@ jobs:
       run: cmake --build build-release --parallel --config Release
 
     - name: Test Release
-      run: ctest --test-dir build-release --output-on-failure -C Release
+      run: ctest --test-dir build-release --output-on-failure --no-tests=error -C Release
 
     - name: Configure Debug
       run: |
@@ -100,27 +107,27 @@ jobs:
       run: cmake --build build-debug --parallel --config Debug
 
     - name: Test Debug
-      run: ctest --test-dir build-debug --output-on-failure -C Debug
+      run: ctest --test-dir build-debug --output-on-failure --no-tests=error -C Debug
 
     - name: Configure with `import std;`
       if: ${{ matrix.compiler.import_std == 'TRUE' }}
       run: |
-        stdlib_options=()
-        if [[ "${{ matrix.compiler.cc }}" == clang-* ]]; then
-          stdlib_options+=("-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++")
-        else
-          stdlib_options+=("-DCMAKE_CXX_STDLIB_MODULES_JSON=$("${CXX}" -print-file-name=libstdc++.modules.json)")
+        cxx_standard=23
+        stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
+        if [[ "${{ matrix.compiler.cc }}" == gcc-* ]]; then
+          cxx_standard=26
+          stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
         fi
 
         cmake -S . -B build-import-std \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=451f2fe2-a8a2-47c3-bc32-94786d8fc91b \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
-          -GNinja \
-          -DCMAKE_CXX_MODULE_STD=ON \
-          -DCMAKE_CXX_STANDARD=23 \
+          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d \
+          -DCMAKE_CXX_STANDARD="${cxx_standard}" \
           -DCMAKE_CXX_STANDARD_REQUIRED=ON \
           -DCMAKE_CXX_EXTENSIONS=OFF \
+          -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
+          -DMAGIC_ENUM_MODULE_IMPORT_STD:BOOL=TRUE \
+          -GNinja \
           "${stdlib_options[@]}"
 
     - name: Build with `import std;`
@@ -129,7 +136,7 @@ jobs:
 
     - name: Test with `import std;`
       if: ${{ matrix.compiler.import_std == 'TRUE' }}
-      run: ctest --test-dir build-import-std --output-on-failure -C Debug
+      run: ctest --test-dir build-import-std --output-on-failure --no-tests=error -C Debug
 
   bazel:
     name: Bazel

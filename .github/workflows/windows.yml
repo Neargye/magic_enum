@@ -27,4 +27,4 @@ jobs:
       run: cmake --build build --parallel --config ${{ matrix.build_type }}
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure -C ${{ matrix.build_type }}
+      run: ctest --test-dir build --output-on-failure --no-tests=error -C ${{ matrix.build_type }}

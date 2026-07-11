@@ -352,11 +352,24 @@ If you like this project, please consider donating to one of the funds that help
   target_link_libraries(your_executable magic_enum::magic_enum)
   ```
 
-* **C++20 modules** are supported as an alternative to the header-only mode, requires CMake 3.28+.
+* **CMake targets**:
+  - `magic_enum::magic_enum` is always provided for the header-only library;
+  - `magic_enum::magic_enum_module` is provided for the C++20 module library when `MAGIC_ENUM_USE_MODULES=ON`.
+
+  Use the header-only target with `#include <magic_enum/magic_enum.hpp>`, or substitute the module target and use `import magic_enum;`.
+
+  Maintainers using CMake 3.24+ can enable `MAGIC_ENUM_OPT_VERIFY_INTERFACE_HEADER_SETS=ON` to verify that every public header can be included independently. The option is enabled by default when `MAGIC_ENUM_OPT_BUILD_TESTS` is enabled on supported CMake versions.
+
+* **C++20 modules** require CMake 3.28+ and are explicitly enabled when building magic_enum.
 
   Configure with CMake:
+  ```sh
+  cmake -S . -B build -G Ninja -DMAGIC_ENUM_USE_MODULES=ON
+  ```
+
+  Link the module target instead of the header-only target:
   ```cmake
-  cmake -DMAGIC_ENUM_USE_MODULES=ON -G Ninja ...
+  target_link_libraries(your_executable PRIVATE magic_enum::magic_enum_module)
   ```
 
   Then use `import` instead of `#include`:
@@ -368,8 +381,12 @@ If you like this project, please consider donating to one of the funds that help
   ```
 
   Caveats:
-  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit; this is an ODR violation.
-  - `import std;` is opt-in and experimental (requires CMake 3.30+). Enable it with `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_MODULE_STD=ON` and set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` to the UUID documented by your CMake version before `project()`; for CMake 4.3, the UUID is `451f2fe2-a8a2-47c3-bc32-94786d8fc91b`.
+  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same program; this is an ODR violation.
+  - An installed module package must be consumed with a compatible compiler, standard library, C++ language standard, and compiler-extension mode. The module target propagates the language standard used to build it, but CMake cannot validate every toolchain option that affects module compatibility.
+  - An installed package provides `magic_enum::magic_enum_module` only when magic_enum was configured with `MAGIC_ENUM_USE_MODULES=ON` before installation.
+  - Module configuration macros are fixed when `magic_enum::magic_enum_module` is built; they are not applied independently by each consumer translation unit.
+  - `import std;` is opt-in and experimental (requires CMake 3.30+). Set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` to the UUID documented by the selected CMake version before `project()`, choose a supported `CMAKE_CXX_STANDARD`, and enable `MAGIC_ENUM_MODULE_IMPORT_STD=ON`. The experimental UUID is version-specific and is intentionally not selected by magic_enum. If a consumer source also uses `import std;`, enable it on that consumer target with `set_property(TARGET your_executable PROPERTY CXX_MODULE_STD ON)`; this target property is not propagated by linking `magic_enum::magic_enum_module`.
+  - `{fmt}` integration is explicit for the compiled module. Enable it with `MAGIC_ENUM_MODULE_WITH_FMT=ON`; this requires the `fmt` CMake package and makes `fmt::fmt` a public dependency of `magic_enum::magic_enum_module`. The installed magic_enum package will resolve the dependency with `find_dependency(fmt CONFIG)`.
 
 ## Compiler compatibility
 

@@ -1,170 +1,219 @@
 include(CheckCXXCompilerFlag)
 
-if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION})
-  find_package(magic_enum REQUIRED magic_enum)
+if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION AND NOT TARGET magic_enum::magic_enum)
+  find_package(magic_enum CONFIG REQUIRED)
 endif()
 
-if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
-  find_package(PkgConfig)
-  pkg_check_modules(magic_enum magic_enum)
-  if(NOT magic_enum_FOUND)
-    message(
-      WARNING
-        "magic_enum via pkgconfig is not found. \
-Next code will try check possible places for some platforms, \
-but there's no guarantee. \
-If you know where the magic_enum pkgconfig files (.pc) are, \
-then specify yourself variable \$\{CMAKE_PREFIX_PATH\} \
-with folder like /a/path/to/magic_enum (for POSIX-like pathes), \
-where in the folder exists share/pkgconfig/magic_enum.pc ."
-    )
-    if(UNIX AND EXISTS "/usr/local/share/pkgconfig/magic_enum.pc")
-      message(DEBUG "\$\{CMAKE_PREFIX_PATH\} : ${CMAKE_PREFIX_PATH} ")
-      set(CMAKE_PREFIX_PATH "/usr/local")
-      message(DEBUG "\$\{CMAKE_PREFIX_PATH\} : ${CMAKE_PREFIX_PATH} ")
-      pkg_check_modules(magic_enum magic_enum)
-    endif()
-    # code place for future workarounds for other platforms...
-    if(NOT magic_enum_FOUND)
-      message(FATAL_ERROR "Could not find magic_enum's config. Read a warning above.")
-    endif()
-  endif()
-  message(DEBUG "magic_enum_FOUND : ${magic_enum_FOUND}")
-  message(DEBUG "magic_enum_LIBRARIES: ${magic_enum_LIBRARIES}")
-  message(DEBUG "magic_enum_LINK_LIBRARIES: ${magic_enum_LINK_LIBRARIES}")
-  message(DEBUG "magic_enum_LIBRARY_DIRS: ${magic_enum_LIBRARY_DIRS}")
-  message(DEBUG "magic_enum_INCLUDE_DIRS: ${magic_enum_INCLUDE_DIRS}")
-  message(DEBUG "magic_enum_INCLUDE_DIR: ${magic_enum_INCLUDE_DIR}")
-  message(DEBUG "magic_enum_LDFLAGS: ${magic_enum_LDFLAGS}")
-  message(DEBUG "magic_enum_LDFLAGS_OTHER: ${magic_enum_LDFLAGS_OTHER}")
-  message(DEBUG "magic_enum_CFLAGS: ${magic_enum_CFLAGS}")
-  message(DEBUG "magic_enum_CFLAGS_OTHER: ${magic_enum_CFLAGS_OTHER}")
-  message(DEBUG "magic_enum_INCLUDEDIR: ${magic_enum_INCLUDEDIR}")
-  message(DEBUG "magic_enum_LIBDIR: ${magic_enum_LIBDIR}")
-  message(DEBUG "magic_enum_PREFIX: ${magic_enum_PREFIX}")
+if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(magic_enum REQUIRED IMPORTED_TARGET magic_enum)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(OPTIONS /W4 /WX)
-  check_cxx_compiler_flag(/permissive- HAS_PERMISSIVE_FLAG)
-  if(HAS_PERMISSIVE_FLAG)
-    set(OPTIONS ${OPTIONS} /permissive-)
-  endif()
+set(MAGIC_ENUM_TEST_STANDARDS 20 23 26)
 
-  check_cxx_compiler_flag(/std:c++20 HAS_CPP20_FLAG)
-  check_cxx_compiler_flag(/std:c++23 HAS_CPP23_FLAG)
-  check_cxx_compiler_flag(/std:c++latest HAS_CPPLATEST_FLAG)
+function(magic_enum_get_standard_flag standard output)
+  if(MSVC AND standard GREATER_EQUAL 26)
+    set(flag c++latest)
+  else()
+    set(flag c++${standard})
+  endif()
+  set(${output} ${flag} PARENT_SCOPE)
+endfunction()
+
+if(MSVC)
+  set(MAGIC_ENUM_TEST_COMPILE_OPTIONS /W4 /WX)
+  check_cxx_compiler_flag(/permissive- MAGIC_ENUM_HAS_PERMISSIVE_FLAG)
+  if(MAGIC_ENUM_HAS_PERMISSIVE_FLAG)
+    list(APPEND MAGIC_ENUM_TEST_COMPILE_OPTIONS /permissive-)
+  endif()
+  set(MAGIC_ENUM_TEST_FLAG_PREFIX /std:)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(CMAKE_VERBOSE_MAKEFILE ON)
-  set(OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
+  set(MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
+  set(MAGIC_ENUM_TEST_FLAG_PREFIX -std=)
 
   # Clang 22+ treats __COUNTER__ as C2y extension; but doctest uses it
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22.0")
-    set(OPTIONS ${OPTIONS} -Wno-c2y-extensions)
+    list(APPEND MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wno-c2y-extensions)
   endif()
+endif()
 
-  check_cxx_compiler_flag(-std=c++20 HAS_CPP20_FLAG)
-  check_cxx_compiler_flag(-std=c++23 HAS_CPP23_FLAG)
+foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
+  magic_enum_get_standard_flag(${MAGIC_ENUM_TEST_STANDARD} MAGIC_ENUM_TEST_STANDARD_FLAG)
+  check_cxx_compiler_flag(
+    "${MAGIC_ENUM_TEST_FLAG_PREFIX}${MAGIC_ENUM_TEST_STANDARD_FLAG}"
+    MAGIC_ENUM_HAS_CPP${MAGIC_ENUM_TEST_STANDARD}_FLAG
+  )
+endforeach()
 
-  # Clang 17 with libstdc++ 14 has a known bug in C++23 mode (tuple/get incompatibility)
-  # Skip C++23 tests for Clang 17.x to avoid compilation errors
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "17.0" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18.0")
-    set(HAS_CPP23_FLAG FALSE)
-    message(STATUS "Skipping C++23 tests for Clang 17 due to libstdc++ 14 incompatibility")
-  endif()
+# Clang 17 with libstdc++ 14 has a known bug in C++23 mode (tuple/get incompatibility).
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "17.0" AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18.0")
+  set(MAGIC_ENUM_HAS_CPP23_FLAG FALSE)
+  message(STATUS "Skipping C++23 tests for Clang 17 due to libstdc++ 14 incompatibility")
 endif()
 
 if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
-
-magic_enum_make_library(magic_enum_module_test-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_test_config.hpp\""
-)
-magic_enum_make_library(magic_enum_module_test_aliases-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/aliases.hpp\""
-)
-magic_enum_make_library(magic_enum_module_test_wchar_t-cpp${CMAKE_CXX_STANDARD}
-  "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_wchar_t_test_config.hpp\""
-)
-
+  magic_enum_make_module_library(magic_enum_module_test-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
+    "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_test_config.hpp\""
+  )
+  magic_enum_make_module_library(magic_enum_module_test_aliases-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
+    "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/aliases.hpp\""
+  )
+  magic_enum_make_module_library(magic_enum_module_test_wchar_t-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
+    "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_wchar_t_test_config.hpp\""
+  )
 endif()
 
-function(make_test src target std)
+function(magic_enum_make_test src target standard_flag)
   add_executable(${target} ${src})
-  target_compile_options(${target} PRIVATE ${OPTIONS})
+  target_compile_options(${target} PRIVATE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
   target_compile_definitions(${target} PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
-  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
-  if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
-    target_include_directories(${target} PRIVATE ${magic_enum_INCLUDE_DIRS})
-  elseif(TARGET magic_enum_module_${target})
-    target_link_libraries(${target} PRIVATE magic_enum_module_${target})
+  target_include_directories(${target} SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
+    target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
   else()
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
   endif()
   set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
-  if(std)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-      target_compile_options(${target} PRIVATE /std:${std})
-    else()
-      target_compile_options(${target} PRIVATE -std=${std})
-    endif()
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /std:${standard_flag})
+  else()
+    target_compile_options(${target} PRIVATE -std=${standard_flag})
   endif()
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
-function(make_module_test target std)
-  make_test(test_module.cpp ${target} ${std})
+function(magic_enum_make_module_test src target module_target)
+  add_executable(${target} ${src})
+  target_compile_options(${target} PRIVATE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
+  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+    target_link_libraries(${target} PRIVATE magic_enum::magic_enum_module)
+  else()
+    target_link_libraries(${target} PRIVATE ${module_target})
+  endif()
   set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+  add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
-if(NOT MAGIC_ENUM_USE_MODULES)
+set(MAGIC_ENUM_TEST_SOURCES test test_flags test_aliases test_containers test_wchar_t)
 
-make_test(test.cpp test-cpp17 c++17)
-make_test(test_flags.cpp test_flags-cpp17 c++17)
-make_test(test_aliases.cpp test_aliases-cpp17 c++17)
-make_test(test_containers.cpp test_containers-cpp17 c++17)
-make_test(test_wchar_t.cpp test_wchar_t-cpp17 c++17)
-
-if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-  make_test(test_nonascii.cpp test_nonascii-cpp17 c++17)
-endif()
-
-endif()
-
-if(HAS_CPP20_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 20)))
-  make_test(test.cpp test-cpp20 c++20)
-  make_test(test_flags.cpp test_flags-cpp20 c++20)
-  make_test(test_aliases.cpp test_aliases-cpp20 c++20)
-  make_test(test_containers.cpp test_containers-cpp20 c++20)
-  make_test(test_wchar_t.cpp test_wchar_t-cpp20 c++20)
+function(magic_enum_add_tests suffix standard_flag)
+  foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
+    magic_enum_make_test(${test_name}.cpp ${test_name}-${suffix} ${standard_flag})
+  endforeach()
   if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-    make_test(test_nonascii.cpp test_nonascii-cpp20 c++20)
+    magic_enum_make_test(test_nonascii.cpp test_nonascii-${suffix} ${standard_flag})
   endif()
+endfunction()
+
+function(magic_enum_add_module_tests suffix)
+  magic_enum_make_module_test(
+    test_module.cpp
+    test_module-${suffix}
+    magic_enum_module_test-${suffix}
+  )
+
+  # Installed packages expose one module with the configuration fixed at build
+  # time. Alias and wchar coverage use dedicated local module targets instead.
+  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+    return()
+  endif()
+
+  foreach(test_variant IN ITEMS _aliases _wchar_t)
+    magic_enum_make_module_test(
+      test_module${test_variant}.cpp
+      test_module${test_variant}-${suffix}
+      magic_enum_module_test${test_variant}-${suffix}
+    )
+  endforeach()
+endfunction()
+
+magic_enum_add_tests(cpp17 c++17)
+
+foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
+  set(MAGIC_ENUM_HAS_STANDARD_FLAG MAGIC_ENUM_HAS_CPP${MAGIC_ENUM_TEST_STANDARD}_FLAG)
+  if(NOT ${MAGIC_ENUM_HAS_STANDARD_FLAG})
+    continue()
+  endif()
+  if(MAGIC_ENUM_USE_MODULES AND
+     NOT MAGIC_ENUM_MODULE_CXX_STANDARD EQUAL MAGIC_ENUM_TEST_STANDARD)
+    continue()
+  endif()
+
+  magic_enum_get_standard_flag(${MAGIC_ENUM_TEST_STANDARD} MAGIC_ENUM_TEST_STANDARD_FLAG)
+  set(MAGIC_ENUM_TEST_SUFFIX cpp${MAGIC_ENUM_TEST_STANDARD})
+  magic_enum_add_tests(${MAGIC_ENUM_TEST_SUFFIX} ${MAGIC_ENUM_TEST_STANDARD_FLAG})
   if(MAGIC_ENUM_USE_MODULES)
-    make_module_test(test_module-cpp20 c++20)
+    magic_enum_add_module_tests(${MAGIC_ENUM_TEST_SUFFIX})
   endif()
-endif()
+endforeach()
 
-if(HAS_CPP23_FLAG AND (NOT MAGIC_ENUM_USE_MODULES OR (CMAKE_CXX_STANDARD EQUAL 23)))
-  make_test(test.cpp test-cpp23 c++23)
-  make_test(test_flags.cpp test_flags-cpp23 c++23)
-  make_test(test_aliases.cpp test_aliases-cpp23 c++23)
-  make_test(test_containers.cpp test_containers-cpp23 c++23)
-  make_test(test_wchar_t.cpp test_wchar_t-cpp23 c++23)
-  if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-    make_test(test_nonascii.cpp test_nonascii-cpp23 c++23)
+if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
+   NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION AND
+   NOT CMAKE_SKIP_INSTALL_RULES AND
+   CMAKE_GENERATOR STREQUAL "Ninja")
+  set(MAGIC_ENUM_STAGED_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/stagedir")
+  set(MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/installed-module-consumer")
+  set(MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH "${MAGIC_ENUM_STAGED_INSTALL_DIR}")
+  foreach(MAGIC_ENUM_PREFIX IN LISTS CMAKE_PREFIX_PATH)
+    string(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH "\\;${MAGIC_ENUM_PREFIX}")
+  endforeach()
+  set(MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+      "-DCMAKE_BUILD_TYPE=$<CONFIG>"
+      "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      "-DCMAKE_CXX_EXTENSIONS=${CMAKE_CXX_EXTENSIONS}"
+      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
+      "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
+      "-DCMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}"
+      "-DCMAKE_PREFIX_PATH=${MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH}"
+      "-DMAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
+      "-DMAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
+  )
+  if(MSVC)
+    find_program(MAGIC_ENUM_RC_COMPILER rc REQUIRED)
+    find_program(MAGIC_ENUM_MT mt REQUIRED)
+    list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+         "-DCMAKE_RC_COMPILER=${MAGIC_ENUM_RC_COMPILER}"
+         "-DCMAKE_MT=${MAGIC_ENUM_MT}"
+    )
   endif()
-  if(MAGIC_ENUM_USE_MODULES)
-    make_module_test(test_module-cpp23 c++23)
+  if(MAGIC_ENUM_MODULE_IMPORT_STD)
+    list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+         "-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=${CMAKE_EXPERIMENTAL_CXX_IMPORT_STD}"
+    )
+    if(CMAKE_CXX_STDLIB_MODULES_JSON)
+      list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+           "-DCMAKE_CXX_STDLIB_MODULES_JSON=${CMAKE_CXX_STDLIB_MODULES_JSON}"
+      )
+    endif()
   endif()
-endif()
 
-if(HAS_CPPLATEST_FLAG)
-  make_test(test.cpp test-cpplatest c++latest)
-  make_test(test_flags.cpp test_flags-cpplatest c++latest)
-  make_test(test_aliases.cpp test_aliases-cpplatest c++latest)
-  make_test(test_containers.cpp test_containers-cpplatest c++latest)
-  make_test(test_wchar_t.cpp test_wchar_t-cpplatest c++latest)
-  if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-    make_test(test_nonascii.cpp test_nonascii-cpplatest c++latest)
-  endif()
+  add_test(
+    NAME install-module-to-stagedir
+    COMMAND
+      ${CMAKE_COMMAND}
+      "-DBUILD_DIR=${CMAKE_BINARY_DIR}"
+      "-DSTAGE_DIR=${MAGIC_ENUM_STAGED_INSTALL_DIR}"
+      "-DCONSUMER_BUILD_DIR=${MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_DIR}"
+      "-DCONFIG=$<CONFIG>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/stage_package.cmake"
+  )
+  set_tests_properties(install-module-to-stagedir PROPERTIES FIXTURES_SETUP magic_enum_installed_module)
+
+  add_test(
+    NAME installed-module-consumer
+    COMMAND
+      ${CMAKE_CTEST_COMMAND}
+      --build-and-test
+      "${CMAKE_CURRENT_SOURCE_DIR}/installed_module"
+      "${MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_DIR}"
+      --build-generator "${CMAKE_GENERATOR}"
+      --build-makeprogram "${CMAKE_MAKE_PROGRAM}"
+      --build-options ${MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS}
+      --test-command
+      ${CMAKE_CTEST_COMMAND} --output-on-failure --no-tests=error -C $<CONFIG>
+  )
+  set_tests_properties(installed-module-consumer PROPERTIES FIXTURES_REQUIRED magic_enum_installed_module)
 endif()

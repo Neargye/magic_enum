@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+@MAGIC_ENUM_FIND_DEPENDENCIES@
+
+if(NOT TARGET magic_enum::magic_enum)
+  include("${CMAKE_CURRENT_LIST_DIR}/@MAGIC_ENUM_TARGETS_FILE_BASENAME@")
+endif()
+
+check_required_components(magic_enum)
