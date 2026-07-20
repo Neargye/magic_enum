@@ -1304,6 +1304,11 @@ static int switch_case_2d(Color color, Directions direction) {
 }
 
 enum class Index { zero = 0, one = 1, two = 2 };
+enum class FuseFive { zero, one, two, three, four };
+
+static_assert(magic_enum::detail::fuse_bit_width<FuseFive>() == 3);
+static_assert(magic_enum::detail::fuse_bit_width<FuseFive>() * 21 <= sizeof(std::uintmax_t) * 8);
+static_assert(magic_enum::detail::fuse_bit_width<FuseFive>() * 22 > sizeof(std::uintmax_t) * 8);
 
 static int switch_case_3d(Color color, Directions direction, Index index) {
   switch (enum_fuse(color, direction, index).value()) {
@@ -1358,6 +1363,8 @@ TEST_CASE("enum_next_value") {
   REQUIRE_FALSE(enum_next_value(Color::BLUE).has_value());
   REQUIRE_FALSE(enum_next_value(Color::RED, -1).has_value());
   REQUIRE_FALSE(enum_next_value(Color::RED, 10).has_value());
+  REQUIRE_FALSE(enum_next_value(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::max)()).has_value());
+  REQUIRE_FALSE(enum_next_value(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()).has_value());
 }
 
 TEST_CASE("enum_next_value_circular") {
@@ -1377,6 +1384,8 @@ TEST_CASE("enum_next_value_circular") {
   REQUIRE(enum_next_value_circular(Color::RED, -2) == Color::GREEN);
   REQUIRE(enum_next_value_circular(Color::RED, -3) == Color::RED);
   REQUIRE(enum_next_value_circular(Color::RED, -4) == Color::BLUE);
+  REQUIRE(enum_next_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::max)()) == Color::BLUE);
+  REQUIRE(enum_next_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()) == Color::BLUE);
 }
 
 TEST_CASE("enum_prev_value") {
@@ -1389,6 +1398,8 @@ TEST_CASE("enum_prev_value") {
   REQUIRE_FALSE(enum_prev_value(Color::RED).has_value());
   REQUIRE_FALSE(enum_prev_value(Color::BLUE, -1).has_value());
   REQUIRE_FALSE(enum_prev_value(Color::BLUE, 10).has_value());
+  REQUIRE_FALSE(enum_prev_value(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::max)()).has_value());
+  REQUIRE_FALSE(enum_prev_value(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()).has_value());
 }
 
 TEST_CASE("enum_prev_value_circular") {
@@ -1408,6 +1419,8 @@ TEST_CASE("enum_prev_value_circular") {
   REQUIRE(enum_prev_value_circular(Color::RED, -2) == Color::BLUE);
   REQUIRE(enum_prev_value_circular(Color::RED, -3) == Color::RED);
   REQUIRE(enum_prev_value_circular(Color::RED, -4) == Color::GREEN);
+  REQUIRE(enum_prev_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::max)()) == Color::RED);
+  REQUIRE(enum_prev_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()) == Color::RED);
 }
 
 TEST_CASE("valid_enum") {

@@ -83,10 +83,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
-    const std::ptrdiff_t index = (static_cast<std::ptrdiff_t>(*i) + n);
-    if (index >= 0 && index < count) {
-      return enum_value<D, S>(static_cast<std::size_t>(index));
+    const auto index = static_cast<std::ptrdiff_t>(*i);
+    if ((n > 0 && n >= count - index) || (n < 0 && n < -index)) {
+      return {};
     }
+    return enum_value<D, S>(static_cast<std::size_t>(index + n));
   }
   return {};
 }
@@ -97,10 +98,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
-    const std::ptrdiff_t index = ((((static_cast<std::ptrdiff_t>(*i) + n) % count) + count) % count);
-    if (index >= 0 && index < count) {
-      return enum_value<D, S>(static_cast<std::size_t>(index));
+    auto index = (static_cast<std::ptrdiff_t>(*i) + (n % count)) % count;
+    if (index < 0) {
+      index += count;
     }
+    return enum_value<D, S>(static_cast<std::size_t>(index));
   }
   return MAGIC_ENUM_ASSERT(false), value;
 }
@@ -111,10 +113,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
-    const std::ptrdiff_t index = (static_cast<std::ptrdiff_t>(*i) - n);
-    if (index >= 0 && index < count) {
-      return enum_value<D, S>(static_cast<std::size_t>(index));
+    const auto index = static_cast<std::ptrdiff_t>(*i);
+    if ((n > 0 && n > index) || (n < 0 && n <= index - count)) {
+      return {};
     }
+    return enum_value<D, S>(static_cast<std::size_t>(index - n));
   }
   return {};
 }
@@ -125,10 +128,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = enum_index<D, S>(value)) {
-    const std::ptrdiff_t index = ((((static_cast<std::ptrdiff_t>(*i) - n) % count) + count) % count);
-    if (index >= 0 && index < count) {
-      return enum_value<D, S>(static_cast<std::size_t>(index));
+    auto index = (static_cast<std::ptrdiff_t>(*i) - (n % count)) % count;
+    if (index < 0) {
+      index += count;
     }
+    return enum_value<D, S>(static_cast<std::size_t>(index));
   }
   return MAGIC_ENUM_ASSERT(false), value;
 }

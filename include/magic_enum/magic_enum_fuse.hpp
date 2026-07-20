@@ -39,10 +39,15 @@ namespace magic_enum {
 namespace detail {
 
 template <typename E>
+constexpr std::size_t fuse_bit_width() noexcept {
+  return log2((enum_count<E>() << 1) - 1);
+}
+
+template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
   if (hash) {
     if (const auto index = enum_index(value)) {
-      return (*hash << log2((enum_count<E>() << 1) - 1)) | *index;
+      return (*hash << fuse_bit_width<E>()) | *index;
     }
   }
   return {};
@@ -75,7 +80,7 @@ template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
-  static_assert((detail::log2(enum_count<std::decay_t<Es>>() + 1) + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
+  static_assert((detail::fuse_bit_width<std::decay_t<Es>>() + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
 #if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
   const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
 #else
