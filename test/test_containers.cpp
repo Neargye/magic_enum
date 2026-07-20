@@ -21,15 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(__clang__)
-#  pragma clang diagnostic push
-#elif defined(__GNUC__)
-#  pragma GCC diagnostic push
-#elif defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
-#endif
-
 #include <new>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
@@ -52,6 +43,26 @@ enum class Empty {};
 enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, not_interested=4
 enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, not_interested=0 (edge case)
 enum class Flags9  { A, B, C, D, E, F, G, H, I };      // 9 values, uint16_t base_type
+enum class Bits32 {
+  B00, B01, B02, B03, B04, B05, B06, B07,
+  B08, B09, B10, B11, B12, B13, B14, B15,
+  B16, B17, B18, B19, B20, B21, B22, B23,
+  B24, B25, B26, B27, B28, B29, B30, B31,
+};
+enum class Bits65 {
+  B00, B01, B02, B03, B04, B05, B06, B07,
+  B08, B09, B10, B11, B12, B13, B14, B15,
+  B16, B17, B18, B19, B20, B21, B22, B23,
+  B24, B25, B26, B27, B28, B29, B30, B31,
+  B32, B33, B34, B35, B36, B37, B38, B39,
+  B40, B41, B42, B43, B44, B45, B46, B47,
+  B48, B49, B50, B51, B52, B53, B54, B55,
+  B56, B57, B58, B59, B60, B61, B62, B63,
+  B64,
+};
+
+static_assert(magic_enum::enum_count<Bits32>() == 32);
+static_assert(magic_enum::enum_count<Bits65>() == 65);
 
 struct RGB {
 
@@ -90,7 +101,7 @@ TEST_CASE("containers_array") {
 
   // ENC: Direct convert to std::array
   // std::array compare_before {1U, 4U, 2U};
-  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{1U, 4U, 2U}};
+  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{{1U, 4U, 2U}}};
   REQUIRE(color_rgb_container_int == compare_before);
 
   constexpr auto colors = magic_enum::enum_values<Color>();
@@ -111,7 +122,7 @@ TEST_CASE("containers_array") {
 
   // Missing: Direct convert to std::array
   // std::array compare_after {1U, 2U, 4U};
-  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{1U, 2U, 4U}};
+  constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{{1U, 2U, 4U}}};
   REQUIRE(color_rgb_container_int == compare_after);
 
   std::ignore = magic_enum::containers::get<0>(compare_after);
@@ -289,6 +300,10 @@ TEST_CASE("containers_bitset_hash") {
   // hash matches std::hash<unsigned long long> applied to the same bit pattern
   REQUIRE(hasher(a) == std::hash<unsigned long long>{}(a.to_ullong(raw_access)));
 
+  bitset<Bits32> dense_32;
+  dense_32.set();
+  REQUIRE(std::hash<bitset<Bits32>>{}(dense_32) == std::hash<unsigned long long>{}(dense_32.to_ullong(raw_access)));
+
   // usable as key in unordered_set
   std::unordered_set<bitset<Color>> s;
   s.insert(bitset<Color>{Color::RED});
@@ -297,6 +312,47 @@ TEST_CASE("containers_bitset_hash") {
   REQUIRE(s.size() == 2);
   REQUIRE(s.count(bitset<Color>{Color::RED}) == 1);
   REQUIRE(s.count(bitset<Color>{Color::BLUE}) == 0);
+
+  // Hashing must include storage beyond the first 64 bits and must not throw.
+  std::hash<bitset<Bits65>> wide_hasher;
+  bitset<Bits65> low_bit;
+  low_bit.set(Bits65::B00);
+  REQUIRE(wide_hasher(low_bit) == std::hash<unsigned long long>{}(1));
+
+  bitset<Bits65> high_bit;
+  high_bit.set(Bits65::B64);
+  const auto high_hash = wide_hasher(high_bit);
+
+  bitset<Bits65> high_bit_copy;
+  high_bit_copy.set(Bits65::B64);
+  REQUIRE(high_hash == wide_hasher(high_bit_copy));
+  REQUIRE(high_hash != wide_hasher(bitset<Bits65>{}));
+
+  std::unordered_set<bitset<Bits65>> wide_set;
+  wide_set.insert(high_bit);
+  REQUIRE(wide_set.count(high_bit_copy) == 1);
+}
+
+TEST_CASE("containers_bitset_all_full_storage") {
+  constexpr auto full_nibble = [] {
+    magic_enum::containers::bitset<Nibble> bs;
+    bs.set();
+    return bs;
+  }();
+  static_assert(full_nibble.all());
+  REQUIRE(full_nibble.all());
+
+  constexpr auto full_32 = [] {
+    magic_enum::containers::bitset<Bits32> bs;
+    bs.set();
+    return bs;
+  }();
+  static_assert(full_32.all());
+  REQUIRE(full_32.all());
+
+  auto partial_32 = full_32;
+  partial_32.reset(Bits32::B31);
+  REQUIRE_FALSE(partial_32.all());
 }
 
 TEST_CASE("containers_set") {
@@ -377,6 +433,42 @@ TEST_CASE("containers_set") {
   REQUIRE(*blue_by_string == Color::BLUE);
   REQUIRE(color_name_set.erase("GREEN") == 1);
   REQUIRE_FALSE(color_name_set.contains(Color::GREEN));
+
+  static_assert(!noexcept(color_name_set.contains(green_name)));
+
+  magic_enum::containers::set<Color> erase_set {Color::RED, Color::GREEN, Color::BLUE};
+  auto empty_first = erase_set.find(Color::GREEN);
+  auto empty_result = erase_set.erase(empty_first, empty_first);
+  REQUIRE(empty_result == empty_first);
+  REQUIRE(erase_set.size() == 3);
+  REQUIRE(erase_set.erase(static_cast<Color>(8)) == 0);
+  REQUIRE(erase_set.size() == 3);
+
+  auto erase_first = erase_set.find(Color::RED);
+  auto erase_last = erase_set.find(Color::BLUE);
+  REQUIRE(erase_set.erase(erase_first, erase_last) == erase_last);
+  REQUIRE_FALSE(erase_set.contains(Color::RED));
+  REQUIRE_FALSE(erase_set.contains(Color::GREEN));
+  REQUIRE(erase_set.contains(Color::BLUE));
+
+  magic_enum::containers::set<Color> bounds_set {Color::GREEN, Color::BLUE};
+  REQUIRE(*bounds_set.lower_bound(Color::RED) == Color::GREEN);
+  REQUIRE(*bounds_set.lower_bound(Color::RED | Color::GREEN) == Color::BLUE);
+  REQUIRE(*bounds_set.upper_bound(Color::GREEN) == Color::BLUE);
+  REQUIRE(bounds_set.upper_bound(Color::BLUE) == bounds_set.end());
+
+  magic_enum::containers::set<Color> compare_lhs {Color::BLUE};
+  magic_enum::containers::set<Color> compare_rhs {Color::RED, Color::GREEN};
+  REQUIRE_FALSE(compare_lhs < compare_rhs);
+  REQUIRE(compare_rhs < compare_lhs);
+
+  magic_enum::containers::set<Color, magic_enum::containers::name_less<>> name_bounds_set {Color::BLUE, Color::RED};
+  REQUIRE(*name_bounds_set.lower_bound("BLACK") == Color::BLUE);
+  REQUIRE(*name_bounds_set.lower_bound("GREEN") == Color::RED);
+  REQUIRE(*name_bounds_set.upper_bound("BLUE") == Color::RED);
+  const auto [missing_first, missing_last] = name_bounds_set.equal_range("GREEN");
+  REQUIRE(missing_first == missing_last);
+  REQUIRE(*missing_first == Color::RED);
 
   magic_enum::containers::set<Color, magic_enum::containers::name_less_case_insensitive> color_ci_name_set {Color::RED, Color::GREEN, Color::BLUE};
   constexpr magic_enum::string_view green_name_lower = "green";
@@ -656,6 +748,28 @@ TEST_CASE("containers_bitset_iterator") {
     REQUIRE(it == bs.end());
   }
 
+  SUBCASE("Bits32 - backward from exact storage boundary") {
+    magic_enum::containers::bitset<Bits32> bs;
+    bs.set(Bits32::B00);
+    bs.set(Bits32::B31);
+    auto it = bs.end();
+    --it;
+    REQUIRE(*it == Bits32::B31);
+    --it;
+    REQUIRE(*it == Bits32::B00);
+  }
+
+  SUBCASE("Bits65 - backward across storage words") {
+    magic_enum::containers::bitset<Bits65> bs;
+    bs.set(Bits65::B00);
+    bs.set(Bits65::B64);
+    auto it = bs.end();
+    --it;
+    REQUIRE(*it == Bits65::B64);
+    --it;
+    REQUIRE(*it == Bits65::B00);
+  }
+
   SUBCASE("Numbers - forward iteration partial") {
     magic_enum::containers::bitset<Numbers> bs;
     bs.set(Numbers::ONE);
@@ -714,7 +828,11 @@ TEST_CASE("containers_bitset_iterator") {
     for (Flags9 e : magic_enum::enum_values<Flags9>()) { bs.set(e); }
     constexpr auto expected = magic_enum::enum_values<Flags9>();
     std::size_t i = 0;
-    for (Flags9 e : bs) { REQUIRE(e == expected[i++]); }
+    for (Flags9 e : bs) {
+      REQUIRE(i < expected.size());
+      REQUIRE(e == expected[i]);
+      ++i;
+    }
     REQUIRE(i == expected.size());
     auto it = bs.end();
     for (std::size_t j = expected.size(); j > 0; --j) {

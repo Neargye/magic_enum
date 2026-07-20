@@ -61,6 +61,11 @@
 #  define MAGIC_ENUM_THROW(...) std::abort()
 #endif
 
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 4514) // Unreferenced inline function has been removed.
+#endif
+
 namespace magic_enum::containers {
 
 namespace detail {
@@ -582,7 +587,23 @@ class bitset {
   static constexpr std::size_t bits_per_base = sizeof(base_type) * 8;
   static constexpr std::size_t base_type_count = (enum_count<E>() > 0 ? (enum_count<E>() - 1) / bits_per_base + 1 : 0);
   static constexpr std::size_t not_interested = base_type_count * bits_per_base - enum_count<E>();
-  static constexpr base_type last_value_max = (base_type{1} << (bits_per_base - not_interested)) - 1;
+  static constexpr std::size_t full_base_type_count = base_type_count - (not_interested > 0);
+  static constexpr base_type last_value_max = [] {
+    if constexpr (not_interested == 0) {
+      return (std::numeric_limits<base_type>::max)();
+    } else {
+      return static_cast<base_type>((base_type{1} << (bits_per_base - not_interested)) - 1);
+    }
+  }();
+
+  [[nodiscard]] static constexpr base_type bit_mask(std::size_t index) noexcept {
+    return static_cast<base_type>(base_type{1} << (index % bits_per_base));
+  }
+
+  [[nodiscard]] static constexpr base_type least_significant_bit(base_type value) noexcept {
+    MAGIC_ENUM_ASSERT(value != 0);
+    return bit_mask(static_cast<std::size_t>(detail::countr_zero(value)));
+  }
 
   template <typename parent_t = bitset*>
   class reference_impl {
@@ -592,7 +613,7 @@ class bitset {
     std::size_t num_index;
     base_type bit_index;
 
-    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, std::pair{i / bits_per_base, base_type{1} << (i % bits_per_base)}) {}
+    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, std::pair{i / bits_per_base, bit_mask(i)}) {}
 
     constexpr reference_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
 
@@ -626,17 +647,21 @@ class bitset {
 
   template <typename T>
   [[nodiscard]] constexpr T to_(detail::raw_access_t) const {
-    T res{};
-    T flag{1};
-    for (std::size_t i = 0; i < size(); ++i, flag <<= 1) {
-      if (const_reference{this, i}) {
-        if (i >= sizeof(T) * 8) {
-          MAGIC_ENUM_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
+    if constexpr (base_type_count == 1 && sizeof(T) * 8 >= enum_count<E>()) {
+      return static_cast<T>(a[0]);
+    } else {
+      T res{};
+      T flag{1};
+      for (std::size_t i = 0; i < size(); ++i, flag <<= 1) {
+        if (const_reference{this, i}) {
+          if (i >= sizeof(T) * 8) {
+            MAGIC_ENUM_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
+          }
+          res |= flag;
         }
-        res |= flag;
       }
+      return res;
     }
-    return res;
   }
 
   template <typename parent_t = bitset*>
@@ -666,14 +691,14 @@ class bitset {
    private:
     template <typename OtherParent>
     friend class iterator_impl;
-    constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, std::pair{i / bits_per_base, base_type{1} << (i % bits_per_base)}) {}
+    constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, std::pair{i / bits_per_base, bit_mask(i)}) {}
 
     constexpr iterator_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
 
-    [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept{
+    [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept {
       for (std::size_t num_index = 0; num_index < base_type_count; ++num_index) {
         if (p->a[num_index] > 0) {
-          base_type bit_index = static_cast<base_type>(p->a[num_index] & -p->a[num_index]);
+          const base_type bit_index = least_significant_bit(p->a[num_index]);
           return iterator_impl(p, std::pair{num_index, bit_index});
         }
       }
@@ -689,14 +714,16 @@ class bitset {
     [[nodiscard]] constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
     constexpr iterator_impl& operator++() noexcept {
-      base_type remaining_bits = static_cast<base_type>(parent->a[num_index] & ~((bit_index << 1) - 1));
+      const auto lower_bits = static_cast<base_type>((bit_index << 1) - 1);
+      base_type remaining_bits =
+          static_cast<base_type>(parent->a[num_index] & static_cast<base_type>(~lower_bits));
       while (remaining_bits == 0 && ++num_index < base_type_count) {
         remaining_bits = parent->a[num_index];
       }
       if (num_index >= base_type_count) {
         return *this = end(parent);
       }
-      bit_index = static_cast<base_type>(remaining_bits & -remaining_bits);
+      bit_index = least_significant_bit(remaining_bits);
       return *this;
     }
 
@@ -714,10 +741,10 @@ class bitset {
       } else if (num_index == base_type_count - 1 && bit_index > last_value_max) {
         search_mask = last_value_max;
       } else {
-        search_mask = bit_index - 1;
+        search_mask = static_cast<base_type>(bit_index - 1);
       }
 
-      base_type remaining_bits = parent->a[num_index] & search_mask;
+      base_type remaining_bits = static_cast<base_type>(parent->a[num_index] & search_mask);
       while (remaining_bits == 0 && num_index != 0) {
         remaining_bits = parent->a[--num_index];
       }
@@ -764,7 +791,7 @@ class bitset {
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
+  constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = char_type{'0'}, char_type one = char_type{'1'})
       : a{{}} {
     std::size_t i = 0;
     for (auto c : sv.substr(pos, n)) {
@@ -780,7 +807,7 @@ class bitset {
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{0}, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1'))
+  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{0}, char_type zero = char_type{'0'}, char_type one = char_type{'1'})
       : bitset(detail::raw_access_t{}, string_view{str, (std::min)(std::char_traits<char_type>::length(str), n)}, 0, n, zero, one) {}
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
@@ -809,7 +836,7 @@ class bitset {
   }
 
   template <typename Cmp = std::equal_to<>>
-  constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = static_cast<char_type>('|')) {
+  constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = char_type{'|'}) {
     for (std::size_t to = 0; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
       if (auto v = enum_cast<E>(sv.substr(0, to), cmp)) {
         set(*v);
@@ -876,17 +903,20 @@ class bitset {
   [[nodiscard]] constexpr bool all() const noexcept {
     if constexpr (base_type_count == 0) {
       return true;
-    }
-
-    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
-      auto check = ~a[i];
-      if (check) {
-        return false;
+    } else {
+      if constexpr (full_base_type_count > 0) {
+        for (std::size_t i = 0; i < full_base_type_count; ++i) {
+          if (a[i] != (std::numeric_limits<base_type>::max)()) {
+            return false;
+          }
+        }
       }
-    }
 
-    if constexpr (not_interested > 0) {
-      return a[base_type_count - 1] == last_value_max;
+      if constexpr (not_interested > 0) {
+        return a[base_type_count - 1] == last_value_max;
+      } else {
+        return true;
+      }
     }
   }
 
@@ -936,19 +966,24 @@ class bitset {
 
   [[nodiscard]] constexpr bitset operator~() const noexcept {
     bitset res;
-    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
-      res.a[i] = ~a[i];
+    if constexpr (full_base_type_count > 0) {
+      for (std::size_t i = 0; i < full_base_type_count; ++i) {
+        res.a[i] = static_cast<base_type>(~a[i]);
+      }
     }
 
     if constexpr (not_interested > 0) {
-      res.a[base_type_count - 1] = ~a[base_type_count - 1] & last_value_max;
+      const auto last_value = static_cast<base_type>(~a[base_type_count - 1]);
+      res.a[base_type_count - 1] = static_cast<base_type>(last_value & last_value_max);
     }
     return res;
   }
 
   constexpr bitset& set() noexcept {
-    for (std::size_t i = 0; i < base_type_count - (not_interested > 0); ++i) {
-      a[i] = ~base_type{0};
+    if constexpr (full_base_type_count > 0) {
+      for (std::size_t i = 0; i < full_base_type_count; ++i) {
+        a[i] = (std::numeric_limits<base_type>::max)();
+      }
     }
 
     if constexpr (not_interested > 0) {
@@ -1006,7 +1041,7 @@ class bitset {
     return res;
   }
 
-  [[nodiscard]] string to_string(char_type sep = static_cast<char_type>('|')) const {
+  [[nodiscard]] string to_string(char_type sep = char_type{'|'}) const {
     string name;
 
     for (const auto& e : enum_values<E>()) {
@@ -1021,7 +1056,7 @@ class bitset {
     return name;
   }
 
-  [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = static_cast<char_type>('0'), char_type one = static_cast<char_type>('1')) const {
+  [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = char_type{'0'}, char_type one = char_type{'1'}) const {
     string name;
     name.reserve(size());
     for (std::size_t i = 0; i < size(); ++i) {
@@ -1198,23 +1233,27 @@ class set {
   }
 
   constexpr iterator erase(const_iterator first, const_iterator last) noexcept {
-    while ((first = erase(first)) != last) {
+    while (first != last) {
+      first = erase(first);
     }
     return first;
   }
 
   constexpr size_type erase(const key_type& key) noexcept {
-    typename container_type::reference ref = a[key];
-    bool res = ref;
-    if (res) {
-      --s;
+    if (index_type::at(key)) {
+      typename container_type::reference ref = a[key];
+      const bool res = ref;
+      if (res) {
+        --s;
+      }
+      ref = false;
+      return res;
     }
-    ref = false;
-    return res;
+    return 0;
   }
 
   template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept {
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) {
     size_type c = 0;
     for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last;) {
       c += erase(*first++);
@@ -1255,45 +1294,51 @@ class set {
     return end();
   }
 
-  [[nodiscard]] constexpr bool contains(const key_type& key) const noexcept { return count(key); }
+  [[nodiscard]] constexpr bool contains(const key_type& key) const noexcept { return count(key) > 0; }
 
   template <typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const noexcept {
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const {
     return count(x) > 0;
   }
 
-  [[nodiscard]] constexpr std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const noexcept { return {lower_bound(key), upper_bound(key)}; }
+ private:
+  [[nodiscard]] constexpr const_iterator iterator_at_or_after(const E* it) const noexcept {
+    while (it != index_type::end() && !a.test(*it)) {
+      ++it;
+    }
+    return const_iterator{this, index_type::begin(), index_type::end(), it};
+  }
+
+ public:
+  [[nodiscard]] constexpr std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
+    return {lower_bound(key), upper_bound(key)};
+  }
 
   template <typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator, const_iterator>> equal_range(const K& x) const noexcept {
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator, const_iterator>> equal_range(const K& x) const {
     return {lower_bound(x), upper_bound(x)};
   }
 
-  [[nodiscard]] constexpr const_iterator lower_bound(const key_type& key) const noexcept {
-    if (auto i = index_type::at(key)) {
-      auto it = const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)};
-      return a.test(key) ? it : std::next(it);
-    }
-    return end();
+  [[nodiscard]] constexpr const_iterator lower_bound(const key_type& key) const {
+    const auto range = detail::equal_range(index_type::begin(), index_type::end(), key, key_compare{});
+    return iterator_at_or_after(range.first);
   }
 
   template <typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const noexcept {
-    auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{});
-    return first != last ? lower_bound(*first) : end();
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const {
+    const auto range = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{});
+    return iterator_at_or_after(range.first);
   }
 
-  [[nodiscard]] constexpr const_iterator upper_bound(const key_type& key) const noexcept {
-    if (auto i = index_type::at(key)) {
-      return std::next(const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)});
-    }
-    return end();
+  [[nodiscard]] constexpr const_iterator upper_bound(const key_type& key) const {
+    const auto range = detail::equal_range(index_type::begin(), index_type::end(), key, key_compare{});
+    return iterator_at_or_after(range.second);
   }
 
   template <typename K, typename KC = key_compare>
-  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const noexcept {
-    auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{});
-    return first != last ? upper_bound(*std::prev(last)) : end();
+  [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const {
+    const auto range = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{});
+    return iterator_at_or_after(range.second);
   }
 
   [[nodiscard]] constexpr key_compare key_comp() const { return {}; }
@@ -1305,19 +1350,7 @@ class set {
   [[nodiscard]] constexpr friend bool operator!=(const set& lhs, const set& rhs) noexcept { return lhs.a != rhs.a; }
 
   [[nodiscard]] constexpr friend bool operator<(const set& lhs, const set& rhs) noexcept {
-    if (lhs.s < rhs.s) {
-      return true;
-    }
-    if (rhs.s < lhs.s) {
-      return false;
-    }
-
-    for (auto it = index_type::begin(); it != index_type::end(); ++it) {
-      if (auto c = rhs.contains(*it); c != lhs.contains(*it)) {
-        return c;
-      }
-    }
-    return false;
+    return detail::lexicographical_compare(lhs, rhs);
   }
 
   [[nodiscard]] constexpr friend bool operator<=(const set& lhs, const set& rhs) noexcept { return !(rhs < lhs); }
@@ -1391,9 +1424,34 @@ constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(En
 
 template <typename E, typename Index>
 struct std::hash<magic_enum::containers::bitset<E, Index>> {
-  std::size_t operator()(const magic_enum::containers::bitset<E, Index>& bs) const {
-    return std::hash<unsigned long long>{}(bs.to_ullong(magic_enum::containers::raw_access));
+  std::size_t operator()(const magic_enum::containers::bitset<E, Index>& bs) const noexcept {
+    if constexpr (magic_enum::enum_count<E>() <= sizeof(unsigned long long) * 8) {
+      return std::hash<unsigned long long>{}(bs.to_ullong(magic_enum::containers::raw_access));
+    } else {
+      unsigned long long low_bits{};
+      std::size_t seed{};
+      bool has_high_bits = false;
+      for (const auto value : bs) {
+        const auto index = Index::at(value);
+        MAGIC_ENUM_ASSERT(index);
+        if (*index < sizeof(low_bits) * 8) {
+          low_bits |= 1ULL << *index;
+        } else {
+          if (!has_high_bits) {
+            seed = std::hash<unsigned long long>{}(low_bits);
+            has_high_bits = true;
+          }
+          const auto index_hash = std::hash<std::size_t>{}(*index);
+          seed ^= index_hash + std::size_t{0x9e3779b9U} + (seed << 6) + (seed >> 2);
+        }
+      }
+      return has_high_bits ? seed : std::hash<unsigned long long>{}(low_bits);
+    }
   }
 };
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
