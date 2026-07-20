@@ -121,6 +121,19 @@ struct overloaded : Ts... {
 template <typename... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+TEST_CASE("enum_reflected") {
+  REQUIRE(enum_reflected<Color>(Color::RED));
+  REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
+  REQUIRE(enum_reflected<Directions>(Directions::Left));
+  REQUIRE(enum_reflected<Directions>(Directions::Right));
+  REQUIRE(enum_reflected<Directions>(std::uint64_t{1} << 62));
+  REQUIRE_FALSE(enum_reflected<Directions>(Directions::NoDirection));
+  REQUIRE_FALSE(enum_reflected<Directions>(Directions::Left | Directions::Down));
+  REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{3}));
+  REQUIRE_FALSE(enum_reflected<Directions, as_common<>>(Directions::Left));
+  REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("RED");

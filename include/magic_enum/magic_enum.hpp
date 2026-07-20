@@ -1483,13 +1483,32 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_reflected(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
+  using I = underlying_type_t<D>;
 
-  if constexpr (detail::is_reflected_v<D, S>) {
-    constexpr auto min = detail::reflected_min<E, S>();
-    constexpr auto max = detail::reflected_max<E, S>();
-    return value >= min && value <= max;
-  } else {
+  if constexpr (!detail::is_reflected_v<D, S>) {
     return false;
+  } else {
+    constexpr auto min = detail::reflected_min<D, S>();
+    constexpr auto max = detail::reflected_max<D, S>();
+
+    if constexpr (S == detail::enum_subtype::common) {
+      return !detail::cmp_less(value, min) && !detail::cmp_less(max, value);
+    } else if constexpr (std::is_same_v<I, bool>) {
+      return false;
+    } else {
+      if (value <= I{0}) {
+        return false;
+      }
+
+      using U = std::make_unsigned_t<I>;
+      const auto v = static_cast<U>(value);
+      if ((v & (v - U{1})) != U{0}) {
+        return false;
+      }
+
+      const auto bit = detail::log2(v);
+      return !detail::cmp_less(bit, min) && !detail::cmp_less(max, bit);
+    }
   }
 }
 

@@ -34,6 +34,8 @@ static_assert(!magic_enum::is_flags_enum<Color>::value);
 static_assert(!magic_enum::is_flags_v<Color>);
 static_assert(magic_enum::is_flags_enum<Directions>::value);
 static_assert(magic_enum::is_flags_v<Directions>);
+static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
+static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
 
 constexpr auto color_array = magic_enum::containers::make_array<Color>(1, 2, 3);
 static_assert(color_array[Color::GREEN] == 2);
