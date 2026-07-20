@@ -698,7 +698,7 @@ class bitset {
     [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept {
       for (std::size_t num_index = 0; num_index < base_type_count; ++num_index) {
         if (p->a[num_index] > 0) {
-          const base_type bit_index = least_significant_bit(p->a[num_index]);
+          const auto bit_index = least_significant_bit(p->a[num_index]);
           return iterator_impl(p, std::pair{num_index, bit_index});
         }
       }
@@ -715,8 +715,7 @@ class bitset {
 
     constexpr iterator_impl& operator++() noexcept {
       const auto lower_bits = static_cast<base_type>((bit_index << 1) - 1);
-      base_type remaining_bits =
-          static_cast<base_type>(parent->a[num_index] & static_cast<base_type>(~lower_bits));
+      auto remaining_bits = static_cast<base_type>(parent->a[num_index] & static_cast<base_type>(~lower_bits));
       while (remaining_bits == 0 && ++num_index < base_type_count) {
         remaining_bits = parent->a[num_index];
       }
@@ -744,7 +743,7 @@ class bitset {
         search_mask = static_cast<base_type>(bit_index - 1);
       }
 
-      base_type remaining_bits = static_cast<base_type>(parent->a[num_index] & search_mask);
+      auto remaining_bits = static_cast<base_type>(parent->a[num_index] & search_mask);
       while (remaining_bits == 0 && num_index != 0) {
         remaining_bits = parent->a[--num_index];
       }
@@ -1186,14 +1185,14 @@ class set {
 
   constexpr std::pair<iterator, bool> insert(const value_type& value) noexcept {
     if (auto i = index_type::at(value)) {
-      typename container_type::reference ref = a[value];
-      bool r = !ref;
-      if (r) {
+      auto ref = a[value];
+      const bool res = !ref;
+      if (res) {
         ref = true;
         ++s;
       }
 
-      return {iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)}, r};
+      return {iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)}, res};
     }
     return {end(), false};
   }
@@ -1241,7 +1240,7 @@ class set {
 
   constexpr size_type erase(const key_type& key) noexcept {
     if (index_type::at(key)) {
-      typename container_type::reference ref = a[key];
+      auto ref = a[key];
       const bool res = ref;
       if (res) {
         --s;
@@ -1428,8 +1427,8 @@ struct std::hash<magic_enum::containers::bitset<E, Index>> {
     if constexpr (magic_enum::enum_count<E>() <= sizeof(unsigned long long) * 8) {
       return std::hash<unsigned long long>{}(bs.to_ullong(magic_enum::containers::raw_access));
     } else {
-      unsigned long long low_bits{};
-      std::size_t seed{};
+      unsigned long long low_bits = 0;
+      std::size_t seed = 0;
       bool has_high_bits = false;
       for (const auto value : bs) {
         const auto index = Index::at(value);

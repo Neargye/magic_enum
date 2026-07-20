@@ -1288,8 +1288,8 @@ TEST_CASE("constexpr_for") {
 }
 
 #if defined(_MSC_VER)
-# pragma warning(push)
-# pragma warning(disable : 4064)
+#  pragma warning(push)
+#  pragma warning(disable : 4064) // MSVC treats the opaque enum returned by enum_fuse as incomplete in switch statements.
 #endif
 
 static int switch_case_2d(Color color, Directions direction) {

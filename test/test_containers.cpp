@@ -43,12 +43,7 @@ enum class Empty {};
 enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, not_interested=4
 enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, not_interested=0 (edge case)
 enum class Flags9  { A, B, C, D, E, F, G, H, I };      // 9 values, uint16_t base_type
-enum class Bits32 {
-  B00, B01, B02, B03, B04, B05, B06, B07,
-  B08, B09, B10, B11, B12, B13, B14, B15,
-  B16, B17, B18, B19, B20, B21, B22, B23,
-  B24, B25, B26, B27, B28, B29, B30, B31,
-};
+enum class Bits32 { B00, B01, B02, B03, B04, B05, B06, B07, B08, B09, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24, B25, B26, B27, B28, B29, B30, B31 };
 enum class Bits65 {
   B00, B01, B02, B03, B04, B05, B06, B07,
   B08, B09, B10, B11, B12, B13, B14, B15,
