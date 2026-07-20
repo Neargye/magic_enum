@@ -114,7 +114,7 @@ jobs:
 
         cmake -S . -B build-import-std \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=451f2fe2-a8a2-47c3-bc32-94786d8fc91b \
+          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -GNinja \
           -DCMAKE_CXX_MODULE_STD=ON \
