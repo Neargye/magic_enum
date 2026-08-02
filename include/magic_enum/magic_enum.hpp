@@ -1236,6 +1236,24 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::count_v<std::decay_t<E>, S>;
 }
 
+// Returns minimum enum value.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_min() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_min requires at least one reflected enum value.");
+
+  return detail::values_v<D, S>.front();
+}
+
+// Returns maximum enum value.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_max() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_max requires at least one reflected enum value.");
+
+  return detail::values_v<D, S>.back();
+}
+
 // Returns enum value at specified index.
 // No bounds checking is performed: the behavior is undefined if index >= number of enum values.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
