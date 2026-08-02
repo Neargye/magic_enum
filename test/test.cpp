@@ -523,6 +523,20 @@ TEST_CASE("enum_count") {
   REQUIRE(s6 == 2);
 }
 
+TEST_CASE("enum_min_max") {
+  constexpr auto color_min = enum_min<Color&>();
+  constexpr auto color_max = enum_max<const Color>();
+  REQUIRE(color_min == Color::RED);
+  REQUIRE(color_max == Color::BLUE);
+  static_assert(enum_underlying(color_min) == -12);
+  static_assert(enum_underlying(color_max) == 15);
+
+  REQUIRE(enum_min<Directions>() == Directions::Left);
+  REQUIRE(enum_max<Directions>() == Directions::Right);
+  REQUIRE(enum_min<number>() == number::one);
+  REQUIRE(enum_max<number>() == number::three);
+}
+
 enum lt1 { s1, loooooooooooooooooooong1 };
 enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
 enum class lt3 { s3, loooooooooooooooooooong3 };
