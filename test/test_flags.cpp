@@ -20,15 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(__clang__)
-#  pragma clang diagnostic push
-#elif defined(__GNUC__)
-#  pragma GCC diagnostic push
-#elif defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
-#endif
-
 #include <new>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
@@ -129,6 +120,19 @@ struct overloaded : Ts... {
 };
 template <typename... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
+
+TEST_CASE("enum_reflected") {
+  REQUIRE(enum_reflected<Color>(Color::RED));
+  REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
+  REQUIRE(enum_reflected<Directions>(Directions::Left));
+  REQUIRE(enum_reflected<Directions>(Directions::Right));
+  REQUIRE(enum_reflected<Directions>(std::uint64_t{1} << 62));
+  REQUIRE_FALSE(enum_reflected<Directions>(Directions::NoDirection));
+  REQUIRE_FALSE(enum_reflected<Directions>(Directions::Left | Directions::Down));
+  REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{3}));
+  REQUIRE_FALSE(enum_reflected<Directions, as_common<>>(Directions::Left));
+  REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
+}
 
 TEST_CASE("enum_cast") {
   SUBCASE("string") {

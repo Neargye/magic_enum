@@ -408,6 +408,8 @@ constexpr bool enum_reflected(underlying_type_t<E> value) noexcept;
 
 * Returns true if the enum value is in the range of values that can be reflected.
 
+* For enum flags, returns true only for a non-zero single-bit value whose bit position can be reflected.
+
 ## `enum_type_name`
 
 ```cpp

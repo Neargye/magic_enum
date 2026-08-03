@@ -34,6 +34,8 @@ static_assert(!magic_enum::is_flags_enum<Color>::value);
 static_assert(!magic_enum::is_flags_v<Color>);
 static_assert(magic_enum::is_flags_enum<Directions>::value);
 static_assert(magic_enum::is_flags_v<Directions>);
+static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
+static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
 
 // Keep this list in sync with the public declarations exported by magic_enum.cppm.
 // Using-declarations verify reachability without relying on unrelated standard

@@ -21,11 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable : 4244) // warning C4244: 'argument': conversion from 'const T' to 'unsigned int', possible loss of data.
-#endif
-
 #include <cstdint>
 #include <iostream>
 
