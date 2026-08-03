@@ -10,12 +10,12 @@ elseif(MSVC)
   endif()
 endif()
 
-function(magic_enum_add_example target)
+function(magic_enum_add_example target library standard)
   add_executable(${target} ${target}.cpp)
   set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
-  target_compile_features(${target} PRIVATE cxx_std_17)
+  target_compile_features(${target} PRIVATE cxx_std_${standard})
   target_compile_options(${target} PRIVATE ${MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS})
-  target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
+  target_link_libraries(${target} PRIVATE ${library})
 endfunction()
 
 set(MAGIC_ENUM_EXAMPLES
@@ -33,13 +33,15 @@ if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
 endif()
 
 foreach(MAGIC_ENUM_EXAMPLE IN LISTS MAGIC_ENUM_EXAMPLES)
-  magic_enum_add_example(${MAGIC_ENUM_EXAMPLE})
+  magic_enum_add_example(${MAGIC_ENUM_EXAMPLE} magic_enum::magic_enum 17)
 endforeach()
 
 if(MAGIC_ENUM_USE_MODULES)
-  magic_enum_add_example(example_module_usage)
-  target_link_libraries(example_module_usage PRIVATE magic_enum::magic_enum_module)
-  target_compile_features(example_module_usage PRIVATE cxx_std_20)
+  magic_enum_add_example(
+    example_module_usage
+    magic_enum::magic_enum_module
+    ${MAGIC_ENUM_MODULE_CXX_STANDARD}
+  )
   set_target_properties(example_module_usage PROPERTIES CXX_SCAN_FOR_MODULES ON)
   if(MAGIC_ENUM_MODULE_IMPORT_STD)
     set_property(TARGET example_module_usage PROPERTY CXX_MODULE_STD ON)

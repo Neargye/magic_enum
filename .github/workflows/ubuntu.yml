@@ -70,13 +70,17 @@ jobs:
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt update
-        sudo apt install -y ${{ matrix.compiler.cxx }}
+        packages=("${{ matrix.compiler.cxx }}")
+        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
+          packages+=(libfmt-dev)
+        fi
+        sudo apt install -y "${packages[@]}"
 
     - name: Install pinned CMake
       if: ${{ matrix.compiler.modules == 'TRUE' }}
       run: |
         if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
-          pip install --upgrade "cmake>=4.4.0" --break-system-packages
+          pip install cmake==4.4.0 --break-system-packages
         else
           pip install cmake==4.3.4 --break-system-packages
         fi
@@ -113,9 +117,11 @@ jobs:
       if: ${{ matrix.compiler.import_std == 'TRUE' }}
       run: |
         cxx_standard=23
+        fmt_integration=OFF
         stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
         if [[ "${{ matrix.compiler.cc }}" == gcc-* ]]; then
           cxx_standard=26
+          fmt_integration=ON
           stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
         fi
 
@@ -127,6 +133,7 @@ jobs:
           -DCMAKE_CXX_EXTENSIONS=OFF \
           -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
           -DMAGIC_ENUM_MODULE_IMPORT_STD:BOOL=TRUE \
+          -DMAGIC_ENUM_MODULE_WITH_FMT:BOOL="${fmt_integration}" \
           -GNinja \
           "${stdlib_options[@]}"
 

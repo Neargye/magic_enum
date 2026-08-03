@@ -1,0 +1,88 @@
+name: Install
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+permissions: read-all
+
+jobs:
+  header-only-ubuntu:
+    name: Header-only / Ubuntu
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: test installed package
+        run: bash ./test_installed_version.bash
+
+  module-macos-gcc:
+    name: Module / macOS / GCC 16 / fmt / C++20
+    runs-on: macos-15
+    env:
+      CC: gcc-16
+      CXX: g++-16
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install toolchain
+        run: |
+          brew install gcc ninja fmt
+          python3 -m pip install cmake==4.4.0 --break-system-packages
+
+      - name: Build and test installed module package
+        run: |
+          fmt_prefix="$(brew --prefix fmt)"
+          cmake -S . -B build-module -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DCMAKE_PREFIX_PATH="${fmt_prefix}" \
+            -DMAGIC_ENUM_USE_MODULES=ON \
+            -DMAGIC_ENUM_MODULE_WITH_FMT=ON \
+            -DMAGIC_ENUM_OPT_BUILD_TESTS=ON \
+            -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=ON
+          cmake --build build-module --parallel
+          cmake --build build-module \
+            --target magic_enum_verify_interface_header_sets \
+            --parallel
+          ctest --test-dir build-module \
+            --output-on-failure \
+            --no-tests=error \
+            -R '^(test_module(_aliases|_wchar_t)?-cpp20|installed-module-consumer)$'
+
+  module-windows-msvc:
+    name: Module / Windows / VS 2026 / C++20
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install pinned CMake
+        shell: pwsh
+        run: python -m pip install cmake==4.3.4
+
+      - name: Build and test installed module package
+        shell: pwsh
+        run: |
+          cmake -S . -B build-module -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_CXX_STANDARD=20 `
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON `
+            -DCMAKE_CXX_EXTENSIONS=OFF `
+            -DMAGIC_ENUM_USE_MODULES=ON `
+            -DMAGIC_ENUM_OPT_BUILD_TESTS=ON `
+            -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=ON
+          cmake --build build-module --parallel --target magic_enum_module example_module_usage test_module-cpp20 test_module_aliases-cpp20 test_module_wchar_t-cpp20
+          cmake --build build-module --parallel --target magic_enum_verify_interface_header_sets
+          ctest --test-dir build-module --output-on-failure --no-tests=error -R '^(test_module(_aliases|_wchar_t)?-cpp20|installed-module-consumer)$'

@@ -4,7 +4,9 @@ set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 build_root="${repo_root}/build-installed-version"
 source_build_dir="${build_root}/source"
+configured_install_dir="${build_root}/configured-install"
 install_dir="${build_root}/install"
+consumer_prefix="${build_root}/relocated-install"
 cmake_consumer_build_dir="${build_root}/cmake-consumer"
 pkgconfig_consumer_build_dir="${build_root}/pkgconfig-consumer"
 
@@ -12,7 +14,7 @@ test_installed_consumer() {
   local build_dir="$1"
   shift
 
-  CMAKE_PREFIX_PATH="${install_dir}" cmake -S "${repo_root}" -B "${build_dir}" \
+  CMAKE_PREFIX_PATH="${consumer_prefix}" cmake -S "${repo_root}" -B "${build_dir}" \
     -DCMAKE_BUILD_TYPE=Debug \
     "$@"
   cmake --build "${build_dir}" --parallel
@@ -23,7 +25,7 @@ cmake -E remove_directory "${build_root}"
 
 cmake -S "${repo_root}" -B "${source_build_dir}" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="${install_dir}" \
+  -DCMAKE_INSTALL_PREFIX="${configured_install_dir}" \
   -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=OFF \
   -DMAGIC_ENUM_OPT_BUILD_TESTS=OFF \
   -DMAGIC_ENUM_OPT_INSTALL=ON \
@@ -31,7 +33,8 @@ cmake -S "${repo_root}" -B "${source_build_dir}" \
 cmake --build "${source_build_dir}" \
   --target magic_enum_verify_interface_header_sets \
   --parallel
-cmake --install "${source_build_dir}"
+cmake --install "${source_build_dir}" --prefix "${install_dir}"
+cmake -E copy_directory "${install_dir}" "${consumer_prefix}"
 
 test_installed_consumer "${cmake_consumer_build_dir}" \
   -DMAGIC_ENUM_OPT_TEST_INSTALLED_VERSION=ON

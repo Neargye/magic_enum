@@ -353,26 +353,27 @@ If you like this project, please consider donating to one of the funds that help
   ```
 
 * **CMake targets**:
-  - `magic_enum::magic_enum` is always provided for the header-only library;
-  - `magic_enum::magic_enum_module` is provided for the C++20 module library when `MAGIC_ENUM_USE_MODULES=ON`.
+  - `magic_enum::magic_enum` is the header-only target.
+  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`.
 
-  Use the header-only target with `#include <magic_enum/magic_enum.hpp>`, or substitute the module target and use `import magic_enum;`.
+  The pkg-config package supports only the header-only target. Use the CMake package for the module target.
 
-  Maintainers using CMake 3.24+ can enable `MAGIC_ENUM_OPT_VERIFY_INTERFACE_HEADER_SETS=ON` to verify that every public header can be included independently. The option is enabled by default when `MAGIC_ENUM_OPT_BUILD_TESTS` is enabled on supported CMake versions.
+* **C++20 modules** require CMake 3.28+.
 
-* **C++20 modules** require CMake 3.28+ and are explicitly enabled when building magic_enum.
-
-  Configure with CMake:
+  Enable modules when building magic_enum:
   ```sh
   cmake -S . -B build -G Ninja -DMAGIC_ENUM_USE_MODULES=ON
+  cmake --build build
   ```
 
-  Link the module target instead of the header-only target:
+  Link the module target:
   ```cmake
+  find_package(magic_enum CONFIG REQUIRED)
   target_link_libraries(your_executable PRIVATE magic_enum::magic_enum_module)
+  set_target_properties(your_executable PROPERTIES CXX_EXTENSIONS OFF)
   ```
 
-  Then use `import` instead of `#include`:
+  Import the module:
   ```cpp
   import magic_enum;
 
@@ -380,13 +381,11 @@ If you like this project, please consider donating to one of the funds that help
   auto name = magic_enum::enum_name(Color::RED); // "RED"
   ```
 
-  Caveats:
-  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same program; this is an ODR violation.
-  - An installed module package must be consumed with a compatible compiler, standard library, C++ language standard, and compiler-extension mode. The module target propagates the language standard used to build it, but CMake cannot validate every toolchain option that affects module compatibility.
-  - An installed package provides `magic_enum::magic_enum_module` only when magic_enum was configured with `MAGIC_ENUM_USE_MODULES=ON` before installation.
-  - Module configuration macros are fixed when `magic_enum::magic_enum_module` is built; they are not applied independently by each consumer translation unit.
-  - `import std;` is opt-in and experimental (requires CMake 3.30+). Set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` to the UUID documented by the selected CMake version before `project()`, choose a supported `CMAKE_CXX_STANDARD`, and enable `MAGIC_ENUM_MODULE_IMPORT_STD=ON`. The experimental UUID is version-specific and is intentionally not selected by magic_enum. If a consumer source also uses `import std;`, enable it on that consumer target with `set_property(TARGET your_executable PROPERTY CXX_MODULE_STD ON)`; this target property is not propagated by linking `magic_enum::magic_enum_module`.
-  - `{fmt}` integration is explicit for the compiled module. Enable it with `MAGIC_ENUM_MODULE_WITH_FMT=ON`; this requires the `fmt` CMake package and makes `fmt::fmt` a public dependency of `magic_enum::magic_enum_module`. The installed magic_enum package will resolve the dependency with `find_dependency(fmt CONFIG)`.
+  Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module.
+
+  Optional settings:
+  - `{fmt}` support is enabled automatically when the `fmt::fmt` target already exists. Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to require `{fmt}`, or `OFF` to disable it.
+  - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable experimental `import std` support. This requires a compatible CMake toolchain.
 
 ## Compiler compatibility
 

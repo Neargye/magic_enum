@@ -43,7 +43,12 @@ option(
 )
 option(MAGIC_ENUM_USE_MODULES "Build the magic_enum C++20 module target" OFF)
 option(MAGIC_ENUM_MODULE_IMPORT_STD "Build the module target with import std" OFF)
-option(MAGIC_ENUM_MODULE_WITH_FMT "Build the module target with fmt integration" OFF)
+set(MAGIC_ENUM_MODULE_WITH_FMT_DEFAULT OFF)
+if(MAGIC_ENUM_USE_MODULES AND TARGET fmt::fmt)
+  set(MAGIC_ENUM_MODULE_WITH_FMT_DEFAULT ON)
+endif()
+option(MAGIC_ENUM_MODULE_WITH_FMT "Build the module target with fmt integration" ${MAGIC_ENUM_MODULE_WITH_FMT_DEFAULT})
+unset(MAGIC_ENUM_MODULE_WITH_FMT_DEFAULT)
 option(MAGIC_ENUM_OPT_INSTALL_PACKAGE_XML "Include package.xml when installing" ${MAGIC_ENUM_OPT_INSTALL})
 
 if(MAGIC_ENUM_MODULE_IMPORT_STD AND NOT MAGIC_ENUM_USE_MODULES)
@@ -108,6 +113,7 @@ endif()
 
 function(magic_enum_make_module_library name)
   add_library(${name} STATIC)
+  set_target_properties(${name} PROPERTIES CXX_EXTENSIONS OFF)
   target_sources(${name}
     PUBLIC
       FILE_SET CXX_MODULES

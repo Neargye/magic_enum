@@ -46,12 +46,21 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   )
 endforeach()
 
-# Clang 17 with libstdc++ 14 has a known bug in C++23 mode (tuple/get incompatibility).
+# Clang 17 with libstdc++ 14 has a known tuple/get incompatibility in C++23 and C++26 modes.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND
    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "17.0" AND
    CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18.0")
   set(MAGIC_ENUM_HAS_CPP23_FLAG FALSE)
-  message(STATUS "Skipping C++23 tests for Clang 17 due to libstdc++ 14 incompatibility")
+  set(MAGIC_ENUM_HAS_CPP26_FLAG FALSE)
+  message(STATUS "Skipping C++23 and C++26 tests for Clang 17 due to libstdc++ 14 incompatibility")
+endif()
+
+# GCC 14 and 15 fail valid enum flags parsing tests in C++26 mode.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.0" AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16.0")
+  set(MAGIC_ENUM_HAS_CPP26_FLAG FALSE)
+  message(STATUS "Skipping C++26 tests for GCC 14 and 15")
 endif()
 
 if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
@@ -93,7 +102,12 @@ function(magic_enum_make_module_test src target module_target)
   else()
     target_link_libraries(${target} PRIVATE ${module_target})
   endif()
-  set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+  set_target_properties(
+    ${target}
+    PROPERTIES
+      CXX_EXTENSIONS OFF
+      CXX_SCAN_FOR_MODULES ON
+  )
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
@@ -163,7 +177,7 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
   set(MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
       "-DCMAKE_BUILD_TYPE=$<CONFIG>"
       "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-      "-DCMAKE_CXX_EXTENSIONS=${CMAKE_CXX_EXTENSIONS}"
+      "-DCMAKE_CXX_EXTENSIONS=OFF"
       "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
       "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
       "-DCMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}"
@@ -171,7 +185,7 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       "-DMAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
       "-DMAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
   )
-  if(MSVC)
+  if(WIN32)
     find_program(MAGIC_ENUM_RC_COMPILER rc REQUIRED)
     find_program(MAGIC_ENUM_MT mt REQUIRED)
     list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS

@@ -28,8 +28,7 @@ module;
 
 #else // MAGIC_ENUM_USE_STD_MODULE
 
-// MAGIC_ENUM_CONFIG_FILE may include STL headers. Keep them in the global module
-// fragment to avoid conflicting declarations with import std.
+// MAGIC_ENUM_CONFIG_FILE may include STL headers. Keep them in the global module fragment to avoid conflicting declarations with import std.
 #  ifdef MAGIC_ENUM_CONFIG_FILE
 #    include MAGIC_ENUM_CONFIG_FILE
 #  endif // MAGIC_ENUM_CONFIG_FILE
@@ -81,9 +80,7 @@ extern "C++" {
 #    pragma warning(disable : 5244)
 #  endif
 
-// Keep standard-library specializations attached to the named module. Exporting
-// the primary template does not make specializations from the global module
-// fragment reachable to importers.
+// Keep standard-library specializations attached to the named module. Exporting the primary template does not make specializations from the global module fragment reachable to importers.
 #  ifndef MAGIC_ENUM_USING_ALIAS_STRING
 #    include <magic_enum/magic_enum_containers.hpp>
 #  endif
