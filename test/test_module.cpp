@@ -20,6 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <version>
+
+#ifdef MAGIC_ENUM_TEST_IMPORT_STD
+import std;
+#else
+#  include <functional>
+#  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#    include <format>
+#  endif
+#endif
+
 import magic_enum;
 
 enum class Color { RED, GREEN, BLUE };
@@ -173,5 +184,13 @@ constexpr magic_enum::containers::set<Color, ColorNameLess> color_set {Color::RE
 static_assert(color_set.contains(Color::BLUE));
 
 int main() {
-  return std::hash<ColorBitset>{}(color_bits) == std::hash<unsigned long long>{}(5ULL) ? 0 : 1;
+  if (std::hash<ColorBitset>{}(color_bits) != std::hash<unsigned long long>{}(5ULL)) {
+    return 1;
+  }
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+  if (std::format("{}", Color::GREEN) != "GREEN") {
+    return 2;
+  }
+#endif
+  return 0;
 }

@@ -3,14 +3,18 @@
 
 #include <version>
 
-#ifdef MAGIC_ENUM_TEST_IMPORT_STD
-import std;
-#elif defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
-#  include <format>
-#endif
-
+// Include fmt before import std to avoid duplicate standard-library declarations with GCC modules.
 #ifdef MAGIC_ENUM_TEST_FMT
 #  include <fmt/format.h>
+#endif
+
+#ifdef MAGIC_ENUM_TEST_IMPORT_STD
+import std;
+#else
+#  include <functional>
+#  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#    include <format>
+#  endif
 #endif
 
 import magic_enum;

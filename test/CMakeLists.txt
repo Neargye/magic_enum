@@ -108,6 +108,10 @@ function(magic_enum_make_module_test src target module_target)
       CXX_EXTENSIONS OFF
       CXX_SCAN_FOR_MODULES ON
   )
+  if(MAGIC_ENUM_MODULE_IMPORT_STD)
+    target_compile_definitions(${target} PRIVATE MAGIC_ENUM_TEST_IMPORT_STD)
+    set_property(TARGET ${target} PROPERTY CXX_MODULE_STD ON)
+  endif()
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 

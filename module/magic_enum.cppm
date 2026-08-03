@@ -199,26 +199,6 @@ namespace detail {
 #endif
 }
 
-#if defined(__cpp_lib_three_way_comparison) && __cpp_lib_three_way_comparison >= 201907L
-export namespace std {
-  using std::partial_ordering;
-  using std::strong_ordering;
-  using std::weak_ordering;
-}
-#endif
-
-#ifndef MAGIC_ENUM_USING_ALIAS_STRING
-export namespace std {
-  using std::hash;
-}
-#endif
-
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
-export namespace std {
-  using std::formatter;
-}
-#endif
-
 #ifdef MAGIC_ENUM_MODULE_WITH_FMT
 export namespace fmt {
   using fmt::formatter;

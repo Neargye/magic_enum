@@ -370,7 +370,7 @@ If you like this project, please consider donating to one of the funds that help
   ```cmake
   find_package(magic_enum CONFIG REQUIRED)
   target_link_libraries(your_executable PRIVATE magic_enum::magic_enum_module)
-  set_target_properties(your_executable PROPERTIES CXX_EXTENSIONS OFF)
+  set_target_properties(your_executable PROPERTIES CXX_EXTENSIONS OFF CXX_SCAN_FOR_MODULES ON)
   ```
 
   Import the module:
@@ -381,13 +381,13 @@ If you like this project, please consider donating to one of the funds that help
   auto name = magic_enum::enum_name(Color::RED); // "RED"
   ```
 
-  Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module.
+  Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module. Module configuration is fixed when the module target is built.
 
   Optional settings:
   - `{fmt}` support is enabled automatically when the `fmt::fmt` target already exists. Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to require `{fmt}`, or `OFF` to disable it.
   - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable experimental `import std` support. This requires a compatible CMake toolchain.
 
-## Compiler compatibility
+## Header-only compiler compatibility
 
 * Clang/LLVM >= 5
 * MSVC++ >= 14.11 / Visual Studio >= 2017
