@@ -33,14 +33,30 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Checkout fmt
+        uses: actions/checkout@v7
+        with:
+          repository: fmtlib/fmt
+          ref: master
+          path: fmt-src
+
       - name: Install toolchain
         run: |
-          brew install gcc ninja fmt
+          brew install gcc ninja
           python3 -m pip install cmake==4.4.0 --break-system-packages
+          cmake -S fmt-src -B build-fmt -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP}/fmt" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DFMT_DOC=OFF \
+            -DFMT_TEST=OFF
+          cmake --build build-fmt --parallel
+          cmake --install build-fmt
 
       - name: Build and test installed module package
         run: |
-          fmt_prefix="$(brew --prefix fmt)"
+          fmt_prefix="${RUNNER_TEMP}/fmt"
           cmake -S . -B build-module -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_STANDARD=20 \

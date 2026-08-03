@@ -132,6 +132,9 @@ function(magic_enum_add_module_tests suffix)
     test_module-${suffix}
     magic_enum_module_test-${suffix}
   )
+  if(MAGIC_ENUM_MODULE_WITH_FMT)
+    target_compile_definitions(test_module-${suffix} PRIVATE MAGIC_ENUM_TEST_FMT)
+  endif()
 
   # Installed packages expose one module with the configuration fixed at build
   # time. Alias and wchar coverage use dedicated local module targets instead.
@@ -163,10 +166,11 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   magic_enum_get_standard_flag(${MAGIC_ENUM_TEST_STANDARD} MAGIC_ENUM_TEST_STANDARD_FLAG)
   set(MAGIC_ENUM_TEST_SUFFIX cpp${MAGIC_ENUM_TEST_STANDARD})
   magic_enum_add_tests(${MAGIC_ENUM_TEST_SUFFIX} ${MAGIC_ENUM_TEST_STANDARD_FLAG})
-  if(MAGIC_ENUM_USE_MODULES)
-    magic_enum_add_module_tests(${MAGIC_ENUM_TEST_SUFFIX})
-  endif()
 endforeach()
+
+if(MAGIC_ENUM_USE_MODULES)
+  magic_enum_add_module_tests(cpp${MAGIC_ENUM_MODULE_CXX_STANDARD})
+endif()
 
 if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
    NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION AND
@@ -183,12 +187,20 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
       "-DCMAKE_CXX_EXTENSIONS=OFF"
       "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
-      "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
-      "-DCMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}"
       "-DCMAKE_PREFIX_PATH=${MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH}"
       "-DMAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
       "-DMAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
   )
+  if(CMAKE_CXX_STANDARD)
+    list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+         "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
+    )
+    if(DEFINED CMAKE_CXX_STANDARD_REQUIRED)
+      list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
+           "-DCMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}"
+      )
+    endif()
+  endif()
   if(WIN32)
     find_program(MAGIC_ENUM_RC_COMPILER rc REQUIRED)
     find_program(MAGIC_ENUM_MT mt REQUIRED)

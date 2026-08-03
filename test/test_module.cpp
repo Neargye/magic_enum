@@ -132,6 +132,10 @@ using magic_enum::iostream_operators::operator>>;
 using magic_enum::istream_operators::operator>>;
 using magic_enum::ostream_operators::operator<<;
 
+#ifdef MAGIC_ENUM_TEST_FMT
+using fmt::formatter;
+#endif
+
 } // namespace module_api
 
 static_assert(magic_enum::optional<int>{42}.value() == 42);
