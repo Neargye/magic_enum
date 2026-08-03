@@ -37,7 +37,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: fmtlib/fmt
-          ref: master
           path: fmt-src
 
       - name: Install toolchain
