@@ -2,8 +2,11 @@ load("@rules_cc//cc:defs.bzl", "cc_test", "cc_library")
 
 _TESTS = [
     "test",
+    "test_aliases",
+    "test_containers",
     "test_flags",
     "test_range",
+    "test_wchar_t",
 ]
 
 _MSVC_FLAGS = ["/std:c++17", "/permissive-"]
@@ -14,7 +17,7 @@ _COPTS = select({
 })
 [cc_test(
     name = test,
-    srcs = ["{}.cpp".format(test), "test_helpers.hpp"],
+    srcs = ["{}.cpp".format(test), "aliases.hpp", "test_helpers.hpp"],
     deps = ["@magic_enum", ":doctest"],
     copts = _COPTS,
 ) for test in _TESTS]

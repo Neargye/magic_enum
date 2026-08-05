@@ -1,22 +1,17 @@
 include(CheckCXXCompilerFlag)
 
-if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION})
-  find_package(magic_enum REQUIRED magic_enum)
+if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+  find_package(magic_enum CONFIG REQUIRED)
 endif()
 
-if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
-  find_package(PkgConfig)
+if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
+  find_package(PkgConfig REQUIRED)
   pkg_check_modules(magic_enum magic_enum)
   if(NOT magic_enum_FOUND)
     message(
       WARNING
-        "magic_enum via pkgconfig is not found. \
-Next code will try check possible places for some platforms, \
-but there's no guarantee. \
-If you know where the magic_enum pkgconfig files (.pc) are, \
-then specify yourself variable \$\{CMAKE_PREFIX_PATH\} \
-with folder like /a/path/to/magic_enum (for POSIX-like pathes), \
-where in the folder exists share/pkgconfig/magic_enum.pc ."
+        "magic_enum was not found via pkg-config. CMake will check common locations, but this is not guaranteed. \
+Set \$\{CMAKE_PREFIX_PATH\} to a prefix containing share/pkgconfig/magic_enum.pc, for example /a/path/to/magic_enum on POSIX-like systems."
     )
     if(UNIX AND EXISTS "/usr/local/share/pkgconfig/magic_enum.pc")
       message(DEBUG "\$\{CMAKE_PREFIX_PATH\} : ${CMAKE_PREFIX_PATH} ")
@@ -93,7 +88,7 @@ function(make_test src target std)
   target_compile_options(${target} PRIVATE ${OPTIONS})
   target_compile_definitions(${target} PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
   target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
-  if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
+  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
     target_include_directories(${target} PRIVATE ${magic_enum_INCLUDE_DIRS})
   elseif(TARGET magic_enum_module_${target})
     target_link_libraries(${target} PRIVATE magic_enum_module_${target})

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.22...4.4)
 
 if(MAGIC_ENUM_USE_MODULES AND CMAKE_VERSION VERSION_LESS "3.28")
   message(FATAL_ERROR "MAGIC_ENUM_USE_MODULES requires CMake >= 3.28")
@@ -44,7 +44,7 @@ option(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG "When configuring tests, 
 a local magic_enum via pkgconfig" NO
 )
 
-if(${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION} OR ${MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG})
+if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION OR MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
   enable_testing()
   add_subdirectory(test)
   return()
@@ -127,7 +127,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
     TARGETS "${PROJECT_NAME}"
     EXPORT ${PROJECT_NAME}
     # COMPONENT "${SDK_COMPONENT_NAME}" # component is not allowed for includes!
-    # Headers are installed separately! Includes only marks the headers for export
+    # Headers are installed separately; INCLUDES DESTINATION only sets exported include directories.
   )
 
   if(NOT DEFINED PROJECT_INCLUDE_HEADER_PATTERN)
