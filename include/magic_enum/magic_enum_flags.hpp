@@ -179,7 +179,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_flags_contains(string_view value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
-  return static_cast<bool>(enum_flags_cast<D>(value, sep, std::move(p)));
+  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(value, sep, p));
 }
 
 // Returns true if `flags` contains `flag`.

@@ -122,6 +122,7 @@ make_test(test.cpp test-cpp17 c++17)
 make_test(test_flags.cpp test_flags-cpp17 c++17)
 make_test(test_aliases.cpp test_aliases-cpp17 c++17)
 make_test(test_containers.cpp test_containers-cpp17 c++17)
+make_test(test_range.cpp test_range-cpp17 c++17)
 make_test(test_wchar_t.cpp test_wchar_t-cpp17 c++17)
 
 if(MAGIC_ENUM_OPT_ENABLE_NONASCII)

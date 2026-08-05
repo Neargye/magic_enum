@@ -103,6 +103,10 @@ struct overloaded : Ts... {
 template <typename... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+struct LvalueOnlyPredicate {
+  constexpr bool operator()(char lhs, char rhs) & noexcept { return lhs == rhs; }
+};
+
 TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<Color>(Color::RED));
   REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
@@ -346,6 +350,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<Color>("None"));
 
     REQUIRE(enum_flags_contains<Color&>("GREEN"));
+    REQUIRE(enum_flags_contains<Color>("GREEN", '|', LvalueOnlyPredicate{}));
     REQUIRE(enum_flags_contains<Color>("blue", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("blue|RED", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("GREEN|RED"));
@@ -845,13 +850,9 @@ TEST_CASE("constexpr_for") {
 
 #endif
 
-#if __has_include(<format>)
-#  include <format>
-#endif
+#include <magic_enum/magic_enum_format.hpp>
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
-
-#  include <magic_enum/magic_enum_format.hpp>
 
 TEST_CASE("format-base") {
   REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");

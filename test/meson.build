@@ -3,6 +3,7 @@ doctest_dep = declare_dependency(include_directories: '3rdparty')
 test_files = {
     'basic test': files('test.cpp'),
     'flags test': files('test_flags.cpp'),
+    'single range test': files('test_range.cpp'),
 }
 
 foreach test_name, test_src : test_files

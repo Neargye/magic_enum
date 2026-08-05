@@ -58,7 +58,7 @@ std::string format_as(E e) {
 } // namespace magic_enum::detail
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#  if __has_include(<format>)
+#  if __has_include(<format>) && ((defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L)
 #    include <format>
 #  endif
 #endif

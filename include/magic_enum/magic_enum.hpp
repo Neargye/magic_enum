@@ -213,7 +213,7 @@ struct enum_range {
 template <typename E>
 struct enum_range<E, decltype(void(magic_enum_define_range_adl(E{})))> : decltype(magic_enum_define_range_adl(E{})) {};
 
-static_assert(MAGIC_ENUM_RANGE_MAX > MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than MAGIC_ENUM_RANGE_MIN.");
+static_assert(MAGIC_ENUM_RANGE_MAX >= MAGIC_ENUM_RANGE_MIN, "MAGIC_ENUM_RANGE_MAX must be greater than or equal to MAGIC_ENUM_RANGE_MIN.");
 
 namespace detail {
 
@@ -385,10 +385,8 @@ constexpr std::size_t find(string_view str, char_type c) noexcept {
 template <typename BinaryPredicate>
 inline constexpr bool is_default_predicate_v = std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> || std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
-
 template <typename BinaryPredicate>
-inline constexpr bool is_nothrow_invocable_v = is_default_predicate_v<BinaryPredicate> || std::is_nothrow_invocable_r_v<bool, BinaryPredicate, char_type, char_type>;
-
+inline constexpr bool is_nothrow_invocable_v = is_default_predicate_v<BinaryPredicate> || std::is_nothrow_invocable_r_v<bool, BinaryPredicate&, char_type, char_type>;
 
 template <typename BinaryPredicate>
 constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(is_nothrow_invocable_v<BinaryPredicate>) {
@@ -422,19 +420,20 @@ template <typename L, typename R>
 constexpr bool cmp_less(L lhs, R rhs) noexcept {
   static_assert(std::is_integral_v<L> && std::is_integral_v<R>, "magic_enum::detail::cmp_less requires integral type.");
 
-  if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
-    // If same signedness (both signed or both unsigned).
+  if constexpr (std::is_same_v<L, bool> && std::is_same_v<R, bool>) {
+    return static_cast<unsigned char>(lhs) < static_cast<unsigned char>(rhs);
+  } else if constexpr (std::is_same_v<L, bool>) {
+    return static_cast<R>(lhs) < rhs;
+  } else if constexpr (std::is_same_v<R, bool>) {
+    return lhs < static_cast<L>(rhs);
+  } else if constexpr (std::is_signed_v<L> == std::is_signed_v<R>) {
     return lhs < rhs;
-  } else if constexpr (std::is_same_v<L, bool>) { // bool special case
-      return static_cast<R>(lhs) < rhs;
-  } else if constexpr (std::is_same_v<R, bool>) { // bool special case
-      return lhs < static_cast<L>(rhs);
   } else if constexpr (std::is_signed_v<R>) {
-    // If 'right' is negative, then result is 'false', otherwise cast & compare.
-    return rhs > 0 && lhs < static_cast<std::make_unsigned_t<R>>(rhs);
+    using C = std::common_type_t<std::make_unsigned_t<L>, std::make_unsigned_t<R>>;
+    return rhs > 0 && static_cast<C>(lhs) < static_cast<C>(rhs);
   } else {
-    // If 'left' is negative, then result is 'true', otherwise cast & compare.
-    return lhs < 0 || static_cast<std::make_unsigned_t<L>>(lhs) < rhs;
+    using C = std::common_type_t<std::make_unsigned_t<L>, std::make_unsigned_t<R>>;
+    return lhs < 0 || static_cast<C>(lhs) < static_cast<C>(rhs);
   }
 }
 
@@ -837,11 +836,22 @@ template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 constexpr auto values() noexcept {
   constexpr auto min = reflected_min<E, S>();
   constexpr auto max = reflected_max<E, S>();
-  constexpr auto range_size = max - min + 1;
-  static_assert(range_size > 0, "magic_enum::enum_range requires valid size.");
-  static_assert(range_size <= (std::numeric_limits<std::uint16_t>::max)(), "magic_enum::enum_range requires valid size.");
+  constexpr bool valid_range = min <= max;
+  static_assert(valid_range, "magic_enum::enum_range requires valid size.");
 
-  return values<E, S, range_size, min>();
+  if constexpr (valid_range) {
+    constexpr auto range_size = max - min + 1;
+    constexpr bool valid_size = range_size <= (std::numeric_limits<std::uint16_t>::max)();
+    static_assert(valid_size, "magic_enum::enum_range requires valid size.");
+
+    if constexpr (valid_size) {
+      return values<E, S, range_size, min>();
+    } else {
+      return std::array<E, 0>{};
+    }
+  } else {
+    return std::array<E, 0>{};
+  }
 }
 
 template <typename E, typename U = std::underlying_type_t<E>>
@@ -942,7 +952,7 @@ struct enable_if_enum<true, R> {
 };
 
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
-using enable_if_t = typename enable_if_enum<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate, char_type, char_type>, R>::type;
+using enable_if_t = typename enable_if_enum<std::is_enum_v<D> && std::is_invocable_r_v<bool, BinaryPredicate&, char_type, char_type>, R>::type;
 
 template <typename T, std::enable_if_t<std::is_enum_v<std::decay_t<T>>, int> = 0>
 using enum_concept = T;
@@ -1327,7 +1337,7 @@ template <detail::enum_subtype S, typename E>
 
 // Returns index in enum values from compile-time enum value.
 template <auto V, detail::enum_subtype S = detail::subtype_v<std::decay_t<decltype(V)>>>
-[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {\
+[[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
   using D = std::decay_t<decltype(V)>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   constexpr auto index = enum_index<D, S>(V);
@@ -1477,7 +1487,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
-  return static_cast<bool>(enum_cast<D, S>(value, std::move(p)));
+  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
 }
 
 // Returns true if the enum integer value is in the range of values that can be reflected.

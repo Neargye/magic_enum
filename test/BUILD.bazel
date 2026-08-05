@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_test", "cc_library")
 _TESTS = [
     "test",
     "test_flags",
+    "test_range",
 ]
 
 _MSVC_FLAGS = ["/std:c++17", "/permissive-"]
