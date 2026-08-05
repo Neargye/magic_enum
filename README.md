@@ -325,19 +325,15 @@ Header-only C++17 library provides static reflection for enums, work with any en
   magic_enum::underlying_type_t<Color> -> int
   ```
 
-## Remarks
-
-* `magic_enum` is designed for small enums. Read [limitations](doc/limitations.md) before use.
-
 ## Integration
 
 * Copy required headers from [`include/magic_enum`](include/magic_enum) or use [release archive](https://github.com/Neargye/magic_enum/releases/latest). `magic_enum_all.hpp` includes all public headers.
-* Use CMake 3.22+ with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
+* Use CMake with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
 * Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum?q=magic_enum), or [Meson](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
 * Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
 * Use Bazel with `MODULE.bazel` or `http_archive`; target is `@magic_enum//:magic_enum`.
 * Use ROS with `<depend>magic_enum</depend>` in `package.xml`, then link `magic_enum::magic_enum`.
-* Use C++20 module with CMake 3.28+: configure with `MAGIC_ENUM_USE_MODULES=ON`, link `magic_enum::magic_enum`, and write `import magic_enum;`. Do not mix module import and `magic_enum` headers in same program.
+* Use C++20 module with CMake: configure with `MAGIC_ENUM_USE_MODULES=ON`, link `magic_enum::magic_enum`, and write `import magic_enum;`. Do not mix module import and `magic_enum` headers in same program.
 
 ## Compiler compatibility
 

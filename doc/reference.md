@@ -277,13 +277,13 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 ## `customize::enum_range`
 
 ```cpp
-namespace customize {
+namespace magic_enum::customize {
 template <typename E, typename = void>
 struct enum_range {
   static constexpr int min = MAGIC_ENUM_RANGE_MIN;
   static constexpr int max = MAGIC_ENUM_RANGE_MAX;
 };
-}
+} // namespace magic_enum::customize
 
 ```
 

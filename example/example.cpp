@@ -90,19 +90,19 @@ int main() {
   // Color values: RED BLUE GREEN
 
   enum class Flags { A = 1, B = 2, C = 4, D = 8 };
-  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for all enums.
+  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flag = Flags::A | Flags::C;
   std::cout << flag << std::endl; // 5
 
   enum color { red, green, blue };
 
-  // Checks whether type is an Unscoped enumeration.
+  // Checks whether type is unscoped enum.
   static_assert(magic_enum::is_unscoped_enum_v<color>);
   static_assert(!magic_enum::is_unscoped_enum_v<Color>);
   static_assert(!magic_enum::is_unscoped_enum_v<Flags>);
 
-  // Checks whether type is an Scoped enumeration.
+  // Checks whether type is scoped enum.
   static_assert(!magic_enum::is_scoped_enum_v<color>);
   static_assert(magic_enum::is_scoped_enum_v<Color>);
   static_assert(magic_enum::is_scoped_enum_v<Flags>);

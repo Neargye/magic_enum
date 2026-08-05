@@ -91,8 +91,7 @@
 #  define MAGIC_ENUM_SUPPORTED_ALIASES 1
 #endif
 
-// Specify the calling convention for compilers that need it in order to get reliable mangled names under different
-// compiler flags. In particular, MSVC allows changing the default calling convention on x86.
+// Specify calling convention for compilers that need it to produce reliable mangled names under different compiler flags. In particular, MSVC allows changing default calling convention on x86.
 #if defined(__clang__) || defined(__GNUC__)
 #define MAGIC_ENUM_CALLING_CONVENTION
 #elif defined(_MSC_VER)
@@ -1191,23 +1190,21 @@ inline constexpr bool is_magic_enum_supported = detail::supported<void>::value;
 template <typename T>
 using Enum = detail::enum_concept<T>;
 
-// Returns true if T is an Unscoped enumeration type.
-// Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type. Otherwise, value is equal to false.
+// Identifies unscoped enum types.
 template <typename T>
 struct is_unscoped_enum : detail::is_unscoped_enum<T> {};
 
 template <typename T>
 inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
 
-// Returns true if T is a Scoped enumeration type.
-// Provides the member constant value which is equal to true, if T is an [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type. Otherwise, value is equal to false.
+// Identifies scoped enum types.
 template <typename T>
 struct is_scoped_enum : detail::is_scoped_enum<T> {};
 
 template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
-// Returns true if T is a flags enumeration type (i.e., enum_range<T>::is_flags == true).
+// Identifies flag enum types (i.e., enum_range<T>::is_flags == true).
 template <typename T>
 struct is_flags_enum : detail::is_flags_enum<T> {};
 
@@ -1328,19 +1325,19 @@ template <detail::enum_subtype S, typename E>
   return enum_index<D, S>(value);
 }
 
-// Returns index in enum values from static storage enum variable.
+// Returns index in enum values from compile-time enum value.
 template <auto V, detail::enum_subtype S = detail::subtype_v<std::decay_t<decltype(V)>>>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {\
   using D = std::decay_t<decltype(V)>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   constexpr auto index = enum_index<D, S>(V);
-  static_assert(index, "magic_enum::enum_index enum value does not have a index.");
+  static_assert(index, "magic_enum::enum_index enum value has no index.");
 
   return *index;
 }
 
-// Returns name from static storage enum variable.
-// This version is much lighter on the compile times and is not restricted to the enum_range limitation.
+// Returns name from compile-time enum value.
+// Compiles faster than enum_name(value) and is not restricted by enum_range.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_t<decltype(V), string_view> {
   constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>.str();
@@ -1449,7 +1446,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 #endif
 }
 
-// Returns true if enum contains value with such value.
+// Returns true if enum contains specified value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -1458,7 +1455,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return static_cast<bool>(enum_cast<D, S>(static_cast<U>(value)));
 }
 
-// Returns true if enum contains value with such value.
+// Returns true if enum contains specified value.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -1467,7 +1464,7 @@ template <detail::enum_subtype S, typename E>
   return static_cast<bool>(enum_cast<D, S>(static_cast<U>(value)));
 }
 
-// Returns true if enum contains value with such integer value.
+// Returns true if enum contains specified integer value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -1475,7 +1472,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return static_cast<bool>(enum_cast<D, S>(value));
 }
 
-// Returns true if enum contains enumerator with such name.
+// Returns true if enum contains enumerator with specified name.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
