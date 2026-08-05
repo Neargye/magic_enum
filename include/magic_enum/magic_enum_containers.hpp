@@ -340,7 +340,8 @@ struct FilteredIterator {
   [[nodiscard]] friend constexpr bool operator!=(const FilteredIterator& lhs, const FilteredIterator& rhs) { return lhs.current != rhs.current; }
 };
 
-template<class T> constexpr int countr_zero(T x) noexcept {
+template <typename T>
+constexpr int countr_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
@@ -366,7 +367,8 @@ template<class T> constexpr int countr_zero(T x) noexcept {
 #endif
 }
 
-template<class T> constexpr int countl_zero(T x) noexcept {
+template <typename T>
+constexpr int countl_zero(T x) noexcept {
 #if __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
@@ -394,7 +396,8 @@ template<class T> constexpr int countl_zero(T x) noexcept {
 #endif
 }
 
-template<class T> constexpr int bit_width(T x) noexcept {
+template <typename T>
+constexpr int bit_width(T x) noexcept {
 #if __cpp_lib_int_pow2 >= 202002L
   return std::bit_width(x);
 #else
@@ -541,20 +544,20 @@ struct array {
 
 namespace detail {
 
-template <typename E, typename T, std::size_t N, std::size_t... I>
-constexpr array<E, std::remove_cv_t<T>> to_array_impl(T (&a)[N], std::index_sequence<I...>) {
-  return {{a[I]...}};
+template <typename E, typename T, std::size_t N, std::size_t... J>
+constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&a)[N], std::index_sequence<J...>) {
+  return {{a[J]...}};
 }
 
-template <typename E, typename T, std::size_t N, std::size_t... I>
-constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&&a)[N], std::index_sequence<I...>) {
-  return {{std::move(a[I])...}};
+template <typename E, typename T, std::size_t N, std::size_t... J>
+constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&&a)[N], std::index_sequence<J...>) {
+  return {{std::move(a[J])...}};
 }
 
 } // namespace detail
 
 template <typename E, typename T, std::size_t N>
-constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T (&a)[N]) {
+constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&a)[N]) {
   return detail::to_array_impl<E>(a, std::make_index_sequence<N>{});
 }
 
@@ -1379,24 +1382,24 @@ class set {
 template <typename V, int = 0>
 explicit set(V starter) -> set<V>;
 
-template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
-  return a.a[I];
+template <auto J, typename E, typename V, typename Index>
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
+  return a.a[J];
 }
 
-template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
-  return std::move(a.a[I]);
+template <auto J, typename E, typename V, typename Index>
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
+  return std::move(a.a[J]);
 }
 
-template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
-  return a.a[I];
+template <auto J, typename E, typename V, typename Index>
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
+  return a.a[J];
 }
 
-template <auto I, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(I)> && I < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
-  return std::move(a.a[I]);
+template <auto J, typename E, typename V, typename Index>
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
+  return std::move(a.a[J]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>

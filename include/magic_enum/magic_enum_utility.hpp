@@ -38,26 +38,26 @@ namespace magic_enum {
 
 namespace detail {
 
-template <typename E, enum_subtype S, typename F, std::size_t... I>
-constexpr auto for_each(F&& f, std::index_sequence<I...>) {
-  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F, enum_constant<values_v<E, S>[I]>>> || ...);
-  constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F, enum_constant<values_v<E, S>[0]>>, std::invoke_result_t<F, enum_constant<values_v<E, S>[I]>>> && ...);
+template <typename E, enum_subtype S, typename F, std::size_t... J>
+constexpr auto for_each(F&& f, std::index_sequence<J...>) {
+  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F, enum_constant<values_v<E, S>[J]>>> || ...);
+  constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F, enum_constant<values_v<E, S>[0]>>, std::invoke_result_t<F, enum_constant<values_v<E, S>[J]>>> && ...);
 
   if constexpr (has_void_return) {
-    (f(enum_constant<values_v<E, S>[I]>{}), ...);
+    (f(enum_constant<values_v<E, S>[J]>{}), ...);
   } else if constexpr (all_same_return) {
-    return std::array{f(enum_constant<values_v<E, S>[I]>{})...};
+    return std::array{f(enum_constant<values_v<E, S>[J]>{})...};
   } else {
-    return std::tuple{f(enum_constant<values_v<E, S>[I]>{})...};
+    return std::tuple{f(enum_constant<values_v<E, S>[J]>{})...};
   }
 }
 
-template <typename E, enum_subtype S, typename F,std::size_t... I>
-constexpr bool all_invocable(std::index_sequence<I...>) {
+template <typename E, enum_subtype S, typename F, std::size_t... J>
+constexpr bool all_invocable(std::index_sequence<J...>) {
   if constexpr (count_v<E, S> == 0) {
     return false;
   } else {
-    return (std::is_invocable_v<F, enum_constant<values_v<E, S>[I]>> && ...);
+    return (std::is_invocable_v<F, enum_constant<values_v<E, S>[J]>> && ...);
   }
 }
 
