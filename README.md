@@ -132,6 +132,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   ```
 
 * Runtime enum value as constexpr constant
+
   ```cpp
   Color color = Color::RED;
   magic_enum::enum_switch([](auto val) {
@@ -182,7 +183,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   // color_index.has_value() -> true
   ```
 
-* Functions for flags
+* Flag operations
 
   ```cpp
   enum Directions : std::uint64_t {
@@ -250,36 +251,27 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
   Include `{fmt}` before `magic_enum_format.hpp` to enable `{fmt}` formatter support.
 
-* Identifies [unscoped enum types](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
+* [Unscoped enum](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) trait
 
   ```cpp
   enum color { red, green, blue };
   enum class direction { left, right };
 
-  magic_enum::is_unscoped_enum<color>::value -> true
-  magic_enum::is_unscoped_enum<direction>::value -> false
-  magic_enum::is_unscoped_enum<int>::value -> false
-
-  // Helper variable template.
   magic_enum::is_unscoped_enum_v<color> -> true
+  magic_enum::is_unscoped_enum_v<direction> -> false
   ```
 
-* Identifies [scoped enum types](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
+* [Scoped enum](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) trait
 
   ```cpp
   enum color { red, green, blue };
   enum class direction { left, right };
 
-  magic_enum::is_scoped_enum<color>::value -> false
-  magic_enum::is_scoped_enum<direction>::value -> true
-  magic_enum::is_scoped_enum<int>::value -> false
-
-  // Helper variable template.
+  magic_enum::is_scoped_enum_v<color> -> false
   magic_enum::is_scoped_enum_v<direction> -> true
   ```
 
-* Compile-time enum value to string
-  This overload compiles faster and is not restricted by `enum_range` [limitation](doc/limitations.md).
+* Compile-time enum value to string. This overload compiles faster and is not restricted by `enum_range` [limitation](doc/limitations.md).
 
   ```cpp
   constexpr Color color = Color::BLUE;
@@ -326,25 +318,21 @@ Header-only C++17 library provides static reflection for enums, work with any en
   color_name_set colors_by_name {Color::RED, Color::GREEN, Color::BLUE};
   ```
 
-* Improved UB-free, SFINAE-friendly [underlying type trait](https://en.cppreference.com/w/cpp/types/underlying_type).
+* [Underlying type](https://en.cppreference.com/w/cpp/types/underlying_type)
 
   ```cpp
-  magic_enum::underlying_type<color>::type -> int
-
-  // Helper types.
-  magic_enum::underlying_type_t<Direction> -> int
+  magic_enum::underlying_type<Color>::type -> int
+  magic_enum::underlying_type_t<Color> -> int
   ```
 
 ## Remarks
 
-* `magic_enum` is not a silver bullet for enum reflection and was originally designed for small enums.
-
-* Before use, read [limitations](doc/limitations.md).
+* `magic_enum` is designed for small enums. Read [limitations](doc/limitations.md) before use.
 
 ## Integration
 
-* Copy required headers from [`include/magic_enum`](include/magic_enum) or use [release archive](https://github.com/Neargye/magic_enum/releases/latest).
-* Use CMake with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
+* Copy required headers from [`include/magic_enum`](include/magic_enum) or use [release archive](https://github.com/Neargye/magic_enum/releases/latest). `magic_enum_all.hpp` includes all public headers.
+* Use CMake 3.22+ with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
 * Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum?q=magic_enum), or [Meson](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
 * Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
 * Use Bazel with `MODULE.bazel` or `http_archive`; target is `@magic_enum//:magic_enum`.

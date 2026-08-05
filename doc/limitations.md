@@ -50,7 +50,7 @@
   };
   ```
 
-* For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in an associated namespace or as a friend of an associated class. Return value built with `magic_enum::customize::adl_info()`:
+* For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in associated namespace or as friend of associated class. Return `magic_enum::customize::adl_info()`:
 
   ```cpp
   namespace Deeply::Nested::Namespace {

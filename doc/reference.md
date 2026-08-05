@@ -13,7 +13,7 @@
 * [`enum_contains` checks whether enum contains value or name.](#enum_contains)
 * [`enum_reflected` checks whether enum value is in reflection range.](#enum_reflected)
 * [`enum_type_name` returns enum type name.](#enum_type_name)
-* [`enum_fuse` returns bijective mix of enum values.](#enum_fuse)
+* [`enum_fuse` combines enum values for switch/case statements.](#enum_fuse)
 * [`enum_switch` transforms runtime enum value into constexpr constant.](#enum_switch)
 * [`enum_for_each` calls function for each enum value as constexpr constant.](#enum_for_each)
 * [`enum_next_value` and `enum_prev_value` move through enum values.](#enum_next_value-and-enum_prev_value)
@@ -21,7 +21,7 @@
 * [`is_flags_enum` checks whether enum uses flag semantics.](#is_flags_enum)
 * [`is_unscoped_enum` identifies unscoped enum types.](#is_unscoped_enum)
 * [`is_scoped_enum` identifies scoped enum types.](#is_scoped_enum)
-* [`underlying_type` provides UB-free, SFINAE-friendly underlying type trait.](#underlying_type)
+* [`underlying_type` provides underlying enum type.](#underlying_type)
 * [`ostream_operators` provides stream insertion operators.](#ostream_operators)
 * [`istream_operators` provides stream extraction operators.](#istream_operators)
 * [`bitwise_operators` provides bitwise operators.](#bitwise_operators)
@@ -37,11 +37,11 @@
 
 * Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
-* `Enum<T>` provides C++17 SFINAE support for constraining function parameters to enum types.
+* `Enum<T>` constrains C++17 function parameters to enum types.
 
 * To add custom enum or type names, see [example](../example/example_custom_name.cpp).
 
-* To customize string and optional types, use these macros:
+* To customize string and optional types, define these macros before including `magic_enum.hpp`:
 
   ```cpp
   #include <my_lib/string.hpp>
@@ -52,24 +52,14 @@
   #include <magic_enum/magic_enum.hpp>
   ```
 
-* Define `MAGIC_ENUM_CONFIG_FILE` as path to header with custom macros or constants:
+* To keep configuration in separate header, define `MAGIC_ENUM_CONFIG_FILE`:
 
   ```cpp
   #define MAGIC_ENUM_CONFIG_FILE "my_magic_enum_cfg.hpp"
   #include <magic_enum/magic_enum.hpp>
   ```
 
-  For example, `my_magic_enum_cfg.hpp` could contain:
-
-  ```cpp
-  #include <my_lib/string.hpp>
-  #include <my_lib/string_view.hpp>
-  #define MAGIC_ENUM_USING_ALIAS_STRING using string = my_lib::String;
-  #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = my_lib::StringView;
-  #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
-  #define MAGIC_ENUM_RANGE_MIN 0
-  #define MAGIC_ENUM_RANGE_MAX 255
-  ```
+  Configuration header can contain these aliases and range macros.
 
 ## `enum_cast`
 
@@ -336,7 +326,7 @@ struct enum_range {
 
   * ADL customization
 
-    For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in an associated namespace or as a friend of an associated class. Return value built with `magic_enum::customize::adl_info()`:
+    For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in associated namespace or as friend of associated class. Return `magic_enum::customize::adl_info()`:
 
     ```cpp
     namespace Deeply::Nested::Namespace {
@@ -453,11 +443,9 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_fuse.hpp>`
 
-* Returns type-safe bijective mix of several enum values to emulate multidimensional switch/case statements.
+* Combines several enum values for multidimensional switch/case statements.
 
-* Return type is `optional<enum_fuse_t>`; `enum_fuse_t` is incomplete and unique for each combination of `Es...`.
-
-* Switch/case over `enum_fuse_t` triggers Visual Studio warning C4064. Suppress it with `/wd4064`, or define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to use `uintmax_t` instead.
+* On MSVC, suppress warning C4064 with `/wd4064` or define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to use `uintmax_t` instead.
 
 * Examples
 
@@ -494,7 +482,7 @@ constexpr decltype(auto) enum_switch(Lambda&& lambda, E value, Result&& result);
   ```cpp
   Color color = Color::RED;
 
-  magic_enum::enum_switch([] (auto val) {
+  magic_enum::enum_switch([](auto val) {
     constexpr Color c_color = val;
     // ...
   }, color);
@@ -716,9 +704,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* UB-free, SFINAE-friendly alternative to [`std::underlying_type`](https://en.cppreference.com/w/cpp/types/underlying_type).
-
-* Provides `type` for complete enum types and no `type` for non-enums. Incomplete enum types are ill-formed.
+* Provides underlying type for complete enums and no `type` for non-enums. Incomplete enums are ill-formed.
 
 * Examples
 
@@ -839,7 +825,9 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` provides comparator-based positions for `containers::array`.
 
-* Custom `Index` must provide non-throwing `constexpr` operations. `at(E)` maps each reflected value to a unique index in `[0, enum_count<E>())`; `containers::bitset` also requires `it(std::size_t)` to map each index back to its value.
+* Custom `Index` must provide non-throwing `constexpr` `at(E)` that maps each reflected value to a unique index in `[0, enum_count<E>())`.
+
+* For `containers::bitset`, custom `Index` must also provide `it(std::size_t)` that maps each index back to its value.
 
 ## `containers::array`
 
@@ -1210,9 +1198,9 @@ class set {
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* Fixed-capacity set of reflected enum values, ordered by `Cmp{}`. Comparator must be usable in constant expressions; runtime state is not stored.
+* Fixed-capacity set of reflected enum values. Comparator is default-constructed and must work in constant expressions.
 
-* Uniqueness is based on enum values, so comparator-equivalent values remain distinct and heterogeneous lookup can match more than one value.
+* Distinct enum values remain distinct even if comparator treats them as equivalent. Lookup with another key type can match multiple values.
 
 * Construction from single `E` value is available only for flag enums.
 
