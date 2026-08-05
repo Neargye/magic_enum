@@ -2,15 +2,13 @@
 
 * This library uses a compiler-specific hack based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`.
 
-* To check if magic_enum is supported with your compiler, use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.
-  If magic_enum is used on an unsupported compiler, a compilation error will occur.
-  To suppress the error, define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
+* Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
-* magic_enum can't reflect if the enum is a forward declaration.
+* magic_enum cannot reflect forward-declared enums.
 
 ## Enum Flags
 
-* For enum flags, add `is_flags` to specialization `enum_range` for necessary enum type. Specializations of `enum_range` must be injected in `namespace magic_enum::customize`.
+* Set `enum_range<E>::is_flags` to `true` to use flag semantics for `E` by default. `enum_flags_*` APIs always use flag semantics.
   ```cpp
   enum class Directions { Up = 1 << 0, Down = 1 << 1, Right = 1 << 2, Left = 1 << 3 };
   template <>
@@ -19,37 +17,17 @@
   };
   ```
 
-* `MAGIC_ENUM_RANGE_MAX` / `MAGIC_ENUM_RANGE_MIN` does not affect the maximum number of enum flags.
+* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection. Flag reflection scans bit positions available in `E`'s underlying type.
 
-* If an enum is declared as a flag enum, its zero value will not be reflected.
-
-* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `magic_enum_define_range_adl(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
-
-  ```cpp
-  namespace Deeply::Nested::Namespace {
-  enum class my_enum_type { my_enum_value1,my_enum_value2 };
-
-  // - magic_enum will find this function by ADL
-  // - uses builder pattern
-  // - use auto to not have to name the type yourself
-  auto magic_enum_define_range_adl(my_enum_type)
-  {
-    return magic_enum::customize::adl_info()
-    .minmax<10,10>() // the min max search range
-    .flag<true>() // whether it is a flag enum
-    .prefix<sizeof("my_enum_")-1>(); // how many characters to trim from the start of each enum entry.
-  }
-
-  }
-  ```
+* Zero is not reflected for flag enums.
 
 ## Enum Range
 
-* Enum values must be in the range `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
+* For non-flag enums, range-based reflection only considers values in `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
 
 * By default, `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 127`.
 
-* If you need a different range for all enum types by default, redefine the macro `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
+* To change default range for all enum types, redefine `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
 
     ```cpp
     #define MAGIC_ENUM_RANGE_MIN 0
@@ -57,7 +35,7 @@
     #include <magic_enum/magic_enum.hpp>
     ```
 
-* If you need a different range for a specific enum type, add the specialization `enum_range` for the enum type. Specializations of `enum_range` must be injected in `namespace magic_enum::customize`.
+* To change range for one enum type, specialize `enum_range` for that type. Specializations must be declared in `namespace magic_enum::customize`.
 
   ```cpp
   #include <magic_enum/magic_enum.hpp>
@@ -72,9 +50,25 @@
   };
   ```
 
+* For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in an associated namespace or as a friend of an associated class. Return value built with `magic_enum::customize::adl_info()`:
+
+  ```cpp
+  namespace Deeply::Nested::Namespace {
+    enum class my_enum_type { my_enum_value1 = 10, my_enum_value2 = 11 };
+
+    auto magic_enum_define_range_adl(my_enum_type) {
+      return magic_enum::customize::adl_info()
+          .minmax<10, 11>()
+          .prefix<sizeof("my_enum_") - 1>();
+    }
+  }
+  ```
+
+  For flag enums, add `.flag<true>()`; `.minmax<...>()` is ignored.
+
 ## Aliasing
 
-magic_enum [won't work if a value is aliased](https://github.com/Neargye/magic_enum/issues/68). How magic_enum works with aliases is compiler-implementation-defined.
+magic_enum [cannot reliably distinguish aliased enumerators](https://github.com/Neargye/magic_enum/issues/68). Its behavior with aliases is compiler-dependent.
 
 ```cpp
 enum ShapeKind {
@@ -82,7 +76,7 @@ enum ShapeKind {
   Box = 0, // Won't work.
   Sphere = 1,
   ConvexEnd = 2,
-  Donut = 2, // Won't work too.
+  Donut = 2, // Won't work either.
   Banana = 3,
   COUNT = 4
 };
@@ -116,7 +110,7 @@ enum ShapeKind {
 // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
 ```
 
-On some compilers, enum aliases are not supported, [for example Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), macro `MAGIC_ENUM_SUPPORTED_ALIASES` will be undefined.
+On compilers without enum alias support, [such as Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), `MAGIC_ENUM_SUPPORTED_ALIASES` is not defined.
 
 ```cpp
 enum Number {
@@ -138,12 +132,12 @@ enum Number {
   note: constexpr evaluation hit maximum step limit; possible infinite loop?
   ```
 
-  Change the limit for the number of constexpr evaluated:
+  Increase constexpr evaluation limit:
+
   * MSVC: `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
   * Clang: `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
   * GCC: `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
-* Visual Studio's Intellisense may have some problems analyzing magic_enum.
+* Visual Studio's IntelliSense may have problems analyzing magic_enum.
 
-* Enums in templates may not work correctly (especially on Сlang).
-  See [#164](https://github.com/Neargye/magic_enum/issues/164), [#65](https://github.com/Neargye/magic_enum/issues/65)
+* Enums in templates may not work correctly, especially on Clang. See [#164](https://github.com/Neargye/magic_enum/issues/164) and [#65](https://github.com/Neargye/magic_enum/issues/65).
