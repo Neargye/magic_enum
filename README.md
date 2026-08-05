@@ -9,371 +9,138 @@
 
 # Magic Enum C++
 
-Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
+`magic_enum` is a header-only C++17 library for static enum reflection. It converts enum values to and from strings, provides compile-time enum sequences, and supports flags, formatting, and enum-indexed containers without macros or boilerplate.
 
 ## Documentation
 
 * [Reference](doc/reference.md)
 * [Limitations](doc/limitations.md)
-* [Integration](#Integration)
+* [Examples](example/)
+* [Integration](#integration)
 
-## [Features & Examples](example/)
+## Quick start
 
-* Basic
+```cpp
+#include <magic_enum/magic_enum.hpp>
+#include <iostream>
 
-  ```cpp
-  #include <magic_enum/magic_enum.hpp>
-  #include <iostream>
+enum class Color { RED = -10, BLUE = 0, GREEN = 10 };
 
-  enum class Color { RED = -10, BLUE = 0, GREEN = 10 };
-
-  int main() {
-    Color c1 = Color::RED;
-    std::cout << magic_enum::enum_name(c1) << std::endl; // RED
-    return 0;
-  }
-  ```
-
-* Enum value to string
-
-  ```cpp
+int main() {
   Color color = Color::RED;
-  auto color_name = magic_enum::enum_name(color);
-  // color_name -> "RED"
-  ```
+  std::cout << magic_enum::enum_name(color) << '\n'; // RED
 
-* String to enum value
-
-  ```cpp
-  std::string color_name{"GREEN"};
-  auto color = magic_enum::enum_cast<Color>(color_name);
-  if (color.has_value()) {
-    // color.value() -> Color::GREEN
+  if (auto green = magic_enum::enum_cast<Color>("GREEN")) {
+    color = *green;
   }
 
-  // case insensitive enum_cast
-  auto color = magic_enum::enum_cast<Color>(value, magic_enum::case_insensitive);
+  constexpr auto values = magic_enum::enum_values<Color>();
+  static_assert(values[2] == Color::GREEN);
+}
+```
 
-  // enum_cast with BinaryPredicate
-  auto color = magic_enum::enum_cast<Color>(value, [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); });
+## API
 
-  // enum_cast with default
-  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
-  ```
+* Core reflection ([`magic_enum.hpp`](include/magic_enum/magic_enum.hpp)): `enum_name`, `enum_cast`, `enum_value`, `enum_values`, `enum_count`, `enum_integer`, `enum_underlying`, `enum_names`, `enum_entries`, `enum_contains`, and `enum_index`.
+* Type and range API ([`magic_enum.hpp`](include/magic_enum/magic_enum.hpp)): `enum_type_name`, `enum_reflected`, `case_insensitive`, `as_flags`, and `as_common`.
+* Traits ([`magic_enum.hpp`](include/magic_enum/magic_enum.hpp)): `is_magic_enum_supported`, `is_unscoped_enum`, `is_unscoped_enum_v`, `is_scoped_enum`, `is_scoped_enum_v`, `is_flags_enum`, `is_flags_v`, `underlying_type`, and `underlying_type_t`.
+* Helpers ([`magic_enum.hpp`](include/magic_enum/magic_enum.hpp)): `Enum`, `enum_constant`, and operators from `bitwise_operators`.
+* Customization ([`magic_enum.hpp`](include/magic_enum/magic_enum.hpp)): `customize::enum_range`, `customize::adl_info`, `customize::enum_name`, `customize::enum_type_name`, `customize_t`, `default_tag`, and `invalid_tag`.
+* Flags ([`magic_enum_flags.hpp`](include/magic_enum/magic_enum_flags.hpp)): `enum_flags_name`, `enum_flags_cast`, `enum_flags_contains`, `enum_flags_test`, and `enum_flags_test_any`.
+* Enum utilities ([`magic_enum_utility.hpp`](include/magic_enum/magic_enum_utility.hpp)): `enum_for_each`, `enum_next_value`, `enum_prev_value`, `enum_next_value_circular`, and `enum_prev_value_circular`.
+* Runtime dispatch ([`magic_enum_switch.hpp`](include/magic_enum/magic_enum_switch.hpp)): `enum_switch`.
+* Enum fusion ([`magic_enum_fuse.hpp`](include/magic_enum/magic_enum_fuse.hpp)): `enum_fuse`.
+* Streams ([`magic_enum_iostream.hpp`](include/magic_enum/magic_enum_iostream.hpp)): operators from `istream_operators`, `ostream_operators`, and `iostream_operators`.
+* Formatting ([`magic_enum_format.hpp`](include/magic_enum/magic_enum_format.hpp)): `std::format` and `{fmt}` formatter support.
+* Containers ([`magic_enum_containers.hpp`](include/magic_enum/magic_enum_containers.hpp)): `containers::array`, `containers::bitset`, `containers::set`, `get`, `make_array`, `to_array`, and `raw_access`.
+* Container customization ([`magic_enum_containers.hpp`](include/magic_enum/magic_enum_containers.hpp)): `default_indexing`, `comparator_indexing`, `name_less`, `name_greater`, `name_less_case_insensitive`, and `name_greater_case_insensitive`.
+* All headers ([`magic_enum_all.hpp`](include/magic_enum/magic_enum_all.hpp)): includes all public headers.
 
-* Integer to enum value
+See [reference](doc/reference.md) for overloads, constraints, and customization details.
 
-  ```cpp
-  int color_integer = 0;
-  auto color = magic_enum::enum_cast<Color>(color_integer);
-  if (color.has_value()) {
-    // color.value() -> Color::BLUE
-  }
+## Flags
 
-  auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
-  ```
+```cpp
+#include <magic_enum/magic_enum_flags.hpp>
 
-* Indexed access to enum value
+enum class Directions { None = 0, Left = 1, Down = 2, Up = 4, Right = 8 };
 
-  ```cpp
-  std::size_t i = 0;
-  Color color = magic_enum::enum_value<Color>(i);
-  // color -> Color::RED
-  ```
+template <>
+struct magic_enum::customize::enum_range<Directions> {
+  static constexpr bool is_flags = true;
+};
 
-* Enum value sequence
+using namespace magic_enum::bitwise_operators; // Imports operators for all enums; keep scope narrow.
 
-  ```cpp
-  constexpr auto colors = magic_enum::enum_values<Color>();
-  // colors -> {Color::RED, Color::BLUE, Color::GREEN}
-  // colors[0] -> Color::RED
-  ```
+auto directions = Directions::Up | Directions::Right;
+auto name = magic_enum::enum_flags_name(directions); // "Up|Right"
+auto value = magic_enum::enum_flags_cast<Directions>("Left|Down");
+```
 
-* Number of enum elements
+## Utilities
 
-  ```cpp
-  constexpr std::size_t color_count = magic_enum::enum_count<Color>();
-  // color_count -> 3
-  ```
+```cpp
+#include <magic_enum/magic_enum_utility.hpp>
 
-* Enum value to integer
+void use_color() {
+  auto next = magic_enum::enum_next_value(Color::RED); // Color::BLUE
+  auto wrapped = magic_enum::enum_next_value_circular(Color::GREEN); // Color::RED
 
-  ```cpp
-  Color color = Color::RED;
-  auto color_integer = magic_enum::enum_integer(color); // or magic_enum::enum_underlying(color);
-  // color_integer -> -10
-  ```
-
-* Enum names sequence
-
-  ```cpp
-  constexpr auto color_names = magic_enum::enum_names<Color>();
-  // color_names -> {"RED", "BLUE", "GREEN"}
-  // color_names[0] -> "RED"
-  ```
-
-* Enum entries sequence
-
-  ```cpp
-  constexpr auto color_entries = magic_enum::enum_entries<Color>();
-  // color_entries -> {{Color::RED, "RED"}, {Color::BLUE, "BLUE"}, {Color::GREEN, "GREEN"}}
-  // color_entries[0].first -> Color::RED
-  // color_entries[0].second -> "RED"
-  ```
-
-* Enum fusion for multi-level switch/case statements
-
-  ```cpp
-  switch (magic_enum::enum_fuse(color, direction).value()) {
-    case magic_enum::enum_fuse(Color::RED, Directions::Up).value(): // ...
-    case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
-  // ...
-  }
-  ```
-
-* Enum switch runtime value as constexpr constant
-  ```cpp
-  Color color = Color::RED;
-  magic_enum::enum_switch([] (auto val) {
-    constexpr Color c_color = val;
-    // ...
-  }, color);
-  ```
-
-* Enum iterate for each enum as constexpr constant
-  ```cpp
-  magic_enum::enum_for_each<Color>([] (auto val) {
-    constexpr Color c_color = val;
-    // ...
+  magic_enum::enum_for_each<Color>([](auto color) {
+    constexpr Color value = color;
   });
-  ```
+}
+```
 
-* Check if enum contains
+## Formatting and streams
 
-  ```cpp
-  magic_enum::enum_contains(Color::GREEN); // -> true
-  magic_enum::enum_contains<Color>(0); // -> true
-  magic_enum::enum_contains<Color>(123); // -> false
-  magic_enum::enum_contains<Color>("GREEN"); // -> true
-  magic_enum::enum_contains<Color>("fda"); // -> false
-  ```
+```cpp
+#include <format>
+#include <magic_enum/magic_enum_format.hpp>
 
-* Enum index in sequence
+auto text = std::format("{}", Color::RED); // "RED"
+```
 
-  ```cpp
-  constexpr auto color_index = magic_enum::enum_index(Color::BLUE);
-  // color_index.value() -> 1
-  // color_index.has_value() -> true
-  ```
+Include `{fmt}` before `magic_enum_format.hpp` to enable `{fmt}` formatter support. For streams, include `magic_enum_iostream.hpp` and import only required operator namespace.
 
-* Functions for flags
+## Containers
 
-  ```cpp
-  enum Directions : std::uint64_t {
-    Left = 1,
-    Down = 2,
-    Up = 4,
-    Right = 8,
-  };
-  template <>
-  struct magic_enum::customize::enum_range<Directions> {
-    static constexpr bool is_flags = true;
-  };
-  using namespace magic_enum::bitwise_operators;
+```cpp
+#include <magic_enum/magic_enum_containers.hpp>
 
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
-  magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
-  magic_enum::enum_flags_contains(Directions::Up | Directions::Right); // -> true
-  magic_enum::enum_flags_cast<Directions>(3).value(); // -> Directions::Left|Directions::Down
-  magic_enum::enum_flags_cast<Directions>("Left,Down", ',').value(); // -> Directions::Left|Directions::Down
-  ```
+void use_containers() {
+  magic_enum::containers::array<Color, int> priority{};
+  priority[Color::GREEN] = 1;
 
-* Enum type name
+  magic_enum::containers::bitset<Color> selected;
+  selected.set(Color::BLUE);
 
-  ```cpp
-  Color color = Color::RED;
-  auto type_name = magic_enum::enum_type_name<decltype(color)>();
-  // type_name -> "Color"
-  ```
+  magic_enum::containers::set<Color> colors{Color::RED, Color::GREEN};
+}
+```
 
-* IOstream operator for enum
-
-  ```cpp
-  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operators for enums.
-  Color color = Color::BLUE;
-  std::cout << color << std::endl; // "BLUE"
-  ```
-
-  ```cpp
-  using magic_enum::iostream_operators::operator>>; // out-of-the-box istream operators for enums.
-  Color color;
-  std::cin >> color;
-  ```
-
-* Bitwise operator for enum
-
-  ```cpp
-  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
-  // Support operators: ~, |, &, ^, |=, &=, ^=.
-  Flags flags = Flags::A | Flags::B & ~Flags::C;
-  ```
-
-* Checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
-
-  ```cpp
-  enum color { red, green, blue };
-  enum class direction { left, right };
-
-  magic_enum::is_unscoped_enum<color>::value -> true
-  magic_enum::is_unscoped_enum<direction>::value -> false
-  magic_enum::is_unscoped_enum<int>::value -> false
-
-  // Helper variable template.
-  magic_enum::is_unscoped_enum_v<color> -> true
-  ```
-
-* Checks whether type is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
-
-  ```cpp
-  enum color { red, green, blue };
-  enum class direction { left, right };
-
-  magic_enum::is_scoped_enum<color>::value -> false
-  magic_enum::is_scoped_enum<direction>::value -> true
-  magic_enum::is_scoped_enum<int>::value -> false
-
-  // Helper variable template.
-  magic_enum::is_scoped_enum_v<direction> -> true
-  ```
-
-* Static storage enum variable to string
-  This version is much lighter on the compile times and is not restricted to the enum_range [limitation](doc/limitations.md).
-
-  ```cpp
-  constexpr Color color = Color::BLUE;
-  constexpr auto color_name = magic_enum::enum_name<color>();
-  // color_name -> "BLUE"
-  ```
-
-* `containers::array` array container for enums.
-
-  ```cpp
-  magic_enum::containers::array<Color, RGB> color_rgb_array {};
-  color_rgb_array[Color::RED] = {255, 0, 0};
-  color_rgb_array[Color::GREEN] = {0, 255, 0};
-  color_rgb_array[Color::BLUE] = {0, 0, 255};
-  magic_enum::containers::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
-  ```
-
-* `containers::bitset` bitset container for enums.
-
-  ```cpp
-  std::uint8_t incoming = 0b00000011;
-  auto color_bitset = magic_enum::containers::bitset<Color> {magic_enum::containers::raw_access, incoming};
-  color_bitset.set(Color::BLUE);
-  auto raw_value = color_bitset.to_ulong(magic_enum::containers::raw_access);
-  ```
-
-* `containers::set` set container for enums.
-
-  ```cpp
-  auto color_set = magic_enum::containers::set<Color>();
-  bool empty = color_set.empty();
-  // empty -> true
-  color_set.insert(Color::GREEN);
-  color_set.insert(Color::BLUE);
-  color_set.insert(Color::RED);
-  std::size_t size = color_set.size();
-  // size -> 3
-  ```
-
-* Improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
-
-  ```cpp
-  magic_enum::underlying_type<color>::type -> int
-
-  // Helper types.
-  magic_enum::underlying_type_t<Direction> -> int
-  ```
 ## Remarks
 
-* `magic_enum` does not pretend to be a silver bullet for reflection for enums, it was originally designed for small enum.
-
-* Before use, read the [limitations](doc/limitations.md) of functionality.
+* Enum value aliases are not supported.
+* Reflection scans configured enum range and is designed for small enums. Read [limitations](doc/limitations.md) before use.
 
 ## Integration
 
-* You should add the required file [magic_enum.hpp](include/magic_enum/magic_enum.hpp), and optionally other headers from [include dir](include/) or [release archive](https://github.com/Neargye/magic_enum/releases/latest). Alternatively, you can build the library with CMake.
-
-* If you are using [vcpkg](https://github.com/Microsoft/vcpkg/) on your project for external dependencies, then you can use the [magic-enum package](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum).
-
-* If you are using [Conan](https://www.conan.io/) to manage your dependencies, merely add `magic_enum/x.y.z` to your conan's requires, where `x.y.z` is the release version you want to use.
-
-* If you are using [Build2](https://build2.org/) to build and manage your dependencies, add `depends: magic_enum ^x.y.z` to the manifest file where `x.y.z` is the release version you want to use. You can then import the target using `magic_enum%lib{magic_enum}`.
-
-* Alternatively, you can use something like [CPM](https://github.com/TheLartians/CPM) which is based on CMake's `Fetch_Content` module.
-
-  ```cmake
-  CPMAddPackage(
-      NAME magic_enum
-      GITHUB_REPOSITORY Neargye/magic_enum
-      GIT_TAG vx.y.z # Where `x.y.z` is the release version you want to use.
-  )
-  ```
-
-* Bazel is also supported, simply add to your WORKSPACE file:
-
-  ```
-  http_archive(
-      name = "magic_enum",
-      strip_prefix = "magic_enum-<commit>",
-      urls = ["https://github.com/Neargye/magic_enum/archive/<commit>.zip"],
-  )
-  ```
-
-  To use bazel inside the repository it's possible to do:
-
-  ```
-  bazel build //...
-  bazel test //...
-  bazel run //example
-  ```
-
-  (Note that you must use a supported compiler or specify it with `export CC= <compiler>`.)
-
-* If you are using [Ros](https://www.ros.org/), you can include this package by adding `<depend>magic_enum</depend>` to your package.xml and include this package in your workspace. In your CMakeLists.txt add the following:
-  ```cmake
-  find_package(magic_enum CONFIG REQUIRED)
-  ...
-  target_link_libraries(your_executable magic_enum::magic_enum)
-  ```
-
-* **C++20 modules** are supported as an alternative to the header-only mode, requires CMake 3.28+.
-
-  Configure with CMake:
-  ```cmake
-  cmake -DMAGIC_ENUM_USE_MODULES=ON -G Ninja ...
-  ```
-
-  Then use `import` instead of `#include`:
-  ```cpp
-  import magic_enum;
-
-  enum class Color { RED, GREEN, BLUE };
-  auto name = magic_enum::enum_name(Color::RED); // "RED"
-  ```
-
-  Caveats:
-  - Do not mix `#include <magic_enum/...>` and `import magic_enum;` within the same link unit; this is an ODR violation.
-  - `import std;` is opt-in and experimental (requires CMake 3.30+). Enable it with `-DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_MODULE_STD=ON` and set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` to the UUID documented by your CMake version before `project()`; for CMake 4.3, the UUID is `451f2fe2-a8a2-47c3-bc32-94786d8fc91b`.
+* Copy required headers from [`include/magic_enum`](include/magic_enum) or use [release archive](https://github.com/Neargye/magic_enum/releases/latest).
+* Use CMake with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
+* Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum?q=magic_enum), or [Meson WrapDB](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
+* Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
+* Use Bazel with `MODULE.bazel` or `http_archive`; target is `@magic_enum//:magic_enum`.
+* Use ROS with `<depend>magic_enum</depend>` in `package.xml`, then link `magic_enum::magic_enum`.
+* Use C++20 module with CMake 3.28+: configure with `MAGIC_ENUM_USE_MODULES=ON`, link `magic_enum::magic_enum`, and write `import magic_enum;`. Do not mix module import and `magic_enum` headers in same link unit.
 
 ## Compiler compatibility
 
 * Clang/LLVM >= 5
-* MSVC++ >= 14.11 / Visual Studio >= 2017
+* MSVC++ >= 15.3 / Visual Studio >= 2017
 * Xcode >= 10
 * GCC >= 9
-* MinGW >= 9
 
 ## Licensed under the [MIT License](LICENSE)
+
+Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
