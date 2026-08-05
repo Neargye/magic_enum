@@ -7,11 +7,23 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
+#include <magic_enum/magic_enum.hpp>
+#define max(a, b) MAGIC_ENUM_TEST_MAX_MACRO
 #include <magic_enum/magic_enum_containers.hpp>
+#undef max
+
+#if defined(MAGIC_ENUM_THROW) || defined(MAGIC_ENUM_CONTAINERS_THROW)
+#  error Internal containers macro leaked from magic_enum_containers.hpp.
+#endif
+
 #include <magic_enum/magic_enum_iostream.hpp>
 
 #include <functional>
+#include <iterator>
+#include <limits>
+#include <type_traits>
 #include <unordered_set>
+#include <utility>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
@@ -40,6 +52,123 @@ enum class Bits65 {
 
 static_assert(magic_enum::enum_count<Bits32>() == 32);
 static_assert(magic_enum::enum_count<Bits65>() == 65);
+
+struct StaticIndex : magic_enum::containers::default_indexing<Color> {
+  StaticIndex() = delete;
+};
+
+struct InvalidIndex : magic_enum::containers::default_indexing<Color> {
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color value) noexcept {
+    return value == Color::RED ? 0 : 99;
+  }
+};
+
+struct MissingIndex : magic_enum::containers::default_indexing<Color> {
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color value) noexcept {
+    return value == Color::RED ? magic_enum::optional<std::size_t>{0} : magic_enum::optional<std::size_t>{};
+  }
+};
+
+struct DuplicateIndex : magic_enum::containers::default_indexing<Color> {
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color) noexcept {
+    return 0;
+  }
+};
+
+struct OutOfRangeIndex : magic_enum::containers::default_indexing<Color> {
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color value) noexcept {
+    if (auto index = magic_enum::containers::default_indexing<Color>::at(value)) {
+      return index;
+    }
+    return 99;
+  }
+};
+
+static_assert(!magic_enum::containers::detail::valid_indexing<Color, InvalidIndex>());
+static_assert(!magic_enum::containers::detail::valid_indexing<Color, MissingIndex>());
+static_assert(!magic_enum::containers::detail::valid_indexing<Color, DuplicateIndex>());
+static_assert(!magic_enum::containers::detail::valid_indexing<Empty, magic_enum::containers::default_indexing<Empty>>());
+static_assert(std::is_default_constructible_v<magic_enum::containers::array<Color, int, StaticIndex>>);
+static_assert(std::is_default_constructible_v<magic_enum::containers::bitset<Color, StaticIndex>>);
+
+struct NoexceptSwapThrowingMove {
+  NoexceptSwapThrowingMove() = default;
+  NoexceptSwapThrowingMove(const NoexceptSwapThrowingMove&) = delete;
+  NoexceptSwapThrowingMove& operator=(const NoexceptSwapThrowingMove&) = delete;
+  NoexceptSwapThrowingMove(NoexceptSwapThrowingMove&&) noexcept(false) {}
+  NoexceptSwapThrowingMove& operator=(NoexceptSwapThrowingMove&&) noexcept(false) { return *this; }
+
+  friend void swap(NoexceptSwapThrowingMove&, NoexceptSwapThrowingMove&) noexcept {}
+};
+
+using ThrowingMoveArray = magic_enum::containers::array<Color, NoexceptSwapThrowingMove>;
+static_assert(std::is_nothrow_swappable_v<NoexceptSwapThrowingMove>);
+static_assert(!noexcept(std::declval<ThrowingMoveArray&>().swap(std::declval<ThrowingMoveArray&>())));
+static_assert([] {
+  magic_enum::containers::array<Color, int> lhs{{1, 2, 3}};
+  magic_enum::containers::array<Color, int> rhs{{4, 5, 6}};
+  lhs.swap(rhs);
+  return lhs[Color::RED] == 4 && rhs[Color::RED] == 1;
+}());
+
+struct ThrowingLess {
+  friend bool operator<(ThrowingLess, ThrowingLess) { throw 0; }
+};
+
+enum class ThrowingEnum { A, B };
+
+bool operator<(ThrowingEnum, ThrowingEnum) { throw 0; }
+
+enum class EquivalentNames { A, a };
+
+struct NonCopyablePredicate {
+  NonCopyablePredicate() = default;
+  NonCopyablePredicate(const NonCopyablePredicate&) = delete;
+
+  constexpr bool operator()(char lhs, char rhs) & noexcept { return lhs == rhs; }
+};
+
+volatile bool throw_conversion = true;
+
+struct ThrowingConversion {
+  ThrowingConversion() = default;
+  ThrowingConversion(const ThrowingConversion&) = delete;
+
+  operator magic_enum::string_view() const {
+    if (throw_conversion) {
+      throw 0;
+    }
+    return {};
+  }
+
+  operator Color() const {
+    if (throw_conversion) {
+      throw 0;
+    }
+    return Color::RED;
+  }
+};
+
+using ColorBitset = magic_enum::containers::bitset<Color>;
+using ColorSet = magic_enum::containers::set<Color>;
+using ThrowingSet = magic_enum::containers::set<ThrowingEnum>;
+static_assert(std::is_same_v<typename std::iterator_traits<ColorBitset::iterator>::value_type, Color>);
+static_assert(std::is_same_v<typename std::iterator_traits<ColorSet::iterator>::value_type, Color>);
+static_assert(!noexcept(std::declval<ColorSet&>().insert(static_cast<const Color*>(nullptr), static_cast<const Color*>(nullptr))));
+static_assert([] {
+  constexpr char bits[] = {'1', '0', '1'};
+  constexpr magic_enum::containers::bitset<Color> value{magic_enum::containers::raw_access, bits, sizeof(bits)};
+  return value.test(Color::RED) && !value.test(Color::GREEN) && value.test(Color::BLUE);
+}());
+static_assert([] {
+  constexpr auto max = (std::numeric_limits<unsigned long long>::max)();
+  constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, max};
+  return value.count() == 64 && value.test(Bits65::B00) && value.test(Bits65::B63) && !value.test(Bits65::B64) && value.to_ullong(magic_enum::containers::raw_access) == max;
+}());
+#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+static_assert(std::bidirectional_iterator<ColorBitset::iterator>);
+static_assert(std::bidirectional_iterator<ColorSet::iterator>);
+#endif
 
 struct RGB {
 
@@ -162,6 +291,19 @@ TEST_CASE("containers_array") {
   REQUIRE(from_make_array.at(Color::RED) == RGB{color_max, 0, 0});
   REQUIRE(from_make_array.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(from_make_array.at(Color::BLUE) == RGB{0, 0, color_max});
+
+  using NameIndex = magic_enum::containers::comparator_indexing<magic_enum::containers::name_less<>>;
+  constexpr magic_enum::containers::array<Color, int, NameIndex> by_name{{10, 20, 30}};
+  REQUIRE(by_name[Color::BLUE] == 10);
+  REQUIRE(by_name[Color::GREEN] == 20);
+  REQUIRE(by_name[Color::RED] == 30);
+
+  const magic_enum::containers::array<Color, ThrowingLess> throwing_lhs{};
+  const magic_enum::containers::array<Color, ThrowingLess> throwing_rhs{};
+  REQUIRE_THROWS(static_cast<void>(throwing_lhs < throwing_rhs));
+
+  const magic_enum::containers::array<Color, int, OutOfRangeIndex> custom_index_array{};
+  REQUIRE_THROWS(custom_index_array.at(static_cast<Color>(8)));
 }
 
 TEST_CASE("containers_bitset") {
@@ -224,6 +366,7 @@ TEST_CASE("containers_bitset") {
   REQUIRE(color_bitset.test(Color::BLUE));
 
   constexpr magic_enum::containers::bitset<Color> color_bitset_all {Color::RED|Color::GREEN|Color::BLUE};
+  REQUIRE(static_cast<Color>(color_bitset_all) == (Color::RED | Color::GREEN | Color::BLUE));
   REQUIRE(color_bitset_all.to_string() == "RED|GREEN|BLUE");
   REQUIRE(color_bitset_all.to_string( {}, '0', '1' ) == "111");
   REQUIRE(color_bitset_all.to_ulong( {} ) == 7);
@@ -247,6 +390,30 @@ TEST_CASE("containers_bitset") {
   REQUIRE(color_bitset_raw_string.test(Color::RED));
   REQUIRE_FALSE(color_bitset_raw_string.test(Color::GREEN));
   REQUIRE(color_bitset_raw_string.test(Color::BLUE));
+
+  constexpr magic_enum::containers::bitset<Color> color_bitset_raw_number {magic_enum::containers::raw_access, 5};
+  REQUIRE(color_bitset_raw_number == color_bitset_raw_string);
+  REQUIRE_THROWS((magic_enum::containers::bitset<Color>{magic_enum::containers::raw_access, 8}));
+
+  magic_enum::containers::bitset<Bits65> too_wide;
+  too_wide.set(Bits65::B64);
+  REQUIRE_THROWS(static_cast<void>(too_wide.to_ullong(magic_enum::containers::raw_access)));
+  if constexpr (std::numeric_limits<unsigned long>::digits < magic_enum::enum_count<Bits65>()) {
+    too_wide.reset().set(static_cast<Bits65>(std::numeric_limits<unsigned long>::digits));
+    REQUIRE_THROWS(static_cast<void>(too_wide.to_ulong(magic_enum::containers::raw_access)));
+  }
+
+  NonCopyablePredicate predicate;
+  const magic_enum::containers::bitset<Color> color_bitset_names {"RED|BLUE", predicate};
+  REQUIRE(color_bitset_names.test(Color::RED));
+  REQUIRE_FALSE(color_bitset_names.test(Color::GREEN));
+  REQUIRE(color_bitset_names.test(Color::BLUE));
+
+  magic_enum::containers::bitset<Color, OutOfRangeIndex> custom_index_bitset;
+  REQUIRE(custom_index_bitset.find(static_cast<Color>(8)) == custom_index_bitset.end());
+  REQUIRE_THROWS(static_cast<void>(custom_index_bitset.test(static_cast<Color>(8))));
+  REQUIRE_THROWS(custom_index_bitset.set(static_cast<Color>(8)));
+  REQUIRE_THROWS(custom_index_bitset.reset(static_cast<Color>(8)));
 }
 
 TEST_CASE("containers_bitset_hash") {
@@ -330,6 +497,12 @@ TEST_CASE("containers_bitset_all_full_storage") {
   auto partial_32 = full_32;
   partial_32.reset(Bits32::B31);
   REQUIRE_FALSE(partial_32.all());
+
+  static_assert([] {
+    magic_enum::containers::bitset<Bits65> bs;
+    const auto flipped = ~bs;
+    return flipped.all() && bs.none() && bs.set().all() && bs.flip().none();
+  }());
 }
 
 TEST_CASE("containers_set") {
@@ -366,6 +539,8 @@ TEST_CASE("containers_set") {
   color_set_compare.insert(Color::BLUE);
   color_set_compare.insert(Color::RED);
   color_set_compare.insert(Color::GREEN);
+
+  REQUIRE_THROWS(static_cast<void>(ThrowingSet{ThrowingEnum::A} < ThrowingSet{ThrowingEnum::B}));
 
   constexpr magic_enum::containers::set color_set_filled = {Color::RED, Color::GREEN, Color::BLUE};
   REQUIRE_FALSE(color_set_filled.empty());
@@ -408,8 +583,11 @@ TEST_CASE("containers_set") {
   auto blue_by_string = color_name_set.find(blue_name_string);
   REQUIRE(blue_by_string != color_name_set.end());
   REQUIRE(*blue_by_string == Color::BLUE);
+  REQUIRE_THROWS(static_cast<void>(color_name_set.find(ThrowingConversion{})));
   REQUIRE(color_name_set.erase("GREEN") == 1);
   REQUIRE_FALSE(color_name_set.contains(Color::GREEN));
+  REQUIRE_THROWS(static_cast<void>(color_name_set.emplace(ThrowingConversion{})));
+  REQUIRE_THROWS(static_cast<void>(color_name_set.emplace_hint(color_name_set.end(), ThrowingConversion{})));
 
   static_assert(!noexcept(color_name_set.contains(green_name)));
 
@@ -462,6 +640,17 @@ TEST_CASE("containers_set") {
   auto blue_ci_by_string = color_ci_name_set.find(blue_name_lower_string);
   REQUIRE(blue_ci_by_string != color_ci_name_set.end());
   REQUIRE(*blue_ci_by_string == Color::BLUE);
+
+  magic_enum::containers::set<EquivalentNames, magic_enum::containers::name_less_case_insensitive> equivalent_name_set {EquivalentNames::A, EquivalentNames::a};
+  REQUIRE(equivalent_name_set.size() == 2);
+  REQUIRE(equivalent_name_set.count("a") == 2);
+  auto exact = EquivalentNames::A;
+  REQUIRE(equivalent_name_set.erase(exact) == 1);
+  REQUIRE_FALSE(equivalent_name_set.contains(EquivalentNames::A));
+  REQUIRE(equivalent_name_set.contains(EquivalentNames::a));
+  REQUIRE(equivalent_name_set.insert(EquivalentNames::A).second);
+  REQUIRE(equivalent_name_set.erase("a") == 2);
+  REQUIRE(equivalent_name_set.empty());
 }
 
 TEST_CASE("map_like_container") {

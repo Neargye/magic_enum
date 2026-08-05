@@ -9,12 +9,14 @@
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::wstring_view;
 #define MAGIC_ENUM_USING_ALIAS_STRING      using string      = std::wstring;
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_containers.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
 #include "test_helpers.hpp"
 
 #include <array>
 #include <cctype>
+#include <sstream>
 #include <string_view>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -145,4 +147,16 @@ TEST_CASE("ostream_operators") {
 TEST_CASE("istream_operators") {
   require_istream(Color::GREEN, L"GREEN");
   require_istream(Color::BLUE, L"BLUE");
+}
+
+TEST_CASE("containers_bitset_iostream") {
+  magic_enum::containers::bitset<Color> bits {Color::RED, Color::BLUE};
+  std::wstringstream output;
+  output << bits;
+  REQUIRE(output.str() == L"red|BLUE");
+
+  std::wstringstream input {L"GREEN"};
+  input >> bits;
+  const magic_enum::containers::bitset<Color> expected {Color::GREEN};
+  REQUIRE(bits == expected);
 }
