@@ -827,7 +827,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Custom `Index` must provide non-throwing `constexpr` `at(E)` that maps each reflected value to a unique index in `[0, enum_count<E>())`.
 
-* For `containers::bitset`, custom `Index` must also provide `it(std::size_t)` that maps each index back to its value.
+* For `containers::bitset`, custom `Index` must also provide non-throwing `constexpr` `it(std::size_t)` that maps each index back to its value.
 
 ## `containers::array`
 

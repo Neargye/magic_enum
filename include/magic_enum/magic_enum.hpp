@@ -1373,7 +1373,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Returns name from enum value.
 // If enum value does not have name or value out of range, returns empty string.
 template <detail::enum_subtype S, typename E>
-[[nodiscard]] constexpr auto enum_name(E value) -> detail::enable_if_t<E, string_view> {
+[[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
