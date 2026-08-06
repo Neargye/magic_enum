@@ -194,6 +194,8 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_flags_cast<Color>(1 | 2 | 1).value() == (Color::GREEN | Color::RED));
     REQUIRE_FALSE(enum_flags_cast<Color>(1 | 2 | 8).has_value());
     REQUIRE_FALSE(enum_flags_cast<Color>(0).has_value());
+    REQUIRE_FALSE(enum_flags_cast<number>(1 | 2).has_value());
+    REQUIRE_FALSE(enum_flags_contains<number>(1 | 2));
 
     constexpr auto no = enum_cast<Numbers>(2);
     REQUIRE(no.value() == Numbers::one);

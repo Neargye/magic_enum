@@ -34,6 +34,10 @@
 
 #include "magic_enum.hpp"
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
+#  include <tuple>
+#endif
+
 namespace magic_enum {
 
 namespace detail {

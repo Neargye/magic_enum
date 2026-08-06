@@ -88,7 +88,6 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
   constexpr auto S = detail::enum_subtype::flags;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
@@ -96,24 +95,9 @@ template <typename E>
     static_cast<void>(value);
     return {}; // Empty enum.
   } else {
-    if constexpr (detail::is_sparse_v<D, S>) {
-      auto check_value = U{0};
-      for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-        if (const auto v = static_cast<U>(enum_value<D, S>(i)); (value & v) != 0) {
-          check_value |= v;
-        }
-      }
-
-      if (check_value != 0 && check_value == value) {
-        return static_cast<D>(value);
-      }
-    } else {
-      constexpr auto min = detail::min_v<D, S>;
-      constexpr auto max = detail::values_ors<D, S>();
-
-      if (value >= min && value <= max) {
-        return static_cast<D>(value);
-      }
+    constexpr auto mask = detail::values_ors<D, S>();
+    if (value != 0 && (value & ~mask) == 0) {
+      return static_cast<D>(value);
     }
     return {}; // Invalid value or out of range.
   }
