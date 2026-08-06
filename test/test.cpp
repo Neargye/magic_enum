@@ -64,6 +64,11 @@ enum class crc_hack_2 {
   d19f2e9e82d14b96be4fa12b8a27ee9f
 };
 
+enum class hash_case_collision {
+  EII1mjfIgJ,
+  E7DvAyiJL6
+};
+
 enum class MaxUsedAsInvalid : std::uint8_t {
   ONE,
   TWO = 63,
@@ -202,6 +207,8 @@ TEST_CASE("enum_cast") {
     constexpr auto crc = enum_cast<crc_hack_2>("b5a7b602ab754d7ab30fb42c4fb28d82");
     REQUIRE(crc.value() == crc_hack_2::b5a7b602ab754d7ab30fb42c4fb28d82);
     REQUIRE(enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
+    REQUIRE(enum_cast<hash_case_collision>("EII1mjfIgJ") == hash_case_collision::EII1mjfIgJ);
+    REQUIRE(enum_cast<hash_case_collision>("E7DvAyiJL6") == hash_case_collision::E7DvAyiJL6);
 
     REQUIRE(enum_cast<BoolTest>("Nay").has_value());
   }
@@ -593,6 +600,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<as_flags<false>>(cm[1]) == "GREEN");
     REQUIRE(enum_name<as_common<true>>(cm[1]) == "GREEN");
     REQUIRE(enum_name<as_flags<false>>(static_cast<Color>(0)).empty());
+    static_assert(noexcept(enum_name<as_flags<false>>(Color::GREEN)));
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name(no);
@@ -757,6 +765,14 @@ TEST_CASE("enum_entries") {
 
   constexpr auto& s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
+
+#if defined(__cpp_generic_lambdas) && __cpp_generic_lambdas >= 201707L
+  constexpr auto check_entries = []<std::size_t... J>(std::index_sequence<J...>) {
+    constexpr auto entries = magic_enum::enum_entries<Color>();
+    return ((entries[J].first == magic_enum::enum_value<Color>(J)) && ...);
+  };
+  static_assert(check_entries(std::make_index_sequence<magic_enum::enum_count<Color>()>{}));
+#endif
 }
 
 TEST_CASE("string_view lifetime and null termination") {

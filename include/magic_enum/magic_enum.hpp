@@ -1076,18 +1076,19 @@ constexpr auto calculate_cases(std::size_t Page) noexcept {
     }
   }
 
-  // dead cases, try to avoid case collisions
-  for (switch_t last_value = result[values_to - 1]; fill != result.end() && last_value != (std::numeric_limits<switch_t>::max)(); *fill++ = ++last_value) {
-  }
-
-  {
-    auto it = result.begin();
-    auto last_value = (std::numeric_limits<switch_t>::min)();
-    for (; fill != result.end(); *fill++ = last_value++) {
-      while (last_value == *it) {
-        ++last_value, ++it;
+  auto value = (std::numeric_limits<switch_t>::min)();
+  while (fill != result.end()) {
+    bool used = false;
+    for (std::size_t i = 0; i < values_to; ++i) {
+      if (result[i] == value) {
+        used = true;
+        break;
       }
     }
+    if (!used) {
+      *fill++ = value;
+    }
+    value = value == (std::numeric_limits<switch_t>::max)() ? (std::numeric_limits<switch_t>::min)() : static_cast<switch_t>(value + 1);
   }
 
   return result;
@@ -1181,7 +1182,7 @@ constexpr decltype(auto) constexpr_switch(
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
     default:
       if constexpr (size > 256 + Page) {
-        return constexpr_switch<GlobValues, CallValue, Page + 256, Hash>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def));
+        return constexpr_switch<GlobValues, CallValue, Page + 256, Hash>(std::forward<Lambda>(lambda), searched, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
       }
       break;
   }
