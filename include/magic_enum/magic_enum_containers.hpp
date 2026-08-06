@@ -35,6 +35,11 @@
 
 #include "magic_enum.hpp"
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
+#  include <initializer_list>
+#  include <iterator>
+#endif
+
 #if !defined(MAGIC_ENUM_USE_STD_MODULE) && __has_include(<bit>) && (__cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L))
 #  include <bit>
 #endif
@@ -148,7 +153,7 @@ constexpr BidirIt upper_bound(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}
 template <typename Cmp = std::less<>, typename BidirIt, typename E>
 constexpr auto equal_range(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
   const auto first = impl::lower_bound(begin, end, e, comp);
-  return std::pair{first, upper_bound(first, end, e, comp)};
+  return std::pair{first, detail::upper_bound(first, end, e, comp)};
 }
 
 template <typename E = void, typename Cmp = std::less<E>, typename = void>
