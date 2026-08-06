@@ -126,6 +126,6 @@ jobs:
             -DMAGIC_ENUM_USE_MODULES=ON `
             -DMAGIC_ENUM_OPT_BUILD_TESTS=ON `
             -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=ON
-          cmake --build build-module --parallel --target magic_enum_module example_module_usage test_module-cpp20 test_module_aliases-cpp20 test_module_wchar_t-cpp20
+          cmake --build build-module --parallel
           cmake --build build-module --parallel --target magic_enum_verify_interface_header_sets
           ctest --test-dir build-module --output-on-failure --no-tests=error -R '^(test_module(_aliases|_wchar_t)?-cpp20|installed-module-consumer)$'

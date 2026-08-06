@@ -27,7 +27,7 @@ option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${PROJECT_IS_TO
 option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${PROJECT_IS_TOP_LEVEL})
 option(MAGIC_ENUM_OPT_INSTALL "Generate and install magic_enum target" ${PROJECT_IS_TOP_LEVEL})
 set(MAGIC_ENUM_VERIFY_INTERFACE_HEADER_SETS_DEFAULT OFF)
-if(MAGIC_ENUM_OPT_BUILD_TESTS AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+if(PROJECT_IS_TOP_LEVEL AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
   set(MAGIC_ENUM_VERIFY_INTERFACE_HEADER_SETS_DEFAULT ON)
 endif()
 option(
@@ -35,6 +35,7 @@ option(
   "Verify that public magic_enum headers can be included independently"
   ${MAGIC_ENUM_VERIFY_INTERFACE_HEADER_SETS_DEFAULT}
 )
+unset(MAGIC_ENUM_VERIFY_INTERFACE_HEADER_SETS_DEFAULT)
 option(MAGIC_ENUM_USE_MODULES "Build the magic_enum C++20 module target" OFF)
 option(MAGIC_ENUM_MODULE_IMPORT_STD "Build the module target with import std" OFF)
 set(MAGIC_ENUM_MODULE_WITH_FMT_DEFAULT OFF)
@@ -117,13 +118,16 @@ function(magic_enum_make_module_library name)
   target_link_libraries(${name} PUBLIC ${PROJECT_NAME})
   target_compile_features(${name} PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
   if(ARGN)
+    # Optional private definitions build test variants with custom magic_enum configurations.
     target_compile_definitions(${name} PRIVATE ${ARGN})
   endif()
 
+  # Module-only definitions stay private; CMake exports them for installed module sources without propagating them to importers.
   if(MAGIC_ENUM_MODULE_WITH_FMT)
     if(NOT TARGET fmt::fmt)
       find_package(fmt CONFIG REQUIRED)
     endif()
+    # fmt::fmt-module is not interchangeable here because magic_enum defines its fmt formatter from headers within this named module.
     target_link_libraries(${name} PUBLIC fmt::fmt)
     target_compile_definitions(${name} PRIVATE MAGIC_ENUM_MODULE_WITH_FMT)
   endif()
