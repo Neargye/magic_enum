@@ -4,7 +4,7 @@
 #include <version>
 
 // Include fmt before import std to avoid duplicate standard-library declarations with GCC modules.
-#ifdef MAGIC_ENUM_TEST_FMT
+#if defined(MAGIC_ENUM_TEST_FMT) && !defined(MAGIC_ENUM_TEST_FMT_MODULE)
 #  include <fmt/format.h>
 #endif
 

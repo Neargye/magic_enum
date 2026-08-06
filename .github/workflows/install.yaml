@@ -74,9 +74,12 @@ jobs:
           cmake -S fmt-src -B build-fmt -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP}/fmt" \
             -DBUILD_SHARED_LIBS=OFF \
             -DFMT_DOC=OFF \
+            -DFMT_MODULE=ON \
             -DFMT_TEST=OFF
           cmake --build build-fmt --parallel
           cmake --install build-fmt

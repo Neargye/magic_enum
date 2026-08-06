@@ -4,6 +4,10 @@
 
 #include <version>
 
+#if defined(MAGIC_ENUM_TEST_FMT) && !defined(MAGIC_ENUM_TEST_FMT_MODULE)
+#  include <fmt/format.h>
+#endif
+
 #ifdef MAGIC_ENUM_TEST_IMPORT_STD
 import std;
 #else
@@ -176,6 +180,11 @@ int main() {
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
   if (std::format("{}", Color::GREEN) != "GREEN") {
     return 2;
+  }
+#endif
+#ifdef MAGIC_ENUM_TEST_FMT
+  if (fmt::format("{}", Color::BLUE) != "BLUE") {
+    return 3;
   }
 #endif
   return 0;

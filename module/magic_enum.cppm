@@ -1,7 +1,7 @@
 module;
 
 #include <version>
-#ifdef MAGIC_ENUM_MODULE_WITH_FMT
+#if defined(MAGIC_ENUM_MODULE_WITH_FMT) && !defined(MAGIC_ENUM_USE_FMT_MODULE)
 #  include <fmt/format.h>
 #endif
 
@@ -40,6 +40,10 @@ module;
 #endif // MAGIC_ENUM_USE_STD_MODULE
 
 export module magic_enum;
+
+#ifdef MAGIC_ENUM_USE_FMT_MODULE
+export import fmt;
+#endif
 
 #ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
@@ -199,7 +203,7 @@ namespace detail {
 #endif
 }
 
-#ifdef MAGIC_ENUM_MODULE_WITH_FMT
+#if defined(MAGIC_ENUM_MODULE_WITH_FMT) && !defined(MAGIC_ENUM_USE_FMT_MODULE)
 export namespace fmt {
   using fmt::formatter;
 }

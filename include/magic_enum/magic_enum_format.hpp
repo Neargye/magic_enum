@@ -75,7 +75,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 
 #endif
 
-#if defined(FMT_VERSION)
+#if defined(FMT_VERSION) || defined(MAGIC_ENUM_USE_FMT_MODULE)
 
 template <typename E>
 struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : fmt::formatter<std::string_view, char> {
