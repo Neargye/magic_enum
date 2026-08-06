@@ -1,24 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
-//
-// Permission is hereby  granted, free of charge, to any  person obtaining a copy
-// of this software and associated  documentation files (the "Software"), to deal
-// in the Software  without restriction, including without  limitation the rights
-// to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell
-// copies  of  the Software,  and  to  permit persons  to  whom  the Software  is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE  IS PROVIDED "AS  IS", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR
-// IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY,
-// FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE
-// AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER
-// LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 #include <new>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -121,6 +103,10 @@ struct overloaded : Ts... {
 template <typename... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+struct LvalueOnlyPredicate {
+  constexpr bool operator()(char lhs, char rhs) & noexcept { return lhs == rhs; }
+};
+
 TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<Color>(Color::RED));
   REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
@@ -208,6 +194,8 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_flags_cast<Color>(1 | 2 | 1).value() == (Color::GREEN | Color::RED));
     REQUIRE_FALSE(enum_flags_cast<Color>(1 | 2 | 8).has_value());
     REQUIRE_FALSE(enum_flags_cast<Color>(0).has_value());
+    REQUIRE_FALSE(enum_flags_cast<number>(1 | 2).has_value());
+    REQUIRE_FALSE(enum_flags_contains<number>(1 | 2));
 
     constexpr auto no = enum_cast<Numbers>(2);
     REQUIRE(no.value() == Numbers::one);
@@ -364,6 +352,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<Color>("None"));
 
     REQUIRE(enum_flags_contains<Color&>("GREEN"));
+    REQUIRE(enum_flags_contains<Color>("GREEN", '|', LvalueOnlyPredicate{}));
     REQUIRE(enum_flags_contains<Color>("blue", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("blue|RED", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("GREEN|RED"));
@@ -863,16 +852,26 @@ TEST_CASE("constexpr_for") {
 
 #endif
 
-#if __has_include(<format>)
-#  include <format>
+#if __has_include(<fmt/format.h>)
+#  define FMT_HEADER_ONLY
+#  include <fmt/format.h>
+#  define MAGIC_ENUM_TEST_HAS_FMT
 #endif
+
+#include <magic_enum/magic_enum_format.hpp>
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
-#  include <magic_enum/magic_enum_format.hpp>
-
 TEST_CASE("format-base") {
   REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");
+}
+
+#endif
+
+#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+
+TEST_CASE("format-fmt") {
+  REQUIRE(fmt::format("{}", Color::RED | Color::GREEN) == "RED|GREEN");
 }
 
 #endif

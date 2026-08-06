@@ -1,24 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
-//
-// Permission is hereby  granted, free of charge, to any  person obtaining a copy
-// of this software and associated  documentation files (the "Software"), to deal
-// in the Software  without restriction, including without  limitation the rights
-// to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell
-// copies  of  the Software,  and  to  permit persons  to  whom  the Software  is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE  IS PROVIDED "AS  IS", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR
-// IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY,
-// FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE
-// AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER
-// LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 #include <new>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -27,12 +9,14 @@
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::wstring_view;
 #define MAGIC_ENUM_USING_ALIAS_STRING      using string      = std::wstring;
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_containers.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
 #include "test_helpers.hpp"
 
 #include <array>
 #include <cctype>
+#include <sstream>
 #include <string_view>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -163,4 +147,16 @@ TEST_CASE("ostream_operators") {
 TEST_CASE("istream_operators") {
   require_istream(Color::GREEN, L"GREEN");
   require_istream(Color::BLUE, L"BLUE");
+}
+
+TEST_CASE("containers_bitset_iostream") {
+  magic_enum::containers::bitset<Color> bits {Color::RED, Color::BLUE};
+  std::wstringstream output;
+  output << bits;
+  REQUIRE(output.str() == L"red|BLUE");
+
+  std::wstringstream input {L"GREEN"};
+  input >> bits;
+  const magic_enum::containers::bitset<Color> expected {Color::GREEN};
+  REQUIRE(bits == expected);
 }

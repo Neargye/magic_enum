@@ -4,39 +4,44 @@
 * [`enum_value` returns enum value at specified index.](#enum_value)
 * [`enum_values` returns enum value sequence.](#enum_values)
 * [`enum_count` returns number of enum values.](#enum_count)
-* [`enum_integer` returns integer value from enum value.](#enum_integer)
+* [`enum_integer` and `enum_underlying` return underlying enum value.](#enum_integer-and-enum_underlying)
 * [`enum_name` returns name from enum value.](#enum_name)
-* [`enum_names` returns string enum name sequence.](#enum_names)
-* [`enum_entries` returns pair (value enum, string enum name) sequence.](#enum_entries)
-* [`customize::enum_range`](#customizeenum_range)
-* [`enum_index` returns index in enum value sequence from enum value.](#enum_index)
-* [`enum_contains` checks whether enum contains enumerator with such value.](#enum_contains)
-* [`enum_reflected` returns true if the enum value is in the range of values that can be reflected.](#enum_reflected)
-* [`enum_type_name` returns type name of enum.](#enum_type_name)
-* [`enum_fuse` returns a bijective mix of enum values.](#enum_fuse)
-* [`enum_switch` allows runtime enum value transformation to constexpr context.](#enum_switch)
-* [`enum_for_each` calls a function with each enum value as a constexpr constant.](#enum_for_each)
-* [`enum_flags_*` functions for flags.](#enum_flags)
-* [`is_unscoped_enum` checks whether type is an Unscoped enumeration.](#is_unscoped_enum)
-* [`is_scoped_enum` checks whether type is a Scoped enumeration.](#is_scoped_enum)
-* [`underlying_type` improved UB-free "SFINAE-friendly" underlying_type.](#underlying_type)
-* [`ostream_operators` ostream operators for enums.](#ostream_operators)
-* [`istream_operators` istream operators for enums.](#istream_operators)
-* [`bitwise_operators` bitwise operators for enums.](#bitwise_operators)
+* [`enum_names` returns enum name sequence.](#enum_names)
+* [`enum_entries` returns enum value and name sequence.](#enum_entries)
+* [`customize::enum_range` customizes enum reflection.](#customizeenum_range)
+* [`enum_index` returns index from enum value.](#enum_index)
+* [`enum_contains` checks whether enum contains value or name.](#enum_contains)
+* [`enum_reflected` checks whether enum value is in reflection range.](#enum_reflected)
+* [`enum_type_name` returns enum type name.](#enum_type_name)
+* [`enum_fuse` combines enum values for switch/case statements.](#enum_fuse)
+* [`enum_switch` transforms runtime enum value into constexpr constant.](#enum_switch)
+* [`enum_for_each` calls function for each enum value as constexpr constant.](#enum_for_each)
+* [`enum_next_value` and `enum_prev_value` move through enum values.](#enum_next_value-and-enum_prev_value)
+* [`enum_flags_*` functions operate on flags.](#enum_flags)
+* [`is_flags_enum` checks whether enum uses flag semantics.](#is_flags_enum)
+* [`is_unscoped_enum` identifies unscoped enum types.](#is_unscoped_enum)
+* [`is_scoped_enum` identifies scoped enum types.](#is_scoped_enum)
+* [`underlying_type` provides underlying enum type.](#underlying_type)
+* [`ostream_operators` provides stream insertion operators.](#ostream_operators)
+* [`istream_operators` provides stream extraction operators.](#istream_operators)
+* [`bitwise_operators` provides bitwise operators.](#bitwise_operators)
+* [`std::format` and `fmt::format` support for enums.](#formatting)
+* [Container comparators and indexing helpers.](#container-helpers)
 * [`containers::array` array container for enums.](#containersarray)
 * [`containers::bitset` bitset container for enums.](#containersbitset)
 * [`containers::set` set container for enums.](#containersset)
 
 ## Synopsis
 
-* Before use, read the [limitations](limitations.md) of functionality.
+* Before use, read [limitations](limitations.md).
 
-* To check is magic_enum supported compiler use macro `MAGIC_ENUM_SUPPORTED` or constexpr constant `magic_enum::is_magic_enum_supported`.</br>
-  If magic_enum used on unsupported compiler, occurs the compilation error. To suppress error define macro `MAGIC_ENUM_NO_CHECK_SUPPORT`.
+* Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
-* To add custom enum or type names see the [example](../example/example_custom_name.cpp).
+* `Enum<T>` constrains C++17 function parameters to enum types.
 
-* To change the type of strings or optional, use special macros:
+* To add custom enum or type names, see [example](../example/example_custom_name.cpp).
+
+* To customize string and optional types, define these macros before including `magic_enum.hpp`:
 
   ```cpp
   #include <my_lib/string.hpp>
@@ -47,23 +52,14 @@
   #include <magic_enum/magic_enum.hpp>
   ```
 
-* Optionally define `MAGIC_ENUM_CONFIG_FILE` i.e., in your build system, with path to header file with defined
-  macros or constants, for example:
+* To keep configuration in separate header, define `MAGIC_ENUM_CONFIG_FILE`:
 
   ```cpp
   #define MAGIC_ENUM_CONFIG_FILE "my_magic_enum_cfg.hpp"
-  ```
-  my_magic_enum_cfg.hpp:
-  ```cpp
-  #include <my_lib/string.hpp>
-  #include <my_lib/string_view.hpp>
-  #define MAGIC_ENUM_USING_ALIAS_STRING using string = my_lib::String;
-  #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = my_lib::StringView;
-  #define MAGIC_ENUM_USING_ALIAS_OPTIONAL template <typename T> using optional = my_lib::Optional<T>;
-  #define MAGIC_ENUM_RANGE_MIN 0
-  #define MAGIC_ENUM_RANGE_MAX 255
+  #include <magic_enum/magic_enum.hpp>
   ```
 
+  Configuration header can contain these aliases and range macros.
 
 ## `enum_cast`
 
@@ -82,29 +78,29 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
 
 * Returns enum value from string or integer.
 
-* Returns `optional<E>`, using `has_value()` to check contains enum value and `value()` to get the enum value.
+* Returns empty `optional<E>` if no value matches.
 
-* If argument does not match an enum value, returns empty `optional`.
+* `case_insensitive` provides ASCII case-insensitive matching for `enum_cast`, `enum_contains`, `enum_flags_cast`, and `enum_flags_contains`.
 
 * Examples
 
   * String to enum value.
 
     ```cpp
-    string color_name{"GREEN"};
+    std::string color_name{"GREEN"};
     auto color = magic_enum::enum_cast<Color>(color_name);
     if (color.has_value()) {
         // color.value() -> Color::GREEN
     }
 
     // case insensitive enum_cast
-    auto color = magic_enum::enum_cast<Color>(value, magic_enum::case_insensitive);
+    auto color_case_insensitive = magic_enum::enum_cast<Color>(color_name, magic_enum::case_insensitive);
 
     // enum_cast with BinaryPredicate
-    auto color = magic_enum::enum_cast<Color>(value, [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); });
+    auto color_with_predicate = magic_enum::enum_cast<Color>(color_name, [](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
 
     // enum_cast with default
-    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
+    auto color_or_default = magic_enum::enum_cast<Color>(color_name).value_or(Color::RED);
     ```
 
   * Integer to enum value.
@@ -116,7 +112,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
         // color.value() -> Color::BLUE
     }
 
-    auto color_or_default = magic_enum::enum_cast<Color>(value).value_or(Color::RED);
+    auto color_or_default = magic_enum::enum_cast<Color>(123).value_or(Color::RED);
     ```
 
 ## `enum_value`
@@ -132,8 +128,8 @@ constexpr E enum_value() noexcept;
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
 * Returns enum value at specified index.
-  * `enum_value(value)` no bounds checking is performed: the behavior is undefined if `index >= number of enum values`.
-  * `enum_value<value>()` check if `I >= number of enum values`, occurs the compilation error `magic_enum::enum_value out of range`.
+  * `enum_value<E>(index)` performs no bounds checking: behavior is undefined if `index >= enum_count<E>()`.
+  * `enum_value<E, I>()` produces compilation error if `I >= enum_count<E>()`.
 
 * Examples
 
@@ -157,7 +153,7 @@ constexpr array<E, N> enum_values() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns `array<E, N>` with all enum values where `N = number of enum values`, sorted by enum value.
+* Returns `array<E, N>` containing all enum values sorted by value, where `N = enum_count<E>()`.
 
 * Examples
 
@@ -185,7 +181,7 @@ constexpr size_t enum_count() noexcept;
   // color_count -> 3
   ```
 
-## `enum_integer`
+## `enum_integer` and `enum_underlying`
 
 ```cpp
 template <typename E>
@@ -197,7 +193,7 @@ constexpr underlying_type_t<E> enum_underlying(E value) noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns integer value from enum value.
+* Returns underlying integer value of enum value.
 
 * Examples
 
@@ -219,11 +215,11 @@ constexpr string_view enum_name() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns name from enum value as `string_view` with null-terminated string.
-  * If enum value does not have name or [out of range](limitations.md), `enum_name(value)` returns empty string.
-  * If enum value does not have name, `enum_name<value>()` occurs the compilation error `magic_enum::enum_name enum value does not have a name`.
+* Returns enum name as null-terminated `string_view`.
 
-* `enum_name<value>()` is much lighter on the compile times and is not restricted to the enum_range [limitation](limitations.md).
+* `enum_name(value)` returns empty string for unnamed or [out-of-range](limitations.md) value. `enum_name<value>()` produces compilation error for unnamed value.
+
+* `enum_name<value>()` compiles faster than `enum_name(value)` and is not restricted by `enum_range` [limitation](limitations.md).
 
 * Examples
 
@@ -248,7 +244,7 @@ constexpr array<string_view, N> enum_names() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns `array<string_view, N>` with all names where `N = number of enum values`, sorted by enum value.
+* Returns `array<string_view, N>` containing all enum names sorted by value, where `N = enum_count<E>()`.
 
 * Examples
 
@@ -267,7 +263,7 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns `array<pair<E, string_view>, N>` with all pairs (value, name) where `N = number of enum values`, sorted by enum value.
+* Returns `array<pair<E, string_view>, N>` containing all enum value and name pairs sorted by value, where `N = enum_count<E>()`.
 
 * Examples
 
@@ -281,29 +277,27 @@ constexpr array<pair<E, string_view>, N> enum_entries() noexcept;
 ## `customize::enum_range`
 
 ```cpp
-namespace customize {
+namespace magic_enum::customize {
 template <typename E, typename = void>
 struct enum_range {
-  constexpr static std::size_t prefix_length = 0;
-  constexpr static bool is_flags = false;
-  constexpr static int min = MAGIC_ENUM_RANGE_MIN;
-  constexpr static int max = MAGIC_ENUM_RANGE_MAX;
+  static constexpr int min = MAGIC_ENUM_RANGE_MIN;
+  static constexpr int max = MAGIC_ENUM_RANGE_MAX;
 };
-}
+} // namespace magic_enum::customize
 
 ```
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* A customization point for controlling `magic_enum` defaults
+* Customization point for controlling `magic_enum` defaults.
 
-* It has a defaulted second `void` typename template parameter for SFINAE.
+* `is_flags` enables flag semantics. If omitted, defaults to `false`.
 
-* `is_flags` tells `magic_enum` whether this enum should be considered to be a bitflag enum. It is not required to be defined if not defined it will be assumed to be `false`
+* `prefix_length` sets number of characters removed from start of each reflected enumerator name. If omitted, defaults to `0`.
 
-* `prefix_length` tells `magic_enum` how many characters to remove from the start of the names for all string functions. It is not required to be defined if not defined it will be assumed to be `0`
+* `min` and `max` are optional for non-flag enums and default to `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX`. They are ignored for enum flags.
 
-* `min` and `max` are optional for normal enums and default to `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX`. They are ignored for enum flags.
+* `as_flags<>` and `as_common<>` force subtype for individual API calls without changing `enum_range`.
 
 * Examples
 
@@ -316,12 +310,11 @@ struct enum_range {
       CStyleAnimals_Lion,
     };
 
-    template<>
+    template <>
     struct magic_enum::customize::enum_range<CStyleAnimals> {
-        // sizeof counts null terminator subtract 1 to get length
-        constexpr static auto prefix_length = sizeof("CStyleAnimals_")-1;
-        constexpr static int min = CStyleAnimals_Giraffe; // optional, narrows the search range
-        constexpr static int max = CStyleAnimals_Lion;    // optional, narrows the search range
+      static constexpr auto prefix_length = sizeof("CStyleAnimals_") - 1;
+      static constexpr int min = CStyleAnimals_Giraffe;
+      static constexpr int max = CStyleAnimals_Lion;
     };
 
     CStyleAnimals animal = CStyleAnimals_Giraffe;
@@ -331,7 +324,23 @@ struct enum_range {
     // animal_from_string.value() == CStyleAnimals_Giraffe
     ```
 
+  * ADL customization
 
+    For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in associated namespace or as friend of associated class. Return `magic_enum::customize::adl_info()`:
+
+    ```cpp
+    namespace Deeply::Nested::Namespace {
+      enum class my_enum_type { my_enum_value1 = 10, my_enum_value2 = 11 };
+
+      auto magic_enum_define_range_adl(my_enum_type) {
+        return magic_enum::customize::adl_info()
+            .minmax<10, 11>()
+            .prefix<sizeof("my_enum_") - 1>();
+      }
+    }
+    ```
+
+    For flag enums, add `.flag<true>()`; `.minmax<...>()` is ignored.
 
 ## `enum_index`
 
@@ -345,9 +354,7 @@ constexpr size_t enum_index() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns index in enum values from enum value.
-  * `enum_index(value)` returns `optional<size_t>` with index.
-  * `enum_index<value>()` returns index. If enum value does not have an index, occurs the compilation error `magic_enum::enum_index enum value does not have a index`.
+* Returns enum index in `enum_values<E>()`. Runtime overload returns empty `optional` for invalid value; compile-time overload produces compilation error.
 
 * Examples
 
@@ -380,9 +387,7 @@ constexpr bool enum_contains(string_view value, BinaryPredicate p);
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Checks whether enum contains enumerator with such value.
-
-* Returns true if enum contains value, otherwise false.
+* Returns `true` if enum contains specified value or name.
 
 * Examples
 
@@ -406,9 +411,9 @@ constexpr bool enum_reflected(underlying_type_t<E> value) noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns true if the enum value is in the range of values that can be reflected.
+* Returns `true` if enum value is in reflection range.
 
-* For enum flags, returns true only for a non-zero single-bit value whose bit position can be reflected.
+* For enum flags, returns `true` only when value is non-zero, single-bit, and its bit position can be reflected.
 
 ## `enum_type_name`
 
@@ -419,7 +424,7 @@ constexpr string_view enum_type_name() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns type name of enum as `string_view` null-terminated string.
+* Returns enum type name as null-terminated `string_view`.
 
 * Examples
 
@@ -438,13 +443,9 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_fuse.hpp>`
 
-* Returns a typesafe bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
+* Combines several enum values for multidimensional switch/case statements.
 
-* Return type is `optional<enum_fuse_t>` where `enum_fuse_t` is an incomplete enum, it is unique for any given combination of `Es...`.
-
-* Switch/case statement over an incomplete enum is a Visual Studio warning C4064
-  * Suppress (/wd4064) or ignore it.
-  * Alternatively, define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to disable type-safety (`enum_fuse_t` equals `uintmax_t`).
+* On MSVC, suppress warning C4064 with `/wd4064` or define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to use `uintmax_t` instead.
 
 * Examples
 
@@ -460,21 +461,28 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 ## `enum_switch`
 
 ```cpp
-template <typename Result = void, typename E, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, E value);
+template <typename E, typename Lambda>
+constexpr decltype(auto) enum_switch(Lambda&& lambda, E value);
 
 template <typename Result, typename E, typename Lambda>
-constexpr Result enum_switch(Lambda&& lambda, E value, Result&& result);
+constexpr decltype(auto) enum_switch(Lambda&& lambda, E value);
+
+template <typename Result, typename E, typename Lambda>
+constexpr decltype(auto) enum_switch(Lambda&& lambda, E value, Result&& result);
 ```
 
 * Defined in header `<magic_enum/magic_enum_switch.hpp>`
+
+* Calls callable with `enum_constant<V>` for matching reflected value.
+
+* If no value matches, returns default-constructed result or supplied `result`.
 
 * Examples
 
   ```cpp
   Color color = Color::RED;
 
-  magic_enum::enum_switch([] (auto val) {
+  magic_enum::enum_switch([](auto val) {
     constexpr Color c_color = val;
     // ...
   }, color);
@@ -489,14 +497,45 @@ constexpr auto enum_for_each(Lambda&& lambda);
 
 * Defined in header `<magic_enum/magic_enum_utility.hpp>`
 
+* Calls callable with `enum_constant<V>` for each reflected value.
+
+* Returns `void`, array for equal result types, or tuple for different result types.
+
 * Examples
 
   ```cpp
-  underlying_type_t<Color> sum{};
-  enum_for_each<Color>([&sum](auto val) {
-    constexpr underlying_type_t<Color> v = enum_integer(val());
+  magic_enum::underlying_type_t<Color> sum{};
+  magic_enum::enum_for_each<Color>([&sum](auto val) {
+    constexpr auto v = magic_enum::enum_integer(val());
     sum += v;
   });
+  ```
+
+## `enum_next_value` and `enum_prev_value`
+
+```cpp
+template <typename E>
+constexpr optional<E> enum_next_value(E value, std::ptrdiff_t n = 1) noexcept;
+
+template <typename E>
+constexpr E enum_next_value_circular(E value, std::ptrdiff_t n = 1) noexcept;
+
+template <typename E>
+constexpr optional<E> enum_prev_value(E value, std::ptrdiff_t n = 1) noexcept;
+
+template <typename E>
+constexpr E enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept;
+```
+
+* Defined in header `<magic_enum/magic_enum_utility.hpp>`
+
+* Moves by `n` positions in `enum_values<E>()` order; negative `n` reverses direction.
+
+* Non-circular functions return empty `optional` for invalid input or out-of-range result. Circular functions wrap and require reflected input value.
+
+  ```cpp
+  magic_enum::enum_next_value(Color::RED);           // -> optional containing Color::BLUE
+  magic_enum::enum_prev_value_circular(Color::RED);  // -> Color::GREEN
   ```
 
 ## `enum_flags`
@@ -508,8 +547,11 @@ string enum_flags_name(E value, char_type sep = '|');
 template <typename E>
 constexpr optional<E> enum_flags_cast(underlying_type_t<E> value) noexcept;
 
+template <typename E>
+constexpr optional<E> enum_flags_cast(string_view value, char_type sep = '|');
+
 template <typename E, typename BinaryPredicate>
-constexpr optional<E> enum_flags_cast(string_view value, char_type sep = '|', BinaryPredicate p);
+constexpr optional<E> enum_flags_cast(string_view value, char_type sep, BinaryPredicate p);
 
 template <typename E>
 constexpr bool enum_flags_contains(E value) noexcept;
@@ -517,8 +559,11 @@ constexpr bool enum_flags_contains(E value) noexcept;
 template <typename E>
 constexpr bool enum_flags_contains(underlying_type_t<E> value) noexcept;
 
+template <typename E>
+constexpr bool enum_flags_contains(string_view value, char_type sep = '|');
+
 template <typename E, typename BinaryPredicate>
-constexpr bool enum_flags_contains(string_view value, char_type sep = '|', BinaryPredicate p);
+constexpr bool enum_flags_contains(string_view value, char_type sep, BinaryPredicate p);
 
 template <typename E>
 constexpr bool enum_flags_test(E flags, E flag) noexcept;
@@ -529,17 +574,17 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_flags.hpp>`
 
-* `enum_flags_name` - Returns name from enum-flags value with custom separator (default `'|'`).
+* `enum_flags_name` - Returns name of flag enum value with custom separator (default `'|'`).
 
-* `enum_flags_cast` - Returns enum-flags value from integer or string.
+* `enum_flags_cast` - Returns flag enum value from integer or string.
 
-* `enum_flags_contains` - Checks whether enum-flags contains value with such value or name.
+* `enum_flags_contains` - Checks whether flag enum contains specified value or name.
 
-* `enum_flags_test` - Checks whether `flags set` contains `flag`. Returns `false` if `flag` equals `0`.
+* `enum_flags_test` - Checks whether `flags` contains `flag`. Returns `false` if `flag` equals `0`.
 
-* `enum_flags_test_any` - Checks whether `lhs flags set` and `rhs flags set` have common flags. Returns `false` if either set equals `0`.
+* `enum_flags_test_any` - Checks whether `lhs` and `rhs` share any flags. Returns `false` if either value equals `0`.
 
-* For enum-flags add `is_flags` to specialization `enum_range` for necessary enum type. Specialization of `enum_range` must be injected in `namespace magic_enum::customize`.
+* Set `enum_range<E>::is_flags` to `true` to use flag semantics for `E` by default. `enum_flags_*` APIs always use flag semantics.
   ```cpp
   enum class Directions { Up = 1 << 1, Down = 1 << 2, Right = 1 << 3, Left = 1 << 4 };
   template <>
@@ -548,9 +593,9 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   };
   ```
 
-  * `MAGIC_ENUM_RANGE_MAX` / `MAGIC_ENUM_RANGE_MIN` does not affect the maximum number of enum flags.
+  * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection. Flag reflection scans bit positions available in `E`'s underlying type.
 
-  * If an enum is declared as a flag enum, its zero value will not be reflected.
+  * Zero is not reflected for flag enums.
 
 * Examples
 
@@ -566,7 +611,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
-  using namespace magic_enum::bitwise_operators;
+  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
   magic_enum::enum_flags_name(Directions::LeftAndDown); // -> "Left|Down"
@@ -585,24 +630,19 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   magic_enum::enum_flags_test_any(Directions::Left | Directions::Down | Directions::Right, Directions::Down | Directions::Right); // -> true
   ```
 
-* Or, for enum types that are deeply nested in classes and/or namespaces, declare a function called `magic_enum_define_range_adl(my_enum_type)` in the same namespace as `my_enum_type`, which magic_enum will find by ADL (because the function is in the same class/namespace as `my_enum_type`), and whose return type is a `magic_enum::customize::adl_info`.
+## `is_flags_enum`
 
 ```cpp
-namespace Deeply::Nested::Namespace {
-  enum class my_enum_type { my_enum_value1,my_enum_value2 };
+template <typename T>
+struct is_flags_enum;
 
-  // - magic_enum will find this function by ADL
-  // - uses builder pattern
-  // - use auto to not have to name the type yourself
-  auto magic_enum_define_range_adl(my_enum_type)
-  {
-    return magic_enum::customize::adl_info()
-    .minmax<10,10>() // the min max search range
-    .flag<true>() // whether it is a flag enum
-    .prefix<sizeof("my_enum_")-1>(); // how many characters to trim from the start of each enum entry.
-  }
-}
+template <typename T>
+inline constexpr bool is_flags_v = is_flags_enum<T>::value;
 ```
+
+* Defined in header `<magic_enum/magic_enum.hpp>`
+
+* Checks whether `T` is configured to use flag semantics by default.
 
 ## `is_unscoped_enum`
 
@@ -616,10 +656,7 @@ inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Checks whether type is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration).
-
-* Provides the member constant value which is equal to true, if T is an [Unscoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) type.</br>
-  Otherwise, value is equal to false.
+* `value` is `true` for [unscoped enum](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) types and `false` otherwise.
 
 * Examples
 
@@ -643,10 +680,7 @@ inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Checks whether type is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations).
-
-* Provides the member constant value which is equal to true, if T is a [Scoped enumeration](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) type.</br>
-  Otherwise, value is equal to false.
+* `value` is `true` for [scoped enum](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) types and `false` otherwise.
 
 * Examples
 
@@ -670,11 +704,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Improved UB-free "SFINAE-friendly" [underlying_type](https://en.cppreference.com/w/cpp/types/underlying_type).
-
-* If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.</br>
-  Otherwise, if T is not an enumeration type, there is no member type.</br>
-  Otherwise (T is an incomplete enumeration type), the program is ill-formed.
+* Provides underlying type for complete enums and no `type` for non-enums. Incomplete enums are ill-formed.
 
 * Examples
 
@@ -697,7 +727,7 @@ basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optiona
 
 * Defined in header `<magic_enum/magic_enum_iostream.hpp>`
 
-* Out-of-the-box ostream operators for all enums.
+* Provides stream insertion operators for all enums.
 
 * Examples
 
@@ -716,7 +746,7 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Defined in header `<magic_enum/magic_enum_iostream.hpp>`
 
-* Out-of-the-box istream operators for all enums.
+* Provides stream extraction operators for all enums.
 
 * Examples
 
@@ -753,16 +783,51 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Out-of-the-box bitwise operators for all enums.
+* Provides bitwise operators for all enums.
 
 * Examples
 
   ```cpp
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // out-of-the-box bitwise operators for enums.
+  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
-  Flags flags = Flags::A | Flags::B & ~Flags::C;
+  Flags flags = Flags::A | (Flags::B & ~Flags::C);
   ```
+
+## Formatting
+
+* Defined in header `<magic_enum/magic_enum_format.hpp>`
+
+* Provides `std::formatter` when `std::format` is supported, and `fmt::formatter` when `{fmt}` is included before `magic_enum_format.hpp`.
+
+* Formats reflected enums by name, flag combinations with `|`, and unreflected values by their underlying integer values.
+
+  ```cpp
+  #include <format>
+  #include <magic_enum/magic_enum_format.hpp>
+
+  std::format("{}", Color::RED); // -> "RED"
+  std::format("{}", Color{42});  // -> "42"
+  ```
+
+  ```cpp
+  #include <fmt/format.h>
+  #include <magic_enum/magic_enum_format.hpp>
+
+  fmt::format("{}", Color::BLUE); // -> "BLUE"
+  ```
+
+## Container helpers
+
+* Defined in header `<magic_enum/magic_enum_containers.hpp>`
+
+* `name_less<>`, `name_greater<>`, `name_less_case_insensitive`, and `name_greater_case_insensitive` order enum values by name and support lookup by name.
+
+* `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` provides comparator-based positions for `containers::array`.
+
+* Custom `Index` must provide non-throwing `constexpr` `at(E)` that maps each reflected value to a unique index in `[0, enum_count<E>())`.
+
+* For `containers::bitset`, custom `Index` must also provide non-throwing `constexpr` `it(std::size_t)` that maps each index back to its value.
 
 ## `containers::array`
 
@@ -774,9 +839,9 @@ struct array {
 
   constexpr const_reference at(E pos) const;
 
-  constexpr reference operator[](E pos) noexcept;
+  constexpr reference operator[](E pos);
 
-  constexpr const_reference operator[](E pos) const noexcept;
+  constexpr const_reference operator[](E pos) const;
 
   constexpr reference front() noexcept;
 
@@ -802,17 +867,17 @@ struct array {
 
   constexpr const_iterator cend() const noexcept;
 
-  constexpr iterator rbegin() noexcept;
+  constexpr reverse_iterator rbegin() noexcept;
 
-  constexpr const_iterator rbegin() const noexcept;
+  constexpr const_reverse_iterator rbegin() const noexcept;
 
-  constexpr const_iterator crbegin() const noexcept;
+  constexpr const_reverse_iterator crbegin() const noexcept;
 
-  constexpr iterator rend() noexcept;
+  constexpr reverse_iterator rend() noexcept;
 
-  constexpr const_iterator rend() const noexcept;
+  constexpr const_reverse_iterator rend() const noexcept;
 
-  constexpr const_iterator crend() const noexcept;
+  constexpr const_reverse_iterator crend() const noexcept;
 
   constexpr bool empty() const noexcept;
 
@@ -822,7 +887,7 @@ struct array {
 
   constexpr void fill(const V& value);
 
-  constexpr void swap(array& other) noexcept(std::is_nothrow_swappable_v<V>);
+  constexpr void swap(array& other);
 
   friend constexpr bool operator==(const array& a1, const array& a2);
 
@@ -835,17 +900,21 @@ struct array {
   friend constexpr bool operator>(const array& a1, const array& a2);
 
   friend constexpr bool operator>=(const array& a1, const array& a2);
-}
+};
 ```
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* STL like array for all enums.
+* Fixed-size array indexed by reflected enum values.
+
+* `make_array<E>(values...)` deduces common element type and assigns arguments in `enum_values<E>()` order. Number of arguments must equal `enum_count<E>()`.
+
+* `to_array<E>(array)` converts built-in array whose size equals `enum_count<E>()`.
 
 * Examples
 
   ```cpp
-  constexpr magic_enum::containers::array<Color, RGB> color_rgb_array {{{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}}}};
+  constexpr auto color_rgb_array = magic_enum::containers::make_array<Color>(RGB{255, 0, 0}, RGB{0, 255, 0}, RGB{0, 0, 255});
   ```
 
   ```cpp
@@ -853,7 +922,7 @@ struct array {
   color_rgb_array[Color::RED] = {255, 0, 0};
   color_rgb_array[Color::GREEN] = {0, 255, 0};
   color_rgb_array[Color::BLUE] = {0, 0, 255};
-  magic_enum::containers::get<Color::BLUE>(color_rgb_array) // -> RGB{0, 0, 255}
+  magic_enum::containers::get<Color::BLUE>(color_rgb_array); // -> RGB{0, 0, 255}
   ```
 
 ## `containers::bitset`
@@ -866,35 +935,40 @@ class bitset {
 
   constexpr explicit bitset(detail::raw_access_t, unsigned long long val);
 
-  constexpr explicit bitset(detail::raw_access_t,
-                            string_view sv,
-                            string_view::size_type pos = 0,
-                            string_view::size_type n = string_view::npos,
-                            char_type zero = '0',
-                            char_type one = '1');
+  constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = '0', char_type one = '1');
 
-  constexpr explicit bitset(detail::raw_access_t,
-                            const char_type* str,
-                            std::size_t n = ~std::size_t{},
-                            char_type zero = '0',
-                            char_type one = '1');
+  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{}, char_type zero = '0', char_type one = '1');
 
   constexpr bitset(std::initializer_list<E> starters);
 
   constexpr explicit bitset(E starter);
 
   template <typename Cmp = std::equal_to<>>
-  constexpr explicit bitset(string_view sv,
-                            Cmp&& cmp = {},
-                            char_type sep = '|');
+  constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = '|');
 
   friend constexpr bool operator==(const bitset& lhs, const bitset& rhs) noexcept;
 
   friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept;
 
-  constexpr bool operator[](E pos) const noexcept;
+  constexpr bool operator[](E pos) const;
 
-  constexpr reference operator[](E pos) noexcept;
+  constexpr reference operator[](E pos);
+
+  constexpr iterator begin() noexcept;
+
+  constexpr const_iterator begin() const noexcept;
+
+  constexpr const_iterator cbegin() const noexcept;
+
+  constexpr iterator end() noexcept;
+
+  constexpr const_iterator end() const noexcept;
+
+  constexpr const_iterator cend() const noexcept;
+
+  constexpr iterator find(E pos) noexcept;
+
+  constexpr const_iterator find(E pos) const noexcept;
 
   constexpr bool test(E pos) const;
 
@@ -910,11 +984,11 @@ class bitset {
 
   constexpr std::size_t max_size() const noexcept;
 
-  constexpr bitset& operator&= (const bitset& other) noexcept;
+  constexpr bitset& operator&=(const bitset& other) noexcept;
 
-  constexpr bitset& operator|= (const bitset& other) noexcept;
+  constexpr bitset& operator|=(const bitset& other) noexcept;
 
-  constexpr bitset& operator^= (const bitset& other) noexcept;
+  constexpr bitset& operator^=(const bitset& other) noexcept;
 
   constexpr bitset operator~() const noexcept;
 
@@ -938,28 +1012,34 @@ class bitset {
 
   string to_string(char_type sep = '|') const;
 
-  string to_string(detail::raw_access_t,
-                   char_type zero = '0',
-                   char_type one = '1') const;
+  string to_string(detail::raw_access_t, char_type zero = '0', char_type one = '1') const;
 
   constexpr unsigned long long to_ullong(detail::raw_access_t raw) const;
 
-  constexpr unsigned long long to_ulong(detail::raw_access_t raw) const;
+  constexpr unsigned long to_ulong(detail::raw_access_t raw) const;
 
-  friend std::ostream& operator<<(std::ostream& o, const bitset& bs);
+  template <typename Traits>
+  friend std::basic_ostream<char_type, Traits>& operator<<(std::basic_ostream<char_type, Traits>& o, const bitset& bs);
 
-  friend std::istream& operator>>(std::istream& i, bitset& bs);
-}
+  template <typename Traits>
+  friend std::basic_istream<char_type, Traits>& operator>>(std::basic_istream<char_type, Traits>& i, bitset& bs);
+};
 ```
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* STL like bitset for all enums.
+* Fixed-size bitset indexed by reflected enum values.
+
+* With `raw_access`, bit `I` corresponds to `enum_values<E>()[I]` for default indexing and to `*Index::it(I)` for custom indexing; this mapping is independent of underlying enum values.
+
+* Construction from single `E` value and conversion to `E` are available only for flag enums.
+
+* Provides `std::hash` specialization for use in unordered containers.
 
 * Examples
 
   ```cpp
-  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED|Color::GREEN};
+  constexpr magic_enum::containers::bitset<Color> color_bitset_red_green {Color::RED, Color::GREEN};
   bool all = color_bitset_red_green.all();
   // all -> false
   // Color::BLUE is missing
@@ -989,7 +1069,7 @@ class bitset {
 ## `containers::set`
 
 ```cpp
-template <typename E, typename CExprLess = std::less<E>>
+template <typename E, typename Cmp = std::less<E>>
 class set {
 
   constexpr set() noexcept = default;
@@ -1035,24 +1115,24 @@ class set {
 
   constexpr void clear() noexcept;
 
-  constexpr std::pair<iterator,bool> insert(const value_type& value) noexcept;
+  constexpr std::pair<iterator, bool> insert(const value_type& value) noexcept;
 
-  constexpr std::pair<iterator,bool> insert(value_type&& value) noexcept;
+  constexpr std::pair<iterator, bool> insert(value_type&& value) noexcept;
 
   constexpr iterator insert(const_iterator, const value_type& value) noexcept;
 
   constexpr iterator insert(const_iterator hint, value_type&& value) noexcept;
 
   template <typename InputIt>
-  constexpr void insert(InputIt first, InputIt last) noexcept;
+  constexpr void insert(InputIt first, InputIt last);
 
   constexpr void insert(std::initializer_list<value_type> ilist) noexcept;
 
   template <typename... Args>
-  constexpr std::pair<iterator, bool> emplace(Args&&... args) noexcept;
+  constexpr std::pair<iterator, bool> emplace(Args&&... args);
 
   template <typename... Args>
-  constexpr iterator emplace_hint(const_iterator, Args&&... args) noexcept;
+  constexpr iterator emplace_hint(const_iterator, Args&&... args);
 
   constexpr iterator erase(const_iterator pos) noexcept;
 
@@ -1061,7 +1141,7 @@ class set {
   constexpr size_type erase(const key_type& key) noexcept;
 
   template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x) noexcept;
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> erase(K&& x);
 
   void swap(set& other) noexcept;
 
@@ -1070,7 +1150,7 @@ class set {
   template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const;
 
-  constexpr const_iterator find(const key_type & key) const noexcept;
+  constexpr const_iterator find(const key_type& key) const noexcept;
 
   template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const;
@@ -1078,22 +1158,22 @@ class set {
   constexpr bool contains(const key_type& key) const noexcept;
 
   template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const noexcept;
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, bool> contains(const K& x) const;
 
-  constexpr std::pair<const_iterator,const_iterator> equal_range(const key_type& key) const noexcept;
-
-  template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator,const_iterator>> equal_range(const K& x) const noexcept;
-
-  constexpr const_iterator lower_bound(const key_type& key) const noexcept;
+  constexpr std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const;
 
   template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const noexcept;
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, std::pair<const_iterator, const_iterator>> equal_range(const K& x) const;
 
-  constexpr const_iterator upper_bound(const key_type& key) const noexcept;
+  constexpr const_iterator lower_bound(const key_type& key) const;
 
   template <typename K, typename KC = key_compare>
-  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const noexcept;
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const;
+
+  constexpr const_iterator upper_bound(const key_type& key) const;
+
+  template <typename K, typename KC = key_compare>
+  constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> upper_bound(const K& x) const;
 
   constexpr key_compare key_comp() const;
 
@@ -1103,22 +1183,26 @@ class set {
 
   constexpr friend bool operator!=(const set& lhs, const set& rhs) noexcept;
 
-  constexpr friend bool operator<(const set& lhs, const set& rhs) noexcept;
+  constexpr friend bool operator<(const set& lhs, const set& rhs);
 
-  constexpr friend bool operator<=(const set& lhs, const set& rhs) noexcept;
+  constexpr friend bool operator<=(const set& lhs, const set& rhs);
 
-  constexpr friend bool operator>(const set& lhs, const set& rhs) noexcept;
+  constexpr friend bool operator>(const set& lhs, const set& rhs);
 
-  constexpr friend bool operator>=(const set& lhs, const set& rhs) noexcept;
+  constexpr friend bool operator>=(const set& lhs, const set& rhs);
 
   template <typename Pred>
   size_type erase_if(Pred pred);
-}
+};
 ```
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* STL like set for all enums.
+* Fixed-capacity set of reflected enum values. Comparator is default-constructed and must work in constant expressions.
+
+* Distinct enum values remain distinct even if comparator treats them as equivalent. Lookup with another key type can match multiple values.
+
+* Construction from single `E` value is available only for flag enums.
 
 * Examples
 

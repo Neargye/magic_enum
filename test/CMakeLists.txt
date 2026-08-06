@@ -86,7 +86,14 @@ function(magic_enum_make_test src target standard_flag)
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
   endif()
   set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
-  if(MSVC)
+  if(standard_flag MATCHES "^c\\+\\+(17|20|23)$")
+    set_target_properties(
+      ${target}
+      PROPERTIES
+        CXX_STANDARD "${CMAKE_MATCH_1}"
+        CXX_STANDARD_REQUIRED ON
+    )
+  elseif(MSVC)
     target_compile_options(${target} PRIVATE /std:${standard_flag})
   else()
     target_compile_options(${target} PRIVATE -std=${standard_flag})
@@ -152,6 +159,7 @@ function(magic_enum_add_module_tests suffix)
 endfunction()
 
 magic_enum_add_tests(cpp17 c++17)
+magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
 
 foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   set(MAGIC_ENUM_HAS_STANDARD_FLAG MAGIC_ENUM_HAS_CPP${MAGIC_ENUM_TEST_STANDARD}_FLAG)

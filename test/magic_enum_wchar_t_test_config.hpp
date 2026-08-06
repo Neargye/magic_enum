@@ -1,3 +1,7 @@
+// Licensed under the MIT License <http://opensource.org/licenses/MIT>.
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
+
 #pragma once
 
 #include <string>

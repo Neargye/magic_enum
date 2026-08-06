@@ -71,7 +71,7 @@ jobs:
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt update
         packages=("${{ matrix.compiler.cxx }}")
-        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
+        if [[ "${CC}" == "gcc-13" || "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
           packages+=(libfmt-dev)
         fi
         sudo apt install -y "${packages[@]}"

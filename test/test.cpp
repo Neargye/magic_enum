@@ -1,24 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
-//
-// Permission is hereby  granted, free of charge, to any  person obtaining a copy
-// of this software and associated  documentation files (the "Software"), to deal
-// in the Software  without restriction, including without  limitation the rights
-// to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell
-// copies  of  the Software,  and  to  permit persons  to  whom  the Software  is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE  IS PROVIDED "AS  IS", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR
-// IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY,
-// FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE
-// AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER
-// LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 #include <new>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -80,6 +62,11 @@ enum class crc_hack {
 enum class crc_hack_2 {
   b5a7b602ab754d7ab30fb42c4fb28d82,
   d19f2e9e82d14b96be4fa12b8a27ee9f
+};
+
+enum class hash_case_collision {
+  EII1mjfIgJ,
+  E7DvAyiJL6
 };
 
 enum class MaxUsedAsInvalid : std::uint8_t {
@@ -154,13 +141,25 @@ struct overloaded : Ts... {
 template <typename... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+struct LvalueOnlyPredicate {
+  constexpr bool operator()(char lhs, char rhs) & noexcept { return lhs == rhs; }
+};
+
+struct RefQualifiedPredicate {
+  constexpr bool operator()(char lhs, char rhs) & noexcept(false) { return lhs == rhs; }
+  constexpr bool operator()(char lhs, char rhs) && noexcept { return lhs == rhs; }
+};
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>("GREEN").value() == Color::GREEN);
     REQUIRE(enum_cast<Color>("blue", [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
+    REQUIRE(enum_cast<Color>("GREEN", LvalueOnlyPredicate{}).value() == Color::GREEN);
+    REQUIRE(enum_contains<Color>("GREEN", LvalueOnlyPredicate{}));
     REQUIRE_FALSE(enum_cast<Color>("None").has_value());
+    static_assert(!noexcept(enum_cast<Color>("GREEN", RefQualifiedPredicate{})));
 
     constexpr auto dim = enum_cast<Dimension>("Nether");
     REQUIRE(dim.value() == Dimension::Nether);
@@ -208,6 +207,8 @@ TEST_CASE("enum_cast") {
     constexpr auto crc = enum_cast<crc_hack_2>("b5a7b602ab754d7ab30fb42c4fb28d82");
     REQUIRE(crc.value() == crc_hack_2::b5a7b602ab754d7ab30fb42c4fb28d82);
     REQUIRE(enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
+    REQUIRE(enum_cast<hash_case_collision>("EII1mjfIgJ") == hash_case_collision::EII1mjfIgJ);
+    REQUIRE(enum_cast<hash_case_collision>("E7DvAyiJL6") == hash_case_collision::E7DvAyiJL6);
 
     REQUIRE(enum_cast<BoolTest>("Nay").has_value());
   }
@@ -599,6 +600,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<as_flags<false>>(cm[1]) == "GREEN");
     REQUIRE(enum_name<as_common<true>>(cm[1]) == "GREEN");
     REQUIRE(enum_name<as_flags<false>>(static_cast<Color>(0)).empty());
+    static_assert(noexcept(enum_name<as_flags<false>>(Color::GREEN)));
 
     constexpr Numbers no = Numbers::one;
     constexpr auto no_name = enum_name(no);
@@ -763,6 +765,14 @@ TEST_CASE("enum_entries") {
 
   constexpr auto& s4 = enum_entries<number>();
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
+
+#if defined(__cpp_generic_lambdas) && __cpp_generic_lambdas >= 201707L
+  constexpr auto check_entries = []<std::size_t... J>(std::index_sequence<J...>) {
+    constexpr auto entries = magic_enum::enum_entries<Color>();
+    return ((entries[J].first == magic_enum::enum_value<Color>(J)) && ...);
+  };
+  static_assert(check_entries(std::make_index_sequence<magic_enum::enum_count<Color>()>{}));
+#endif
 }
 
 TEST_CASE("string_view lifetime and null termination") {
@@ -1211,13 +1221,20 @@ TEST_CASE("cmp_less") {
     REQUIRE(cmp_less(true, 5));
     REQUIRE(cmp_less(false, 1));
     REQUIRE_FALSE(cmp_less(false, -1));
+    REQUIRE(cmp_less(false, std::uint8_t{1}));
+    REQUIRE_FALSE(cmp_less(true, std::uint8_t{1}));
   }
 
   SUBCASE("left, bool") {
     REQUIRE_FALSE(cmp_less(5, true));
     REQUIRE_FALSE(cmp_less(1, false));
     REQUIRE(cmp_less(-1, false));
+    REQUIRE_FALSE(cmp_less(std::uint8_t{0}, false));
+    REQUIRE_FALSE(cmp_less(std::uint8_t{1}, true));
   }
+
+  REQUIRE_FALSE(cmp_less(false, false));
+  REQUIRE(cmp_less(false, true));
 }
 
 template <Color C>
@@ -1229,6 +1246,20 @@ template <>
 constexpr std::string_view DoWork<Color::GREEN>() {
   return "override";
 }
+
+struct LvalueOnlyForEach {
+  template <typename T>
+  constexpr int operator()(T value) & noexcept {
+    return enum_integer(value());
+  }
+};
+
+struct RvalueOnlyForEach {
+  template <typename T>
+  constexpr int operator()(T value) && noexcept {
+    return enum_integer(value());
+  }
+};
 
 TEST_CASE("enum_for_each") {
   SUBCASE("no return type") {
@@ -1245,6 +1276,12 @@ TEST_CASE("enum_for_each") {
       return DoWork<val>();
     });
     REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
+
+    constexpr auto colorSequence = std::make_index_sequence<enum_count<Color>()>{};
+    static_assert(detail::all_invocable<Color, detail::subtype_v<Color>, LvalueOnlyForEach>(colorSequence));
+    static_assert(!detail::all_invocable<Color, detail::subtype_v<Color>, RvalueOnlyForEach>(colorSequence));
+    constexpr auto colorValues = enum_for_each<Color>(LvalueOnlyForEach{});
+    REQUIRE(colorValues == std::array<int, 3>{-12, 7, 15});
   }
 
   SUBCASE("different return type") {
@@ -1338,17 +1375,28 @@ TEST_CASE("multdimensional-switch-case") {
 
 #endif
 
-#if __has_include(<format>)
-#  include <format>
+#if __has_include(<fmt/format.h>)
+#  define FMT_HEADER_ONLY
+#  include <fmt/format.h>
+#  define MAGIC_ENUM_TEST_HAS_FMT
 #endif
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#include <magic_enum/magic_enum_format.hpp>
 
-#  include <magic_enum/magic_enum_format.hpp>
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
   REQUIRE(std::format("{}", Color{0}) == "0");
+}
+
+#endif
+
+#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+
+TEST_CASE("format-fmt") {
+  REQUIRE(fmt::format("{}", Color::GREEN) == "GREEN");
+  REQUIRE(fmt::format("{}", Color{0}) == "0");
 }
 
 #endif

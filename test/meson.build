@@ -2,7 +2,11 @@ doctest_dep = declare_dependency(include_directories: '3rdparty')
 
 test_files = {
     'basic test': files('test.cpp'),
+    'aliases test': files('test_aliases.cpp'),
+    'containers test': files('test_containers.cpp'),
     'flags test': files('test_flags.cpp'),
+    'single range test': files('test_range.cpp'),
+    'wchar_t test': files('test_wchar_t.cpp'),
 }
 
 foreach test_name, test_src : test_files

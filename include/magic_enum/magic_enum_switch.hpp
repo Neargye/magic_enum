@@ -56,14 +56,14 @@ struct invoke_result<F, V, true> : std::invoke_result<F, V> {};
 template <typename F, typename V>
 using invoke_result_t = typename invoke_result<F, V>::type;
 
-template <typename E, enum_subtype S, typename F, std::size_t... I>
-constexpr auto common_invocable(std::index_sequence<I...>) noexcept {
+template <typename E, enum_subtype S, typename F, std::size_t... J>
+constexpr auto common_invocable(std::index_sequence<J...>) noexcept {
   static_assert(std::is_enum_v<E>, "magic_enum::detail::invocable_index requires enum type.");
 
   if constexpr (count_v<E, S> == 0) {
     return identity<nonesuch>{};
   } else {
-    return std::common_type<invoke_result_t<F, enum_constant<values_v<E, S>[I]>>...>{};
+    return std::common_type<invoke_result_t<F, enum_constant<values_v<E, S>[J]>>...>{};
   }
 }
 
@@ -101,10 +101,10 @@ inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow
 template <>
 inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
-template <std::size_t I, std::size_t End, typename R, typename E, enum_subtype S, typename F, typename Def>
+template <std::size_t J, std::size_t End, typename R, typename E, enum_subtype S, typename F, typename Def>
 constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
-  if constexpr(I < End) {
-    constexpr auto v = enum_constant<enum_value<E, I, S>()>{};
+  if constexpr (J < End) {
+    constexpr auto v = enum_constant<enum_value<E, J, S>()>{};
     if (value == v) {
       if constexpr (std::is_invocable_r_v<R, F, decltype(v)>) {
         return static_cast<R>(std::forward<F>(f)(v));
@@ -112,7 +112,7 @@ constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
         return def();
       }
     } else {
-      return constexpr_switch_impl<I + 1, End, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+      return constexpr_switch_impl<J + 1, End, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
     }
   } else {
     return def();
