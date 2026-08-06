@@ -850,12 +850,26 @@ TEST_CASE("constexpr_for") {
 
 #endif
 
+#if __has_include(<fmt/format.h>)
+#  define FMT_HEADER_ONLY
+#  include <fmt/format.h>
+#  define MAGIC_ENUM_TEST_HAS_FMT
+#endif
+
 #include <magic_enum/magic_enum_format.hpp>
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 TEST_CASE("format-base") {
   REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");
+}
+
+#endif
+
+#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+
+TEST_CASE("format-fmt") {
+  REQUIRE(fmt::format("{}", Color::RED | Color::GREEN) == "RED|GREEN");
 }
 
 #endif

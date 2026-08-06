@@ -70,6 +70,10 @@ jobs:
         sudo apt update
         sudo apt install -y ${{ matrix.compiler.cxx }}
 
+    - name: Install fmt
+      if: ${{ matrix.compiler.cc == 'gcc-13' }}
+      run: sudo apt install -y libfmt-dev
+
     - name: Install CMake (latest)
       if: ${{ matrix.compiler.modules == 'TRUE' }}
       run: pip install cmake --upgrade --break-system-packages
