@@ -52,7 +52,7 @@ jobs:
           ctest --test-dir build-installed-pkgconfig --output-on-failure --no-tests=error
 
   module-macos-gcc:
-    name: Module / macOS / GCC 16 / fmt / C++20
+    name: Module / macOS / GCC 16 / fmt::fmt / C++20
     runs-on: macos-15
     env:
       CC: gcc-16
@@ -80,7 +80,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP}/fmt" \
             -DBUILD_SHARED_LIBS=OFF \
             -DFMT_DOC=OFF \
-            -DFMT_MODULE=ON \
+            -DFMT_MODULE=OFF \
             -DFMT_TEST=OFF
           cmake --build build-fmt --parallel
           cmake --install build-fmt
