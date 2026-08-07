@@ -1,11 +1,12 @@
 module;
 
 #include <version>
-#ifdef MAGIC_ENUM_USE_FMT_HEADER
-#  include <fmt/format.h>
-#endif
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
+
+#  ifdef MAGIC_ENUM_USE_FMT_HEADER
+#    include <fmt/format.h>
+#  endif
 
 #  include <compare>
 #  include <cstdlib>

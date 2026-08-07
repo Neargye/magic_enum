@@ -259,3 +259,42 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
   )
   set_tests_properties(installed-module-consumer PROPERTIES FIXTURES_REQUIRED magic_enum_installed_module)
 endif()
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    return()
+endif()
+
+#======================================================================
+# NOTE: Only for Release build with enabled install rules useful! CK
+#======================================================================
+if(MAGIC_ENUM_MODULE_IMPORT_STD AND MAGIC_ENUM_OPT_INSTALL AND NOT CMAKE_SKIP_INSTALL_RULES)
+    # test if the targets are usable from the install directory
+    add_test(
+        NAME install-to-stagedir
+        COMMAND
+            ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR} --prefix
+            ${CMAKE_CURRENT_BINARY_DIR}/stagedir --config $<CONFIG>
+    )
+    add_test(
+        NAME find-package-test
+        COMMAND
+            ${CMAKE_CTEST_COMMAND} # --verbose
+            --output-on-failure -C $<CONFIG> #
+            --build-and-test "${CMAKE_SOURCE_DIR}/test/installed_module"
+            "${CMAKE_CURRENT_BINARY_DIR}/find-package-test" #
+            --build-generator ${CMAKE_GENERATOR} #
+            --build-makeprogram ${CMAKE_MAKE_PROGRAM} #
+            --build-options #
+            "-D MAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
+            "-D MAGIC_ENUM_EXPECT_FMT_MODULE=${MAGIC_ENUM_MODULE_USES_FMT_MODULE}"
+            "-D MAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
+            "-D CMAKE_BUILD_TYPE=$<CONFIG>"
+            "-D CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-D CMAKE_CXX_EXTENSIONS=${CMAKE_CXX_EXTENSIONS}"
+            "-D CMAKE_CXX_MODULE_STD=${CMAKE_CXX_MODULE_STD}"
+            "-D CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
+            "-D CMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}"
+            "-D CMAKE_PREFIX_PATH=${CMAKE_CURRENT_BINARY_DIR}/stagedir"
+            "-D CMAKE_EXPERIMENTAL_CXX_IMPORT_STD=${CMAKE_EXPERIMENTAL_CXX_IMPORT_STD}"
+    )
+endif()

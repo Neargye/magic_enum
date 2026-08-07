@@ -164,16 +164,16 @@ function(magic_enum_make_module_library name)
   target_compile_features(${name} PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
   if(ARGC GREATER 1)
     # Optional private definitions build test variants with custom magic_enum configurations.
-    target_compile_definitions(${name} PUBLIC ${ARGN})
+    target_compile_definitions(${name} PRIVATE ${ARGN})
   endif()
 
   # Module-only definitions stay private; CMake exports them for installed module sources without propagating them to importers.
   if(MAGIC_ENUM_MODULE_FMT_TARGET)
     target_link_libraries(${name} PUBLIC ${MAGIC_ENUM_MODULE_FMT_TARGET})
     if(MAGIC_ENUM_MODULE_USES_FMT_MODULE)
-      target_compile_definitions(${name} PUBLIC MAGIC_ENUM_USE_FMT_MODULE)
+      target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_FMT_MODULE)
     else()
-      target_compile_definitions(${name} PUBLIC MAGIC_ENUM_USE_FMT_HEADER)
+      target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_FMT_HEADER)
     endif()
   endif()
 
