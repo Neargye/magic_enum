@@ -41,10 +41,6 @@ module;
 
 export module magic_enum;
 
-#ifdef MAGIC_ENUM_USE_FMT_MODULE
-export import fmt;
-#endif
-
 #ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
 

@@ -22,9 +22,6 @@ endif()
 
 if(MAGIC_ENUM_EXPECT_FMT)
   target_compile_definitions(magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_FMT)
-  if(MAGIC_ENUM_EXPECT_FMT_MODULE)
-    target_compile_definitions(magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_FMT_MODULE)
-  endif()
 endif()
 
 enable_testing()

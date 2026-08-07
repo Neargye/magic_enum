@@ -3,7 +3,7 @@
 
 #include <version>
 
-#if defined(MAGIC_ENUM_TEST_FMT) && !defined(MAGIC_ENUM_TEST_FMT_MODULE)
+#ifdef MAGIC_ENUM_TEST_FMT
 #  include <fmt/format.h>
 #endif
 

@@ -362,8 +362,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
   Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module. The pkg-config package supports only the header-only target.
 
   Optional settings:
-  - `{fmt}` support is enabled automatically when `fmt::fmt-module` or `fmt::fmt` already exists and `import std` is disabled. The module target is preferred when it uses the same C++ standard. Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to require `{fmt}`, or `OFF` to disable it.
-  - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable experimental `import std` support. Use `std::format` in this mode. `{fmt}` integration cannot be enabled. This requires a compatible CMake toolchain.
+  - Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to enable `{fmt}` support through `fmt::fmt`. It is disabled by default. The `{fmt}` C++ module is not supported.
+  - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable `import std` support. This requires a compatible CMake toolchain.
 
 ## Header-only compiler compatibility
 

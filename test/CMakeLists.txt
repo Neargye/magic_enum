@@ -141,9 +141,6 @@ function(magic_enum_add_module_tests suffix)
   )
   if(MAGIC_ENUM_MODULE_WITH_FMT)
     target_compile_definitions(test_module-${suffix} PRIVATE MAGIC_ENUM_TEST_FMT)
-    if(MAGIC_ENUM_MODULE_USES_FMT_MODULE)
-      target_compile_definitions(test_module-${suffix} PRIVATE MAGIC_ENUM_TEST_FMT_MODULE)
-    endif()
   endif()
 
   # Installed packages expose one module with the configuration fixed at build
@@ -201,7 +198,6 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       "-DCMAKE_PREFIX_PATH=${MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH}"
       "-DMAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
       "-DMAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
-      "-DMAGIC_ENUM_EXPECT_FMT_MODULE=${MAGIC_ENUM_MODULE_USES_FMT_MODULE}"
   )
   if(CMAKE_CXX_STANDARD)
     list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
