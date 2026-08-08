@@ -3,7 +3,7 @@
 GenPkgConfig
 ------------
 
-This is the library helping you to generate and install pkg-config files.
+This module generates and installs pkg-config files from CMake targets.
 
 Unlicense
 ^^^^^^^^^
@@ -12,241 +12,273 @@ This is free and unencumbered software released into the public domain.
 Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
 In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright interest in the software to the public domain. We make this dedication for the benefit of the public at large and to the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in perpetuity of all present and future rights to this software under copyright law.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-For more information, please refer to <https://unlicense.org/>
-
-Warning
-^^^^^^^
-
-CMake is currently merging a built-in impl of pkg-config file generator! https://gitlab.kitware.com/cmake/cmake/-/merge_requests/6363
+For more information, please refer to <https://unlicense.org/>.
 
 Functions
 ^^^^^^^^^
+
 .. command:: configure_pkg_config_file
 
-  .. versionadded:: 3.22
+  Requires CMake 3.22 or newer.
 
-  Generates a pkg-config file for
+  Generates and installs a pkg-config file for an interface, object, static, or shared library target.
 
   ::
 
-    configure_pkg_config_file(<targetName>
-        NAME <name of the package>
-        VERSION <version to be written into the package>
-        DESCRIPTION <description to be written into the package>
-        URL <homepage URL to be written into the package>
-        COMPONENT <install as the component>
-        INSTALL_LIB_DIR <path to something like CMAKE_INSTALL_LIBDIR>
-        INSTALL_INCLUDE_DIR <path to something like CMAKE_INSTALL_INCLUDEDIR>
-        REQUIRES ... <list of pkg-config packages this one depends on> ...
-        CONFLICTS ... <list of pkg-config packages this one conflicts with> ...
+    configure_pkg_config_file(<target>
+        NAME <package name>
+        VERSION <package version>
+        DESCRIPTION <package description>
+        URL <package homepage>
+        COMPONENT <install component>
+        INSTALL_LIB_DIR <library install directory>
+        INSTALL_INCLUDE_DIR <include install directory>
+        REQUIRES <required pkg-config packages> ...
+        CONFLICTS <conflicting pkg-config packages> ...
     )
 
-    The arguments are optional and usually are not needed to be set if global (not component-specific) CPACK vars have been set before.
-
-    Generation is done in build time using packaging expressions.
+  ``VERSION`` and ``DESCRIPTION`` fall back to project or CPack metadata. Install directories must be relative. Compiled targets must be installed into ``INSTALL_LIB_DIR`` by the caller; object files are installed by this module.
 
 #]=======================================================================]
 
-set("GEN_PKG_CONFIG_WORKAROUNDS_BUILD_TIME_SCRIPTS" "${CMAKE_CURRENT_LIST_DIR}/buildTimeScripts")
-
-cmake_policy(SET CMP0070 NEW)
+include(GNUInstallDirs)
 
 function(configure_pkg_config_file TARGET)
-	cmake_parse_arguments(""
-		"" # options
-		"NAME;VERSION;DESCRIPTION;URL;COMPONENT;INSTALL_LIB_DIR;INSTALL_INCLUDE_DIR" # one_value_keywords
-		"REQUIRES;CONFLICTS" # multi_value_keywords
-		${ARGN}
-	)
+  cmake_parse_arguments(PARSE_ARGV 1 ARG
+    ""
+    "NAME;VERSION;DESCRIPTION;URL;COMPONENT;INSTALL_LIB_DIR;INSTALL_INCLUDE_DIR"
+    "REQUIRES;CONFLICTS"
+  )
 
-	configure_pkg_config_file_vars("${TARGET}" "${_NAME}" "${_INSTALL_LIB_DIR}" "${_INSTALL_INCLUDE_DIR}" "${_COMPONENT}" "${_DESCRIPTION}" "${_URL}" "${_VERSION}" "${_REQUIRES}" "${_CONFLICTS}")
+  if(ARG_KEYWORDS_MISSING_VALUES)
+    list(JOIN ARG_KEYWORDS_MISSING_VALUES ", " _MISSING_ARGUMENTS)
+    message(FATAL_ERROR
+      "configure_pkg_config_file missing values for: ${_MISSING_ARGUMENTS}"
+    )
+  endif()
+  if(ARG_UNPARSED_ARGUMENTS)
+    list(JOIN ARG_UNPARSED_ARGUMENTS ", " _UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR
+      "configure_pkg_config_file unknown arguments: ${_UNPARSED_ARGUMENTS}"
+    )
+  endif()
+
+  configure_pkg_config_file_vars(
+    "${TARGET}"
+    "${ARG_NAME}"
+    "${ARG_INSTALL_LIB_DIR}"
+    "${ARG_INSTALL_INCLUDE_DIR}"
+    "${ARG_COMPONENT}"
+    "${ARG_DESCRIPTION}"
+    "${ARG_URL}"
+    "${ARG_VERSION}"
+    "${ARG_REQUIRES}"
+    "${ARG_CONFLICTS}"
+  )
 endfunction()
 
-function(ge_expr_basename inputExpr outVar)
-	set("${outVar}" "$<TARGET_PROPERTY:${inputExpr}>" PARENT_SCOPE)
+function(configure_pkg_config_file_vars
+  TARGET
+  _NAME
+  _INSTALL_LIB_DIR
+  _INSTALL_INCLUDE_DIR
+  _COMPONENT
+  _DESCRIPTION
+  _URL
+  _VERSION
+  _REQUIRES
+  _CONFLICTS
+)
+  if(NOT TARGET "${TARGET}")
+    message(FATAL_ERROR
+      "configure_pkg_config_file target '${TARGET}' does not exist"
+    )
+  endif()
+
+  get_target_property(_TARGET_TYPE "${TARGET}" TYPE)
+  set(_SUPPORTED_TARGET_TYPES
+    INTERFACE_LIBRARY
+    OBJECT_LIBRARY
+    STATIC_LIBRARY
+    SHARED_LIBRARY
+  )
+  if(NOT _TARGET_TYPE IN_LIST _SUPPORTED_TARGET_TYPES)
+    message(FATAL_ERROR
+      "configure_pkg_config_file does not support ${_TARGET_TYPE} target '${TARGET}'"
+    )
+  endif()
+
+  if("${_NAME}" STREQUAL "")
+    get_target_property(_NAME "${TARGET}" NAME)
+  endif()
+
+  if("${_DESCRIPTION}" STREQUAL "")
+    if(NOT "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}" STREQUAL "")
+      set(_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
+    elseif(NOT "${CPACK_PACKAGE_DESCRIPTION}" STREQUAL "")
+      set(_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
+    else()
+      set(_DESCRIPTION "${PROJECT_DESCRIPTION}")
+    endif()
+  endif()
+  if("${_VERSION}" STREQUAL "")
+    if(NOT "${CPACK_PACKAGE_VERSION}" STREQUAL "")
+      set(_VERSION "${CPACK_PACKAGE_VERSION}")
+    else()
+      set(_VERSION "${PROJECT_VERSION}")
+    endif()
+  endif()
+  if("${_URL}" STREQUAL "")
+    if(NOT "${CPACK_PACKAGE_HOMEPAGE_URL}" STREQUAL "")
+      set(_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    else()
+      set(_URL "${PROJECT_HOMEPAGE_URL}")
+    endif()
+  endif()
+
+  if("${_DESCRIPTION}" STREQUAL "")
+    message(FATAL_ERROR "configure_pkg_config_file requires DESCRIPTION")
+  endif()
+  if("${_VERSION}" STREQUAL "")
+    message(FATAL_ERROR "configure_pkg_config_file requires VERSION")
+  endif()
+
+  if("${_INSTALL_INCLUDE_DIR}" STREQUAL "")
+    set(_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+  if("${_INSTALL_LIB_DIR}" STREQUAL "")
+    set(_INSTALL_LIB_DIR "${CMAKE_INSTALL_LIBDIR}")
+  endif()
+  if(IS_ABSOLUTE "${_INSTALL_INCLUDE_DIR}" OR IS_ABSOLUTE "${_INSTALL_LIB_DIR}")
+    message(FATAL_ERROR
+      "configure_pkg_config_file requires relative install directories"
+    )
+  endif()
+
+  if(_TARGET_TYPE STREQUAL INTERFACE_LIBRARY)
+    set(_IS_INTERFACE TRUE)
+  else()
+    set(_IS_INTERFACE FALSE)
+  endif()
+  if(_TARGET_TYPE STREQUAL OBJECT_LIBRARY)
+    set(_IS_OBJECT TRUE)
+  else()
+    set(_IS_OBJECT FALSE)
+  endif()
+
+  get_property(_HAS_PUBLIC_INCLUDES
+    TARGET "${TARGET}"
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+    SET
+  )
+
+  set(_PKG_CONFIG_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/$<CONFIG>")
+  set(_PKG_CONFIG_FILE "${_PKG_CONFIG_OUTPUT_DIR}/${_NAME}.pc")
+
+  set(_PATH_ANCHOR "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig-root")
+  file(RELATIVE_PATH _PREFIX_FROM_PC
+    "${_PATH_ANCHOR}/${_INSTALL_LIB_DIR}/pkgconfig"
+    "${_PATH_ANCHOR}"
+  )
+  string(REGEX REPLACE "/$" "" _PREFIX_FROM_PC "${_PREFIX_FROM_PC}")
+
+  set(_CONTENT "prefix=\${pcfiledir}/${_PREFIX_FROM_PC}\n")
+  if(NOT _IS_INTERFACE)
+    string(APPEND _CONTENT "libdir=\${prefix}/${_INSTALL_LIB_DIR}\n")
+  endif()
+  if(_HAS_PUBLIC_INCLUDES)
+    string(APPEND _CONTENT "includedir=\${prefix}/${_INSTALL_INCLUDE_DIR}\n")
+  endif()
+
+  string(APPEND _CONTENT
+    "\nName: ${_NAME}\n"
+    "Description: ${_DESCRIPTION}\n"
+  )
+  if(NOT "${_URL}" STREQUAL "")
+    string(APPEND _CONTENT "URL: ${_URL}\n")
+  endif()
+  string(APPEND _CONTENT "Version: ${_VERSION}\n")
+
+  if(NOT "${_REQUIRES}" STREQUAL "")
+    list(JOIN _REQUIRES ", " _REQUIRES)
+    string(APPEND _CONTENT "Requires: ${_REQUIRES}\n")
+  endif()
+  if(NOT "${_CONFLICTS}" STREQUAL "")
+    list(JOIN _CONFLICTS ", " _CONFLICTS)
+    string(APPEND _CONTENT "Conflicts: ${_CONFLICTS}\n")
+  endif()
+
+  if(_IS_OBJECT)
+    string(MD5 _TARGET_ID "${CMAKE_CURRENT_BINARY_DIR};${TARGET};${_NAME}")
+    set(_OBJECTS_PLACEHOLDER "__GEN_PKG_CONFIG_OBJECTS_${_TARGET_ID}__")
+    set(_TARGET_OBJECTS_FILE "${_PKG_CONFIG_OUTPUT_DIR}/${_NAME}.objects")
+    set(_PKG_CONFIG_FILE_UNFINISHED "${_PKG_CONFIG_FILE}.unfinished")
+    file(GENERATE
+      OUTPUT "${_TARGET_OBJECTS_FILE}"
+      CONTENT "$<TARGET_OBJECTS:${TARGET}>"
+      TARGET "${TARGET}"
+    )
+    string(APPEND _CONTENT "Libs: ${_OBJECTS_PLACEHOLDER}\n")
+  elseif(NOT _IS_INTERFACE)
+    string(APPEND _CONTENT
+      "Libs: \${libdir}/$<TARGET_LINKER_FILE_NAME:${TARGET}>\n"
+    )
+  endif()
+
+  if(_HAS_PUBLIC_INCLUDES)
+    string(APPEND _CONTENT "Cflags: -I\${includedir}\n")
+  endif()
+
+  set(_INSTALL_COMPONENT_ARGS)
+  if(NOT "${_COMPONENT}" STREQUAL "")
+    list(APPEND _INSTALL_COMPONENT_ARGS COMPONENT "${_COMPONENT}")
+  endif()
+
+  if(_IS_OBJECT)
+    file(GENERATE
+      OUTPUT "${_PKG_CONFIG_FILE_UNFINISHED}"
+      CONTENT "${_CONTENT}"
+      TARGET "${TARGET}"
+    )
+
+    set(_OBJECTS_HELPER
+      "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/buildTimeScripts/getObjectFilesBaseNames.cmake"
+    )
+    add_custom_command(
+      OUTPUT "${_PKG_CONFIG_FILE}"
+      COMMAND "${CMAKE_COMMAND}"
+        "-DobjectsFile=${_TARGET_OBJECTS_FILE}"
+        "-DpkgConfigFileUnfinished=${_PKG_CONFIG_FILE_UNFINISHED}"
+        "-DpkgConfigFileFinal=${_PKG_CONFIG_FILE}"
+        "-DobjectsPlaceholder=${_OBJECTS_PLACEHOLDER}"
+        -P "${_OBJECTS_HELPER}"
+      DEPENDS
+        "${TARGET}"
+        "${_TARGET_OBJECTS_FILE}"
+        "${_PKG_CONFIG_FILE_UNFINISHED}"
+        "${_OBJECTS_HELPER}"
+      COMMENT "Finalize ${_NAME}.pc"
+      VERBATIM
+    )
+    add_custom_target("gen_pkg_config_${_TARGET_ID}" ALL
+      DEPENDS "${_PKG_CONFIG_FILE}"
+    )
+
+    install(FILES "$<TARGET_OBJECTS:${TARGET}>"
+      DESTINATION "${_INSTALL_LIB_DIR}"
+      ${_INSTALL_COMPONENT_ARGS}
+    )
+  else()
+    file(GENERATE
+      OUTPUT "${_PKG_CONFIG_FILE}"
+      CONTENT "${_CONTENT}"
+      TARGET "${TARGET}"
+    )
+  endif()
+
+  install(FILES "${_PKG_CONFIG_FILE}"
+    DESTINATION "${_INSTALL_LIB_DIR}/pkgconfig"
+    RENAME "${_NAME}.pc"
+    ${_INSTALL_COMPONENT_ARGS}
+  )
 endfunction()
-
-function(configure_pkg_config_file_vars TARGET _NAME _INSTALL_LIB_DIR _INSTALL_INCLUDE_DIR _COMPONENT _DESCRIPTION _URL _VERSION _REQUIRES _CONFLICTS)
-	#$<TARGET_PROPERTY:${TARGET},NAME>
-	#INTERFACE_LINK_DIRECTORIES
-	#INTERFACE_LINK_LIBRARIES
-	#INTERFACE_LINK_OPTIONS
-
-	if(_NAME)
-	else()
-		set(_NAME "$<TARGET_PROPERTY:${TARGET},NAME>")
-	endif()
-
-	if(_DESCRIPTION)
-	else()
-		set(_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
-	endif()
-
-	if(_VERSION)
-	else()
-		set(_VERSION "${CPACK_PACKAGE_VERSION}")
-	endif()
-
-	if(_URL)
-	else()
-		set(_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
-	endif()
-
-	if(_INSTALL_INCLUDE_DIR)
-	else()
-		set(_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-	endif()
-
-	if(_INSTALL_LIB_DIR)
-	else()
-		set(_INSTALL_LIB_DIR "${CMAKE_INSTALL_LIBDIR}")
-	endif()
-
-	set(PKG_CONFIG_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/${_NAME}.pc")
-
-	set(PUBLIC_INCLUDES "$<TARGET_PROPERTY:${TARGET},INTERFACE_INCLUDE_DIRECTORIES>")
-	set(PUBLIC_LIBS "$<TARGET_PROPERTY:${TARGET},INTERFACE_LINK_LIBRARIES>")
-	set(PUBLIC_COMPILE_FLAGS "$<TARGET_PROPERTY:${TARGET},INTERFACE_COMPILE_DEFINITIONS>")
-
-	set("IS_INTERFACE" "$<STREQUAL:$<TARGET_PROPERTY:${TARGET},TYPE>,INTERFACE_LIBRARY>")
-	set("IS_OBJECT" "$<STREQUAL:$<TARGET_PROPERTY:${TARGET},TYPE>,OBJECT_LIBRARY>")
-	get_target_property(CONFIGURE_TIME_TARGET_TYPE "${TARGET}" TYPE)
-	if(CONFIGURE_TIME_TARGET_TYPE STREQUAL OBJECT_LIBRARY)
-		set(CONFIGURE_TIME_IS_OBJECT ON)  # Special measures have to be taken!!!
-	endif()
-
-	set("NEEDS_LIBS" "$<AND:$<NOT:${IS_INTERFACE}>,$<NOT:${IS_OBJECT}>>")
-	set("NEEDS_LIB_DIR" "$<NOT:${IS_INTERFACE}>")
-	string(REPLACE "," "$<COMMA>" NEEDS_LIBS_ESCAPED "${NEEDS_LIBS}")
-	string(REPLACE ">" "$<ANGLE-R>" NEEDS_LIBS_ESCAPED "${NEEDS_LIBS_ESCAPED}")
-
-	# Only use prefix if paths are not absolute like they are with nix
-	# See also: https://github.com/NixOS/nixpkgs/issues/144170
-	if(NOT(IS_ABSOLUTE "${_INSTALL_LIB_DIR}" AND IS_ABSOLUTE "${_INSTALL_INCLUDE_DIR}"))
-            list(APPEND header "prefix=${CMAKE_INSTALL_PREFIX}")
-        endif()
-
-        if(IS_ABSOLUTE "${_INSTALL_LIB_DIR}")
-            list(APPEND header "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIB_DIR}>,libdir=${_INSTALL_LIB_DIR},>")
-        else()
-            list(APPEND header "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIB_DIR}>,libdir=\${prefix}/${_INSTALL_LIB_DIR},>")
-        endif()
-
-        if(IS_ABSOLUTE "${_INSTALL_INCLUDE_DIR}")
-            list(APPEND header "$<IF:$<BOOL:${PUBLIC_INCLUDES}>,includedir=${_INSTALL_INCLUDE_DIR},>")
-        else()
-            list(APPEND header "$<IF:$<BOOL:${PUBLIC_INCLUDES}>,includedir=\${prefix}/${_INSTALL_INCLUDE_DIR},>")
-        endif()
-
-	list(APPEND libSpecific "Name: ${_NAME}")
-	if(_DESCRIPTION)
-		list(APPEND libSpecific "Description: ${_DESCRIPTION}")
-	endif()
-	if(_URL)
-		list(APPEND libSpecific "URL: ${_URL}")
-	endif()
-	if(_VERSION)
-		list(APPEND libSpecific "Version: ${_VERSION}")
-	endif()
-	if(_REQUIRES)
-		list(APPEND libSpecific "Requires: ${_REQUIRES}")
-	endif()
-	if(_CONFLICTS)
-		list(APPEND libSpecific "Conflicts: ${_CONFLICTS}")
-	endif()
-
-	set(OTHER_INCLUDE_FLAGS "-I$<JOIN:$<REMOVE_DUPLICATES:${PUBLIC_INCLUDES}>, -I>")  # Not needed, we can only get build interface flags here. Insert them after -I\${includedir} if you find a way to fix/workaround it
-
-	# Here is a workaround to inability to use TARGET_LINKER_FILE_NAME for targets not involving library generation.
-	# Strangely $<IF evaluates both branches, not only the one taken, which causes an error
-	# We workaround it by generating the subexpression source using $<IF and then evaluating it using $<GENEX_EVAL
-	# Of course we could have used conditional expressions on CMake script part, but I have decided to implement it in generator expressions part, so hypthetically all the expressions can be merged into a single file and this function can be made simple
-
-	set(ESCAPED_GENEXPR_BEGINNING "$<1:$><")  # A hack because there is no escape for `$` or `<` or `$<`.  So we just disrupt $< into pieces
-	set(CURRENT_LIB_ESCAPED_BINARY_NAME "${ESCAPED_GENEXPR_BEGINNING}TARGET_LINKER_FILE_NAME:${TARGET}$<ANGLE-R>")
-	set(LINK_CURRENT_LIB_FLAG "$<GENEX_EVAL:$<IF:${NEEDS_LIBS},-l:${CURRENT_LIB_ESCAPED_BINARY_NAME},>>")
-
-	if(CONFIGURE_TIME_IS_OBJECT)
-		set(IS_TARGET_OBJECTS_CONFIGURE_TIME_UNAVAILABLE ON)
-		if(IS_TARGET_OBJECTS_CONFIGURE_TIME_UNAVAILABLE)
-			message(WARNING "CMake is shit: There is (at least was at the time of writing of this code) no generator expression to get only basenames of object files. They are also unavailable at configure stage. And there were no CMake generator expressions for making replacements in strings. So we workaround this.")
-			set(TARGET_OBJECTS_FILE "${TARGET}.obj_list")
-			set(OBJECTS_FILE_RETRIEVAL_TARGET_NAME "${TARGET}_get_objects_list")
-
-			set(PKGCONFIG_DUMMY_UNFINISHED_GEN_TARGET_NAME "${TARGET}_pkgconfig_unfinished")
-			set(PKGCONFIG_PATCH_TARGET_NAME "${TARGET}_patch_pkgconfig")
-
-			set(PKG_CONFIG_FILE_NAME_FINISHED "${PKG_CONFIG_FILE_NAME}")
-			set(PKG_CONFIG_FILE_NAME_UNFINISHED "${PKG_CONFIG_FILE_NAME_FINISHED}.unfinished")
-
-			file(GENERATE OUTPUT "${TARGET_OBJECTS_FILE}" CONTENT "$<TARGET_OBJECTS:${TARGET}>")
-
-			add_custom_command(
-				OUTPUT "${TARGET_OBJECTS_FILE}"
-				COMMENT "A dummy command to workaround cmake limitations"
-			)
-			add_custom_target("${OBJECTS_FILE_RETRIEVAL_TARGET_NAME}"
-				DEPENDS "${TARGET_OBJECTS_FILE}"
-			)
-
-			add_custom_command(
-				OUTPUT "${PKG_CONFIG_FILE_NAME_FINISHED}"
-				PRE_BUILD COMMAND ${CMAKE_COMMAND} "-DobjectsFile=\"${TARGET_OBJECTS_FILE}\"" "-DpkgConfigFileUnlinished=\"${PKG_CONFIG_FILE_NAME_UNFINISHED}\"" "-DpkgConfigFileFinal=\"${PKG_CONFIG_FILE_NAME_FINISHED}\"" "-P" "${GEN_PKG_CONFIG_WORKAROUNDS_BUILD_TIME_SCRIPTS}/getObjectFilesBaseNames.cmake"
-				MAIN_DEPENDENCY "${TARGET_OBJECTS_FILE}"
-				DEPENDS "${PKG_CONFIG_FILE_NAME_UNFINISHED}"
-				COMMENT "Working around CMake limitations about getting list of basenames of object files and about lack of generator expressions to modify strings: ${PKG_CONFIG_FILE_NAME_UNFINISHED} + ${TARGET_OBJECTS_FILE} -> ${PKG_CONFIG_FILE_NAME_FINISHED}"
-			)
-			add_custom_target("${PKGCONFIG_PATCH_TARGET_NAME}" ALL
-				DEPENDS "${PKG_CONFIG_FILE_NAME_FINISHED}"
-			)
-			add_dependencies("${PKGCONFIG_PATCH_TARGET_NAME}" "${OBJECTS_FILE_RETRIEVAL_TARGET_NAME}" "${PKGCONFIG_DUMMY_UNFINISHED_GEN_TARGET_NAME}")
-
-			set(PROPERLY_JOINED_TARGET_OBJECTS "@PROPERLY_JOINED_TARGET_OBJECTS@")
-		else()
-			set("RAW_TARGET_OBJECTS" "$<TARGET_OBJECTS:${TARGET}>")
-			message(FATAL_ERROR "This branch is unimplemented because CMake lacked the needed functionality at the time")
-			set(PROPERLY_JOINED_TARGET_OBJECTS "${RAW_TARGET_OBJECTS}")
-		endif()
-	endif()
-
-	set(LINK_CURRENT_OBJECT_FLAG "$<IF:${IS_OBJECT},${PROPERLY_JOINED_TARGET_OBJECTS},>")
-
-	list(APPEND libSpecific "$<IF:$<OR:$<BOOL:${PUBLIC_LIBS}>,${NEEDS_LIBS},${IS_OBJECT}>,Libs: -L\${libdir} ${LINK_CURRENT_LIB_FLAG} ${LINK_CURRENT_OBJECT_FLAG} $<IF:$<BOOL:${PUBLIC_LIBS}>,-l$<JOIN:$<REMOVE_DUPLICATES:${PUBLIC_LIBS}>, -l>,>,>\n$<IF:$<OR:$<BOOL:${PUBLIC_INCLUDES}>,$<BOOL:${PUBLIC_COMPILE_FLAGS}>>,Cflags: -I\${includedir}$<IF:$<BOOL:${PUBLIC_COMPILE_FLAGS}>, $<JOIN:$<REMOVE_DUPLICATES:${PUBLIC_COMPILE_FLAGS}>,>,>,>")
-
-
-	list(JOIN header "\n" header)
-	list(JOIN libSpecific "\n" libSpecific)
-	set(libSpecific "${header}\n\n${libSpecific}")
-
-	if(CONFIGURE_TIME_IS_OBJECT)
-		file(GENERATE OUTPUT "${PKG_CONFIG_FILE_NAME_UNFINISHED}"
-			CONTENT "${libSpecific}"
-		)
-
-		# Dummy target for generated files
-		add_custom_command(
-			OUTPUT "${PKG_CONFIG_FILE_NAME_UNFINISHED}"
-			COMMENT "A dummy command to workaround cmake limitations"
-		)
-		add_custom_target("${PKGCONFIG_DUMMY_UNFINISHED_GEN_TARGET_NAME}"
-			DEPENDS "${PKG_CONFIG_FILE_NAME_UNFINISHED}"
-		)
-
-
-		install(FILES "${PKG_CONFIG_FILE_NAME_FINISHED}"
-			DESTINATION "${_INSTALL_LIB_DIR}/pkgconfig"
-			COMPONENT "${_COMPONENT}"
-		)
-	else()
-		file(GENERATE OUTPUT "${PKG_CONFIG_FILE_NAME}"
-			CONTENT "${libSpecific}"
-		)
-
-
-		install(FILES "${PKG_CONFIG_FILE_NAME}"
-			DESTINATION "${_INSTALL_LIB_DIR}/pkgconfig"
-			COMPONENT "${_COMPONENT}"
-		)
-	endif()
-endfunction()
-

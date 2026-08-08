@@ -333,9 +333,39 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
 * Use Bazel with `MODULE.bazel` or `http_archive`; target is `@magic_enum//:magic_enum`.
 * Use ROS with `<depend>magic_enum</depend>` in `package.xml`, then link `magic_enum::magic_enum`.
-* Use C++20 module with CMake: configure with `MAGIC_ENUM_USE_MODULES=ON`, link `magic_enum::magic_enum`, and write `import magic_enum;`. Do not mix module import and `magic_enum` headers in same program.
 
-## Compiler compatibility
+* **CMake targets**:
+  - `magic_enum::magic_enum` is the header-only target.
+  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required.
+
+  Build the module target:
+  ```sh
+  cmake -S . -B build -G Ninja -DMAGIC_ENUM_USE_MODULES=ON
+  cmake --build build
+  ```
+
+  Link the module target:
+  ```cmake
+  find_package(magic_enum CONFIG REQUIRED)
+  target_link_libraries(your_executable PRIVATE magic_enum::magic_enum_module)
+  set_target_properties(your_executable PROPERTIES CXX_EXTENSIONS OFF CXX_SCAN_FOR_MODULES ON)
+  ```
+
+  Import the module:
+  ```cpp
+  import magic_enum;
+
+  enum class Color { RED, GREEN, BLUE };
+  auto name = magic_enum::enum_name(Color::RED); // "RED"
+  ```
+
+  Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module. The pkg-config package supports only the header-only target.
+
+  Optional settings:
+  - Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to enable `{fmt}` support through `fmt::fmt`. It is disabled by default. The `{fmt}` C++ module is not supported.
+  - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable `import std` support. This requires a compatible CMake toolchain.
+
+## Header-only compiler compatibility
 
 * Clang/LLVM >= 5
 * MSVC++ >= 15.3 / Visual Studio >= 2017

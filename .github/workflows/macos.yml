@@ -10,8 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - macos-14 # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md#xcode (Apple Silicon M1)
-        - macos-15 # https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md#xcode (Apple Silicon M2)
+        - macos-15 # https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md#xcode
+        - macos-26 # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md#xcode
         build_type: [Release, Debug]
 
     name: "${{ matrix.os }} / ${{ matrix.build_type }}"
@@ -27,4 +27,4 @@ jobs:
       run: cmake --build build --parallel --config ${{ matrix.build_type }}
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure -C ${{ matrix.build_type }}
+      run: ctest --test-dir build --output-on-failure --no-tests=error -C ${{ matrix.build_type }}
