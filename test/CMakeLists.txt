@@ -55,14 +55,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND
   message(STATUS "Skipping C++23 and C++26 tests for Clang 17 due to libstdc++ 14 incompatibility")
 endif()
 
-# GCC 14 and 15 fail valid enum flags parsing tests in C++26 mode.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
-   CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.0" AND
-   CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16.0")
-  set(MAGIC_ENUM_HAS_CPP26_FLAG FALSE)
-  message(STATUS "Skipping C++26 tests for GCC 14 and 15")
-endif()
-
 if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
   magic_enum_make_module_library(magic_enum_module_test-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
     "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_test_config.hpp\""

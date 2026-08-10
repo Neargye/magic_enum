@@ -114,7 +114,7 @@ jobs:
       run: |
         cxx_standard=23
         stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
-        if [[ "${{ matrix.compiler.cc }}" == gcc-* ]]; then
+        if [[ "${CC}" == gcc-* ]]; then
           cxx_standard=26
           stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
         fi

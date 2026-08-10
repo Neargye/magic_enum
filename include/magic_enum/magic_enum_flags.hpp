@@ -117,9 +117,13 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
     return {}; // Empty enum.
   } else {
     auto result = U{0};
-    while (!value.empty()) {
-      const auto d = detail::find(value, sep);
-      const auto s = (d == string_view::npos) ? value : value.substr(0, d);
+    // Avoid GCC C++26 wrong-code with find/remove_prefix; see https://github.com/Neargye/magic_enum/issues/467.
+    for (std::size_t first = 0; first < value.size();) {
+      auto last = first;
+      while (last < value.size() && value[last] != sep) {
+        ++last;
+      }
+      const auto s = value.substr(first, last - first);
       auto f = U{0};
       for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
         if (detail::cmp_equal(s, detail::names_v<D, S>[i], p)) {
@@ -131,7 +135,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
       if (f == U{0}) {
         return {}; // Invalid value or out of range.
       }
-      value.remove_prefix((d == string_view::npos) ? value.size() : d + 1);
+      first = (last < value.size()) ? last + 1 : last;
     }
 
     if (result != U{0}) {
