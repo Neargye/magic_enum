@@ -408,6 +408,13 @@ TEST_CASE("containers_bitset") {
   REQUIRE_FALSE(color_bitset_names.test(Color::GREEN));
   REQUIRE(color_bitset_names.test(Color::BLUE));
 
+  constexpr magic_enum::containers::bitset<Color> constexpr_repeated_names {"RED|GREEN|GREEN"};
+  static_assert(constexpr_repeated_names.test(Color::RED));
+  static_assert(constexpr_repeated_names.test(Color::GREEN));
+  static_assert(!constexpr_repeated_names.test(Color::BLUE));
+  const magic_enum::containers::bitset<Color> runtime_repeated_names {"RED|GREEN|GREEN"};
+  REQUIRE(runtime_repeated_names == constexpr_repeated_names);
+
   magic_enum::containers::bitset<Color, OutOfRangeIndex> custom_index_bitset;
   REQUIRE(custom_index_bitset.find(static_cast<Color>(8)) == custom_index_bitset.end());
   REQUIRE_THROWS(static_cast<void>(custom_index_bitset.test(static_cast<Color>(8))));

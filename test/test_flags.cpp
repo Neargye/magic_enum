@@ -136,7 +136,13 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_flags_cast<Color>("blue", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
     REQUIRE(enum_flags_cast<Color&>("blue|RED", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == (Color::BLUE | Color::RED));
     REQUIRE(enum_flags_cast<Color&>("GREEN|RED").value() == (Color::GREEN | Color::RED));
+    constexpr auto constexpr_repeated_flags = enum_flags_cast<Color&>("GREEN|RED|RED");
+    static_assert(constexpr_repeated_flags.has_value());
+    static_assert(*constexpr_repeated_flags == (Color::GREEN | Color::RED));
     REQUIRE(enum_flags_cast<Color&>("GREEN|RED|RED").value() == (Color::GREEN | Color::RED));
+    REQUIRE(enum_flags_cast<Color&>("GREEN|").value() == Color::GREEN);
+    REQUIRE_FALSE(enum_flags_cast<Color&>("|GREEN").has_value());
+    REQUIRE_FALSE(enum_flags_cast<Color&>("GREEN||RED").has_value());
     REQUIRE_FALSE(enum_flags_cast<Color&>("GREEN|RED|None").has_value());
     REQUIRE_FALSE(enum_flags_cast<Color>("None").has_value());
 
@@ -356,6 +362,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_flags_contains<Color>("blue", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("blue|RED", '|', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE(enum_flags_contains<Color>("GREEN|RED"));
+    static_assert(enum_flags_contains<Color>("GREEN|RED|RED"));
     REQUIRE(enum_flags_contains<Color>("GREEN|RED|RED"));
     REQUIRE_FALSE(enum_flags_contains<Color>("GREEN|RED|None"));
     REQUIRE_FALSE(enum_flags_contains<Color>("None"));
@@ -688,6 +695,7 @@ TEST_CASE("istream_operators") {
   require_istream(Color::BLUE, "BLUE");
   require_istream(Color::BLUE | Color::RED, "RED|BLUE");
   require_istream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+  require_istream(Color::GREEN | Color::RED, "GREEN|RED|RED");
 
   require_istream(Numbers::two, "two");
   require_istream(Numbers::three, "three");

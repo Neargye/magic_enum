@@ -67,9 +67,16 @@ jobs:
           repository: fmtlib/fmt
           path: fmt-src
 
-      - name: Install toolchain and fmt
+      - name: Install GCC 16 and Ninja
+        env:
+          CC: clang
+          CXX: clang++
         run: |
-          brew install gcc ninja
+          brew install gcc@16 ninja
+          echo "$(brew --prefix gcc@16)/bin" >> "${GITHUB_PATH}"
+
+      - name: Install fmt
+        run: |
           python3 -m pip install cmake==4.4.0 --break-system-packages
           cmake -S fmt-src -B build-fmt -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
