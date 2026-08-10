@@ -622,11 +622,21 @@ constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   // CLI/C++ workaround (see https://github.com/Neargye/magic_enum/issues/284).
   str_view name;
   name.str_ = __FUNCSIG__;
-  name.size_ = sizeof(__FUNCSIG__) - 17;
-  std::size_t p = 0;
+  name.size_ = sizeof(__FUNCSIG__) - 1;
+  while (name.size_ > 0 && name.str_[name.size_ - 1] != '>') {
+    --name.size_;
+  }
+  if (name.size_ > 0) {
+    --name.size_;
+  }
+  std::size_t p = 0, depth = 0;
   for (std::size_t i = name.size_; i > 0; --i) {
-    if (name.str_[i] == ',' || name.str_[i] == ':') {
-      p = i + 1;
+    if (name.str_[i - 1] == '>') {
+      ++depth;
+    } else if (name.str_[i - 1] == '<' && depth > 0) {
+      --depth;
+    } else if (name.str_[i - 1] == ',' && depth == 0) {
+      p = i;
       break;
     }
   }
@@ -636,6 +646,14 @@ constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   }
   if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
     name = str_view{};
+  } else {
+    for (std::size_t i = name.size_; i > 0; --i) {
+      if (name.str_[i - 1] == ':') {
+        name.size_ -= i;
+        name.str_ += i;
+        break;
+      }
+    }
   }
   return name;
 #  endif
@@ -1059,7 +1077,7 @@ inline constexpr Hash hash_v{};
 
 template <auto* GlobValues, typename Hash>
 constexpr auto calculate_cases(std::size_t Page) noexcept {
-  constexpr std::array values = *GlobValues;
+  constexpr auto values = *GlobValues;
   constexpr std::size_t size = values.size();
 
   using switch_t = std::invoke_result_t<Hash, typename decltype(values)::value_type>;
@@ -1174,9 +1192,9 @@ constexpr decltype(auto) constexpr_switch(
   using result_t = std::invoke_result_t<ResultGetterType>;
   using hash_t = std::conditional_t<has_unique_hashes<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
   static_assert(has_unique_hashes<GlobValues, hash_t>(), "magic_enum::detail::constexpr_switch duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues.");
-  constexpr std::array values = *GlobValues;
+  constexpr auto values = *GlobValues;
   constexpr std::size_t size = values.size();
-  constexpr std::array cases = calculate_cases<GlobValues, hash_t>(Page);
+  constexpr auto cases = calculate_cases<GlobValues, hash_t>(Page);
 
   switch (hash_v<hash_t>(searched)) {
     MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
@@ -1595,6 +1613,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 
 #undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
 #undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
+#undef MAGIC_ENUM_CALLING_CONVENTION
 #undef MAGIC_ENUM_VS_2017_WORKAROUND
 #undef MAGIC_ENUM_ARRAY_CONSTEXPR
 #undef MAGIC_ENUM_FOR_EACH_256

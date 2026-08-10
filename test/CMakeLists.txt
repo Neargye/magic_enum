@@ -144,6 +144,27 @@ endfunction()
 magic_enum_add_tests(cpp17 c++17)
 magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  target_compile_definitions(test-cpp17 PRIVATE MAGIC_ENUM_TEST_VS_2017_WORKAROUND=1)
+  if(MSVC_VERSION GREATER_EQUAL 1920)
+    # Exercise the Visual Studio 2017 fallback on current MSVC too.
+    target_compile_definitions(test-cpp17 PRIVATE MAGIC_ENUM_VS_2017_WORKAROUND=1)
+  endif()
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  set(MAGIC_ENUM_TEST_CLR_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/test_clr.obj")
+  add_custom_command(
+    OUTPUT "${MAGIC_ENUM_TEST_CLR_OBJECT}"
+    COMMAND "${CMAKE_CXX_COMPILER}" /nologo /std:c++17 /clr /EHa /W4 /WX /permissive-
+            "/I${PROJECT_SOURCE_DIR}/include" /c "${PROJECT_SOURCE_DIR}/example/example.cpp"
+            "/Fo${MAGIC_ENUM_TEST_CLR_OBJECT}"
+    DEPENDS "${PROJECT_SOURCE_DIR}/example/example.cpp" "${PROJECT_SOURCE_DIR}/include/magic_enum/magic_enum.hpp"
+    VERBATIM
+  )
+  add_custom_target(test_clr DEPENDS "${MAGIC_ENUM_TEST_CLR_OBJECT}")
+endif()
+
 foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   set(MAGIC_ENUM_HAS_STANDARD_FLAG MAGIC_ENUM_HAS_CPP${MAGIC_ENUM_TEST_STANDARD}_FLAG)
   if(NOT ${MAGIC_ENUM_HAS_STANDARD_FLAG})

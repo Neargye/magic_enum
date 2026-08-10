@@ -42,6 +42,9 @@ namespace magic_enum {
 
 namespace detail {
 
+template <typename E, enum_subtype S, typename F, std::size_t J>
+using enum_for_each_result_t = std::decay_t<std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>>;
+
 template <typename E, enum_subtype S, typename F, std::size_t... J>
 constexpr auto for_each(F&& f, std::index_sequence<J...>) {
   constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> || ...);
@@ -50,9 +53,9 @@ constexpr auto for_each(F&& f, std::index_sequence<J...>) {
   if constexpr (has_void_return) {
     (f(enum_constant<values_v<E, S>[J]>{}), ...);
   } else if constexpr (all_same_return) {
-    return std::array{f(enum_constant<values_v<E, S>[J]>{})...};
+    return std::array<enum_for_each_result_t<E, S, F, 0>, sizeof...(J)>{{f(enum_constant<values_v<E, S>[J]>{})...}};
   } else {
-    return std::tuple{f(enum_constant<values_v<E, S>[J]>{})...};
+    return std::tuple<enum_for_each_result_t<E, S, F, J>...>{f(enum_constant<values_v<E, S>[J]>{})...};
   }
 }
 

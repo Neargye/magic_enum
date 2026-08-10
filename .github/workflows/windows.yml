@@ -26,5 +26,9 @@ jobs:
     - name: Build
       run: cmake --build build --parallel --config ${{ matrix.build_type }}
 
+    - name: Build C++/CLI smoke test
+      if: ${{ matrix.config.os == 'windows-2022' && matrix.platform == 'x64' && matrix.build_type == 'Release' }}
+      run: cmake --build build --target test_clr --config ${{ matrix.build_type }}
+
     - name: Test
       run: ctest --test-dir build --output-on-failure --no-tests=error -C ${{ matrix.build_type }}

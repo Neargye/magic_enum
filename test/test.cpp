@@ -15,6 +15,10 @@
 #include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
+#if defined(MAGIC_ENUM_CALLING_CONVENTION) || defined(MAGIC_ENUM_VS_2017_WORKAROUND) || defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
+#  error Internal macro leaked from magic_enum.hpp.
+#endif
+
 #include "test_helpers.hpp"
 
 #include <array>
@@ -34,6 +38,14 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 }
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
+
+#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+template <typename, typename>
+struct templated_scope {
+  enum class Value { ONE, TWO };
+};
+using TemplatedValue = templated_scope<int, long>::Value;
+#endif
 
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
@@ -522,6 +534,10 @@ TEST_CASE("enum_count") {
 
   constexpr auto s6 = enum_count<MaxUsedAsInvalid>();
   REQUIRE(s6 == 2);
+
+#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+  REQUIRE(enum_count<TemplatedValue>() == 2);
+#endif
 }
 
 enum lt1 { s1, loooooooooooooooooooong1 };
@@ -628,6 +644,9 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
+#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+    REQUIRE(enum_name(TemplatedValue::ONE) == "ONE");
+#endif
 
     REQUIRE(enum_name(lt1::s1) == "s1");
     REQUIRE(enum_name(lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1113,7 +1132,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::reflected_min<Directions, as_common<>>() == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::min_v<Directions, as_common<>> == -120);
 
-    REQUIRE(magic_enum::customize::enum_range<number>::min == 100);
+    REQUIRE(static_cast<int>(magic_enum::customize::enum_range<number>::min) == 100);
     REQUIRE(magic_enum::detail::reflected_min<number, as_common<>>() == 100);
     REQUIRE(magic_enum::detail::min_v<number, as_common<>> == 100);
 
@@ -1141,7 +1160,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::reflected_max<Directions, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::max_v<Directions, as_common<>> == 120);
 
-    REQUIRE(magic_enum::customize::enum_range<number>::max == 300);
+    REQUIRE(static_cast<int>(magic_enum::customize::enum_range<number>::max) == 300);
     REQUIRE(magic_enum::detail::reflected_max<number, as_common<>>() == 300);
     REQUIRE(magic_enum::detail::max_v<number, as_common<>> == 300);
 
@@ -1275,13 +1294,13 @@ TEST_CASE("enum_for_each") {
     constexpr auto workResults = enum_for_each<Color>([](auto val) {
       return DoWork<val>();
     });
-    REQUIRE(workResults == std::array<std::string_view, 3>{"default", "override", "default"});
+    REQUIRE(workResults == std::array<std::string_view, 3>{{"default", "override", "default"}});
 
     constexpr auto colorSequence = std::make_index_sequence<enum_count<Color>()>{};
     static_assert(detail::all_invocable<Color, detail::subtype_v<Color>, LvalueOnlyForEach>(colorSequence));
     static_assert(!detail::all_invocable<Color, detail::subtype_v<Color>, RvalueOnlyForEach>(colorSequence));
     constexpr auto colorValues = enum_for_each<Color>(LvalueOnlyForEach{});
-    REQUIRE(colorValues == std::array<int, 3>{-12, 7, 15});
+    REQUIRE(colorValues == std::array<int, 3>{{-12, 7, 15}});
   }
 
   SUBCASE("different return type") {

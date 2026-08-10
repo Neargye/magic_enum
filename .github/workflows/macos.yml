@@ -12,26 +12,28 @@ jobs:
         os:
         - macos-15 # https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md#xcode
         - macos-26 # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md#xcode
-        compiler: [Apple Clang, GCC 16]
+        compiler: [Apple Clang, GCC]
         build_type: [Release, Debug]
 
     name: "${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}"
     runs-on: ${{ matrix.os }}
-    env:
-      CC: ${{ matrix.compiler == 'GCC 16' && 'gcc-16' || 'clang' }}
-      CXX: ${{ matrix.compiler == 'GCC 16' && 'g++-16' || 'clang++' }}
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Install GCC 16
-      if: ${{ matrix.compiler == 'GCC 16' }}
-      env:
-        CC: clang
-        CXX: clang++
+    - name: Configure compiler
       run: |
-        brew install gcc@16
-        echo "$(brew --prefix gcc@16)/bin" >> "${GITHUB_PATH}"
+        if [[ "${{ matrix.compiler }}" == "GCC" ]]; then
+          brew install gcc
+          gcc_bin="$(brew --prefix gcc)/bin"
+          gcc_version="$(brew list --versions gcc | awk '{print $2}')"
+          gcc_major="${gcc_version%%.*}"
+          echo "CC=${gcc_bin}/gcc-${gcc_major}" >> "${GITHUB_ENV}"
+          echo "CXX=${gcc_bin}/g++-${gcc_major}" >> "${GITHUB_ENV}"
+        else
+          echo "CC=clang" >> "${GITHUB_ENV}"
+          echo "CXX=clang++" >> "${GITHUB_ENV}"
+        fi
 
     - name: Configure
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
