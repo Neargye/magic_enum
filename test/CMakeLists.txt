@@ -46,15 +46,6 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   )
 endforeach()
 
-# Clang 17 with libstdc++ 14 has a known tuple/get incompatibility in C++23 and C++26 modes.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND
-   CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "17.0" AND
-   CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18.0")
-  set(MAGIC_ENUM_HAS_CPP23_FLAG FALSE)
-  set(MAGIC_ENUM_HAS_CPP26_FLAG FALSE)
-  message(STATUS "Skipping C++23 and C++26 tests for Clang 17 due to libstdc++ 14 incompatibility")
-endif()
-
 if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
   magic_enum_make_module_library(magic_enum_module_test-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
     "MAGIC_ENUM_CONFIG_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/magic_enum_test_config.hpp\""

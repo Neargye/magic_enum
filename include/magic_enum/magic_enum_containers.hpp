@@ -640,9 +640,9 @@ class bitset {
     std::size_t num_index;
     base_type bit_index;
 
-    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, std::pair{i / bits_per_base, bit_mask(i)}) {}
+    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, i / bits_per_base, bit_mask(i)) {}
 
-    constexpr reference_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
+    constexpr reference_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), num_index(num), bit_index(bit) {}
 
    public:
     constexpr reference_impl& operator=(bool v) noexcept {
@@ -714,15 +714,15 @@ class bitset {
    private:
     template <typename OtherParent>
     friend class iterator_impl;
-    constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, std::pair{i / bits_per_base, bit_mask(i)}) {}
+    constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, i / bits_per_base, bit_mask(i)) {}
 
-    constexpr iterator_impl(parent_t p, std::pair<std::size_t, base_type> i) noexcept : parent(p), num_index(std::get<0>(i)), bit_index(std::get<1>(i)) {}
+    constexpr iterator_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), num_index(num), bit_index(bit) {}
 
     [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept {
       for (std::size_t num_index = 0; num_index < base_type_count; ++num_index) {
         if (p->a[num_index] > 0) {
           const auto bit_index = least_significant_bit(p->a[num_index]);
-          return iterator_impl(p, std::pair{num_index, bit_index});
+          return iterator_impl(p, num_index, bit_index);
         }
       }
       return end(p);
