@@ -196,6 +196,12 @@ if(MAGIC_ENUM_OPT_INSTALL)
     )
   endif()
 
+  # Compatibility shim for `#include <magic_enum.hpp>` (pre-0.9.7 layout).
+  install(
+    FILES "${PROJECT_SOURCE_DIR}/include/magic_enum.hpp"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  )
+
   set(MAGIC_ENUM_EXPORT_TARGETS "${PROJECT_NAME}")
   if(MAGIC_ENUM_USE_MODULES)
     install(
