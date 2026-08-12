@@ -36,6 +36,7 @@
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <tuple>
+#  include <utility>
 #endif
 
 namespace magic_enum {
@@ -142,6 +143,32 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
     return enum_value<D, S>(static_cast<std::size_t>(index));
   }
   return MAGIC_ENUM_ASSERT(false), value;
+}
+
+template <typename F, typename... BoundArgs>
+class bind_front_t {
+ public:
+  template <typename Fn, typename... Args>
+  constexpr explicit bind_front_t(Fn&& fn, Args&&... args)
+      : fn_(std::forward<Fn>(fn)), bound_(std::forward<Args>(args)...) {}
+
+  template <typename... CallArgs>
+  constexpr decltype(auto) operator()(CallArgs&&... call_args) const {
+    return std::apply(
+        fn_,
+        std::tuple_cat(bound_,
+                       std::forward_as_tuple(std::forward<CallArgs>(call_args)...)));
+  }
+
+ private:
+  F fn_;
+  std::tuple<BoundArgs...> bound_;
+};
+
+template <typename F, typename... Args>
+[[nodiscard]] constexpr auto bind_front(F&& f, Args&&... args) {
+  return bind_front_t<std::decay_t<F>, std::decay_t<Args>...>{
+      std::forward<F>(f), std::forward<Args>(args)...};
 }
 
 } // namespace magic_enum
