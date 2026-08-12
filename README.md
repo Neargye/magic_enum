@@ -34,6 +34,9 @@ Header-only C++17 library provides static reflection for enums, work with any en
   }
   ```
 
+  Installed packages also provide a compatibility shim so older code can keep using
+  `#include <magic_enum.hpp>`. Prefer `#include <magic_enum/magic_enum.hpp>` in new code.
+
 * Enum value to string
 
   ```cpp
