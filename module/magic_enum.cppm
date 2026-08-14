@@ -125,9 +125,13 @@ namespace bitwise_operators {
   using bitwise_operators::operator|;
   using bitwise_operators::operator&;
   using bitwise_operators::operator^;
+  using bitwise_operators::operator<<;
+  using bitwise_operators::operator>>;
   using bitwise_operators::operator|=;
   using bitwise_operators::operator&=;
   using bitwise_operators::operator^=;
+  using bitwise_operators::operator<<=;
+  using bitwise_operators::operator>>=;
 }
 
 #ifndef MAGIC_ENUM_USING_ALIAS_STRING
