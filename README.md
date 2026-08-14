@@ -235,7 +235,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   ```cpp
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
   using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
-  // Support operators: ~, |, &, ^, |=, &=, ^=.
+  // Support operators: ~, |, &, ^, <<, >>, |=, &=, ^=, <<=, >>=.
   Flags flags = Flags::A | (Flags::B & ~Flags::C);
   ```
 
