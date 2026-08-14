@@ -92,7 +92,7 @@ int main() {
   // AnimalFlags values: HasClaws CanFly EatsFish Endangered
 
   using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
-  // Support operators: ~, |, &, ^, |=, &=, ^=.
+  // Support operators: ~, |, &, ^, <<, >>, |=, &=, ^=, <<=, >>=.
   AnimalFlags flag = AnimalFlags::HasClaws | AnimalFlags::CanFly;
   std::cout << flag << std::endl; // HasClaws|CanFly
 
