@@ -48,6 +48,8 @@ using magic_enum::enum_cast;
 using magic_enum::enum_constant;
 using magic_enum::enum_contains;
 using magic_enum::enum_count;
+using magic_enum::enum_max;
+using magic_enum::enum_min;
 using magic_enum::enum_entries;
 using magic_enum::enum_flags_cast;
 using magic_enum::enum_flags_contains;
