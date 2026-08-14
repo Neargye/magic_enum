@@ -979,6 +979,49 @@ TEST_CASE("bitwise_operators") {
     x4 ^= number::two;
     REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
   }
+
+  SUBCASE("operator<<") {
+    REQUIRE((1 << Numbers::one) == (1 << enum_integer(Numbers::one)));
+    REQUIRE((1 << Numbers::two) == (1 << enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Numbers::one << 1) == (enum_integer(Numbers::one) << 1));
+    REQUIRE(enum_integer(Numbers::two << 1) == (enum_integer(Numbers::two) << 1));
+    REQUIRE(enum_integer(Numbers::one << Numbers::one) == (enum_integer(Numbers::one) << enum_integer(Numbers::one)));
+  }
+
+  SUBCASE("operator>>") {
+    REQUIRE((8 >> Numbers::one) == (8 >> enum_integer(Numbers::one)));
+    REQUIRE((8 >> Numbers::two) == (8 >> enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Numbers::many >> 1) == (enum_integer(Numbers::many) >> 1));
+    REQUIRE(enum_integer(Numbers::many >> Numbers::one) == (enum_integer(Numbers::many) >> enum_integer(Numbers::one)));
+  }
+
+  SUBCASE("operator<<=") {
+    int i = 1;
+    i <<= Numbers::two;
+    REQUIRE(i == (1 << enum_integer(Numbers::two)));
+
+    Numbers n = Numbers::one;
+    n <<= 2;
+    REQUIRE(enum_integer(n) == (enum_integer(Numbers::one) << 2));
+
+    Numbers m = Numbers::one;
+    m <<= Numbers::one;
+    REQUIRE(enum_integer(m) == (enum_integer(Numbers::one) << enum_integer(Numbers::one)));
+  }
+
+  SUBCASE("operator>>=") {
+    int i = 8;
+    i >>= Numbers::one;
+    REQUIRE(i == (8 >> enum_integer(Numbers::one)));
+
+    Numbers n = Numbers::many;
+    n >>= 1;
+    REQUIRE(enum_integer(n) == (enum_integer(Numbers::many) >> 1));
+
+    Numbers m = Numbers::many;
+    m >>= Numbers::one;
+    REQUIRE(enum_integer(m) == (enum_integer(Numbers::many) >> enum_integer(Numbers::one)));
+  }
 }
 
 TEST_CASE("type_traits") {
@@ -1313,6 +1356,19 @@ TEST_CASE("enum_for_each") {
                                       enum_constant<Color::GREEN>,
                                       enum_constant<Color::BLUE>>>);
   }
+}
+
+TEST_CASE("bind_front") {
+  auto add = [](int a, int b, int c) { return a + b + c; };
+  auto add_ab = magic_enum::bind_front(add, 1, 2);
+  REQUIRE(add_ab(3) == 6);
+
+  enum class Shape { Circle, Square };
+  auto describe = [](Shape s, std::string_view prefix) {
+    return std::string(prefix) + magic_enum::enum_name(s).data();
+  };
+  auto describe_circle = magic_enum::bind_front(describe, Shape::Circle);
+  REQUIRE(describe_circle("shape: ") == "shape: Circle");
 }
 
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
