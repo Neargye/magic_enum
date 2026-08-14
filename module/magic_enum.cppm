@@ -159,6 +159,8 @@ using magic_enum::enum_cast;
 using magic_enum::enum_value;
 using magic_enum::enum_values;
 using magic_enum::enum_count;
+using magic_enum::enum_min;
+using magic_enum::enum_max;
 using magic_enum::enum_integer;
 using magic_enum::enum_underlying;
 using magic_enum::enum_names;
