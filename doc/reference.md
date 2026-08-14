@@ -4,6 +4,7 @@
 * [`enum_value` returns enum value at specified index.](#enum_value)
 * [`enum_values` returns enum value sequence.](#enum_values)
 * [`enum_count` returns number of enum values.](#enum_count)
+* [`enum_min` and `enum_max` return min/max reflected enum values.](#enum_min-and-enum_max)
 * [`enum_integer` and `enum_underlying` return underlying enum value.](#enum_integer-and-enum_underlying)
 * [`enum_name` returns name from enum value.](#enum_name)
 * [`enum_names` returns enum name sequence.](#enum_names)
@@ -179,6 +180,31 @@ constexpr size_t enum_count() noexcept;
   ```cpp
   constexpr auto color_count = magic_enum::enum_count<Color>();
   // color_count -> 3
+  ```
+
+## `enum_min` and `enum_max`
+
+```cpp
+template <typename E>
+constexpr E enum_min() noexcept;
+
+template <typename E>
+constexpr E enum_max() noexcept;
+```
+
+* Defined in header `<magic_enum/magic_enum.hpp>`
+
+* Returns the minimum or maximum reflected enum value (first/last in `enum_values<E>()` order).
+* Optional subtype parameter (e.g. `as_flags<>` / `as_common<>`) matches other reflection APIs.
+* Underlying integer is available via `enum_underlying(enum_min<E>())` / `enum_underlying(enum_max<E>())`.
+
+* Examples
+
+  ```cpp
+  constexpr auto color_min = magic_enum::enum_min<Color>();
+  // color_min -> Color::RED
+  constexpr auto color_max = magic_enum::enum_max<Color>();
+  // color_max -> Color::BLUE
   ```
 
 ## `enum_integer` and `enum_underlying`
