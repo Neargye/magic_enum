@@ -1301,6 +1301,24 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::values_v<D, S>;
 }
 
+// Returns the minimum (first) reflected enum value.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_min() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_min requires at least one reflected enum value.");
+
+  return detail::values_v<D, S>.front();
+}
+
+// Returns the maximum (last) reflected enum value.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
+[[nodiscard]] constexpr auto enum_max() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
+  using D = std::decay_t<E>;
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_max requires at least one reflected enum value.");
+
+  return detail::values_v<D, S>.back();
+}
+
 // Returns integer value from enum value.
 template <typename E>
 [[nodiscard]] constexpr auto enum_integer(E value) noexcept -> underlying_type_t<E> {
