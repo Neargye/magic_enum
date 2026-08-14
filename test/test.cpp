@@ -516,6 +516,54 @@ TEST_CASE("enum_values") {
 
 }
 
+TEST_CASE("enum_min") {
+  constexpr auto s1 = enum_min<Color&>();
+  REQUIRE(s1 == Color::RED);
+  REQUIRE(std::is_same_v<decltype(s1), Color>);
+
+  constexpr auto s2 = enum_min<Numbers>();
+  REQUIRE(s2 == Numbers::one);
+
+  constexpr auto s3 = enum_min<const Directions>();
+  REQUIRE(s3 == Left);
+
+  constexpr auto s4 = enum_min<number>();
+  REQUIRE(s4 == number::one);
+
+  constexpr auto s5 = enum_min<Binary>();
+  REQUIRE(s5 == Binary::ONE);
+
+  constexpr auto s6 = enum_min<MaxUsedAsInvalid>();
+  REQUIRE(s6 == MaxUsedAsInvalid::ONE);
+
+  REQUIRE(enum_underlying(enum_min<Color>()) == magic_enum::detail::min_v<Color, as_common<>>);
+  REQUIRE(enum_min<Color, as_common<>>() == Color::RED);
+}
+
+TEST_CASE("enum_max") {
+  constexpr auto s1 = enum_max<Color&>();
+  REQUIRE(s1 == Color::BLUE);
+  REQUIRE(std::is_same_v<decltype(s1), Color>);
+
+  constexpr auto s2 = enum_max<Numbers>();
+  REQUIRE(s2 == Numbers::three);
+
+  constexpr auto s3 = enum_max<const Directions>();
+  REQUIRE(s3 == Right);
+
+  constexpr auto s4 = enum_max<number>();
+  REQUIRE(s4 == number::three);
+
+  constexpr auto s5 = enum_max<Binary>();
+  REQUIRE(s5 == Binary::TWO);
+
+  constexpr auto s6 = enum_max<MaxUsedAsInvalid>();
+  REQUIRE(s6 == MaxUsedAsInvalid::TWO);
+
+  REQUIRE(enum_underlying(enum_max<Color>()) == magic_enum::detail::max_v<Color, as_common<>>);
+  REQUIRE(enum_max<Color, as_common<>>() == Color::BLUE);
+}
+
 TEST_CASE("enum_count") {
   constexpr auto s1 = enum_count<Color&>();
   REQUIRE(s1 == 3);
