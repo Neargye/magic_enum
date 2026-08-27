@@ -24,19 +24,17 @@ struct MyOpt {
 };
 
 struct MyString {
-  using value_type = char; // required
-  static constexpr auto npos = std::string_view::npos; // required
+  using value_type = char;
 
-  MyString() : str{} {} // required
-  MyString(const char* s, std::size_t l) : str{s, l} {} // required
-  bool empty() const { return str.empty(); } // required
-  auto begin() const { return str.begin(); } // required
-  auto end() const { return str.end(); } // required
-  void append(std::size_t count, char c) { str.append(count, c); } // required
-  void append(const char* s, std::size_t size) { str.append(s, size); } // required
-
+  MyString() = default;
+  MyString(const MyString&) = delete;
+  MyString(MyString&&) = default;
+  bool empty() const { return str.empty(); }
   std::size_t size() const { return str.size(); }
-  int compare(const char* s) const { return str.compare(s); }
+  const char* data() const { return str.data(); }
+  void reserve(std::size_t size) { str.reserve(size); }
+  void append(std::size_t count, char c) { str.append(count, c); }
+  void append(const char* s, std::size_t size) { str.append(s, size); }
 
  private:
   std::string str;
@@ -49,6 +47,8 @@ struct MyStringView {
 
   constexpr MyStringView() : str{} {} // required
   constexpr MyStringView(const char* cstr, std::size_t size) : str{cstr, size} {} // required
+  constexpr MyStringView(const MyStringView&) = default;
+  constexpr MyStringView& operator=(const MyStringView&) = delete;
   constexpr bool empty() const { return str.empty(); } // required
   constexpr std::size_t size() const { return str.size(); } // required
   constexpr const char* data() const { return str.data(); } // required

@@ -26,6 +26,20 @@ struct magic_enum::customize::enum_range<Color> {
   static constexpr bool is_flags = true;
 };
 
+enum class InvalidFlagsSetting { Value };
+template <>
+struct magic_enum::customize::enum_range<InvalidFlagsSetting> {
+  static constexpr int is_flags = 1;
+};
+
+static_assert(!magic_enum::is_flags_v<InvalidFlagsSetting&>);
+
+enum class BoolFlags : bool { Disabled = false, Enabled = true };
+template <>
+struct magic_enum::customize::enum_range<BoolFlags> {
+  static constexpr bool is_flags = true;
+};
+
 namespace Namespace {
     enum class Numbers : int {
         none = 0,
@@ -109,15 +123,54 @@ struct LvalueOnlyPredicate {
 
 TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<Color>(Color::RED));
+  REQUIRE(enum_reflected<as_flags<>>(Color::RED));
   REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
   REQUIRE(enum_reflected<Directions>(Directions::Left));
   REQUIRE(enum_reflected<Directions>(Directions::Right));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{1} << 62));
+#else
   REQUIRE(enum_reflected<Directions>(std::uint64_t{1} << 62));
+#endif
   REQUIRE_FALSE(enum_reflected<Directions>(Directions::NoDirection));
   REQUIRE_FALSE(enum_reflected<Directions>(Directions::Left | Directions::Down));
   REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{3}));
+  REQUIRE_FALSE(enum_reflected(BoolFlags::Disabled));
+  REQUIRE(enum_reflected(BoolFlags::Enabled));
+  REQUIRE(enum_reflected<BoolFlags, as_common<>>(BoolFlags::Disabled));
+  REQUIRE(enum_reflected<BoolFlags, as_common<>>(BoolFlags::Enabled));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_reflected<Directions, as_common<>>(Directions::Left));
+#else
   REQUIRE_FALSE(enum_reflected<Directions, as_common<>>(Directions::Left));
+#endif
   REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
+}
+
+TEST_CASE("bool flags use the sole non-zero bit") {
+  constexpr auto enabled_name = string_view{"Enabled"};
+  constexpr auto common_values = enum_values<BoolFlags, as_common<>>();
+  static_assert(common_values.size() == 2);
+  static_assert(common_values[0] == BoolFlags::Disabled);
+  static_assert(common_values[1] == BoolFlags::Enabled);
+  constexpr auto flag_values = enum_values<BoolFlags>();
+  static_assert(flag_values.size() == 1);
+  static_assert(flag_values[0] == BoolFlags::Enabled);
+  CHECK(enum_flags_name(BoolFlags::Disabled).empty());
+  CHECK(enum_flags_name(BoolFlags::Enabled) == "Enabled");
+  static_assert(!enum_flags_cast<BoolFlags>(false).has_value());
+  static_assert(enum_flags_cast<BoolFlags>(true) == BoolFlags::Enabled);
+  static_assert(enum_flags_cast<BoolFlags>(enabled_name) == BoolFlags::Enabled);
+  static_assert(!enum_flags_cast<BoolFlags>(string_view{"Disabled"}).has_value());
+  static_assert(enum_cast<BoolFlags, as_common<>>(string_view{"Disabled"}) == BoolFlags::Disabled);
+  static_assert(enum_cast<BoolFlags, as_common<>>(string_view{"Enabled"}) == BoolFlags::Enabled);
+  static_assert(enum_contains<BoolFlags, as_common<>>(string_view{"Disabled"}));
+  static_assert(enum_flags_contains<BoolFlags>(enabled_name));
+  static_assert(!enum_flags_contains<BoolFlags>(string_view{"Disabled"}));
+  static_assert(enum_flags_test(BoolFlags::Enabled, BoolFlags::Enabled));
+  static_assert(!enum_flags_test(BoolFlags::Disabled, BoolFlags::Enabled));
+  static_assert(enum_flags_test_any(BoolFlags::Enabled, BoolFlags::Enabled));
+  static_assert(!enum_flags_test_any(BoolFlags::Disabled, BoolFlags::Enabled));
 }
 
 TEST_CASE("enum_cast") {
@@ -233,6 +286,7 @@ TEST_CASE("enum_index") {
   constexpr auto cr = enum_index(Color::RED);
   Color cg = Color::GREEN;
   REQUIRE(cr.value() == 0);
+  REQUIRE(enum_index<as_flags<>>(Color::GREEN).value() == 1);
   REQUIRE(enum_index<Color&>(cg).value() == 1);
   REQUIRE(enum_index(cm[2]).value() == 2);
   REQUIRE_FALSE(enum_index<Color>(Color::RED | Color::GREEN).has_value());
@@ -270,6 +324,7 @@ TEST_CASE("enum_contains") {
     constexpr auto cr = enum_contains(Color::RED);
     Color cg = Color::GREEN;
     REQUIRE(cr);
+    REQUIRE(enum_contains<as_flags<>>(Color::GREEN));
     REQUIRE(enum_contains<Color&>(cg));
     REQUIRE(enum_contains(cm[2]));
     REQUIRE_FALSE(enum_contains(static_cast<Color>(0)));
@@ -479,6 +534,7 @@ TEST_CASE("enum_name") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
     Color cb = Color::BLUE;
     REQUIRE(cr_name == "RED");
+    REQUIRE(enum_name<as_flags<>>(Color::GREEN) == "GREEN");
     REQUIRE(enum_name<Color&>(cb) == "BLUE");
     REQUIRE(enum_name(cm[1]) == "GREEN");
     REQUIRE(enum_name(Color::RED | Color{0}) == "RED");
@@ -797,7 +853,13 @@ TEST_CASE("bitwise_operators") {
 }
 
 TEST_CASE("type_traits") {
+  static_assert(!detail::is_reflected_v<int, detail::enum_subtype::common>);
+  static_assert(detail::subtype_v<Color> == detail::enum_subtype::flags);
+  static_assert(detail::subtype_v<const Color&> == detail::enum_subtype::flags);
+  static_assert(detail::subtype_v<Numbers> == detail::enum_subtype::flags);
   REQUIRE(is_flags_enum<Color>::value);
+  REQUIRE(is_flags_v<const Color>);
+  REQUIRE_FALSE(is_flags_v<Color&>);
   REQUIRE(is_flags_v<Numbers>);
   REQUIRE(is_flags_v<Directions>);
   REQUIRE(is_flags_v<number>);

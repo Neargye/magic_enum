@@ -28,9 +28,6 @@ set(MAGIC_ENUM_EXAMPLES
     example_custom_name
     example_switch
 )
-if(MAGIC_ENUM_OPT_ENABLE_NONASCII)
-  list(APPEND MAGIC_ENUM_EXAMPLES example_nonascii_name)
-endif()
 
 foreach(MAGIC_ENUM_EXAMPLE IN LISTS MAGIC_ENUM_EXAMPLES)
   magic_enum_add_example(${MAGIC_ENUM_EXAMPLE} magic_enum::magic_enum 17)

@@ -37,6 +37,7 @@
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <initializer_list>
+#  include <ios>
 #  include <iterator>
 #endif
 

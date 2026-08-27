@@ -15,7 +15,8 @@
 #include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
-#if defined(MAGIC_ENUM_CALLING_CONVENTION) || defined(MAGIC_ENUM_VS_2017_WORKAROUND) || defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
+#if defined(MAGIC_ENUM_CALLING_CONVENTION) || defined(MAGIC_ENUM_VS_2017_WORKAROUND) || defined(MAGIC_ENUM_ARRAY_CONSTEXPR) || \
+    defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 #  error Internal macro leaked from magic_enum.hpp.
 #endif
 
@@ -27,6 +28,17 @@
 #include <string_view>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
+enum class DenseNegative { MinusTwo = -2, MinusOne = -1, Zero = 0 };
+
+namespace hostile_enum_comparison {
+
+enum class Value { First = 1, Second = 4 };
+
+constexpr bool operator==(Value, Value) = delete;
+constexpr bool operator!=(Value, Value) = delete;
+
+} // namespace hostile_enum_comparison
+
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Color>(Color value) noexcept {
   switch (value) {
@@ -80,6 +92,18 @@ enum class hash_case_collision {
   EII1mjfIgJ,
   E7DvAyiJL6
 };
+
+enum class duplicate_custom_name { first, second };
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<duplicate_custom_name>(duplicate_custom_name value) noexcept {
+  switch (value) {
+    case duplicate_custom_name::first:
+    case duplicate_custom_name::second:
+      return "same";
+    default:
+      return default_tag;
+  }
+}
 
 enum class MaxUsedAsInvalid : std::uint8_t {
   ONE,
@@ -190,7 +214,11 @@ TEST_CASE("enum_cast") {
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(enum_cast<Numbers>("two").value() == Numbers::two);
     REQUIRE(enum_cast<Numbers>("three").value() == Numbers::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_cast<Numbers>("many") == Numbers::many);
+#else
     REQUIRE_FALSE(enum_cast<Numbers>("many").has_value());
+#endif
     REQUIRE_FALSE(enum_cast<Numbers>("None").has_value());
 
     constexpr auto dr = enum_cast<Directions>("Right");
@@ -210,7 +238,11 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<number>("one").value() == number::one);
     REQUIRE(enum_cast<number>("two").value() == number::two);
     REQUIRE(nt.value() == number::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_cast<number>("four") == number::four);
+#else
     REQUIRE_FALSE(enum_cast<number>("four").has_value());
+#endif
     REQUIRE_FALSE(enum_cast<number>("None").has_value());
 
     REQUIRE(enum_cast<crc_hack>("b5a7b602ab754d7ab30fb42c4fb28d82").has_value());
@@ -221,8 +253,10 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
     REQUIRE(enum_cast<hash_case_collision>("EII1mjfIgJ") == hash_case_collision::EII1mjfIgJ);
     REQUIRE(enum_cast<hash_case_collision>("E7DvAyiJL6") == hash_case_collision::E7DvAyiJL6);
+    REQUIRE(enum_cast<duplicate_custom_name>("same") == duplicate_custom_name::first);
 
-    REQUIRE(enum_cast<BoolTest>("Nay").has_value());
+    constexpr auto bool_name = string_view{"Yay"};
+    static_assert(enum_cast<BoolTest>(bool_name) == BoolTest::Yay);
   }
 
   SUBCASE("integer") {
@@ -237,7 +271,11 @@ TEST_CASE("enum_cast") {
     REQUIRE(no.value() == Numbers::one);
     REQUIRE(enum_cast<Numbers>(2).value() == Numbers::two);
     REQUIRE(enum_cast<Numbers>(3).value() == Numbers::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_cast<Numbers>(127) == Numbers::many);
+#else
     REQUIRE_FALSE(enum_cast<Numbers>(127).has_value());
+#endif
     REQUIRE_FALSE(enum_cast<Numbers>(0).has_value());
 
     constexpr auto dr = enum_cast<Directions>(120);
@@ -246,16 +284,28 @@ TEST_CASE("enum_cast") {
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>(-120).value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>(0).has_value());
+#if defined(MAGIC_ENUM_ENABLE_HASH)
+    using DirectionsUnderlying = magic_enum::underlying_type_t<Directions>;
+    static_assert(!enum_cast<Directions>((std::numeric_limits<DirectionsUnderlying>::max)()).has_value());
+#endif
 
     constexpr auto nt = enum_cast<number>(300);
     REQUIRE(enum_cast<number>(100).value() == number::one);
     REQUIRE(enum_cast<number>(200).value() == number::two);
     REQUIRE(nt.value() == number::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_cast<number>(400) == number::four);
+#else
     REQUIRE_FALSE(enum_cast<number>(400).has_value());
+#endif
     REQUIRE_FALSE(enum_cast<number>(0).has_value());
 
     REQUIRE(enum_cast<BoolTest>(false).has_value());
     REQUIRE(enum_cast<BoolTest>(0).has_value());
+
+    constexpr auto hostile = enum_cast<hostile_enum_comparison::Value>(4);
+    REQUIRE(hostile.has_value());
+    REQUIRE(enum_integer(*hostile) == 4);
   }
 }
 
@@ -263,6 +313,10 @@ TEST_CASE("enum_integer") {
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
   constexpr auto cr = enum_integer(Color::RED);
   constexpr auto cr_underlying = enum_underlying(Color::RED);
+  static_assert(std::is_same_v<decltype(enum_integer(Color::RED)), int>);
+  static_assert(std::is_same_v<decltype(enum_underlying(Color::RED)), int>);
+  static_assert(noexcept(enum_integer(Color::RED)));
+  static_assert(noexcept(enum_underlying(Color::RED)));
   Color cg = Color::GREEN;
   REQUIRE(cr == -12);
   REQUIRE(cr_underlying == -12);
@@ -313,7 +367,11 @@ TEST_CASE("enum_index") {
   REQUIRE(enum_index<Numbers::one>() == 0);
   REQUIRE(enum_index(Numbers::two).value() == 1);
   REQUIRE(enum_index(Numbers::three).value() == 2);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_index(Numbers::many).value() == 3);
+#else
   REQUIRE_FALSE(enum_index(Numbers::many).has_value());
+#endif
   REQUIRE_FALSE(enum_index(static_cast<Numbers>(0)).has_value());
 
   constexpr auto dr = enum_index(Directions::Right);
@@ -330,10 +388,17 @@ TEST_CASE("enum_index") {
   REQUIRE(enum_index(number::one).value() == 0);
   REQUIRE(enum_index(number::two).value() == 1);
   REQUIRE(nt.value() == 2);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_index(number::four).value() == 3);
+#else
   REQUIRE_FALSE(enum_index(number::four).has_value());
+#endif
   REQUIRE_FALSE(enum_index(static_cast<number>(0)).has_value());
 
   REQUIRE(enum_index<BoolTest::Yay>() == 0);
+
+  constexpr auto hostile = enum_index(hostile_enum_comparison::Value::Second);
+  REQUIRE(hostile.value() == 1);
 }
 
 TEST_CASE("enum_contains") {
@@ -350,7 +415,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(no);
     REQUIRE(enum_contains(Numbers::two));
     REQUIRE(enum_contains(Numbers::three));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains(Numbers::many));
+#else
     REQUIRE_FALSE(enum_contains(Numbers::many));
+#endif
     REQUIRE_FALSE(enum_contains(static_cast<Numbers>(0)));
 
     constexpr auto dr = enum_contains(Directions::Right);
@@ -365,7 +434,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains(number::one));
     REQUIRE(enum_contains<number&>(number::two));
     REQUIRE(nt);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains(number::four));
+#else
     REQUIRE_FALSE(enum_contains(number::four));
+#endif
     REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
 
     REQUIRE(enum_contains(BoolTest::Yay));
@@ -383,7 +456,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Numbers>(no));
     REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::two)));
     REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::three)));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains<Numbers>(enum_integer(Numbers::many)));
+#else
     REQUIRE_FALSE(enum_contains<Numbers>(enum_integer(Numbers::many)));
+#endif
 
     constexpr auto dr = enum_integer(Directions::Right);
     REQUIRE(enum_contains<Directions&>(dr));
@@ -398,7 +475,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number>(300));
     REQUIRE(enum_contains<number>(number::two));
     REQUIRE(nt);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains<number>(number::four));
+#else
     REQUIRE_FALSE(enum_contains<number>(number::four));
+#endif
     REQUIRE_FALSE(enum_contains<number>(111));
     REQUIRE_FALSE(enum_contains<number>(0));
 
@@ -417,7 +498,11 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<Numbers>(no));
     REQUIRE(enum_contains<Numbers>("two"));
     REQUIRE(enum_contains<Numbers>("three"));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains<Numbers>("many"));
+#else
     REQUIRE_FALSE(enum_contains<Numbers>("many"));
+#endif
     REQUIRE_FALSE(enum_contains<Numbers>("None"));
 
     auto dr = std::string{"Right"};
@@ -437,14 +522,25 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<number>("one"));
     REQUIRE(enum_contains<number>("two"));
     REQUIRE(nt);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_contains<number>("four"));
+#else
     REQUIRE_FALSE(enum_contains<number>("four"));
+#endif
     REQUIRE_FALSE(enum_contains<number>("None"));
 
-    REQUIRE(enum_contains<BoolTest>("Yay"));
+    REQUIRE(enum_contains<BoolTest>(string_view{"Yay"}));
   }
 }
 
 TEST_CASE("enum_value") {
+  REQUIRE(enum_value<DenseNegative>(0) == DenseNegative::MinusTwo);
+  REQUIRE(enum_value<DenseNegative>(1) == DenseNegative::MinusOne);
+  REQUIRE(enum_value<DenseNegative>(2) == DenseNegative::Zero);
+  REQUIRE(enum_value<DenseNegative, 0>() == DenseNegative::MinusTwo);
+  REQUIRE(enum_value<DenseNegative, 1>() == DenseNegative::MinusOne);
+  REQUIRE(enum_value<DenseNegative, 2>() == DenseNegative::Zero);
+
   constexpr auto cr = enum_value<Color>(0);
   REQUIRE(cr == Color::RED);
   REQUIRE(enum_value<Color&>(1) == Color::GREEN);
@@ -462,6 +558,9 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<Numbers, 0>() == Numbers::one);
   REQUIRE(enum_value<Numbers, 1>() == Numbers::two);
   REQUIRE(enum_value<Numbers, 2>() == Numbers::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_value<Numbers, 3>() == Numbers::many);
+#endif
 
   constexpr auto dr = enum_value<Directions>(3);
   REQUIRE(enum_value<Directions&>(0) == Directions::Left);
@@ -482,6 +581,9 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<number, 0>() == number::one);
   REQUIRE(enum_value<number, 1>() == number::two);
   REQUIRE(enum_value<number, 2>() == number::three);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_value<number, 3>() == number::four);
+#endif
 
   REQUIRE(enum_value<BoolTest>(0) == BoolTest::Yay);
   REQUIRE(enum_value<BoolTest, 0>() == BoolTest::Yay);
@@ -494,19 +596,31 @@ TEST_CASE("enum_values") {
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
   constexpr auto& s2 = enum_values<Numbers>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s2 == std::array<Numbers, 4>{{Numbers::one, Numbers::two, Numbers::three, Numbers::many}});
+#else
   REQUIRE(s2 == std::array<Numbers, 3>{{Numbers::one, Numbers::two, Numbers::three}});
+#endif
 
   constexpr auto& s3 = enum_values<const Directions>();
   REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
   constexpr auto& s4 = enum_values<number>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s4 == std::array<number, 4>{{number::one, number::two, number::three, number::four}});
+#else
   REQUIRE(s4 == std::array<number, 3>{{number::one, number::two, number::three}});
+#endif
 
   constexpr auto& s5 = enum_values<Binary>();
   REQUIRE(s5 == std::array<Binary, 2>{{Binary::ONE, Binary::TWO}});
 
   constexpr auto& s6 = enum_values<MaxUsedAsInvalid>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s6 == std::array<MaxUsedAsInvalid, 3>{{MaxUsedAsInvalid::ONE, MaxUsedAsInvalid::TWO, MaxUsedAsInvalid::INVALID}});
+#else
   REQUIRE(s6 == std::array<MaxUsedAsInvalid, 2>{{MaxUsedAsInvalid::ONE, MaxUsedAsInvalid::TWO}});
+#endif
 
   constexpr auto& s7 = enum_values<Dimension>();
   REQUIRE(s7 == std::array<Dimension, 3>{{Dimension::Overworld, Dimension::Nether, Dimension::TheEnd}});
@@ -521,19 +635,31 @@ TEST_CASE("enum_count") {
   REQUIRE(s1 == 3);
 
   constexpr auto s2 = enum_count<Numbers>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s2 == 4);
+#else
   REQUIRE(s2 == 3);
+#endif
 
   constexpr auto s3 = enum_count<const Directions>();
   REQUIRE(s3 == 4);
 
   constexpr auto s4 = enum_count<number>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s4 == 4);
+#else
   REQUIRE(s4 == 3);
+#endif
 
   constexpr auto s5 = enum_count<Binary>();
   REQUIRE(s5 == 2);
 
   constexpr auto s6 = enum_count<MaxUsedAsInvalid>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s6 == 3);
+#else
   REQUIRE(s6 == 2);
+#endif
 
 #if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
   REQUIRE(enum_count<TemplatedValue>() == 2);
@@ -623,7 +749,11 @@ TEST_CASE("enum_name") {
     REQUIRE(no_name == "one");
     REQUIRE(enum_name<Numbers, as_flags<false>>(Numbers::two) == "two");
     REQUIRE(enum_name<as_flags<false>, Numbers>(Numbers::three) == "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_name(Numbers::many) == "many");
+#else
     REQUIRE(enum_name(Numbers::many).empty());
+#endif
     REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
 
     constexpr Directions dr = Directions::Right;
@@ -640,7 +770,11 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(number::one) == "one");
     REQUIRE(enum_name(number::two) == "two");
     REQUIRE(nt_name == "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(enum_name(number::four) == "four");
+#else
     REQUIRE(enum_name(number::four).empty());
+#endif
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
@@ -746,11 +880,15 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
   }
 
-  SUBCASE("empty if the value is out of range") {
+  SUBCASE("declared values outside the compiler-specific range") {
     const auto ln_value = GENERATE(LargeNumbers::First, LargeNumbers::Second);
     const auto ln_name = enum_name(ln_value);
 
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(ln_name == (ln_value == LargeNumbers::First ? "First" : "Second"));
+#else
     REQUIRE(ln_name.empty());
+#endif
   }
 }
 
@@ -761,13 +899,21 @@ TEST_CASE("enum_names") {
   REQUIRE(s1 == std::array<std::string_view, 3>{{"red", "GREEN", "BLUE"}});
 
   constexpr auto& s2 = enum_names<Numbers>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s2 == std::array<std::string_view, 4>{{"one", "two", "three", "many"}});
+#else
   REQUIRE(s2 == std::array<std::string_view, 3>{{"one", "two", "three"}});
+#endif
 
   constexpr auto& s3 = enum_names<const Directions>();
   REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
 
   constexpr auto& s4 = enum_names<number>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s4 == std::array<std::string_view, 4>{{"one", "two", "three", "four"}});
+#else
   REQUIRE(s4 == std::array<std::string_view, 3>{{"one", "two", "three"}});
+#endif
 }
 
 TEST_CASE("enum_entries") {
@@ -777,13 +923,21 @@ TEST_CASE("enum_entries") {
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "red"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
   constexpr auto& s2 = enum_entries<Numbers>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 4>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}, {Numbers::many, "many"}}});
+#else
   REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 3>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}}});
+#endif
 
   constexpr auto& s3 = enum_entries<Directions&>();
   REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
 
   constexpr auto& s4 = enum_entries<number>();
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 4>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}, {number::four, "four"}}});
+#else
   REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 3>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}}});
+#endif
 
 #if defined(__cpp_generic_lambdas) && __cpp_generic_lambdas >= 201707L
   constexpr auto check_entries = []<std::size_t... J>(std::index_sequence<J...>) {
@@ -861,7 +1015,11 @@ TEST_CASE("ostream_operators") {
   require_ostream(std::make_optional(Numbers::one), "one");
   require_ostream(Numbers::two, "two");
   require_ostream(Numbers::three, "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  require_ostream(Numbers::many, "many");
+#else
   require_ostream(Numbers::many, "127");
+#endif
   require_ostream(static_cast<Numbers>(0), "0");
   require_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
 
@@ -875,7 +1033,11 @@ TEST_CASE("ostream_operators") {
   require_ostream(std::make_optional(number::one), "one");
   require_ostream(number::two, "two");
   require_ostream(number::three, "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  require_ostream(number::four, "four");
+#else
   require_ostream(number::four, "400");
+#endif
   require_ostream(static_cast<number>(0), "0");
   require_ostream(std::make_optional(static_cast<number>(0)), "0");
 }
@@ -985,20 +1147,32 @@ TEST_CASE("type_traits") {
   REQUIRE(std::is_same_v<Enum<Color>, Color>);
   REQUIRE(std::is_same_v<underlying_type_t<const Color&>, int>);
   REQUIRE(std::is_same_v<underlying_type<Directions>::type, std::underlying_type_t<Directions>>);
+  static_assert(detail::subtype_v<int> == detail::enum_subtype::common);
+  static_assert(detail::subtype_v<Color> == detail::enum_subtype::common);
+  static_assert(detail::subtype_v<const Color&> == detail::enum_subtype::common);
 
   REQUIRE_FALSE(is_unscoped_enum_v<Color>);
+  REQUIRE_FALSE(is_unscoped_enum_v<const Color>);
+  REQUIRE_FALSE(is_unscoped_enum_v<Color&>);
   REQUIRE_FALSE(is_unscoped_enum_v<Numbers>);
   REQUIRE(is_unscoped_enum_v<Directions>);
+  REQUIRE(is_unscoped_enum_v<const Directions>);
+  REQUIRE_FALSE(is_unscoped_enum_v<Directions&>);
   REQUIRE(is_unscoped_enum_v<number>);
+  REQUIRE_FALSE(is_unscoped_enum_v<int>);
 
   REQUIRE(is_scoped_enum_v<Color>);
+  REQUIRE(is_scoped_enum_v<const Color>);
+  REQUIRE_FALSE(is_scoped_enum_v<Color&>);
   REQUIRE(is_scoped_enum_v<Numbers>);
   REQUIRE_FALSE(is_scoped_enum_v<Directions>);
   REQUIRE_FALSE(is_scoped_enum_v<number>);
+  REQUIRE_FALSE(is_scoped_enum_v<int>);
 
   REQUIRE_FALSE(is_flags_enum<Color>::value);
   REQUIRE_FALSE(is_flags_v<Numbers>);
   REQUIRE_FALSE(is_flags_v<Directions>);
+  REQUIRE_FALSE(is_flags_v<int>);
 }
 
 TEST_CASE("enum_switch") {
@@ -1011,6 +1185,10 @@ TEST_CASE("enum_switch") {
     REQUIRE(enum_switch<int>([](auto val) {
       return enum_integer(val());
     }, Color::GREEN) == 7);
+
+    REQUIRE(enum_switch<int>([](auto val) {
+      return enum_integer(val());
+    }, hostile_enum_comparison::Value::Second) == 4);
   }
 
   SUBCASE("partial invocable falls back to default result") {
@@ -1075,7 +1253,11 @@ TEST_CASE("enum_type_name") {
 
 #if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
 TEST_CASE("aliases") {
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_count<number>() == 4);
+#else
   REQUIRE(enum_count<number>() == 3);
+#endif
 
   REQUIRE(enum_name(number::one) == enum_name(number::_1));
   REQUIRE(enum_name(number::two) == enum_name(number::_2));
@@ -1099,17 +1281,24 @@ TEST_CASE("extrema") {
     RED,
     GREEN,
     YELLOW,
-    // The value NONE is ignored (out of range).
+    // The value NONE is ignored by compiler-specific range probing.
     // However, it affects the value of min_v. When reflected_min_v was incorrect,
     // the presence of NONE caused miv_v to be equal to -1, which was then cast to unsigned,
     // leading to a value of 18446744073709551615 (numeric_limit_max of uint64_t).
     NONE = std::numeric_limits<std::uint64_t>::max()
   };
 
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(magic_enum::enum_name<BadColor>(BadColor::NONE) == "NONE");
+  REQUIRE(enum_cast<BadColor>(std::numeric_limits<std::uint64_t>::max()) == BadColor::NONE);
+  REQUIRE(magic_enum::enum_contains<BadColor>(std::numeric_limits<std::uint64_t>::max()));
+  REQUIRE(magic_enum::enum_contains<BadColor>(BadColor::NONE));
+#else
   REQUIRE(magic_enum::enum_name<BadColor>(BadColor::NONE).empty());
   REQUIRE_FALSE(enum_cast<BadColor>(std::numeric_limits<std::uint64_t>::max()).has_value());
   REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(std::numeric_limits<std::uint64_t>::max()));
   REQUIRE_FALSE(magic_enum::enum_contains<BadColor>(BadColor::NONE));
+#endif
 
   SUBCASE("min") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::min == MAGIC_ENUM_RANGE_MIN);
@@ -1146,7 +1335,11 @@ TEST_CASE("extrema") {
   SUBCASE("max") {
     REQUIRE(magic_enum::customize::enum_range<BadColor>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<BadColor, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(magic_enum::detail::max_v<BadColor, as_common<>> == std::numeric_limits<std::uint64_t>::max());
+#else
     REQUIRE(magic_enum::detail::max_v<BadColor, as_common<>> == 2);
+#endif
 
     REQUIRE(magic_enum::customize::enum_range<Color>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<Color, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
@@ -1154,7 +1347,11 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::customize::enum_range<Numbers>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<Numbers, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(magic_enum::detail::max_v<Numbers, as_common<>> == 127);
+#else
     REQUIRE(magic_enum::detail::max_v<Numbers, as_common<>> == 3);
+#endif
 
     REQUIRE(magic_enum::customize::enum_range<Directions>::max == MAGIC_ENUM_RANGE_MAX);
     REQUIRE(magic_enum::detail::reflected_max<Directions, as_common<>>() == MAGIC_ENUM_RANGE_MAX);
@@ -1162,13 +1359,21 @@ TEST_CASE("extrema") {
 
     REQUIRE(static_cast<int>(magic_enum::customize::enum_range<number>::max) == 300);
     REQUIRE(magic_enum::detail::reflected_max<number, as_common<>>() == 300);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(magic_enum::detail::max_v<number, as_common<>> == 400);
+#else
     REQUIRE(magic_enum::detail::max_v<number, as_common<>> == 300);
+#endif
 
     REQUIRE(magic_enum::detail::reflected_max<Binary, as_common<>>() == 1);
     REQUIRE(magic_enum::detail::max_v<Binary, as_common<>> == true);
 
     REQUIRE(magic_enum::detail::reflected_max<MaxUsedAsInvalid, as_common<>>() == 64);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+    REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid, as_common<>> == 255);
+#else
     REQUIRE(magic_enum::detail::max_v<MaxUsedAsInvalid, as_common<>> == 63);
+#endif
   }
 }
 
@@ -1521,11 +1726,20 @@ TEST_CASE("valid_enum") {
 TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<number>(number::one));
   REQUIRE(enum_reflected<number>(number::three));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_reflected<number>(number::four));
+  REQUIRE(enum_reflected<number>(100));
+  REQUIRE_FALSE(enum_reflected<number>(101));
+  REQUIRE_FALSE(enum_reflected<number>(234));
+  REQUIRE(enum_reflected<number>(300));
+  REQUIRE(enum_reflected<number>(400));
+#else
   REQUIRE_FALSE(enum_reflected<number>(number::four));
   REQUIRE(enum_reflected<number>(100));
   REQUIRE(enum_reflected<number>(101));
   REQUIRE(enum_reflected<number>(234));
   REQUIRE(enum_reflected<number>(300));
   REQUIRE_FALSE(enum_reflected<number>(400));
+#endif
   REQUIRE_FALSE(enum_reflected<number>(500));
 }

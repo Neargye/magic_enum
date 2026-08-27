@@ -20,6 +20,15 @@ if(MAGIC_ENUM_EXPECT_IMPORT_STD)
   )
 endif()
 
+if(MAGIC_ENUM_EXPECT_STD_REFLECTION)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(magic_enum_installed_module_test PRIVATE -freflection)
+  endif()
+  target_compile_definitions(
+    magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1
+  )
+endif()
+
 if(MAGIC_ENUM_EXPECT_FMT)
   target_compile_definitions(magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_FMT)
 endif()

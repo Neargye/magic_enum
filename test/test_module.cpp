@@ -21,10 +21,17 @@ import magic_enum;
 
 enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };
+enum class ReflectionRange { Low = -1000, High = 1000 };
 
 template <>
 struct magic_enum::customize::enum_range<Directions> {
   static constexpr bool is_flags = true;
+};
+
+template <>
+struct magic_enum::customize::enum_range<ReflectionRange> {
+  static constexpr int min = -1;
+  static constexpr int max = 1;
 };
 
 static_assert(!magic_enum::is_flags_enum<Color>::value);
@@ -33,6 +40,15 @@ static_assert(magic_enum::is_flags_enum<Directions>::value);
 static_assert(magic_enum::is_flags_v<Directions>);
 static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
 static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
+
+#ifdef MAGIC_ENUM_TEST_STD_REFLECTION
+constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();
+static_assert(reflection_range_values.size() == 2);
+static_assert(reflection_range_values[0] == ReflectionRange::Low);
+static_assert(reflection_range_values[1] == ReflectionRange::High);
+static_assert(magic_enum::enum_reflected(ReflectionRange::Low));
+static_assert(!magic_enum::enum_reflected(ReflectionRange{0}));
+#endif
 
 // Keep this list in sync with the public declarations exported by magic_enum.cppm.
 // Using-declarations verify reachability without relying on unrelated standard

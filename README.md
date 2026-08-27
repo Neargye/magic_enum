@@ -167,12 +167,10 @@ Header-only C++17 library provides static reflection for enums, work with any en
   magic_enum::enum_contains<Color>("fda"); // -> false
   ```
 
-* Check whether value is in reflection range
+* Check whether value can be reflected
 
   ```cpp
-  magic_enum::enum_reflected<Color>(123); // -> true
-  magic_enum::enum_contains<Color>(123);  // -> false
-  magic_enum::enum_reflected<Color>(128); // -> false
+  magic_enum::enum_reflected(Color::GREEN); // -> true
   ```
 
 * Enum index in sequence
@@ -371,5 +369,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * MSVC++ >= 15.3 / Visual Studio >= 2017
 * Xcode >= 10
 * GCC >= 9
+
+C++26 reflection is selected automatically when available; see [limitations](doc/limitations.md#c26-standard-reflection).
 
 ## Licensed under the [MIT License](LICENSE)

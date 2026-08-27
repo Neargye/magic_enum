@@ -11,7 +11,7 @@
 * [`customize::enum_range` customizes enum reflection.](#customizeenum_range)
 * [`enum_index` returns index from enum value.](#enum_index)
 * [`enum_contains` checks whether enum contains value or name.](#enum_contains)
-* [`enum_reflected` checks whether enum value is in reflection range.](#enum_reflected)
+* [`enum_reflected` checks whether enum value can be reflected.](#enum_reflected)
 * [`enum_type_name` returns enum type name.](#enum_type_name)
 * [`enum_fuse` combines enum values for switch/case statements.](#enum_fuse)
 * [`enum_switch` transforms runtime enum value into constexpr constant.](#enum_switch)
@@ -37,6 +37,8 @@
 
 * Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
+* C++26 reflection is selected automatically when available. See [limitations](limitations.md#c26-standard-reflection).
+
 * `Enum<T>` constrains C++17 function parameters to enum types.
 
 * To add custom enum or type names, see [example](../example/example_custom_name.cpp).
@@ -52,6 +54,8 @@
   #include <magic_enum/magic_enum.hpp>
   ```
 
+  The string aliases must have matching `value_type`s. `MAGIC_ENUM_USING_ALIAS_STRING` must name a default- and move-constructible owning string supporting `empty()`, `size()`, `data()`, `reserve()`, `append(count, character)`, and `append(data, size)`; return values are ignored.
+
 * To keep configuration in separate header, define `MAGIC_ENUM_CONFIG_FILE`:
 
   ```cpp
@@ -60,6 +64,8 @@
   ```
 
   Configuration header can contain these aliases and range macros.
+
+* Define all configuration macros consistently before the first magic_enum include in every translation unit and module BMI.
 
 ## `enum_cast`
 
@@ -295,7 +301,7 @@ struct enum_range {
 
 * `prefix_length` sets number of characters removed from start of each reflected enumerator name. If omitted, defaults to `0`.
 
-* `min` and `max` are optional for non-flag enums and default to `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX`. They are ignored for enum flags.
+* `min` and `max` set compiler-specific scan bounds for non-flag enums. Standard reflection and enum flags ignore them.
 
 * `as_flags<>` and `as_common<>` force subtype for individual API calls without changing `enum_range`.
 
@@ -339,6 +345,8 @@ struct enum_range {
       }
     }
     ```
+
+    If both an explicit `customize::enum_range<E>` specialization and an ADL `magic_enum_define_range_adl(E)` function are present, the explicit specialization is used and the ADL customization is ignored.
 
     For flag enums, add `.flag<true>()`; `.minmax<...>()` is ignored.
 
@@ -411,9 +419,11 @@ constexpr bool enum_reflected(underlying_type_t<E> value) noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns `true` if enum value is in reflection range.
+* With standard reflection, returns `true` for a declared enumerator.
 
-* For enum flags, returns `true` only when value is non-zero, single-bit, and its bit position can be reflected.
+* With compiler-specific reflection, returns `true` for a value in the configured range.
+
+* For flags, the value must be non-zero and single-bit.
 
 ## `enum_type_name`
 
@@ -593,7 +603,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   };
   ```
 
-  * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection. Flag reflection scans bit positions available in `E`'s underlying type.
+  * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection.
 
   * Zero is not reflected for flag enums.
 

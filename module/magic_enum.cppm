@@ -9,6 +9,7 @@ module;
 
 #  include <compare>
 #  include <cstdlib>
+#  include <ios>
 #  if __has_include(<format>)
 #    include <format>
 #  endif
@@ -54,9 +55,7 @@ extern "C++" {
 #  endif
 
 #  include <magic_enum/magic_enum.hpp>
-#  ifndef MAGIC_ENUM_USING_ALIAS_STRING
-#    include <magic_enum/magic_enum_containers.hpp>
-#  endif
+#  include <magic_enum/magic_enum_containers.hpp>
 #  include <magic_enum/magic_enum_flags.hpp>
 #  include <magic_enum/magic_enum_format.hpp>
 #  include <magic_enum/magic_enum_fuse.hpp>
@@ -81,9 +80,7 @@ extern "C++" {
 #  endif
 
 // Keep standard-library specializations attached to the named module. Exporting the primary template does not make specializations from the global module fragment reachable to importers.
-#  ifndef MAGIC_ENUM_USING_ALIAS_STRING
-#    include <magic_enum/magic_enum_containers.hpp>
-#  endif
+#  include <magic_enum/magic_enum_containers.hpp>
 #  include <magic_enum/magic_enum_format.hpp>
 #  include <magic_enum/magic_enum_switch.hpp>
 
@@ -130,7 +127,6 @@ namespace bitwise_operators {
   using bitwise_operators::operator^=;
 }
 
-#ifndef MAGIC_ENUM_USING_ALIAS_STRING
 namespace containers {
   using containers::array;
   using containers::bitset;
@@ -146,7 +142,6 @@ namespace containers {
   using containers::set;
   using containers::to_array;
 }
-#endif
 
 using magic_enum::optional;
 using magic_enum::string_view;

@@ -1,6 +1,14 @@
 # Limitations
 
-* This library uses a compiler-specific hack based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`.
+* Without standard reflection, this library uses a compiler-specific hack based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`.
+
+## C++26 Standard Reflection
+
+Standard reflection is selected automatically when available. Otherwise the compiler-specific implementation is used. Keep reflection settings consistent across all translation units and module BMIs.
+
+* `customize::enum_name(E)` cannot add undeclared values.
+
+Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_enum.hpp` to force the compiler-specific implementation and its `enum_range` scan.
 
 * Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
@@ -17,13 +25,13 @@
   };
   ```
 
-* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection. Flag reflection scans bit positions available in `E`'s underlying type.
+* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection.
 
 * Zero is not reflected for flag enums.
 
 ## Enum Range
 
-* For non-flag enums, range-based reflection only considers values in `[MAGIC_ENUM_RANGE_MIN, MAGIC_ENUM_RANGE_MAX]`.
+* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection; standard reflection ignores them.
 
 * By default, `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 127`.
 
@@ -68,7 +76,7 @@
 
 ## Aliasing
 
-magic_enum [cannot reliably distinguish aliased enumerators](https://github.com/Neargye/magic_enum/issues/68). Its behavior with aliases is compiler-dependent.
+Aliased enumerators share one reflected name. Compiler-specific reflection [depends on the compiler](https://github.com/Neargye/magic_enum/issues/68); standard reflection uses the first declaration.
 
 ```cpp
 enum ShapeKind {

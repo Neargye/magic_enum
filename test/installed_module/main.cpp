@@ -19,11 +19,27 @@ import std;
 import magic_enum;
 
 enum class Color { RED, GREEN, BLUE };
+enum class ReflectionRange { Low = -1000, High = 1000 };
+
+template <>
+struct magic_enum::customize::enum_range<ReflectionRange> {
+  static constexpr int min = -1;
+  static constexpr int max = 1;
+};
 
 static_assert(magic_enum::enum_count<Color>() == 3);
 static_assert(magic_enum::enum_integer(Color::GREEN) == 1);
 static_assert(magic_enum::string_view{"BLUE"}.size() == 4);
 static_assert(magic_enum::optional<int>{7}.value() == 7);
+
+#ifdef MAGIC_ENUM_TEST_STD_REFLECTION
+constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();
+static_assert(reflection_range_values.size() == 2);
+static_assert(reflection_range_values[0] == ReflectionRange::Low);
+static_assert(reflection_range_values[1] == ReflectionRange::High);
+static_assert(magic_enum::enum_reflected(ReflectionRange::High));
+static_assert(!magic_enum::enum_reflected(ReflectionRange{0}));
+#endif
 
 constexpr magic_enum::containers::bitset<Color> color_bits{magic_enum::containers::raw_access, 5ULL};
 

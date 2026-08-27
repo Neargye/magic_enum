@@ -105,7 +105,7 @@ template <std::size_t J, std::size_t End, typename R, typename E, enum_subtype S
 constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
   if constexpr (J < End) {
     constexpr auto v = enum_constant<enum_value<E, J, S>()>{};
-    if (value == v) {
+    if (enum_value_equal(value, v())) {
       if constexpr (std::is_invocable_r_v<R, F, decltype(v)>) {
         return static_cast<R>(std::forward<F>(f)(v));
       } else {
@@ -143,7 +143,8 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
-      detail::default_result_type_lambda<R>);
+      detail::default_result_type_lambda<R>,
+      [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
 #else
   return detail::constexpr_switch<R, D, S>(
       std::forward<F>(f),
@@ -167,7 +168,8 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
-      [&result]() -> R { return std::forward<Result>(result); });
+      [&result]() -> R { return std::forward<Result>(result); },
+      [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
 #else
   return detail::constexpr_switch<R, D, S>(
       std::forward<F>(f),
