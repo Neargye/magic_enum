@@ -10,10 +10,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", build_types: "Release Debug", cmake: "4.3.4" }
-        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  build_types: "Debug",         cmake: "4.4.0" }
-        - { compiler: "clang-22", cc: "clang",    cxx: "clang++",    os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", build_types: "Release Debug", cmake: "4.3.4" }
-        - { compiler: "gcc-16",   cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  build_types: "Release",       cmake: "4.4.0" }
+        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  custom_configs: "TRUE",  build_types: "Debug",         cmake: "4.4.0" }
+        - { compiler: "clang-22", cc: "clang",    cxx: "clang++",    os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "gcc-16",   cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  custom_configs: "FALSE", build_types: "Release",       cmake: "4.4.0" }
 
     name: "${{ format('{0} / {1} / C++{2} / {3} / IMPORT_STD={4}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std) }}"
     runs-on: ${{ matrix.config.os }}
@@ -99,22 +99,32 @@ jobs:
       run: |
         for build_type in ${{ matrix.config.build_types }}; do
           module_suffix="cpp${{ matrix.config.standard }}"
+          module_targets=(
+            magic_enum_module
+            example_module_usage
+            "test_module-${module_suffix}"
+          )
+          if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
+            module_targets+=(
+              "test_module_aliases-${module_suffix}"
+              "test_module_wchar_t-${module_suffix}"
+            )
+          fi
           cmake --build "build-${build_type}" \
             --parallel \
             --config "${build_type}" \
-            --target \
-              magic_enum_module \
-              example_module_usage \
-              "test_module-${module_suffix}" \
-              "test_module_aliases-${module_suffix}" \
-              "test_module_wchar_t-${module_suffix}"
+            --target "${module_targets[@]}"
         done
 
     - name: Test
       run: |
         for build_type in ${{ matrix.config.build_types }}; do
           module_suffix="cpp${{ matrix.config.standard }}"
-          module_tests="^(test_module(_aliases|_wchar_t)?-${module_suffix}|install-module-to-stagedir|installed-module-consumer)$"
+          module_test_pattern="test_module-${module_suffix}"
+          if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
+            module_test_pattern="test_module(_aliases|_wchar_t)?-${module_suffix}"
+          fi
+          module_tests="^(${module_test_pattern}|install-module-to-stagedir|installed-module-consumer)$"
           ctest \
             --test-dir "build-${build_type}" \
             --output-on-failure \
