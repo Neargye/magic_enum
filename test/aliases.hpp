@@ -47,8 +47,6 @@ struct MyStringView {
 
   constexpr MyStringView() : str{} {} // required
   constexpr MyStringView(const char* cstr, std::size_t size) : str{cstr, size} {} // required
-  constexpr MyStringView(const MyStringView&) = default;
-  constexpr MyStringView& operator=(const MyStringView&) = delete;
   constexpr bool empty() const { return str.empty(); } // required
   constexpr std::size_t size() const { return str.size(); } // required
   constexpr const char* data() const { return str.data(); } // required

@@ -10,28 +10,24 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", modules: "TRUE",  import_std: "TRUE"  }
-        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-22.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", modules: "TRUE",  import_std: "TRUE"  }
-        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04", modules: "TRUE",  import_std: "FALSE" }
-        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04", modules: "TRUE",  import_std: "FALSE" }
-        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", modules: "FALSE", import_std: "FALSE" }
-        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04", modules: "TRUE",  import_std: "FALSE" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04" }
+        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04" }
+        - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04" }
+        - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04" }
+        - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04" }
+        - { cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04" }
+        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04" }
+        - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04" }
+        - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04" }
+        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-22.04" }
+        - { cc: "clang-17", cxx: "clang++-17", os: "ubuntu-24.04" }
+        - { cc: "clang-18", cxx: "clang++-18", os: "ubuntu-24.04" }
+        - { cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04" }
+        - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04" }
+        - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04" }
+        - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04" }
 
-    name: "${{ format('{0} MODULES={1} IMPORT_STD={2}', matrix.compiler.cc, matrix.compiler.modules, matrix.compiler.import_std) }}"
+    name: "${{ matrix.compiler.cc }}"
     runs-on: ${{ matrix.compiler.os }}
     env:
       CC: ${{ matrix.compiler.cc }}
@@ -55,15 +51,6 @@ jobs:
         sudo apt update
         sudo apt install -y ${{ matrix.compiler.cc }}
 
-        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
-          # Note: std module is currently supported only with libc++.
-          sudo apt install -y \
-            "libclang-rt-${clang_version}-dev" \
-            "libc++-${clang_version}-dev" \
-            "libc++abi-${clang_version}-dev" \
-            "clang-tools-${clang_version}"
-        fi
-
     - name: Configure gcc
       if: ${{ startsWith(matrix.compiler.cc, 'gcc') }}
       run: |
@@ -79,25 +66,14 @@ jobs:
         "${CXX}" -std=c++26 -freflection -Wall -Wextra -Wshadow -pedantic-errors -Werror -Iinclude test/test_nonascii.cpp -o test_nonascii_reflection
         ./test_nonascii_reflection
 
-    - name: Install pinned CMake
-      if: ${{ matrix.compiler.modules == 'TRUE' }}
-      run: |
-        if [[ "${{ matrix.compiler.import_std }}" == "TRUE" ]]; then
-          pip install cmake==4.4.0 --break-system-packages
-        else
-          pip install cmake==4.3.4 --break-system-packages
-        fi
-
     - name: Configure Release
       run: |
         standard_options=()
-        if [[ "${{ matrix.compiler.cc }}" == "gcc-16" && "${{ matrix.compiler.modules }}" == "TRUE" ]]; then
+        if [[ "${{ matrix.compiler.cc }}" == "gcc-16" ]]; then
           standard_options=(-DCMAKE_CXX_STANDARD=26 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
         fi
         cmake -S . -B build-release \
           -DCMAKE_BUILD_TYPE=Release \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
-          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }} \
           "${standard_options[@]}"
 
     - name: Build Release
@@ -109,13 +85,11 @@ jobs:
     - name: Configure Debug
       run: |
         standard_options=()
-        if [[ "${{ matrix.compiler.cc }}" == "gcc-16" && "${{ matrix.compiler.modules }}" == "TRUE" ]]; then
+        if [[ "${{ matrix.compiler.cc }}" == "gcc-16" ]]; then
           standard_options=(-DCMAKE_CXX_STANDARD=26 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
         fi
         cmake -S . -B build-debug \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=${{ matrix.compiler.modules }} \
-          ${{ matrix.compiler.modules == 'TRUE' && '-G Ninja' || '' }} \
           "${standard_options[@]}"
 
     - name: Build Debug
@@ -123,36 +97,6 @@ jobs:
 
     - name: Test Debug
       run: ctest --test-dir build-debug --output-on-failure --no-tests=error -C Debug
-
-    - name: Configure with `import std;`
-      if: ${{ matrix.compiler.import_std == 'TRUE' }}
-      run: |
-        cxx_standard=23
-        stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
-        if [[ "${CC}" == gcc-* ]]; then
-          cxx_standard=26
-          stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
-        fi
-
-        cmake -S . -B build-import-std \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d \
-          -DCMAKE_CXX_STANDARD="${cxx_standard}" \
-          -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-          -DCMAKE_CXX_EXTENSIONS=OFF \
-          -DMAGIC_ENUM_USE_MODULES:BOOL=TRUE \
-          -DMAGIC_ENUM_MODULE_IMPORT_STD:BOOL=TRUE \
-          -DMAGIC_ENUM_MODULE_WITH_FMT:BOOL=FALSE \
-          -GNinja \
-          "${stdlib_options[@]}"
-
-    - name: Build with `import std;`
-      if: ${{ matrix.compiler.import_std == 'TRUE' }}
-      run: cmake --build build-import-std --parallel --config Debug
-
-    - name: Test with `import std;`
-      if: ${{ matrix.compiler.import_std == 'TRUE' }}
-      run: ctest --test-dir build-import-std --output-on-failure --no-tests=error -C Debug
 
   bazel:
     name: Bazel

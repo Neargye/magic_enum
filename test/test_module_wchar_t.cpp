@@ -1,6 +1,8 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
 
+#include <sstream>
+
 import magic_enum;
 
 enum class Color { RED, GREEN, BLUE };
@@ -16,5 +18,12 @@ static_assert(magic_enum::enum_name(Color::BLUE)[0] == L'B');
 
 int main() {
   const String value{L"GREEN"};
-  return value.size() == 5 ? 0 : 1;
+  if (value.size() != 5) {
+    return 1;
+  }
+
+  const magic_enum::containers::bitset<Color> colors{Color::RED, Color::BLUE};
+  std::wostringstream output;
+  output << colors;
+  return output.str() == L"RED|BLUE" ? 0 : 2;
 }

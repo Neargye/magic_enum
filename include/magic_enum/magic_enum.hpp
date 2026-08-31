@@ -970,7 +970,8 @@ template <typename E, int O, enum_subtype S, typename U = std::underlying_type_t
 constexpr U ualue(std::size_t i) noexcept {
   if constexpr (S == enum_subtype::flags) {
     using V = make_unsigned_t<U>;
-    return static_cast<U>(V{1} << static_cast<V>(static_cast<int>(i) + O));
+    const auto shifted = V{1} << static_cast<V>(static_cast<int>(i) + O);
+    return static_cast<U>(shifted);
   } else {
     return static_cast<U>(static_cast<int>(i) + O);
   }

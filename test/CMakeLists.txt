@@ -280,8 +280,14 @@ magic_enum_add_tests(cpp17 c++17)
 magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
 magic_enum_make_test(test.cpp test-hash-cpp17 c++17)
 target_compile_definitions(test-hash-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+magic_enum_make_test(test_flags.cpp test_flags-hash-cpp17 c++17)
+target_compile_definitions(test_flags-hash-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
 magic_enum_make_test(test.cpp test-hash-switch-cpp17 c++17)
 target_compile_definitions(test-hash-switch-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH_SWITCH=1)
+magic_enum_make_test(test_flags.cpp test_flags-hash-switch-cpp17 c++17)
+target_compile_definitions(test_flags-hash-switch-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH_SWITCH=1)
+magic_enum_make_test(test_fuse.cpp test-no-typesafe-enum-fuse-cpp17 c++17)
+target_compile_definitions(test-no-typesafe-enum-fuse-cpp17 PRIVATE MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE=1)
 magic_enum_make_configuration_compile_fail_test(
   conflicting-assert
   1
@@ -340,7 +346,20 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     magic_enum_add_std_reflection_options(${test_name}-cpp26-reflection)
     target_compile_definitions(${test_name}-cpp26-reflection PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
   endforeach()
-  target_compile_definitions(test-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+  target_compile_definitions(
+    test-cpp26-reflection
+    test_flags-cpp26-reflection
+    PRIVATE MAGIC_ENUM_ENABLE_HASH=1
+  )
+
+  magic_enum_add_tests(cpp26-force-compiler-specific ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+  foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
+    magic_enum_add_std_reflection_options(${test_name}-cpp26-force-compiler-specific)
+    target_compile_definitions(
+      ${test_name}-cpp26-force-compiler-specific
+      PRIVATE MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
+    )
+  endforeach()
 
   set(reflection_test test_std_reflection-auto-cpp26)
   magic_enum_make_test(test_reflection.cpp ${reflection_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})

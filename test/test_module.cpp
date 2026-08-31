@@ -12,6 +12,7 @@
 import std;
 #else
 #  include <functional>
+#  include <sstream>
 #  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #    include <format>
 #  endif
@@ -40,6 +41,10 @@ static_assert(magic_enum::is_flags_enum<Directions>::value);
 static_assert(magic_enum::is_flags_v<Directions>);
 static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
 static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
+static_assert(magic_enum::enum_cast<Color>("GREEN") == Color::GREEN);
+static_assert(magic_enum::enum_contains<Color>("BLUE"));
+static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT") == static_cast<Directions>(3));
+static_assert(magic_enum::enum_flags_contains<Directions>("LEFT|RIGHT"));
 
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION
 constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();
@@ -155,6 +160,7 @@ static_assert(color_type_name[0] == 'P');
 
 constexpr auto color_array = magic_enum::containers::make_array<Color>(1, 2, 3);
 static_assert(color_array[Color::GREEN] == 2);
+static_assert(magic_enum::containers::get<Color::BLUE>(color_array) == 3);
 
 constexpr magic_enum::containers::bitset<Color> color_bits {magic_enum::containers::raw_access, 5ULL};
 static_assert(color_bits.test(Color::RED));
@@ -193,14 +199,45 @@ int main() {
   if (std::hash<ColorBitset>{}(color_bits) != std::hash<unsigned long long>{}(5ULL)) {
     return 1;
   }
+  {
+    using namespace magic_enum::iostream_operators;
+
+    std::ostringstream output;
+    output << Color::GREEN << ' ' << static_cast<Directions>(3);
+    if (output.str() != "GREEN LEFT|RIGHT") {
+      return 2;
+    }
+
+    Color parsed_color = Color::RED;
+    Directions parsed_directions = Directions::LEFT;
+    std::istringstream input{"BLUE LEFT|RIGHT"};
+    input >> parsed_color >> parsed_directions;
+    if (!input || parsed_color != Color::BLUE || parsed_directions != static_cast<Directions>(3)) {
+      return 3;
+    }
+  }
+  {
+    std::ostringstream output;
+    output << color_bits;
+    if (output.str() != "RED|BLUE") {
+      return 4;
+    }
+
+    ColorBitset parsed_bits;
+    std::istringstream input{"RED|BLUE"};
+    input >> parsed_bits;
+    if (!input || parsed_bits.to_ullong(magic_enum::containers::raw_access) != 5ULL) {
+      return 5;
+    }
+  }
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
   if (std::format("{}", Color::GREEN) != "GREEN") {
-    return 2;
+    return 6;
   }
 #endif
 #ifdef MAGIC_ENUM_TEST_FMT
   if (fmt::format("{}", Color::BLUE) != "BLUE") {
-    return 3;
+    return 7;
   }
 #endif
   return 0;

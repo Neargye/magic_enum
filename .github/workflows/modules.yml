@@ -1,0 +1,108 @@
+name: Modules
+
+on: [push, pull_request]
+
+permissions: read-all
+
+jobs:
+  modules:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  build_types: "Debug",         cmake: "4.4.0" }
+        - { compiler: "clang-22", cc: "clang",    cxx: "clang++",    os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "gcc-16",   cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  build_types: "Release",       cmake: "4.4.0" }
+
+    name: "${{ format('{0} / {1} / C++{2} / {3} / IMPORT_STD={4}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std) }}"
+    runs-on: ${{ matrix.config.os }}
+    env:
+      CC: ${{ matrix.config.cc }}
+      CXX: ${{ matrix.config.cxx }}
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install Clang
+      if: ${{ startsWith(matrix.config.os, 'ubuntu') && startsWith(matrix.config.compiler, 'clang') }}
+      run: |
+        wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
+
+        clang_version="${{ matrix.config.cc }}"
+        clang_version="${clang_version#clang-}"
+        ubuntu_codename="$(lsb_release -cs)"
+        llvm_repository="http://apt.llvm.org/${ubuntu_codename}/"
+        llvm_suite="llvm-toolchain-${ubuntu_codename}-${clang_version}"
+
+        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] ${llvm_repository} ${llvm_suite} main" \
+          | sudo tee /etc/apt/sources.list.d/llvm.list
+        sudo apt update
+        sudo apt install -y ${{ matrix.config.cc }}
+
+        if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
+          sudo apt install -y \
+            "libclang-rt-${clang_version}-dev" \
+            "libc++-${clang_version}-dev" \
+            "libc++abi-${clang_version}-dev" \
+            "clang-tools-${clang_version}"
+        fi
+
+    - name: Install Clang on macOS
+      if: ${{ startsWith(matrix.config.os, 'macos') }}
+      run: |
+        brew install llvm@22 ninja
+        llvm_prefix="$(brew --prefix llvm@22)"
+        echo "${llvm_prefix}/bin" >> "${GITHUB_PATH}"
+        echo "CC=${llvm_prefix}/bin/clang" >> "${GITHUB_ENV}"
+        echo "CXX=${llvm_prefix}/bin/clang++" >> "${GITHUB_ENV}"
+
+    - name: Install GCC
+      if: ${{ startsWith(matrix.config.cc, 'gcc') }}
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt update
+        sudo apt install -y ${{ matrix.config.cxx }}
+
+    - name: Install pinned CMake
+      run: python3 -m pip install cmake==${{ matrix.config.cmake }} --break-system-packages
+
+    - name: Configure
+      run: |
+        stdlib_options=()
+        if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
+          stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
+        elif [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
+          stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
+        fi
+
+        import_std_options=()
+        if [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
+          import_std_options=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
+        fi
+
+        for build_type in ${{ matrix.config.build_types }}; do
+          build_dir="build-${build_type}"
+          cmake -S . -B "${build_dir}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${build_type}" \
+            -DCMAKE_CXX_STANDARD=${{ matrix.config.standard }} \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DMAGIC_ENUM_USE_MODULES=ON \
+            -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.config.import_std }} \
+            -DMAGIC_ENUM_MODULE_WITH_FMT=OFF \
+            "${stdlib_options[@]}" \
+            "${import_std_options[@]}"
+        done
+
+    - name: Build
+      run: |
+        for build_type in ${{ matrix.config.build_types }}; do
+          cmake --build "build-${build_type}" --parallel --config "${build_type}"
+        done
+
+    - name: Test
+      run: |
+        for build_type in ${{ matrix.config.build_types }}; do
+          ctest --test-dir "build-${build_type}" --output-on-failure --no-tests=error -C "${build_type}"
+        done

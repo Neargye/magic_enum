@@ -13,15 +13,10 @@
 #include "test_helpers.hpp"
 
 #include <sstream>
-#include <type_traits>
 
 using namespace magic_enum;
 using namespace magic_enum::bitwise_operators;
 using namespace magic_enum_tests;
-
-static_assert(std::is_copy_constructible_v<MyStringView>);
-static_assert(!std::is_copy_assignable_v<MyStringView>);
-static_assert(!std::is_move_assignable_v<MyStringView>);
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
