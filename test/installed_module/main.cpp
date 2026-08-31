@@ -38,8 +38,8 @@ static_assert(magic_enum::enum_count<Color>() == 3);
 static_assert(magic_enum::enum_integer(Color::GREEN) == 1);
 static_assert(magic_enum::string_view{"BLUE"}.size() == 4);
 static_assert(magic_enum::optional<int>{7}.value() == 7);
-static_assert(magic_enum::enum_cast<Color>("GREEN") == Color::GREEN);
-static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT") == static_cast<Directions>(3));
+static_assert(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
+static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT").value() == static_cast<Directions>(3));
 
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION
 constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();

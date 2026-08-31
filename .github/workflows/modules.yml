@@ -98,11 +98,27 @@ jobs:
     - name: Build
       run: |
         for build_type in ${{ matrix.config.build_types }}; do
-          cmake --build "build-${build_type}" --parallel --config "${build_type}"
+          module_suffix="cpp${{ matrix.config.standard }}"
+          cmake --build "build-${build_type}" \
+            --parallel \
+            --config "${build_type}" \
+            --target \
+              magic_enum_module \
+              example_module_usage \
+              "test_module-${module_suffix}" \
+              "test_module_aliases-${module_suffix}" \
+              "test_module_wchar_t-${module_suffix}"
         done
 
     - name: Test
       run: |
         for build_type in ${{ matrix.config.build_types }}; do
-          ctest --test-dir "build-${build_type}" --output-on-failure --no-tests=error -C "${build_type}"
+          module_suffix="cpp${{ matrix.config.standard }}"
+          module_tests="^(test_module(_aliases|_wchar_t)?-${module_suffix}|install-module-to-stagedir|installed-module-consumer)$"
+          ctest \
+            --test-dir "build-${build_type}" \
+            --output-on-failure \
+            --no-tests=error \
+            -C "${build_type}" \
+            -R "${module_tests}"
         done

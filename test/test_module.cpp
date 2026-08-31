@@ -41,9 +41,9 @@ static_assert(magic_enum::is_flags_enum<Directions>::value);
 static_assert(magic_enum::is_flags_v<Directions>);
 static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
 static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
-static_assert(magic_enum::enum_cast<Color>("GREEN") == Color::GREEN);
+static_assert(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
 static_assert(magic_enum::enum_contains<Color>("BLUE"));
-static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT") == static_cast<Directions>(3));
+static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT").value() == static_cast<Directions>(3));
 static_assert(magic_enum::enum_flags_contains<Directions>("LEFT|RIGHT"));
 
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION

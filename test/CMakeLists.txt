@@ -346,11 +346,8 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     magic_enum_add_std_reflection_options(${test_name}-cpp26-reflection)
     target_compile_definitions(${test_name}-cpp26-reflection PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
   endforeach()
-  target_compile_definitions(
-    test-cpp26-reflection
-    test_flags-cpp26-reflection
-    PRIVATE MAGIC_ENUM_ENABLE_HASH=1
-  )
+  target_compile_definitions(test-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+  target_compile_definitions(test_flags-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
 
   magic_enum_add_tests(cpp26-force-compiler-specific ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
