@@ -521,6 +521,28 @@ constexpr auto enum_for_each(Lambda&& lambda);
   });
   ```
 
+## `bind_front`
+
+```cpp
+template <typename F, typename... Args>
+constexpr auto bind_front(F&& f, Args&&... args);
+```
+
+* Defined in header `<magic_enum/magic_enum_utility.hpp>`
+
+* C++17-compatible partial application helper. Useful with `enum_switch` to avoid nested lambdas on MSVC ([#200](https://github.com/Neargye/magic_enum/issues/200)).
+
+* Example
+
+  ```cpp
+  enum class Shape { Circle, Square };
+  auto describe = [](Shape s, std::string_view prefix) {
+    return std::string(prefix) + magic_enum::enum_name(s).data();
+  };
+  auto describe_circle = magic_enum::bind_front(describe, Shape::Circle);
+  describe_circle("shape: "); // -> "shape: Circle"
+  ```
+
 ## `enum_next_value` and `enum_prev_value`
 
 ```cpp

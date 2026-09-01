@@ -29,6 +29,8 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 * Zero is not reflected for flag enums.
 
+* GCC 16 with `-std=c++26` may miscompile string parsing that uses `find`/`remove_prefix` on flag names. `enum_flags_cast` uses an explicit token loop instead; see [#467](https://github.com/Neargye/magic_enum/issues/467).
+
 ## Enum Range
 
 * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection; standard reflection ignores them.

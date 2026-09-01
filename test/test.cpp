@@ -1520,6 +1520,19 @@ TEST_CASE("enum_for_each") {
   }
 }
 
+TEST_CASE("bind_front") {
+  auto add = [](int a, int b, int c) { return a + b + c; };
+  auto add_ab = magic_enum::bind_front(add, 1, 2);
+  REQUIRE(add_ab(3) == 6);
+
+  enum class Shape { Circle, Square };
+  auto describe = [](Shape s, std::string_view prefix) {
+    return std::string(prefix) + magic_enum::enum_name(s).data();
+  };
+  auto describe_circle = magic_enum::bind_front(describe, Shape::Circle);
+  REQUIRE(describe_circle("shape: ") == "shape: Circle");
+}
+
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  define MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR 1
 #endif
