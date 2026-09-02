@@ -102,7 +102,7 @@ template <>
 inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
 template <std::size_t J, std::size_t End, typename R, typename E, enum_subtype S, typename F, typename Def>
-constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
+constexpr decltype(auto) linear_switch_impl(F&& f, E value, Def&& def) {
   if constexpr (J < End) {
     constexpr auto v = enum_constant<enum_value<E, J, S>()>{};
     if (enum_value_equal(value, v())) {
@@ -112,7 +112,7 @@ constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
         return def();
       }
     } else {
-      return constexpr_switch_impl<J + 1, End, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+      return linear_switch_impl<J + 1, End, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
     }
   } else {
     return def();
@@ -120,13 +120,13 @@ constexpr decltype(auto) constexpr_switch_impl(F&& f, E value, Def&& def) {
 }
 
 template <typename R, typename E, enum_subtype S, typename F, typename Def>
-constexpr decltype(auto) constexpr_switch(F&& f, E value, Def&& def) {
-  static_assert(is_enum_v<E>, "magic_enum::detail::constexpr_switch requires enum type.");
+constexpr decltype(auto) linear_switch(F&& f, E value, Def&& def) {
+  static_assert(is_enum_v<E>, "magic_enum::detail::linear_switch requires enum type.");
 
   if constexpr (count_v<E, S> == 0) {
     return def();
   } else {
-    return constexpr_switch_impl<0, count_v<E, S>, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+    return linear_switch_impl<0, count_v<E, S>, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
   }
 }
 #endif
@@ -140,13 +140,13 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
-  return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
+  return detail::hash_switch_values<D, S, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
       detail::default_result_type_lambda<R>,
       [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
 #else
-  return detail::constexpr_switch<R, D, S>(
+  return detail::linear_switch<R, D, S>(
       std::forward<F>(f),
       value,
       detail::default_result_type_lambda<R>);
@@ -165,13 +165,13 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
-  return detail::constexpr_switch<&detail::values_v<D, S>, detail::case_call_t::value>(
+  return detail::hash_switch_values<D, S, detail::case_call_t::value>(
       std::forward<F>(f),
       value,
       [&result]() -> R { return std::forward<Result>(result); },
       [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
 #else
-  return detail::constexpr_switch<R, D, S>(
+  return detail::linear_switch<R, D, S>(
       std::forward<F>(f),
       value,
       [&result]() -> R { return std::forward<Result>(result); });

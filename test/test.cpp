@@ -93,6 +93,70 @@ enum class hash_case_collision {
   E7DvAyiJL6
 };
 
+#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+struct identity_hash {
+  constexpr int operator()(int value) const noexcept { return value; }
+};
+
+constexpr auto make_large_hash_input(bool duplicate) noexcept {
+  std::array<int, 33> values{};
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    values[i] = static_cast<int>((i * 17) % values.size());
+  }
+  if (duplicate) {
+    values.back() = values.front();
+  }
+  return values;
+}
+
+static constexpr auto unique_large_hash_input = make_large_hash_input(false);
+static constexpr auto duplicate_large_hash_input = make_large_hash_input(true);
+static_assert(magic_enum::detail::has_unique_hashes_v<&unique_large_hash_input, identity_hash>);
+static_assert(!magic_enum::detail::has_unique_hashes_v<&duplicate_large_hash_input, identity_hash>);
+
+enum class paged_hash_value : unsigned {};
+
+template <std::size_t... I>
+constexpr auto make_paged_hash_values(std::index_sequence<I...>) noexcept {
+  return std::array<paged_hash_value, sizeof...(I)>{{static_cast<paged_hash_value>(I)...}};
+}
+
+static constexpr auto paged_hash_values = make_paged_hash_values(std::make_index_sequence<257>{});
+
+struct paged_hash_search {
+  unsigned value;
+};
+
+static int paged_hash_call_count = 0;
+
+struct paged_counting_hash {
+  using secondary_hash = paged_counting_hash;
+
+  constexpr unsigned operator()(paged_hash_value value) const noexcept { return static_cast<unsigned>(value); }
+
+  unsigned operator()(paged_hash_search searched) const noexcept {
+    ++paged_hash_call_count;
+    return searched.value;
+  }
+};
+
+constexpr auto reflected_value_index = magic_enum::detail::hash_switch_values<Color, magic_enum::detail::enum_subtype::common, magic_enum::detail::case_call_t::index>(
+    [](std::size_t i) { return i; },
+    Color::BLUE,
+    [] { return (std::numeric_limits<std::size_t>::max)(); },
+    [](Color lhs, Color rhs) { return magic_enum::detail::enum_value_equal(lhs, rhs); });
+static_assert(reflected_value_index == 2);
+
+#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
+constexpr auto reflected_alias_index = magic_enum::detail::hash_switch_values<number, magic_enum::detail::enum_subtype::common, magic_enum::detail::case_call_t::index>(
+    [](std::size_t i) { return i; },
+    number::_3,
+    [] { return (std::numeric_limits<std::size_t>::max)(); },
+    [](number lhs, number rhs) { return magic_enum::detail::enum_value_equal(lhs, rhs); });
+static_assert(reflected_alias_index == 2);
+#endif
+#endif
+
 enum class duplicate_custom_name { first, second };
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<duplicate_custom_name>(duplicate_custom_name value) noexcept {
@@ -308,6 +372,27 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_integer(*hostile) == 4);
   }
 }
+
+#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+TEST_CASE("hash switch computes the searched hash once across pages") {
+  const auto not_found = (std::numeric_limits<std::size_t>::max)();
+  const auto lookup = [](paged_hash_search searched) {
+    return magic_enum::detail::hash_switch<&paged_hash_values, magic_enum::detail::case_call_t::index, 0, paged_counting_hash>(
+        [](std::size_t i) { return i; },
+        searched,
+        [] { return (std::numeric_limits<std::size_t>::max)(); },
+        [](paged_hash_value lhs, paged_hash_search rhs) { return static_cast<unsigned>(lhs) == rhs.value; });
+  };
+
+  paged_hash_call_count = 0;
+  REQUIRE(lookup({256}) == 256);
+  REQUIRE(paged_hash_call_count == 1);
+
+  paged_hash_call_count = 0;
+  REQUIRE(lookup({999}) == not_found);
+  REQUIRE(paged_hash_call_count == 1);
+}
+#endif
 
 TEST_CASE("enum_integer") {
   Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
