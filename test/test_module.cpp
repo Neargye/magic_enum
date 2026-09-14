@@ -13,6 +13,7 @@ import std;
 #else
 #  include <functional>
 #  include <sstream>
+#  include <type_traits>
 #  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #    include <format>
 #  endif
@@ -177,6 +178,31 @@ struct GreenOnly {
 };
 
 static_assert(magic_enum::enum_switch(GreenOnly{}, Color::GREEN) == 42);
+
+constexpr bool switch_fallback = true;
+constexpr auto switch_eq_red = [](auto value) { return value() == Color::RED; };
+static_assert(std::is_same_v<decltype(magic_enum::enum_switch(switch_eq_red, Color::GREEN, switch_fallback)), bool>);
+static_assert(!magic_enum::enum_switch(switch_eq_red, Color::GREEN, switch_fallback));
+static_assert(magic_enum::enum_switch(switch_eq_red, static_cast<Color>(-1), switch_fallback));
+constexpr long switch_integer_fallback = -1;
+static_assert(std::is_same_v<decltype(magic_enum::enum_switch(GreenOnly{}, Color::GREEN, switch_integer_fallback)), long>);
+static_assert(magic_enum::enum_switch(GreenOnly{}, Color::GREEN, switch_integer_fallback) == 42L);
+static_assert(magic_enum::enum_switch(GreenOnly{}, Color::RED, switch_integer_fallback) == -1L);
+
+constexpr int switch_stored = 42;
+constexpr auto switch_reference = [](magic_enum::enum_constant<Color::GREEN>) -> const int& { return switch_stored; };
+static_assert(std::is_same_v<decltype(magic_enum::enum_switch(switch_reference, Color::GREEN)), int>);
+static_assert(magic_enum::enum_switch(switch_reference, Color::GREEN) == 42);
+static_assert(magic_enum::enum_switch(switch_reference, Color::RED) == 0);
+
+struct ImmovableSwitchResult {
+  int value;
+  constexpr ImmovableSwitchResult(int v = 0) : value{v} {}
+  ImmovableSwitchResult(const ImmovableSwitchResult&) = delete;
+};
+
+static_assert(magic_enum::enum_switch<const ImmovableSwitchResult&>(GreenOnly{}, Color::GREEN).value == 42);
+static_assert(magic_enum::enum_switch<ImmovableSwitchResult, magic_enum::as_common<>>(GreenOnly{}, Color::RED).value == 0);
 
 using ColorNameLess = magic_enum::containers::name_less<>;
 using ColorNameGreater = magic_enum::containers::name_greater<>;

@@ -487,6 +487,8 @@ constexpr decltype(auto) enum_switch(Lambda&& lambda, E value, Result&& result);
 
 * If no value matches, returns default-constructed result or supplied `result`.
 
+* Returns by value, even when `Result` is a reference type.
+
 * Examples
 
   ```cpp

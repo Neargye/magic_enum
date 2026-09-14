@@ -12,6 +12,7 @@ import std;
 #else
 #  include <functional>
 #  include <sstream>
+#  include <type_traits>
 #  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #    include <format>
 #  endif
@@ -40,6 +41,21 @@ static_assert(magic_enum::string_view{"BLUE"}.size() == 4);
 static_assert(magic_enum::optional<int>{7}.value() == 7);
 static_assert(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
 static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT").value() == static_cast<Directions>(3));
+
+constexpr bool switch_fallback = true;
+constexpr auto switch_eq_red = [](auto value) { return value() == Color::RED; };
+static_assert(std::is_same_v<decltype(magic_enum::enum_switch(switch_eq_red, Color::GREEN, switch_fallback)), bool>);
+static_assert(!magic_enum::enum_switch(switch_eq_red, Color::GREEN, switch_fallback));
+static_assert(magic_enum::enum_switch(switch_eq_red, static_cast<Color>(-1), switch_fallback));
+
+struct ImmovableSwitchResult {
+  int value;
+  constexpr ImmovableSwitchResult(int v = 0) : value{v} {}
+  ImmovableSwitchResult(const ImmovableSwitchResult&) = delete;
+};
+
+static_assert(magic_enum::enum_switch<const ImmovableSwitchResult&>(switch_eq_red, Color::RED).value == 1);
+static_assert(magic_enum::enum_switch<ImmovableSwitchResult, magic_enum::as_common<>>(switch_eq_red, static_cast<Color>(-1)).value == 0);
 
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION
 constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();

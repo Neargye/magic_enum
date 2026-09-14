@@ -24,8 +24,11 @@
 
 #include <array>
 #include <cctype>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 enum class DenseNegative { MinusTwo = -2, MinusOne = -1, Zero = 0 };
@@ -1260,7 +1263,178 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_flags_v<int>);
 }
 
+struct RvalueOnlySwitchArgument {
+  template <typename T>
+  constexpr int operator()(T&&) const { return 7; }
+
+  template <typename T>
+  int operator()(T&) const = delete;
+};
+
+struct RefQualifiedSwitcher {
+  template <typename T>
+  constexpr int operator()(T) & { return 1; }
+
+  template <typename T>
+  constexpr int operator()(T) && { return 2; }
+};
+
+struct LvalueSwitchFallback {
+  constexpr LvalueSwitchFallback() = default;
+  constexpr LvalueSwitchFallback(int) {}
+  LvalueSwitchFallback(const LvalueSwitchFallback&) = delete;
+
+  constexpr operator int() & { return -1; }
+};
+
+struct ImmovableSwitchResult {
+  int value;
+  constexpr ImmovableSwitchResult(int v = 0) : value{v} {}
+  ImmovableSwitchResult(const ImmovableSwitchResult&) = delete;
+};
+
 TEST_CASE("enum_switch") {
+  SUBCASE("fallback value categories") {
+    constexpr auto eq_red = [](auto val) { return val() == Color::RED; };
+    constexpr bool fallback = true;
+    bool mutable_fallback = true;
+
+    static_assert(std::is_same_v<decltype(enum_switch(eq_red, Color::GREEN, fallback)), bool>);
+    static_assert(std::is_same_v<decltype(enum_switch(eq_red, Color::GREEN, mutable_fallback)), bool>);
+    static_assert(!enum_switch(eq_red, Color::GREEN, fallback));
+    static_assert(!enum_switch(eq_red, Color::GREEN, true));
+    static_assert(!enum_switch(eq_red, Color::GREEN, std::move(fallback)));
+    static_assert(enum_switch(eq_red, Color::RED, fallback));
+    static_assert(enum_switch(eq_red, static_cast<Color>(0), fallback));
+    REQUIRE_FALSE(enum_switch(eq_red, Color::BLUE, mutable_fallback));
+    REQUIRE(mutable_fallback);
+
+    constexpr auto integer = [](auto) { return 7; };
+    long wide_fallback = -1;
+    const long const_wide_fallback = -1;
+    static_assert(std::is_same_v<decltype(enum_switch(integer, Color::RED, wide_fallback)), long>);
+    static_assert(std::is_same_v<decltype(enum_switch(integer, Color::RED, const_wide_fallback)), long>);
+    static_assert(std::is_same_v<decltype(enum_switch(integer, Color::RED, -1L)), long>);
+    REQUIRE(enum_switch(integer, Color::RED, wide_fallback) == 7L);
+    REQUIRE(enum_switch(integer, static_cast<Color>(0), const_wide_fallback) == -1L);
+    LvalueSwitchFallback converted_fallback;
+    static_assert(std::is_same_v<decltype(enum_switch(integer, Color::RED, converted_fallback)), int>);
+    REQUIRE(enum_switch(integer, Color::RED, converted_fallback) == 7);
+    REQUIRE(enum_switch(integer, static_cast<Color>(0), converted_fallback) == -1);
+  }
+
+  SUBCASE("partial invocable with lvalue fallback") {
+    int calls = 0;
+    const int fallback = -1;
+    const auto switcher = overloaded{
+      [&calls](enum_constant<Color::RED>) { ++calls; return 1; },
+      [&calls](enum_constant<Color::BLUE>) { ++calls; return 2; }
+    };
+
+    REQUIRE(enum_switch(switcher, Color::RED, fallback) == 1);
+    REQUIRE(calls == 1);
+    REQUIRE(enum_switch(switcher, Color::BLUE, fallback) == 2);
+    REQUIRE(calls == 2);
+    REQUIRE(enum_switch(switcher, Color::GREEN, fallback) == -1);
+    REQUIRE(enum_switch(switcher, static_cast<Color>(0), fallback) == -1);
+    REQUIRE(calls == 2);
+  }
+
+  SUBCASE("reference results") {
+    int stored = 7;
+    const int fallback = -1;
+    const auto reference = [&stored](auto) -> int& { return stored; };
+    static_assert(std::is_same_v<decltype(enum_switch(reference, Color::RED, fallback)), int>);
+    static_assert(std::is_same_v<decltype(enum_switch<const int&>(reference, Color::RED)), int>);
+    auto result = enum_switch(reference, Color::RED, fallback);
+    stored = 9;
+    REQUIRE(result == 7);
+    REQUIRE(enum_switch<const int&>(reference, static_cast<Color>(0)) == 0);
+
+    const auto text = [](auto) { return std::string{"matched"}; };
+    const std::string default_text = "fallback";
+    static_assert(std::is_same_v<decltype(enum_switch(text, Color::RED, default_text)), std::string>);
+    REQUIRE(enum_switch(text, Color::RED, default_text) == "matched");
+    REQUIRE(enum_switch(text, static_cast<Color>(0), "fallback") == "fallback");
+  }
+
+  SUBCASE("partial invocable with reference results") {
+    int stored = 7;
+    const auto first = [&stored](enum_constant<Color::RED>) -> const int& { return stored; };
+    const auto last = [&stored](enum_constant<Color::BLUE>) -> const int& { return stored; };
+    LvalueSwitchFallback fallback;
+
+    static_assert(std::is_same_v<decltype(enum_switch(first, Color::RED)), int>);
+    static_assert(std::is_same_v<decltype(enum_switch(last, Color::BLUE)), int>);
+    static_assert(std::is_same_v<decltype(enum_switch(first, Color::RED, fallback)), int>);
+    REQUIRE(enum_switch(first, Color::RED) == 7);
+    REQUIRE(enum_switch(last, Color::BLUE) == 7);
+    REQUIRE(enum_switch(first, Color::GREEN) == 0);
+    REQUIRE(enum_switch(first, Color::RED, fallback) == 7);
+    REQUIRE(enum_switch(first, Color::GREEN, fallback) == -1);
+    REQUIRE(enum_switch(first, static_cast<Color>(0), fallback) == -1);
+  }
+
+  SUBCASE("move-only fallback") {
+    const auto switcher = [](enum_constant<Color::RED>) { return std::make_unique<int>(7); };
+    auto fallback = std::make_unique<int>(-1);
+    auto matched = enum_switch(switcher, Color::RED, std::move(fallback));
+    REQUIRE(*matched == 7);
+    REQUIRE(fallback != nullptr);
+    REQUIRE(*fallback == -1);
+    auto unmatched = enum_switch(switcher, Color::GREEN, std::move(fallback));
+    REQUIRE(*unmatched == -1);
+    REQUIRE(fallback == nullptr);
+  }
+
+  SUBCASE("explicit result without fallback") {
+    using Result = std::unique_ptr<int>;
+    const auto switcher = [](auto) { return std::make_unique<int>(7); };
+    const auto partial = [](enum_constant<Color::RED>) { return std::make_unique<int>(7); };
+    static_assert(std::is_same_v<decltype(enum_switch<const Result>(switcher, Color::RED)), Result>);
+    static_assert(std::is_same_v<decltype(enum_switch<const Result&, as_common<>>(partial, Color::RED)), Result>);
+    REQUIRE(*enum_switch<const Result>(switcher, Color::RED) == 7);
+    REQUIRE(*enum_switch<const Result&, as_common<>>(partial, Color::RED) == 7);
+    REQUIRE(enum_switch<const Result&>(partial, Color::GREEN) == nullptr);
+    REQUIRE(enum_switch<const Result, as_common<>>(switcher, static_cast<Color>(0)) == nullptr);
+    enum class Flag { A = 1, B = 2 };
+    REQUIRE(*enum_switch<const Result, as_flags<>>(switcher, Flag::B) == 7);
+    REQUIRE(enum_switch<const Result, as_flags<>>(switcher, static_cast<Flag>(3)) == nullptr);
+
+    constexpr auto integer = [](auto) { return 7; };
+    static_assert(enum_switch<ImmovableSwitchResult>(integer, Color::RED).value == 7);
+    static_assert(enum_switch<ImmovableSwitchResult>(integer, static_cast<Color>(0)).value == 0);
+    static_assert(enum_switch<const ImmovableSwitchResult&, as_common<>>(integer, Color::RED).value == 7);
+    static_assert(enum_switch<const ImmovableSwitchResult&, as_common<>>(integer, static_cast<Color>(0)).value == 0);
+  }
+
+  SUBCASE("explicit subtype overloads") {
+    constexpr auto integer = [](auto) { return 7; };
+    constexpr long fallback = -1;
+    static_assert(std::is_same_v<decltype(enum_switch<const long&, as_common<>>(integer, Color::RED, fallback)), long>);
+    static_assert(enum_switch<const long&, as_common<>>(integer, Color::RED, fallback) == 7L);
+    static_assert(enum_switch<const long&, as_common<>>(integer, static_cast<Color>(0), fallback) == -1L);
+    static_assert(enum_switch<const long&, as_common<>>(integer, Color::RED) == 7L);
+    enum class Flag { A = 1, B = 2, C = 4 };
+    static_assert(enum_switch<const long&, as_flags<>>(integer, Flag::B, fallback) == 7L);
+    static_assert(enum_switch<const long&, as_flags<>>(integer, static_cast<Flag>(3), fallback) == -1L);
+  }
+
+  SUBCASE("callable and argument categories") {
+    using V = enum_constant<Color::GREEN>;
+    static_assert(std::is_invocable_v<RvalueOnlySwitchArgument, V>);
+    static_assert(!std::is_invocable_v<RvalueOnlySwitchArgument, V&>);
+    static_assert(!std::is_invocable_v<RvalueOnlySwitchArgument, const V&>);
+    static_assert(enum_switch(RvalueOnlySwitchArgument{}, Color::GREEN, 0) == 7);
+    RefQualifiedSwitcher switcher;
+    REQUIRE(enum_switch(switcher, Color::GREEN, 0) == 1);
+    REQUIRE(enum_switch(RefQualifiedSwitcher{}, Color::GREEN, 0) == 2);
+    int calls = 0;
+    enum_switch([&calls](auto) { ++calls; }, Color::GREEN);
+    enum_switch([&calls](auto) { ++calls; }, static_cast<Color>(0));
+    REQUIRE(calls == 1);
+  }
+
   SUBCASE("complete invocable") {
     constexpr auto red = enum_switch<int>([](auto val) {
       return enum_integer(val());
