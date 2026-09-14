@@ -111,7 +111,7 @@ constexpr decltype(auto) linear_switch_impl(F&& f, E value, Def&& def) {
     using V = enum_constant<enum_value<E, J, S>()>;
     if (enum_value_equal(value, V::value)) {
       if constexpr (std::is_invocable_r_v<R, F, V>) {
-        return static_cast<R>(std::forward<F>(f)(V{}));
+        return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));
       } else {
         return def();
       }

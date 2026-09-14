@@ -204,6 +204,13 @@ struct ImmovableSwitchResult {
 static_assert(magic_enum::enum_switch<const ImmovableSwitchResult&>(GreenOnly{}, Color::GREEN).value == 42);
 static_assert(magic_enum::enum_switch<ImmovableSwitchResult, magic_enum::as_common<>>(GreenOnly{}, Color::RED).value == 0);
 
+constexpr auto switch_member = &magic_enum::enum_constant<Color::GREEN>::operator();
+static_assert(magic_enum::enum_switch(switch_member, Color::GREEN) == Color::GREEN);
+static_assert(magic_enum::enum_switch(switch_member, Color::RED, Color::BLUE) == Color::BLUE);
+enum class Single { value };
+constexpr auto for_each_member = &magic_enum::enum_constant<Single::value>::operator();
+static_assert(magic_enum::enum_for_each<Single>(for_each_member)[0] == Single::value);
+
 using ColorNameLess = magic_enum::containers::name_less<>;
 using ColorNameGreater = magic_enum::containers::name_greater<>;
 using ColorNameLessCaseInsensitive = magic_enum::containers::name_less_case_insensitive;

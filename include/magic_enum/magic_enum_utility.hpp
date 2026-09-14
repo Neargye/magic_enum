@@ -51,11 +51,11 @@ constexpr auto for_each(F&& f, std::index_sequence<J...>) {
   constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[0]>>, std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> && ...);
 
   if constexpr (has_void_return) {
-    (f(enum_constant<values_v<E, S>[J]>{}), ...);
+    (detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{}), ...);
   } else if constexpr (all_same_return) {
-    return std::array<enum_for_each_result_t<E, S, F, 0>, sizeof...(J)>{{f(enum_constant<values_v<E, S>[J]>{})...}};
+    return std::array<enum_for_each_result_t<E, S, F, 0>, sizeof...(J)>{{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...}};
   } else {
-    return std::tuple<enum_for_each_result_t<E, S, F, J>...>{f(enum_constant<values_v<E, S>[J]>{})...};
+    return std::tuple<enum_for_each_result_t<E, S, F, J>...>{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...};
   }
 }
 

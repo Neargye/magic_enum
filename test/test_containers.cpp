@@ -191,6 +191,43 @@ template <typename T> bool check_const([[maybe_unused]]T const& element) { retur
 
 constexpr std::uint8_t color_max = std::numeric_limits<std::uint8_t>::max();
 
+struct ConstLvalueStringLess {
+  constexpr bool operator()(magic_enum::string_view lhs, magic_enum::string_view rhs) const & { return lhs < rhs; }
+  bool operator()(magic_enum::string_view, magic_enum::string_view) const && = delete;
+};
+
+struct RvalueStringLess {
+  constexpr bool operator()(magic_enum::string_view lhs, magic_enum::string_view rhs) && { return lhs < rhs; }
+};
+
+struct LvalueCharLess {
+  constexpr bool operator()(const char& lhs, const char& rhs) & { return lhs < rhs; }
+  bool operator()(const char&, const char&) && = delete;
+  bool operator()(char&&, char&&) & = delete;
+};
+
+struct RvalueCharLess {
+  constexpr bool operator()(char lhs, char rhs) && { return lhs < rhs; }
+};
+
+TEST_CASE("name comparator categories") {
+  using StringLess = magic_enum::containers::detail::name_sort_impl<void, ConstLvalueStringLess>;
+  using CharLess = magic_enum::containers::detail::name_sort_impl<void, LvalueCharLess>;
+  using InvalidStringLess = magic_enum::containers::detail::name_sort_impl<void, RvalueStringLess>;
+  using InvalidCharLess = magic_enum::containers::detail::name_sort_impl<void, RvalueCharLess>;
+
+  static_assert(std::is_invocable_r_v<bool, StringLess, Color, Color>);
+  static_assert(std::is_invocable_r_v<bool, CharLess, Color, Color>);
+  static_assert(!std::is_invocable_v<InvalidStringLess, Color, Color>);
+  static_assert(!std::is_invocable_v<InvalidCharLess, Color, Color>);
+  static_assert(StringLess{}(Color::BLUE, Color::GREEN));
+  static_assert(CharLess{}(Color::BLUE, Color::GREEN));
+  REQUIRE(StringLess{}(Color::GREEN, "RED"));
+  REQUIRE(CharLess{}("BLUE", Color::RED));
+  REQUIRE_FALSE(StringLess{}(Color::RED, Color::GREEN));
+  REQUIRE_FALSE(CharLess{}(Color::RED, Color::GREEN));
+}
+
 TEST_CASE("containers_array") {
 
   using namespace magic_enum::bitwise_operators;

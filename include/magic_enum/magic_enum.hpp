@@ -1310,6 +1310,17 @@ struct underlying_type {};
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
 
+template <typename F, typename T, T V>
+constexpr decltype(auto) invoke_constant(F&& f, std::integral_constant<T, V>&& value) noexcept(std::is_nothrow_invocable_v<F, std::integral_constant<T, V>>) {
+  if constexpr (std::is_member_function_pointer_v<std::decay_t<F>>) {
+    return (std::move(value).*f)();
+  } else if constexpr (std::is_member_object_pointer_v<std::decay_t<F>>) {
+    return std::move(value).*f;
+  } else {
+    return std::forward<F>(f)(std::move(value));
+  }
+}
+
 #if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
 
 template <typename Value, typename = void>
@@ -1431,7 +1442,9 @@ constexpr auto calculate_cases(std::size_t Page) noexcept {
 
 template <typename R, typename F, typename... Args>
 constexpr R invoke_r(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
-  if constexpr (std::is_void_v<R>) {
+  if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {
+    return static_cast<R>(detail::invoke_constant(std::forward<F>(f), std::forward<Args>(args)...));
+  } else if constexpr (std::is_void_v<R>) {
     std::forward<F>(f)(std::forward<Args>(args)...);
   } else {
     return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));

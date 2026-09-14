@@ -247,7 +247,7 @@ struct name_sort_impl<void, Cmp> {
   struct FullCmp : C {};
 
   template <typename C>
-  struct FullCmp<C, std::enable_if_t<!std::is_invocable_v<C, string_view, string_view> && std::is_invocable_v<C, char_type, char_type>>> {
+  struct FullCmp<C, std::enable_if_t<!std::is_invocable_v<const C&, string_view, string_view> && std::is_invocable_v<C&, const char_type&, const char_type&>>> {
     [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const { return lexicographical_compare<C>(s1, s2); }
   };
 
@@ -273,7 +273,7 @@ struct name_sort_impl<void, Cmp> {
       // if both is enum, only accept if the same enum
       (!std::is_enum_v<std::decay_t<E1>> || !std::is_enum_v<std::decay_t<E2>> || std::is_same_v<std::decay_t<E1>, std::decay_t<E2>>) &&
       // is invocable with comparator
-      (std::is_invocable_r_v<bool, FullCmp<>, cmp_arg_t<E1>, cmp_arg_t<E2>>),
+      (std::is_invocable_r_v<bool, const FullCmp<>&, cmp_arg_t<E1>, cmp_arg_t<E2>>),
       bool>
   operator()(E1&& e1, E2&& e2) const {
     constexpr FullCmp<> cmp{};

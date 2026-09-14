@@ -1294,6 +1294,16 @@ struct ImmovableSwitchResult {
 };
 
 TEST_CASE("enum_switch") {
+  SUBCASE("member function pointer") {
+    constexpr auto member = &enum_constant<Color::GREEN>::operator();
+    static_assert(enum_switch(member, Color::GREEN) == Color::GREEN);
+    static_assert(enum_switch(member, Color::RED) == Color{});
+    static_assert(enum_switch(member, Color::GREEN, Color::BLUE) == Color::GREEN);
+    static_assert(enum_switch(member, Color::RED, Color::BLUE) == Color::BLUE);
+    static_assert(enum_switch(member, static_cast<Color>(0), Color::BLUE) == Color::BLUE);
+    REQUIRE(enum_switch(std::ref(member), Color::GREEN) == Color::GREEN);
+  }
+
   SUBCASE("fallback value categories") {
     constexpr auto eq_red = [](auto val) { return val() == Color::RED; };
     constexpr bool fallback = true;
@@ -1745,6 +1755,20 @@ struct RvalueOnlyForEach {
 };
 
 TEST_CASE("enum_for_each") {
+  SUBCASE("rvalue argument") {
+    constexpr auto values = enum_for_each<Color>(RvalueOnlySwitchArgument{});
+    static_assert(values[0] == 7 && values[1] == 7 && values[2] == 7);
+  }
+
+  SUBCASE("member function pointer") {
+    enum class Single { value };
+    constexpr auto member = &enum_constant<Single::value>::operator();
+    constexpr auto values = enum_for_each<Single>(member);
+    static_assert(std::is_same_v<std::remove_const_t<decltype(values)>, std::array<Single, 1>>);
+    static_assert(values[0] == Single::value);
+    REQUIRE(enum_for_each<Single>(std::ref(member))[0] == Single::value);
+  }
+
   SUBCASE("no return type") {
     underlying_type_t<Color> sum{};
     enum_for_each<Color>([&sum](auto val) {

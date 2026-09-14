@@ -57,6 +57,12 @@ struct ImmovableSwitchResult {
 static_assert(magic_enum::enum_switch<const ImmovableSwitchResult&>(switch_eq_red, Color::RED).value == 1);
 static_assert(magic_enum::enum_switch<ImmovableSwitchResult, magic_enum::as_common<>>(switch_eq_red, static_cast<Color>(-1)).value == 0);
 
+constexpr auto switch_member = &magic_enum::enum_constant<Color::GREEN>::operator();
+static_assert(magic_enum::enum_switch(switch_member, Color::GREEN) == Color::GREEN);
+enum class Single { value };
+constexpr auto for_each_member = &magic_enum::enum_constant<Single::value>::operator();
+static_assert(magic_enum::enum_for_each<Single>(for_each_member)[0] == Single::value);
+
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION
 constexpr auto reflection_range_values = magic_enum::enum_values<ReflectionRange>();
 static_assert(reflection_range_values.size() == 2);
