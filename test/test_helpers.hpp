@@ -14,6 +14,21 @@
 
 namespace magic_enum_tests {
 
+struct ConstReferencePredicate {
+  constexpr bool operator()(const char& lhs, const char& rhs) & noexcept { return lhs == rhs; }
+  bool operator()(char&&, char&&) & = delete;
+};
+
+struct ThrowingReferencePredicate {
+  bool operator()(const char& lhs, const char& rhs) & {
+    if (lhs == rhs) {
+      throw 42;
+    }
+    return false;
+  }
+  bool operator()(char&& lhs, char&& rhs) & noexcept { return lhs == rhs; }
+};
+
 template <typename View>
 void require_null_terminated(View value) {
   using char_type = typename View::value_type;

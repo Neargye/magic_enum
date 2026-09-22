@@ -174,6 +174,15 @@ TEST_CASE("bool flags use the sole non-zero bit") {
 }
 
 TEST_CASE("enum_cast") {
+  SUBCASE("predicates receive character references") {
+    static_assert(enum_flags_cast<Color>("RED|GREEN", '|', ConstReferencePredicate{}) == (Color::RED | Color::GREEN));
+    static_assert(enum_flags_contains<Color>("RED|GREEN", '|', ConstReferencePredicate{}));
+    static_assert(!noexcept(enum_flags_cast<Color>("RED", '|', ThrowingReferencePredicate{})));
+    static_assert(!noexcept(enum_flags_contains<Color>("RED", '|', ThrowingReferencePredicate{})));
+    REQUIRE_THROWS_AS(static_cast<void>(enum_flags_cast<Color>("RED", '|', ThrowingReferencePredicate{})), int);
+    REQUIRE_THROWS_AS(static_cast<void>(enum_flags_contains<Color>("RED", '|', ThrowingReferencePredicate{})), int);
+  }
+
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("RED");
     REQUIRE(cr.value() == Color::RED);

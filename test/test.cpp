@@ -263,6 +263,12 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_contains<Color>("GREEN", LvalueOnlyPredicate{}));
     REQUIRE_FALSE(enum_cast<Color>("None").has_value());
     static_assert(!noexcept(enum_cast<Color>("GREEN", RefQualifiedPredicate{})));
+    static_assert(enum_cast<Color>("GREEN", ConstReferencePredicate{}) == Color::GREEN);
+    static_assert(enum_contains<Color>("GREEN", ConstReferencePredicate{}));
+    static_assert(!noexcept(enum_cast<Color>("GREEN", ThrowingReferencePredicate{})));
+    static_assert(!noexcept(enum_contains<Color>("GREEN", ThrowingReferencePredicate{})));
+    REQUIRE_THROWS_AS(static_cast<void>(enum_cast<Color>("GREEN", ThrowingReferencePredicate{})), int);
+    REQUIRE_THROWS_AS(static_cast<void>(enum_contains<Color>("GREEN", ThrowingReferencePredicate{})), int);
 
     constexpr auto dim = enum_cast<Dimension>("Nether");
     REQUIRE(dim.value() == Dimension::Nether);
