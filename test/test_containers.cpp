@@ -710,7 +710,58 @@ TEST_CASE("map_like_container") {
   }
 }
 
+TEST_CASE("containers_set_reverse_iterator") {
+  using Set = magic_enum::containers::set<Color>;
+  const Set empty;
+  REQUIRE(empty.rbegin() == empty.rend());
+  REQUIRE(empty.crbegin() == empty.crend());
+
+  const Set sparse{Color::RED, Color::BLUE};
+  auto it = sparse.rbegin();
+  REQUIRE(*it == Color::BLUE);
+  REQUIRE(*it++ == Color::BLUE);
+  REQUIRE(*it == Color::RED);
+  REQUIRE(++it == sparse.rend());
+  REQUIRE(*--it == Color::RED);
+  REQUIRE(*--it == Color::BLUE);
+  REQUIRE(it == sparse.crbegin());
+  REQUIRE(std::distance(sparse.crbegin(), sparse.crend()) == 2);
+
+  const Set singleton{Color::GREEN};
+  REQUIRE(*singleton.rbegin() == Color::GREEN);
+  REQUIRE(std::next(singleton.crbegin()) == singleton.crend());
+
+  const magic_enum::containers::set<Color, magic_enum::containers::name_less<>> by_name{Color::RED, Color::BLUE};
+  REQUIRE(*by_name.rbegin() == Color::RED);
+  REQUIRE(*std::next(by_name.rbegin()) == Color::BLUE);
+  REQUIRE(std::distance(by_name.rbegin(), by_name.rend()) == 2);
+}
+
+template <typename E>
+constexpr bool bitset_reverse_constexpr() {
+  magic_enum::containers::bitset<E> bits;
+  constexpr auto values = magic_enum::enum_values<E>();
+  bits.set(values.front());
+  bits.set(values.back());
+  auto it = bits.end();
+  if (*--it != values.back() || *--it != values.front()) {
+    return false;
+  }
+  const auto& const_bits = bits;
+  auto cit = const_bits.end();
+  return *--cit == values.back() && *--cit == values.front() && ++it == ++cit && ++it == bits.end();
+}
+
+#if !defined(_MSC_VER) || defined(__clang__) || (defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L)
+static_assert(bitset_reverse_constexpr<Numbers>());
+static_assert(bitset_reverse_constexpr<Nibble>());
+static_assert(bitset_reverse_constexpr<Bits65>());
+#endif
+
 TEST_CASE("containers_bitset_iterator") {
+  REQUIRE(bitset_reverse_constexpr<Numbers>());
+  REQUIRE(bitset_reverse_constexpr<Nibble>());
+  REQUIRE(bitset_reverse_constexpr<Bits65>());
   using namespace magic_enum::bitwise_operators;
 
   SUBCASE("empty - begin equals end") {

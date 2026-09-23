@@ -757,7 +757,7 @@ class bitset {
     }
 
     constexpr iterator_impl& operator--() noexcept {
-      base_type search_mask;
+      base_type search_mask = 0;
       if (num_index >= base_type_count) {
         num_index = base_type_count - 1;
         search_mask = last_value_max;
@@ -1171,9 +1171,9 @@ class set {
 
   constexpr const_iterator cend() const noexcept { return end(); }
 
-  constexpr const_reverse_iterator rbegin() const noexcept { return {end()}; }
+  constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator{end()}; }
 
-  constexpr const_reverse_iterator rend() const noexcept { return {begin()}; }
+  constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator{begin()}; }
 
   constexpr const_reverse_iterator crbegin() const noexcept { return rbegin(); }
 
