@@ -1100,6 +1100,42 @@ TEST_CASE("string_view lifetime and null termination") {
 }
 
 TEST_CASE("ostream_operators") {
+  SUBCASE("character underlying types") {
+    enum class Byte : unsigned char { Named = 1 };
+    enum class SignedByte : signed char { Named = 1 };
+    enum class Character : char { Named = 1 };
+    enum class WideCharacter : wchar_t { Named = 1 };
+    enum class Character16 : char16_t { Named = 1 };
+    enum class Character32 : char32_t { Named = 1 };
+
+    require_ostream(Byte::Named, "Named");
+    require_ostream(static_cast<Byte>(255), "255");
+    require_ostream(static_cast<SignedByte>(-1), "-1");
+    require_ostream(static_cast<Character>(65), "65");
+    require_ostream(static_cast<WideCharacter>(65), "65");
+    require_ostream(Character16::Named, "Named");
+    require_ostream(static_cast<Character16>(65), "65");
+    require_ostream(static_cast<Character32>(65), "65");
+    require_ostream(std::make_optional(static_cast<Byte>(255)), "255");
+    require_ostream(static_cast<WideCharacter>(65), L"65");
+#if defined(__cpp_char8_t)
+    enum class Character8 : char8_t { Named = 1 };
+    require_ostream(static_cast<Character8>(65), "65");
+#endif
+  }
+
+  SUBCASE("short underlying type formatting") {
+    using namespace magic_enum::ostream_operators;
+    enum class Small : short { Named = 1 };
+
+    for (const auto format : {std::dec, std::hex, std::oct}) {
+      std::ostringstream actual, expected;
+      actual << format << static_cast<Small>(-1);
+      expected << format << short{-1};
+      REQUIRE(actual.str() == expected.str());
+    }
+  }
+
   require_ostream(std::make_optional(Color::RED), "red");
   require_ostream(Color::GREEN, "GREEN");
   require_ostream(Color::BLUE, "BLUE");
@@ -1149,6 +1185,20 @@ TEST_CASE("istream_operators") {
 
   require_istream(number::two, "two");
   require_istream(number::three, "three");
+}
+
+TEST_CASE("istream_operators invalid input with custom traits") {
+  using namespace magic_enum::istream_operators;
+  using String = std::basic_string<char, CustomCharTraits<char>>;
+  constexpr char embedded_null[] = "GREEN\0UNKNOWN";
+
+  for (const auto& input : {String{"UNKNOWN"}, String{embedded_null, sizeof(embedded_null) - 1}}) {
+    std::basic_istringstream<char, CustomCharTraits<char>> stream{input};
+    auto value = Color::BLUE;
+    stream >> value;
+    REQUIRE((stream.rdstate() & std::ios::failbit) != 0);
+    REQUIRE(value == Color::BLUE);
+  }
 }
 
 TEST_CASE("bitwise_operators") {

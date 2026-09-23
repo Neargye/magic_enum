@@ -723,6 +723,13 @@ TEST_CASE("flags string lifetime and null termination") {
 }
 
 TEST_CASE("ostream_operators") {
+  SUBCASE("boolalpha fallback") {
+    using namespace magic_enum::ostream_operators;
+    std::ostringstream stream;
+    stream << std::boolalpha << BoolFlags::Disabled;
+    REQUIRE(stream.str() == "false");
+  }
+
   require_ostream(std::make_optional(Color::RED), "RED");
   require_ostream(Color::GREEN, "GREEN");
   require_ostream(Color::BLUE, "BLUE");
@@ -775,6 +782,20 @@ TEST_CASE("istream_operators") {
   require_istream(number::three, "three");
   require_istream(number::four, "four");
   require_istream(number::four | number::one, "one|four");
+}
+
+TEST_CASE("istream_operators invalid input with custom traits") {
+  using namespace magic_enum::istream_operators;
+  using String = std::basic_string<char, CustomCharTraits<char>>;
+  constexpr char embedded_null[] = "RED\0|BLUE";
+
+  for (const auto& input : {String{"UNKNOWN"}, String{"RED|UNKNOWN"}, String{embedded_null, sizeof(embedded_null) - 1}}) {
+    std::basic_istringstream<char, CustomCharTraits<char>> stream{input};
+    auto value = Color::BLUE;
+    stream >> value;
+    REQUIRE((stream.rdstate() & std::ios::failbit) != 0);
+    REQUIRE(value == Color::BLUE);
+  }
 }
 
 TEST_CASE("bitwise_operators") {

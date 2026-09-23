@@ -81,6 +81,9 @@ void require_ostream(Value&& value, const Char* expected) {
   REQUIRE(stream.str() == expected);
 }
 
+template <typename Char>
+struct CustomCharTraits : std::char_traits<Char> {};
+
 template <typename Value, typename Char>
 void require_istream(Value expected, const Char* name) {
   using namespace magic_enum::istream_operators;
@@ -89,6 +92,12 @@ void require_istream(Value expected, const Char* name) {
   std::decay_t<Value> value;
   stream >> value;
   REQUIRE(stream);
+  REQUIRE(value == expected);
+
+  std::basic_istringstream<Char, CustomCharTraits<Char>> custom_stream{name};
+  value = {};
+  custom_stream >> value;
+  REQUIRE(custom_stream);
   REQUIRE(value == expected);
 }
 

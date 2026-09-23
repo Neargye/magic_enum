@@ -64,6 +64,14 @@ TEST_CASE("string_view") {
   REQUIRE(cn.size() == 0);
 }
 
+TEST_CASE("istream_operators") {
+  enum class Direction { Left, Right };
+
+  require_istream(Direction::Right, "Right");
+  require_istream(Color::GREEN, "GREEN");
+  require_istream(Color::RED | Color::BLUE, "RED|BLUE");
+}
+
 TEST_CASE("string_view lifetime and null termination") {
   const auto static_name = enum_name<Color::BLUE>();
   require_null_terminated(static_name, "BLUE");

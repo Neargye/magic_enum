@@ -65,7 +65,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
       }
     }
   }
-  return (os << static_cast<U>(value));
+  return os.operator<<(static_cast<U>(value));
 }
 
 template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
@@ -85,13 +85,13 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
   is >> s;
   if constexpr (detail::supported<D>::value) {
     if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-      if (const auto v = enum_flags_cast<D>(s)) {
+      if (const auto v = enum_flags_cast<D>(string_view{s.data(), s.size()})) {
         value = *v;
       } else {
         is.setstate(std::basic_ios<Char>::failbit);
       }
     } else {
-      if (const auto v = enum_cast<D>(s)) {
+      if (const auto v = enum_cast<D>(string_view{s.data(), s.size()})) {
         value = *v;
       } else {
         is.setstate(std::basic_ios<Char>::failbit);
