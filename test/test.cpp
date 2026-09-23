@@ -1760,7 +1760,24 @@ struct RvalueOnlyForEach {
   }
 };
 
+struct ForEachCommaResult {
+  ForEachCommaResult operator,(ForEachCommaResult) const = delete;
+};
+
 TEST_CASE("enum_for_each") {
+  SUBCASE("discarded results with overloaded comma") {
+    std::array<Color, 3> visited{};
+    std::size_t calls = 0;
+    enum_for_each<Color>([&](auto value) {
+      visited[calls++] = value;
+      if constexpr (value != Color::RED) {
+        return ForEachCommaResult{};
+      }
+    });
+    REQUIRE(calls == visited.size());
+    REQUIRE(visited == enum_values<Color>());
+  }
+
   SUBCASE("rvalue argument") {
     constexpr auto values = enum_for_each<Color>(RvalueOnlySwitchArgument{});
     static_assert(values[0] == 7 && values[1] == 7 && values[2] == 7);
