@@ -1383,22 +1383,22 @@ template <typename V, int = 0>
 explicit set(V starter) -> set<V>;
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
   return a.a[J];
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
   return std::move(a.a[J]);
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
   return a.a[J];
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
+constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
   return std::move(a.a[J]);
 }
 

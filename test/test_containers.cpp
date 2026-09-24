@@ -90,6 +90,23 @@ static_assert(!magic_enum::containers::detail::valid_indexing<Color, DuplicateIn
 static_assert(!magic_enum::containers::detail::valid_indexing<Empty, magic_enum::containers::default_indexing<Empty>>());
 static_assert(std::is_default_constructible_v<magic_enum::containers::array<Color, int, StaticIndex>>);
 static_assert(std::is_default_constructible_v<magic_enum::containers::bitset<Color, StaticIndex>>);
+
+template <auto I, typename T, typename = void>
+inline constexpr bool has_array_get = false;
+
+template <auto I, typename T>
+inline constexpr bool has_array_get<I, T, std::void_t<decltype(magic_enum::containers::get<I>(std::declval<T>()))>> = true;
+
+using ColorArray = magic_enum::containers::array<Color, int>;
+static_assert(!has_array_get<-1LL, ColorArray&>);
+static_assert(!has_array_get<-1LL, const ColorArray&>);
+static_assert(!has_array_get<-1LL, ColorArray&&>);
+static_assert(!has_array_get<-1LL, const ColorArray&&>);
+static_assert(!has_array_get<3, ColorArray&>);
+static_assert(has_array_get<0LL, ColorArray&>);
+static_assert(has_array_get<2ULL, const ColorArray&>);
+static_assert(has_array_get<Color::RED, ColorArray&>);
+
 struct NoexceptSwapThrowingMove {
   NoexceptSwapThrowingMove() = default;
   NoexceptSwapThrowingMove(const NoexceptSwapThrowingMove&) = delete;
