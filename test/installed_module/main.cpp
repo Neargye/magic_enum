@@ -36,6 +36,8 @@ struct magic_enum::customize::enum_range<ReflectionRange> {
 };
 
 static_assert(magic_enum::enum_count<Color>() == 3);
+static_assert(magic_enum::enum_min<Color>() == Color::RED);
+static_assert(magic_enum::enum_max<Color>() == Color::BLUE);
 static_assert(magic_enum::enum_integer(Color::GREEN) == 1);
 static_assert(magic_enum::string_view{"BLUE"}.size() == 4);
 static_assert(magic_enum::optional<int>{7}.value() == 7);

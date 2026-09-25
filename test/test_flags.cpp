@@ -536,6 +536,22 @@ TEST_CASE("enum_count") {
   REQUIRE(s4 == 4);
 }
 
+TEST_CASE("enum_min_max") {
+  constexpr auto color_min = enum_min<Color&>();
+  constexpr auto color_max = enum_max<const Color, as_flags<>>();
+  REQUIRE(color_min == Color::RED);
+  REQUIRE(color_max == Color::BLUE);
+
+  REQUIRE(enum_min<Directions>() == Directions::Left);
+  REQUIRE(enum_max<Directions>() == Directions::Right);
+  REQUIRE(enum_min<number>() == number::one);
+  REQUIRE(enum_max<number>() == number::four);
+  REQUIRE(enum_min<number, as_common<>>() == number::no_number);
+  REQUIRE(enum_max<number, as_common<>>() == number::four);
+  REQUIRE(enum_min<BoolFlags>() == BoolFlags::Enabled);
+  REQUIRE(enum_max<BoolFlags>() == BoolFlags::Enabled);
+}
+
 TEST_CASE("enum_name") {
   SUBCASE("automatic storage") {
     constexpr Color cr = Color::RED;

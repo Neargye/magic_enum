@@ -760,6 +760,24 @@ TEST_CASE("enum_count") {
 #endif
 }
 
+TEST_CASE("enum_min_max") {
+  constexpr auto color_min = enum_min<Color&>();
+  constexpr auto color_max = enum_max<const Color>();
+  REQUIRE(color_min == Color::RED);
+  REQUIRE(color_max == Color::BLUE);
+
+  REQUIRE(enum_min<Directions>() == Directions::Left);
+  REQUIRE(enum_max<Directions>() == Directions::Right);
+  REQUIRE(enum_min<number>() == number::one);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  REQUIRE(enum_max<number>() == number::four);
+#else
+  REQUIRE(enum_max<number>() == number::three);
+#endif
+  REQUIRE(enum_min<Binary>() == Binary::ONE);
+  REQUIRE(enum_max<Binary>() == Binary::TWO);
+}
+
 enum lt1 { s1, loooooooooooooooooooong1 };
 enum lt2 : unsigned { s2, loooooooooooooooooooong2 };
 enum class lt3 { s3, loooooooooooooooooooong3 };
