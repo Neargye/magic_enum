@@ -157,7 +157,21 @@ constexpr auto equal_range(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
   return std::pair{first, detail::upper_bound(first, end, e, comp)};
 }
 
-template <typename E = void, typename Cmp = std::less<E>, typename = void>
+template <typename E, typename Cmp>
+constexpr bool is_default_order() noexcept {
+  if constexpr (!std::is_void_v<E> && !std::is_void_v<Cmp>) {
+    constexpr auto& values = enum_values<E>();
+    constexpr Cmp cmp{};
+    for (std::size_t i = 1; i < values.size(); ++i) {
+      if (cmp(values[i], values[i - 1])) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+template <typename E = void, typename Cmp = void, typename = void>
 class indexing {
   [[nodiscard]] static constexpr auto get_indices() noexcept {
     // reverse result index mapping
@@ -211,7 +225,7 @@ class indexing {
 };
 
 template <typename E, typename Cmp>
-class indexing<E, Cmp, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && (std::is_same_v<Cmp, std::less<E>> || std::is_same_v<Cmp, std::less<>>)>> {
+class indexing<E, Cmp, std::enable_if_t<std::is_enum_v<E> && is_default_order<E, Cmp>()>> {
   static constexpr auto& values = enum_values<E>();
 
  public:

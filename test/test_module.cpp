@@ -25,6 +25,17 @@ enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };
 enum class ReflectionRange { Low = -1000, High = 1000 };
 
+enum class ReverseOrder { Low, High };
+
+constexpr bool operator<(ReverseOrder lhs, ReverseOrder rhs) noexcept {
+  return static_cast<int>(lhs) > static_cast<int>(rhs);
+}
+
+constexpr magic_enum::containers::set<ReverseOrder> reverse_set{ReverseOrder::Low, ReverseOrder::High};
+static_assert(*reverse_set.begin() == ReverseOrder::High);
+static_assert(*reverse_set.lower_bound(ReverseOrder::Low) == ReverseOrder::Low);
+static_assert(*magic_enum::containers::default_indexing<ReverseOrder>::at(ReverseOrder::Low) == 0);
+
 template <>
 struct magic_enum::customize::enum_range<Directions> {
   static constexpr bool is_flags = true;

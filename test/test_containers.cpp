@@ -21,6 +21,7 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <set>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
@@ -32,6 +33,12 @@ struct magic_enum::customize::enum_range<Color> {
 };
 
 enum class Empty {};
+
+enum class ReverseOrder { First, Second, Third };
+
+constexpr bool operator<(ReverseOrder lhs, ReverseOrder rhs) noexcept {
+  return static_cast<int>(lhs) > static_cast<int>(rhs);
+}
 
 // Enums used by containers_bitset_iterator tests.
 enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, not_interested=4
@@ -135,6 +142,13 @@ enum class ThrowingEnum { A, B };
 
 bool operator<(ThrowingEnum, ThrowingEnum) { throw 0; }
 
+struct UnderlyingLess {
+  template <typename E>
+  constexpr bool operator()(E lhs, E rhs) const noexcept {
+    return magic_enum::enum_underlying(lhs) < magic_enum::enum_underlying(rhs);
+  }
+};
+
 enum class EquivalentNames { A, a };
 
 struct NonCopyablePredicate {
@@ -167,7 +181,7 @@ struct ThrowingConversion {
 
 using ColorBitset = magic_enum::containers::bitset<Color>;
 using ColorSet = magic_enum::containers::set<Color>;
-using ThrowingSet = magic_enum::containers::set<ThrowingEnum>;
+using ThrowingSet = magic_enum::containers::set<ThrowingEnum, UnderlyingLess>;
 static_assert(std::is_same_v<typename std::iterator_traits<ColorBitset::iterator>::value_type, Color>);
 static_assert(std::is_same_v<typename std::iterator_traits<ColorSet::iterator>::value_type, Color>);
 static_assert(!noexcept(std::declval<ColorSet&>().insert(static_cast<const Color*>(nullptr), static_cast<const Color*>(nullptr))));
@@ -557,6 +571,64 @@ TEST_CASE("containers_bitset_all_full_storage") {
     const auto flipped = ~bs;
     return flipped.all() && bs.none() && bs.set().all() && bs.flip().none();
   }());
+}
+
+TEST_CASE("containers_set overloaded ordering") {
+  using namespace magic_enum::containers;
+  constexpr set<ReverseOrder> all{ReverseOrder::First, ReverseOrder::Second, ReverseOrder::Third};
+  static_assert(*all.begin() == ReverseOrder::Third);
+  static_assert(*all.lower_bound(ReverseOrder::Second) == ReverseOrder::Second);
+  static_assert(*all.upper_bound(ReverseOrder::Second) == ReverseOrder::First);
+
+  const auto check = [](auto actual, unsigned mask) {
+    std::set<ReverseOrder> expected;
+    for (unsigned i = 0; i < 3; ++i) {
+      if (mask & (1U << i)) {
+        actual.insert(static_cast<ReverseOrder>(i));
+        expected.insert(static_cast<ReverseOrder>(i));
+      }
+    }
+    REQUIRE(std::equal(actual.begin(), actual.end(), expected.begin(), expected.end()));
+    REQUIRE(std::equal(actual.rbegin(), actual.rend(), expected.rbegin(), expected.rend()));
+    for (int i = -1; i <= 3; ++i) {
+      const auto key = static_cast<ReverseOrder>(i);
+      const auto [first, last] = actual.equal_range(key);
+      const auto [expected_first, expected_last] = expected.equal_range(key);
+      REQUIRE(std::distance(actual.begin(), first) == std::distance(expected.begin(), expected_first));
+      REQUIRE(std::distance(actual.begin(), last) == std::distance(expected.begin(), expected_last));
+      REQUIRE((actual.find(key) != actual.end()) == (expected.find(key) != expected.end()));
+    }
+    for (const auto key : magic_enum::enum_values<ReverseOrder>()) {
+      REQUIRE(actual.erase(key) == expected.erase(key));
+      REQUIRE(actual.size() == expected.size());
+    }
+  };
+  for (unsigned mask = 0; mask < 8; ++mask) {
+    check(set<ReverseOrder>{}, mask);
+    check(set<ReverseOrder, std::less<>>{}, mask);
+  }
+}
+
+TEST_CASE("container indexing preserves the requested order") {
+  using namespace magic_enum::containers;
+  constexpr array<ReverseOrder, int> natural{{10, 20, 30}};
+  static_assert(natural[ReverseOrder::First] == 10);
+  static_assert(natural[ReverseOrder::Third] == 30);
+  constexpr bitset<ReverseOrder> bits{ReverseOrder::First, ReverseOrder::Third};
+  REQUIRE(*bits.begin() == ReverseOrder::First);
+  static_assert(bits.to_ullong(raw_access) == 5);
+
+  using SortedIndex = comparator_indexing<std::less<>>;
+  constexpr array<ReverseOrder, int, SortedIndex> sorted{{10, 20, 30}};
+  static_assert(sorted[ReverseOrder::First] == 30);
+  static_assert(sorted[ReverseOrder::Third] == 10);
+  REQUIRE(default_indexing<>::at(ReverseOrder::First) == 0);
+  REQUIRE(SortedIndex::at(ReverseOrder::First) == 2);
+
+  constexpr array<ThrowingEnum, int> throwing{{10, 20}};
+  static_assert(throwing[ThrowingEnum::A] == 10);
+  constexpr bitset<ThrowingEnum> throwing_bits{ThrowingEnum::A};
+  REQUIRE(*throwing_bits.begin() == ThrowingEnum::A);
 }
 
 TEST_CASE("containers_set") {
