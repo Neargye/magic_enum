@@ -39,7 +39,7 @@
 #  include <initializer_list>
 #  include <ios>
 #  include <iterator>
-#  include <string_view> // 2026-10-03
+#  include <string_view>
 #endif
 
 #if !defined(MAGIC_ENUM_USE_STD_MODULE) && __has_include(<bit>) && (__cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L))
@@ -1088,7 +1088,7 @@ class bitset {
   template <typename Traits>
   friend std::basic_ostream<char_type, Traits>& operator<<(std::basic_ostream<char_type, Traits>& o, const bitset& bs) {
     const auto s = bs.to_string();
-    return o << std::basic_string_view<char_type, Traits>{s.data(), s.size()}; // 2026-10-03
+    return o << std::basic_string_view<char_type, Traits>{s.data(), s.size()};
   }
 
   template <typename Traits>

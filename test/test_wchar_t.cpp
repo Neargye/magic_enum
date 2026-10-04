@@ -161,7 +161,6 @@ TEST_CASE("containers_bitset_iostream") {
   REQUIRE(bits == expected);
 }
 
-// 2026-10-03：宽字符别名和自定义 traits 下也应正确消费位集输出宽度。
 TEST_CASE("containers_bitset_ostream_field_width") {
   const magic_enum::containers::bitset<Color> bits{Color::RED, Color::BLUE};
   for (const bool left : {false, true}) {

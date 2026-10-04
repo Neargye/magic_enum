@@ -22,7 +22,7 @@
 #include <iterator>
 #include <limits>
 #include <set>
-#include <sstream> // 2026-10-03
+#include <sstream>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
@@ -491,7 +491,6 @@ TEST_CASE("containers_bitset") {
   REQUIRE_THROWS(custom_index_bitset.reset(static_cast<Color>(8)));
 }
 
-// 2026-10-03：位集输出应消费当前字段宽度，保留对齐、填充和自定义字符 traits。
 TEST_CASE("containers_bitset_ostream_field_width") {
   using Bitset = magic_enum::containers::bitset<Color>;
   const Bitset bits{Color::RED, Color::BLUE};
