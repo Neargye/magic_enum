@@ -22,6 +22,7 @@
 #include <iterator>
 #include <limits>
 #include <set>
+#include <sstream>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
@@ -488,6 +489,41 @@ TEST_CASE("containers_bitset") {
   REQUIRE_THROWS(static_cast<void>(custom_index_bitset.test(static_cast<Color>(8))));
   REQUIRE_THROWS(custom_index_bitset.set(static_cast<Color>(8)));
   REQUIRE_THROWS(custom_index_bitset.reset(static_cast<Color>(8)));
+}
+
+TEST_CASE("containers_bitset_ostream_field_width") {
+  using Bitset = magic_enum::containers::bitset<Color>;
+  const Bitset bits{Color::RED, Color::BLUE};
+
+  for (const bool left : {false, true}) {
+    std::ostringstream stream;
+    stream.setf(left ? std::ios::left : std::ios::right, std::ios::adjustfield);
+    stream.fill('_');
+    stream.width(12);
+    REQUIRE(&(stream << bits) == &stream);
+    REQUIRE(stream.width() == 0);
+    stream << '!';
+    REQUIRE(stream.str() == (left ? "RED|BLUE____!" : "____RED|BLUE!"));
+  }
+
+  std::ostringstream short_width;
+  short_width.width(3);
+  short_width << bits << '!';
+  REQUIRE(short_width.str() == "RED|BLUE!");
+
+  std::ostringstream empty;
+  empty.fill('_');
+  empty.width(3);
+  empty << Bitset{} << '!';
+  REQUIRE(empty.str() == "___!");
+
+  struct CustomTraits : std::char_traits<char> {};
+  std::basic_ostringstream<char, CustomTraits> custom;
+  custom.fill('_');
+  custom.width(6);
+  custom << Bitset{Color::RED} << '!';
+  const auto result = custom.str();
+  REQUIRE(std::string(result.data(), result.size()) == "___RED!");
 }
 
 TEST_CASE("containers_bitset_hash") {

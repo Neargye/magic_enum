@@ -160,3 +160,24 @@ TEST_CASE("containers_bitset_iostream") {
   const magic_enum::containers::bitset<Color> expected {Color::GREEN};
   REQUIRE(bits == expected);
 }
+
+TEST_CASE("containers_bitset_ostream_field_width") {
+  const magic_enum::containers::bitset<Color> bits{Color::RED, Color::BLUE};
+  for (const bool left : {false, true}) {
+    std::wostringstream stream;
+    stream.setf(left ? std::ios::left : std::ios::right, std::ios::adjustfield);
+    stream.fill(L'_');
+    stream.width(12);
+    stream << bits;
+    REQUIRE(stream.width() == 0);
+    stream << L'!';
+    REQUIRE(stream.str() == (left ? L"red|BLUE____!" : L"____red|BLUE!"));
+  }
+
+  std::basic_ostringstream<wchar_t, CustomCharTraits<wchar_t>> custom;
+  custom.fill(L'_');
+  custom.width(12);
+  custom << bits << L'!';
+  const auto result = custom.str();
+  REQUIRE(std::wstring(result.data(), result.size()) == L"____red|BLUE!");
+}
