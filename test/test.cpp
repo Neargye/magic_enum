@@ -265,8 +265,11 @@ TEST_CASE("bool enum text lookup does not convert pointers to true") {
   static_assert(enum_cast<BoolTest>("yay", case_insensitive) == BoolTest::Yay);
   static_assert(enum_cast<BoolTest>("Yay", ConstReferencePredicate{}) == BoolTest::Yay);
   static_assert(enum_contains<BoolTest>("Yay", ConstReferencePredicate{}));
-  static_assert(noexcept(enum_cast<BoolTest>("Yay")));
-  static_assert(noexcept(enum_contains<BoolTest>("Yay")));
+  constexpr bool nothrow_name = std::is_nothrow_constructible_v<string_view, decltype("Yay")>;
+  static_assert(noexcept(enum_cast<BoolTest>("Yay")) == nothrow_name);
+  static_assert(noexcept(enum_contains<BoolTest>("Yay")) == nothrow_name);
+  static_assert(noexcept(enum_cast<BoolTest>(std::declval<string_view>())));
+  static_assert(noexcept(enum_contains<BoolTest>(std::declval<string_view>())));
   static_assert(!noexcept(enum_cast<BoolTest>("Yay", ThrowingReferencePredicate{})));
 
   constexpr const char* false_name = "Yay";
@@ -314,12 +317,21 @@ TEST_CASE("bool enum text lookup does not convert pointers to true") {
   CHECK(enum_contains<BoolTest>(TemporaryName{}));
 
   struct ThrowingName {
-    operator string_view() const { throw 42; }
+    bool should_throw = true;
+    // Keep the conversion opaque to MSVC's unreachable-code analysis.
+    DOCTEST_NOINLINE operator string_view() const {
+      if (should_throw) {
+        throw 42;
+      }
+      return "Yay";
+    }
   };
   static_assert(!noexcept(enum_cast<BoolTest>(ThrowingName{})));
   static_assert(!noexcept(enum_contains<BoolTest>(ThrowingName{})));
   CHECK_THROWS_AS(static_cast<void>(enum_cast<BoolTest>(ThrowingName{})), int);
   CHECK_THROWS_AS(static_cast<void>(enum_contains<BoolTest>(ThrowingName{})), int);
+  CHECK(enum_cast<BoolTest>(ThrowingName{false}) == BoolTest::Yay);
+  CHECK(enum_contains<BoolTest>(ThrowingName{false}));
 }
 
 TEST_CASE("enum_cast") {
