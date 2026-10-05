@@ -26,6 +26,7 @@
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 enum class Color { RED = 1, GREEN = 2, BLUE = 4 };
 template <>
