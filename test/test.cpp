@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
 
-#include <new>
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 #define MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM

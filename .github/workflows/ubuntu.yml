@@ -77,7 +77,7 @@ jobs:
           "${standard_options[@]}"
 
     - name: Build Release
-      run: cmake --build build-release --parallel --config Release
+      run: cmake --build build-release --parallel "$(nproc)" --config Release
 
     - name: Test Release
       run: ctest --test-dir build-release --output-on-failure --no-tests=error -C Release
@@ -93,7 +93,7 @@ jobs:
           "${standard_options[@]}"
 
     - name: Build Debug
-      run: cmake --build build-debug --parallel --config Debug
+      run: cmake --build build-debug --parallel "$(nproc)" --config Debug
 
     - name: Test Debug
       run: ctest --test-dir build-debug --output-on-failure --no-tests=error -C Debug

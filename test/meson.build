@@ -1,4 +1,9 @@
-doctest_dep = declare_dependency(include_directories: '3rdparty')
+doctest = static_library(
+    'doctest', 'test_main.cpp',
+    include_directories: '3rdparty',
+    build_by_default: false,
+)
+doctest_dep = declare_dependency(include_directories: '3rdparty', link_with: doctest)
 
 test_files = {
     'basic test': files('test.cpp'),

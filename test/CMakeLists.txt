@@ -130,80 +130,70 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_USE_MODULES AND
   endif()
 endif()
 
+add_library(magic_enum_test_options INTERFACE)
+target_compile_options(magic_enum_test_options INTERFACE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
+
 function(magic_enum_make_test src target standard_flag)
   add_executable(${target} ${src})
-  target_compile_options(${target} PRIVATE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
-  target_compile_definitions(${target} PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
-  target_include_directories(${target} SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+  set(test_targets ${target})
+
+  get_filename_component(test_name "${src}" NAME_WE)
+  if(test_name IN_LIST MAGIC_ENUM_DOCTEST_SOURCES)
+    string(REPLACE "c++" "cpp" doctest_suffix "${standard_flag}")
+    set(doctest_target test_doctest-${doctest_suffix})
+    if(NOT TARGET ${doctest_target})
+      add_library(${doctest_target} OBJECT test_main.cpp)
+      target_link_libraries(${doctest_target} PRIVATE magic_enum_test_options)
+      target_compile_definitions(${doctest_target} PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
+      target_include_directories(${doctest_target} SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+    endif()
+    list(APPEND test_targets ${doctest_target})
+    target_link_libraries(${target} PRIVATE ${doctest_target})
+  endif()
+
+  set_target_properties(${test_targets} PROPERTIES CXX_EXTENSIONS OFF)
+  if(standard_flag MATCHES "^c\\+\\+(17|20|23)$")
+    set_target_properties(${test_targets} PROPERTIES CXX_STANDARD "${CMAKE_MATCH_1}" CXX_STANDARD_REQUIRED ON)
+  else()
+    foreach(test_target IN LISTS test_targets)
+      target_compile_options(${test_target} PRIVATE ${MAGIC_ENUM_TEST_FLAG_PREFIX}${standard_flag})
+    endforeach()
+  endif()
+
+  target_link_libraries(${target} PRIVATE magic_enum_test_options)
   if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
     target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
   else()
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
-  endif()
-  set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
-  if(standard_flag MATCHES "^c\\+\\+(17|20|23)$")
-    set_target_properties(
-      ${target}
-      PROPERTIES
-        CXX_STANDARD "${CMAKE_MATCH_1}"
-        CXX_STANDARD_REQUIRED ON
-    )
-  elseif(MSVC)
-    target_compile_options(${target} PRIVATE /std:${standard_flag})
-  else()
-    target_compile_options(${target} PRIVATE -std=${standard_flag})
   endif()
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
-function(magic_enum_make_compile_fail_test case_name case_id expected_text)
-  set(target test_reflection-compile-fail-${case_name}-cpp26)
-  add_executable(${target} EXCLUDE_FROM_ALL test_reflection_compile_fail.cpp)
-  target_compile_options(${target} PRIVATE
-    ${MAGIC_ENUM_TEST_COMPILE_OPTIONS}
-    ${MAGIC_ENUM_TEST_FLAG_PREFIX}${MAGIC_ENUM_CPP26_STANDARD_FLAG}
-    ${MAGIC_ENUM_TEST_STD_REFLECTION_COMPILE_OPTIONS}
-  )
-  target_compile_definitions(${target} PRIVATE
-    MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE=${case_id}
-    ${ARGN}
-  )
+function(magic_enum_make_compile_fail_test category case_name case_id expected_text)
+  if(category STREQUAL "reflection")
+    set(suffix cpp26)
+  else()
+    set(suffix cpp17)
+  endif()
+  set(target test_${category}-compile-fail-${case_name}-${suffix})
+  add_executable(${target} EXCLUDE_FROM_ALL test_${category}_compile_fail.cpp)
+  target_link_libraries(${target} PRIVATE magic_enum_test_options)
+  if(category STREQUAL "reflection")
+    target_compile_options(${target} PRIVATE
+      ${MAGIC_ENUM_TEST_FLAG_PREFIX}${MAGIC_ENUM_CPP26_STANDARD_FLAG}
+    )
+    magic_enum_add_std_reflection_options(${target})
+  else()
+    set_target_properties(${target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  endif()
+  string(TOUPPER "${category}" case_prefix)
+  target_compile_definitions(${target} PRIVATE MAGIC_ENUM_${case_prefix}_COMPILE_FAIL_CASE=${case_id} ${ARGN})
   if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
     target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
   else()
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
   endif()
   set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
-
-  add_test(
-    NAME ${target}
-    COMMAND ${CMAKE_COMMAND}
-      "-DBUILD_DIR=${CMAKE_BINARY_DIR}"
-      "-DTARGET_NAME=${target}"
-      "-DCONFIG=$<CONFIG>"
-      "-DEXPECTED_TEXT=${expected_text}"
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/check_compile_fail.cmake"
-  )
-  set_tests_properties(${target} PROPERTIES RUN_SERIAL TRUE)
-endfunction()
-
-function(magic_enum_make_configuration_compile_fail_test case_name case_id expected_text)
-  set(target test_configuration-compile-fail-${case_name}-cpp17)
-  add_executable(${target} EXCLUDE_FROM_ALL test_configuration_compile_fail.cpp)
-  target_compile_options(${target} PRIVATE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
-  target_compile_definitions(${target} PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=${case_id})
-  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
-    target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
-  else()
-    target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
-  endif()
-  set_target_properties(
-    ${target}
-    PROPERTIES
-      CXX_EXTENSIONS OFF
-      CXX_STANDARD 17
-      CXX_STANDARD_REQUIRED ON
-  )
 
   add_test(
     NAME ${target}
@@ -219,7 +209,7 @@ endfunction()
 
 function(magic_enum_make_module_test src target module_target)
   add_executable(${target} ${src})
-  target_compile_options(${target} PRIVATE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
+  target_link_libraries(${target} PRIVATE magic_enum_test_options)
   if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
     target_link_libraries(${target} PRIVATE magic_enum::magic_enum_module)
   else()
@@ -244,6 +234,7 @@ function(magic_enum_make_module_test src target module_target)
 endfunction()
 
 set(MAGIC_ENUM_TEST_SOURCES test test_flags test_aliases test_containers test_wchar_t)
+set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection)
 
 function(magic_enum_add_tests suffix standard_flag)
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
@@ -251,30 +242,6 @@ function(magic_enum_add_tests suffix standard_flag)
   endforeach()
 endfunction()
 
-function(magic_enum_add_module_tests suffix)
-  magic_enum_make_module_test(
-    test_module.cpp
-    test_module-${suffix}
-    magic_enum_module_test-${suffix}
-  )
-  if(MAGIC_ENUM_MODULE_WITH_FMT)
-    target_compile_definitions(test_module-${suffix} PRIVATE MAGIC_ENUM_TEST_FMT)
-  endif()
-
-  # Installed packages expose one module with the configuration fixed at build
-  # time. Alias and wchar coverage use dedicated local module targets instead.
-  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
-    return()
-  endif()
-
-  foreach(test_variant IN ITEMS _aliases _wchar_t)
-    magic_enum_make_module_test(
-      test_module${test_variant}.cpp
-      test_module${test_variant}-${suffix}
-      magic_enum_module_test${test_variant}-${suffix}
-    )
-  endforeach()
-endfunction()
 
 magic_enum_add_tests(cpp17 c++17)
 magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
@@ -288,12 +255,14 @@ magic_enum_make_test(test_flags.cpp test_flags-hash-switch-cpp17 c++17)
 target_compile_definitions(test_flags-hash-switch-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH_SWITCH=1)
 magic_enum_make_test(test_fuse.cpp test-no-typesafe-enum-fuse-cpp17 c++17)
 target_compile_definitions(test-no-typesafe-enum-fuse-cpp17 PRIVATE MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE=1)
-magic_enum_make_configuration_compile_fail_test(
+magic_enum_make_compile_fail_test(
+  configuration
   conflicting-assert
   1
   "MAGIC_ENUM_NO_ASSERT and MAGIC_ENUM_ASSERT cannot be used together"
 )
-magic_enum_make_configuration_compile_fail_test(
+magic_enum_make_compile_fail_test(
+  configuration
   invalid-is-flags
   2
   "magic_enum::customize::enum_range requires is_flags to have bool type"
@@ -387,38 +356,45 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
   endforeach()
 
   magic_enum_make_compile_fail_test(
+    reflection
     synthetic-value
     1
     "magic_enum::customize::enum_name cannot add an undeclared enum value"
   )
   magic_enum_make_compile_fail_test(
+    reflection
     incomplete-enum
     4
     "magic_enum requires a complete enum definition"
   )
   magic_enum_make_compile_fail_test(
+    reflection
     invalid-prefix-equal-standard
     2
     "magic_enum::customize requires valid prefix length"
   )
   magic_enum_make_compile_fail_test(
+    reflection
     invalid-prefix-greater-standard
     3
     "magic_enum::customize requires valid prefix length"
   )
   magic_enum_make_compile_fail_test(
+    reflection
     invalid-prefix-equal-compiler-specific
     2
     "magic_enum::customize requires valid prefix length"
     MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
   )
   magic_enum_make_compile_fail_test(
+    reflection
     invalid-prefix-greater-compiler-specific
     3
     "magic_enum::customize requires valid prefix length"
     MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
   )
   magic_enum_make_compile_fail_test(
+    reflection
     nonstandard-character-type
     5
     "magic_enum standard reflection requires string_view::value_type to be a standard character type"
@@ -426,7 +402,22 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
 endif()
 
 if(MAGIC_ENUM_USE_MODULES)
-  magic_enum_add_module_tests(cpp${MAGIC_ENUM_MODULE_CXX_STANDARD})
+  set(module_suffix cpp${MAGIC_ENUM_MODULE_CXX_STANDARD})
+  magic_enum_make_module_test(test_module.cpp test_module-${module_suffix} magic_enum_module_test-${module_suffix})
+  if(MAGIC_ENUM_MODULE_WITH_FMT)
+    target_compile_definitions(test_module-${module_suffix} PRIVATE MAGIC_ENUM_TEST_FMT)
+  endif()
+
+  # Installed packages expose one module with the configuration fixed at build time.
+  if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+    foreach(test_variant IN ITEMS _aliases _wchar_t)
+      magic_enum_make_module_test(
+        test_module${test_variant}.cpp
+        test_module${test_variant}-${module_suffix}
+        magic_enum_module_test${test_variant}-${module_suffix}
+      )
+    endforeach()
+  endif()
 endif()
 
 if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND

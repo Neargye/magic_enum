@@ -24,6 +24,8 @@ _COPTS = select({
 
 cc_library(
     name = "doctest",
+    srcs = ["test_main.cpp"],
+    copts = _COPTS,
     includes = ["3rdparty"],
     hdrs = ["3rdparty/doctest/doctest.h"],
 )

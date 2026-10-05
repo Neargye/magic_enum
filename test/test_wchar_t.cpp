@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
 
-#include <new>
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
+
+#include <string>
+#include <string_view>
 
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::wstring_view;
 #define MAGIC_ENUM_USING_ALIAS_STRING      using string      = std::wstring;
@@ -17,7 +18,6 @@
 #include <array>
 #include <cctype>
 #include <sstream>
-#include <string_view>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
 template <>

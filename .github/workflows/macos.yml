@@ -39,7 +39,7 @@ jobs:
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
-      run: cmake --build build --parallel --config ${{ matrix.build_type }}
+      run: cmake --build build --parallel "$(sysctl -n hw.logicalcpu)" --config ${{ matrix.build_type }}
 
     - name: Test
       run: ctest --test-dir build --output-on-failure --no-tests=error -C ${{ matrix.build_type }}

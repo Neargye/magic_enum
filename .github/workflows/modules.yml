@@ -97,6 +97,11 @@ jobs:
 
     - name: Build
       run: |
+        if [[ "${RUNNER_OS}" == "macOS" ]]; then
+          parallel_jobs="$(sysctl -n hw.logicalcpu)"
+        else
+          parallel_jobs="$(nproc)"
+        fi
         for build_type in ${{ matrix.config.build_types }}; do
           module_suffix="cpp${{ matrix.config.standard }}"
           module_targets=(
@@ -111,7 +116,7 @@ jobs:
             )
           fi
           cmake --build "build-${build_type}" \
-            --parallel \
+            --parallel "${parallel_jobs}" \
             --config "${build_type}" \
             --target "${module_targets[@]}"
         done

@@ -3,8 +3,6 @@
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
 // Copyright (c) 2022 - 2023 Bela Schaum <schaumb@gmail.com>.
 
-#include <new>
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 #include <magic_enum/magic_enum.hpp>
@@ -18,7 +16,9 @@
 
 #include <magic_enum/magic_enum_iostream.hpp>
 
+#include <algorithm>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <set>
