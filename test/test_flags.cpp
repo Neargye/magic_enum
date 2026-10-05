@@ -147,6 +147,26 @@ TEST_CASE("enum_reflected") {
   REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
 }
 
+TEST_CASE("bool flag text lookup does not convert pointers to true") {
+  static_assert(enum_cast<BoolFlags>("Enabled") == BoolFlags::Enabled);
+  static_assert(!enum_cast<BoolFlags>("Disabled").has_value());
+  static_assert(!enum_cast<BoolFlags>("INVALID").has_value());
+  static_assert(!enum_cast<BoolFlags>("").has_value());
+  static_assert(enum_cast<BoolFlags, as_common<>>("Disabled") == BoolFlags::Disabled);
+  static_assert(!enum_contains<BoolFlags>("Disabled"));
+  static_assert(!enum_contains<BoolFlags>("INVALID"));
+  static_assert(enum_flags_cast<BoolFlags>("Enabled") == BoolFlags::Enabled);
+  static_assert(!enum_flags_cast<BoolFlags>("Disabled").has_value());
+  static_assert(!enum_flags_cast<BoolFlags>("INVALID").has_value());
+  static_assert(!enum_flags_cast<BoolFlags>("").has_value());
+  static_assert(!enum_flags_contains<BoolFlags>("INVALID"));
+  static_assert(!enum_flags_contains<BoolFlags>(""));
+  const char* invalid = "INVALID";
+  CHECK_FALSE(enum_flags_cast<BoolFlags>(invalid).has_value());
+  CHECK_FALSE(enum_flags_contains<BoolFlags>(invalid));
+  CHECK(enum_flags_cast<BoolFlags>("enabled", '|', case_insensitive) == BoolFlags::Enabled);
+}
+
 TEST_CASE("bool flags use the sole non-zero bit") {
   constexpr auto enabled_name = string_view{"Enabled"};
   constexpr auto common_values = enum_values<BoolFlags, as_common<>>();

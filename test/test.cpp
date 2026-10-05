@@ -253,6 +253,75 @@ struct RefQualifiedPredicate {
   constexpr bool operator()(char lhs, char rhs) && noexcept { return lhs == rhs; }
 };
 
+TEST_CASE("bool enum text lookup does not convert pointers to true") {
+  static_assert(enum_cast<BoolTest>("Yay") == BoolTest::Yay);
+  static_assert(enum_cast<const BoolTest&>("Nay") == BoolTest::Nay);
+  static_assert(!enum_cast<BoolTest>("INVALID").has_value());
+  static_assert(!enum_cast<BoolTest>("").has_value());
+  static_assert(enum_contains<BoolTest>("Yay"));
+  static_assert(!enum_contains<BoolTest>("INVALID"));
+  static_assert(!enum_contains<BoolTest>(""));
+  static_assert(enum_cast<BoolTest, as_common<>>("Yay") == BoolTest::Yay);
+  static_assert(enum_cast<BoolTest>("yay", case_insensitive) == BoolTest::Yay);
+  static_assert(enum_cast<BoolTest>("Yay", ConstReferencePredicate{}) == BoolTest::Yay);
+  static_assert(enum_contains<BoolTest>("Yay", ConstReferencePredicate{}));
+  static_assert(noexcept(enum_cast<BoolTest>("Yay")));
+  static_assert(noexcept(enum_contains<BoolTest>("Yay")));
+  static_assert(!noexcept(enum_cast<BoolTest>("Yay", ThrowingReferencePredicate{})));
+
+  constexpr const char* false_name = "Yay";
+  constexpr const char* invalid_name = "INVALID";
+  static_assert(enum_cast<BoolTest>(false_name) == BoolTest::Yay);
+  static_assert(!enum_cast<BoolTest>(invalid_name).has_value());
+  static_assert(enum_cast<BoolTest>(string_view{"Yay-extra", 3}) == BoolTest::Yay);
+  static_assert(enum_cast<BoolTest>({"Yay-extra", 3}) == BoolTest::Yay);
+
+  for (const char* name : {"Yay", "Nay", "INVALID", "", "yay", "Yay-extra"}) {
+    const auto expected = enum_cast<BoolTest>(string_view{name});
+    CHECK(enum_cast<BoolTest>(name) == expected);
+    CHECK(enum_contains<BoolTest>(name) == expected.has_value());
+    const std::string owned{name};
+    CHECK(enum_cast<BoolTest>(owned) == expected);
+    CHECK(enum_cast<BoolTest>(std::string{name}) == expected);
+    CHECK(enum_contains<BoolTest>(owned) == expected.has_value());
+  }
+  char mutable_name[] = "Yay";
+  char* mutable_pointer = mutable_name;
+  CHECK(enum_cast<BoolTest>(mutable_name) == BoolTest::Yay);
+  CHECK(enum_cast<BoolTest>(mutable_pointer) == BoolTest::Yay);
+  CHECK(enum_contains<BoolTest>(mutable_pointer));
+  CHECK(enum_cast<BoolTest>(false) == BoolTest::Yay);
+  CHECK(enum_cast<BoolTest>(true) == BoolTest::Nay);
+  CHECK(enum_cast<BoolTest>(0) == BoolTest::Yay);
+  CHECK(enum_cast<BoolTest>(1) == BoolTest::Nay);
+  REQUIRE_THROWS_AS(static_cast<void>(enum_cast<BoolTest>("Yay", ThrowingReferencePredicate{})), int);
+
+  struct BorrowedName {
+    BorrowedName() = default;
+    BorrowedName(const BorrowedName&) = delete;
+    operator string_view() & noexcept { return "Yay"; }
+    operator bool() const noexcept { return true; }
+  };
+  BorrowedName borrowed;
+  CHECK(enum_cast<BoolTest>(borrowed) == BoolTest::Yay);
+  CHECK(enum_contains<BoolTest>(borrowed));
+  static_assert(noexcept(enum_cast<BoolTest>(borrowed)));
+
+  struct TemporaryName {
+    operator string_view() && noexcept { return "Yay"; }
+  };
+  CHECK(enum_cast<BoolTest>(TemporaryName{}) == BoolTest::Yay);
+  CHECK(enum_contains<BoolTest>(TemporaryName{}));
+
+  struct ThrowingName {
+    operator string_view() const { throw 42; }
+  };
+  static_assert(!noexcept(enum_cast<BoolTest>(ThrowingName{})));
+  static_assert(!noexcept(enum_contains<BoolTest>(ThrowingName{})));
+  CHECK_THROWS_AS(static_cast<void>(enum_cast<BoolTest>(ThrowingName{})), int);
+  CHECK_THROWS_AS(static_cast<void>(enum_contains<BoolTest>(ThrowingName{})), int);
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");

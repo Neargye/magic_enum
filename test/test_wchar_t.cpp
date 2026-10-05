@@ -35,6 +35,19 @@ using namespace magic_enum_tests;
 
 static_assert(is_magic_enum_supported, "magic_enum: Unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
 
+TEST_CASE("bool enum wide string lookup") {
+  enum class Binary : bool { FALSE_VALUE = false, TRUE_VALUE = true };
+  static_assert(enum_cast<Binary>(L"FALSE_VALUE") == Binary::FALSE_VALUE);
+  static_assert(enum_cast<Binary>(L"TRUE_VALUE") == Binary::TRUE_VALUE);
+  static_assert(!enum_cast<Binary>(L"INVALID").has_value());
+  static_assert(!enum_cast<Binary>(L"").has_value());
+  static_assert(!enum_contains<Binary>(L"INVALID"));
+  static_assert(enum_cast<Binary>(L"false_value", case_insensitive) == Binary::FALSE_VALUE);
+  const wchar_t* name = L"FALSE_VALUE";
+  CHECK(enum_cast<Binary>(name) == Binary::FALSE_VALUE);
+  CHECK(enum_cast<Binary>(std::wstring{name}) == Binary::FALSE_VALUE);
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>(L"red");

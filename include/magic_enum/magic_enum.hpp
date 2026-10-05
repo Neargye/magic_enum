@@ -475,6 +475,9 @@ constexpr std::size_t find(string_view str, char_type c) noexcept {
   }
 }
 
+template <typename T>
+inline constexpr bool is_name_input_v = std::is_convertible_v<T, string_view>;
+
 template <typename BinaryPredicate>
 inline constexpr bool is_default_predicate_v = std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> || std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
 
@@ -1908,8 +1911,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
 // Returns enum value from name.
 // Returns optional with enum value.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
+[[nodiscard]] constexpr auto enum_cast(String&& name, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+  string_view value(std::forward<String>(name));
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
@@ -1958,11 +1962,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 }
 
 // Returns true if enum contains enumerator with specified name.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
+[[nodiscard]] constexpr auto enum_contains(String&& value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
-  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
+  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(std::forward<String>(value), p));
 }
 
 // Returns true if enum integer value can be reflected.

@@ -108,8 +108,9 @@ template <typename E>
 
 // Returns flag enum value from name.
 // Returns optional containing flag enum value.
-template <typename E, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_flags_cast(string_view value, [[maybe_unused]] char_type sep = char_type{'|'}, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
+[[nodiscard]] constexpr auto enum_flags_cast(String&& name, [[maybe_unused]] char_type sep = char_type{'|'}, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+  string_view value(std::forward<String>(name));
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
@@ -166,11 +167,11 @@ template <typename E>
 }
 
 // Returns true if flag enum contains enumerator with specified name.
-template <typename E, typename BinaryPredicate = std::equal_to<>>
-[[nodiscard]] constexpr auto enum_flags_contains(string_view value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
+[[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
-  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(value, sep, p));
+  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(std::forward<String>(value), sep, p));
 }
 
 // Returns true if `flags` contains `flag`.
