@@ -36,7 +36,7 @@
 #include "magic_enum_flags.hpp"
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#  include <iosfwd>
+#  include <ostream>
 #endif
 
 namespace magic_enum {
@@ -51,17 +51,29 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   if constexpr (detail::supported<D>::value) {
     if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
       if (const auto name = enum_flags_name<D>(value); !name.empty()) {
-        for (std::size_t i = 0; i < name.size(); ++i) {
-          os.put(name.data()[i]);
+        if constexpr (std::is_same_v<Char, char_type>) {
+          return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
+        } else {
+          std::basic_string<Char, Traits> converted;
+          converted.reserve(name.size());
+          for (std::size_t i = 0; i < name.size(); ++i) {
+            converted.push_back(static_cast<Char>(name.data()[i]));
+          }
+          return os << converted;
         }
-        return os;
       }
     } else {
       if (const auto name = enum_name<D>(value); !name.empty()) {
-        for (std::size_t i = 0; i < name.size(); ++i) {
-          os.put(name.data()[i]);
+        if constexpr (std::is_same_v<Char, char_type>) {
+          return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
+        } else {
+          std::basic_string<Char, Traits> converted;
+          converted.reserve(name.size());
+          for (std::size_t i = 0; i < name.size(); ++i) {
+            converted.push_back(static_cast<Char>(name.data()[i]));
+          }
+          return os << converted;
         }
-        return os;
       }
     }
   }
