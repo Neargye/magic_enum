@@ -54,7 +54,12 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
         if constexpr (std::is_same_v<Char, char_type>) {
           return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
         } else {
-          return os << std::basic_string<Char, Traits>{name.data(), name.data() + name.size()};
+          std::basic_string<Char, Traits> converted;
+          converted.reserve(name.size());
+          for (std::size_t i = 0; i < name.size(); ++i) {
+            converted.push_back(static_cast<Char>(name.data()[i]));
+          }
+          return os << converted;
         }
       }
     } else {
@@ -62,7 +67,12 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
         if constexpr (std::is_same_v<Char, char_type>) {
           return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
         } else {
-          return os << std::basic_string<Char, Traits>{name.data(), name.data() + name.size()};
+          std::basic_string<Char, Traits> converted;
+          converted.reserve(name.size());
+          for (std::size_t i = 0; i < name.size(); ++i) {
+            converted.push_back(static_cast<Char>(name.data()[i]));
+          }
+          return os << converted;
         }
       }
     }
