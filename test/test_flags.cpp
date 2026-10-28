@@ -191,6 +191,22 @@ TEST_CASE("bool flags use the sole non-zero bit") {
   static_assert(!enum_flags_test_any(BoolFlags::Disabled, BoolFlags::Enabled));
 }
 
+TEST_CASE("named composite flags require every constituent bit") {
+  // #409: a named combination does not supply an otherwise unnamed bit.
+  enum class MissingBit : std::uint8_t { System = 1, Null = 2, Binary = 4, Autoincrement = 12 };
+  enum class CompleteBits : std::uint8_t { System = 1, Null = 2, Binary = 4, Empty = 8, Autoincrement = 12 };
+
+  static_assert(enum_count<MissingBit, as_flags<false>>() == 4);
+  static_assert(enum_count<MissingBit, as_flags<true>>() == 3);
+  static_assert(enum_count<CompleteBits, as_flags<true>>() == 4);
+  static_assert(enum_cast<MissingBit, as_flags<false>>(12) == MissingBit::Autoincrement);
+  static_assert(!enum_flags_cast<MissingBit>(12).has_value());
+  static_assert(enum_flags_cast<CompleteBits>(12) == CompleteBits::Autoincrement);
+  static_assert(!enum_flags_cast<CompleteBits>("Autoincrement").has_value());
+  CHECK(enum_flags_name(MissingBit::Autoincrement).empty());
+  CHECK(enum_flags_name(CompleteBits::Autoincrement) == "Binary|Empty");
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("predicates receive character references") {
     static_assert(enum_flags_cast<Color>("RED|GREEN", '|', ConstReferencePredicate{}) == (Color::RED | Color::GREEN));
