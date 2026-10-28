@@ -21,7 +21,6 @@ set(CPACK_PACKAGE_VENDOR "Daniil Goncharov")
 include(GNUInstallDirs)
 
 set(MAGIC_ENUM_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake")
-list(APPEND CMAKE_MODULE_PATH "${MAGIC_ENUM_CMAKE_DIR}")
 
 option(MAGIC_ENUM_OPT_BUILD_EXAMPLES "Build magic_enum examples" ${PROJECT_IS_TOP_LEVEL})
 option(MAGIC_ENUM_OPT_BUILD_TESTS "Build and perform magic_enum tests" ${PROJECT_IS_TOP_LEVEL})
@@ -180,8 +179,6 @@ if(MAGIC_ENUM_OPT_BUILD_TESTS)
 endif()
 
 if(MAGIC_ENUM_OPT_INSTALL)
-  list(APPEND CMAKE_MODULE_PATH "${MAGIC_ENUM_CMAKE_DIR}/GenPkgConfig")
-  include(GenPkgConfig)
   include(CPackComponent)
   include(CMakePackageConfigHelpers)
 
@@ -220,14 +217,23 @@ if(MAGIC_ENUM_OPT_INSTALL)
   endif()
 
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Header-only C++17 library for static reflection of enums")
   set(CPACK_PACKAGE_DESCRIPTION "${PROJECT_DESCRIPTION}")
+  # Distribution file names: libmagicenum-dev_<version>_all.deb and libmagicenum-devel-<version>-1.noarch.rpm.
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+  set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+  # Installed module BMIs are compiler and target specific.
   if(NOT MAGIC_ENUM_USE_MODULES)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+    set(CPACK_RPM_PACKAGE_ARCHITECTURE "noarch")
   endif()
   set(CPACK_DEBIAN_PACKAGE_NAME "libmagicenum-dev")
+  set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
   set(CPACK_RPM_PACKAGE_NAME "libmagicenum-devel")
+  set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+  set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
   set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
-  set(CPACK_PACKAGE_MAINTAINER "${CPACK_PACKAGE_VENDOR}")
+  set(CPACK_PACKAGE_MAINTAINER "${CPACK_PACKAGE_VENDOR} <neargye@gmail.com>")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_MAINTAINER}")
   set(CPACK_DEB_COMPONENT_INSTALL ON)
@@ -290,14 +296,31 @@ if(MAGIC_ENUM_OPT_INSTALL)
           DESTINATION "${MAGIC_ENUM_CMAKE_CONFIG_INSTALL_DIR}"
   )
 
-  configure_pkg_config_file(
-    "${PROJECT_NAME}"
-    NAME "${PROJECT_NAME}"
-    VERSION "${PROJECT_VERSION}"
-    DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}"
-    URL "${CPACK_PACKAGE_HOMEPAGE_URL}"
-    INSTALL_LIB_DIR "${CMAKE_INSTALL_DATAROOTDIR}"
-    INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}"
+  set(MAGIC_ENUM_PKG_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig")
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}" OR IS_ABSOLUTE "${MAGIC_ENUM_PKG_CONFIG_INSTALL_DIR}")
+    # Absolute install directories cannot be expressed relative to the .pc file.
+    set(MAGIC_ENUM_PC_PREFIX "${CMAKE_INSTALL_PREFIX}")
+    set(MAGIC_ENUM_PC_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  else()
+    # Relative to ${pcfiledir}, so relocated and DESTDIR installs keep working.
+    file(RELATIVE_PATH MAGIC_ENUM_PC_PREFIX
+      "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig-root/${MAGIC_ENUM_PKG_CONFIG_INSTALL_DIR}"
+      "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig-root"
+    )
+    string(REGEX REPLACE "/$" "" MAGIC_ENUM_PC_PREFIX "${MAGIC_ENUM_PC_PREFIX}")
+    set(MAGIC_ENUM_PC_PREFIX "\${pcfiledir}/${MAGIC_ENUM_PC_PREFIX}")
+    set(MAGIC_ENUM_PC_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+  # pkg-config splits Cflags on unescaped spaces.
+  string(REPLACE " " "\\ " MAGIC_ENUM_PC_PREFIX "${MAGIC_ENUM_PC_PREFIX}")
+  string(REPLACE " " "\\ " MAGIC_ENUM_PC_INCLUDEDIR "${MAGIC_ENUM_PC_INCLUDEDIR}")
+  configure_file("${MAGIC_ENUM_CMAKE_DIR}/${PROJECT_NAME}.pc.in" "${PROJECT_NAME}.pc" @ONLY NEWLINE_STYLE UNIX)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc"
+          DESTINATION "${MAGIC_ENUM_PKG_CONFIG_INSTALL_DIR}"
+  )
+
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+          DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}"
   )
 
   if(MAGIC_ENUM_OPT_INSTALL_PACKAGE_XML)

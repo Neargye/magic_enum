@@ -64,12 +64,33 @@ jobs:
           grep -Eq '(^|/)include/magic_enum/magic_enum_all\.hpp$' package-contents.txt
           grep -Eq '(^|/)share/cmake/magic_enum/magic_enumConfig\.cmake$' package-contents.txt
           grep -Eq '(^|/)share/pkgconfig/magic_enum\.pc$' package-contents.txt
+          grep -Eq '(^|/)share/magic_enum/LICENSE$' package-contents.txt
+
+      - name: Test CPack DEB and RPM packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          cpack --config build-install/CPackConfig.cmake -G "DEB;RPM" -B package-dist
+          version="$(sed -n 's/^set(CPACK_PACKAGE_VERSION "\(.*\)")$/\1/p' build-install/CPackConfig.cmake)"
+          deb="package-dist/libmagicenum-dev_${version}_all.deb"
+          rpm="package-dist/libmagicenum-devel-${version}-1.noarch.rpm"
+          test -f "${deb}"
+          test -f "${rpm}"
+          test "$(dpkg-deb -f "${deb}" Architecture)" = "all"
+          test "$(dpkg-deb -f "${deb}" Section)" = "libdevel"
+          dpkg-deb -f "${deb}" Maintainer | grep -Eq '^.+ <.+@.+>$'
+          dpkg-deb -c "${deb}" | grep -Eq '/share/pkgconfig/magic_enum\.pc$'
+          dpkg-deb -c "${deb}" | grep -Eq '/share/magic_enum/LICENSE$'
+          test "$(rpm -qp --queryformat '%{LICENSE}' "${rpm}")" = "MIT"
+          rpm -qpl "${rpm}" | grep -Eq '/share/pkgconfig/magic_enum\.pc$'
+          rpm -qpl "${rpm}" | grep -Eq '/share/magic_enum/LICENSE$'
 
       - name: Test DESTDIR install
         run: |
           DESTDIR="${RUNNER_TEMP}/stage" cmake --install build-install
           prefix="${RUNNER_TEMP}/stage${RUNNER_TEMP}/configured-install"
           test -f "${prefix}/include/magic_enum/magic_enum_all.hpp"
+          test -f "${prefix}/share/magic_enum/LICENSE"
           export PKG_CONFIG_PATH="${prefix}/share/pkgconfig"
           include_dir="$(pkg-config --variable=includedir magic_enum)"
           test "$(realpath "${include_dir}")" = "$(realpath "${prefix}/include")"
@@ -80,6 +101,41 @@ jobs:
           EOF
           c++ -std=c++17 $(pkg-config --cflags magic_enum) destdir-consumer.cpp -o destdir-consumer
           ./destdir-consumer
+
+      - name: Test absolute install directories
+        run: |
+          prefix="${RUNNER_TEMP}/absolute install"
+          cmake -S . -B build-absolute \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${prefix}" \
+            -DCMAKE_INSTALL_INCLUDEDIR="${prefix}/custom include" \
+            -DCMAKE_INSTALL_DATAROOTDIR="${prefix}/custom share" \
+            -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=OFF \
+            -DMAGIC_ENUM_OPT_BUILD_TESTS=OFF
+          cmake --install build-absolute
+          test -f "${prefix}/custom include/magic_enum/magic_enum_all.hpp"
+          export PKG_CONFIG_PATH="${prefix}/custom share/pkgconfig"
+          cat > absolute-consumer.cpp << 'EOF'
+          #include <magic_enum/magic_enum_all.hpp>
+          enum class Color { Red };
+          int main() { return magic_enum::enum_name(Color::Red) == "Red" ? 0 : 1; }
+          EOF
+          # pkg-config output is shell-escaped, so let the shell parse it like make does.
+          eval "c++ -std=c++17 $(pkg-config --cflags magic_enum) absolute-consumer.cpp -o absolute-consumer"
+          ./absolute-consumer
+          mkdir -p absolute-cmake-consumer
+          cp absolute-consumer.cpp absolute-cmake-consumer/main.cpp
+          cat > absolute-cmake-consumer/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.22)
+          project(absolute_consumer CXX)
+          find_package(magic_enum CONFIG REQUIRED)
+          add_executable(absolute_consumer main.cpp)
+          target_link_libraries(absolute_consumer PRIVATE magic_enum::magic_enum)
+          EOF
+          cmake -S absolute-cmake-consumer -B build-absolute-consumer \
+            -Dmagic_enum_DIR="${prefix}/custom share/cmake/magic_enum"
+          cmake --build build-absolute-consumer
+          ./build-absolute-consumer/absolute_consumer
 
   module-macos-gcc:
     timeout-minutes: 30

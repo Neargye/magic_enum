@@ -1,0 +1,8 @@
+prefix=@MAGIC_ENUM_PC_PREFIX@
+includedir=@MAGIC_ENUM_PC_INCLUDEDIR@
+
+Name: @PROJECT_NAME@
+Description: @PROJECT_DESCRIPTION@
+URL: @PROJECT_HOMEPAGE_URL@
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir}
