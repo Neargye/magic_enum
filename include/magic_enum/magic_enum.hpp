@@ -783,9 +783,12 @@ constexpr auto enum_name() noexcept {
     constexpr auto name = n<V>();
 #endif
     constexpr auto prefix = prefix_length_v<E>;
-    constexpr bool valid_prefix = valid_prefix_length(prefix, name.size_);
+    // An unnamed value has no prefix to strip.
+    constexpr bool valid_prefix = name.size_ == 0 || valid_prefix_length(prefix, name.size_);
     static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
-    if constexpr (valid_prefix) {
+    if constexpr (name.size_ == 0) {
+      return static_str<0>{};
+    } else if constexpr (valid_prefix) {
       return static_str<name.size_ - prefix>{name.str_ + prefix};
     } else {
       return static_str<0>{};

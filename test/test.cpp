@@ -1099,6 +1099,9 @@ TEST_CASE("enum_name") {
 
     REQUIRE(enum_name<Binary::ONE>() == "ONE");
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
+
+    // An unnamed value has no prefix to strip, so it must not trigger the prefix length check.
+    static_assert(magic_enum::detail::enum_name_v<CStyleEnum, static_cast<CStyleEnum>(0)>.str().empty());
   }
 
   SUBCASE("declared values outside the compiler-specific range") {
