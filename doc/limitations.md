@@ -12,7 +12,9 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 * Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
 
-* magic_enum cannot reflect forward-declared enums.
+* magic_enum cannot reflect forward-declared enums. Include the full enum definition in every translation unit that reflects it.
+
+  Disabling validation with `MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM` does not prevent ODR violations.
 
 ## Enum Flags
 
