@@ -10,6 +10,7 @@
 
 #include "test_helpers.hpp"
 
+#include <iomanip>
 #include <sstream>
 
 using namespace magic_enum;
@@ -144,4 +145,16 @@ TEST_CASE("string containers") {
   std::ostringstream stream;
   stream << colors;
   REQUIRE(stream.str() == "RED|BLUE");
+}
+
+TEST_CASE("ostream_operators") {
+  using namespace magic_enum::ostream_operators;
+
+  std::ostringstream narrow;
+  narrow << std::setfill('_') << std::setw(10) << (Color::RED | Color::BLUE) << '|';
+  REQUIRE(narrow.str() == "__RED|BLUE|");
+
+  std::wostringstream wide;
+  wide << std::setfill(L'_') << std::setw(10) << (Color::RED | Color::BLUE) << L'|';
+  REQUIRE(wide.str() == L"__RED|BLUE|");
 }

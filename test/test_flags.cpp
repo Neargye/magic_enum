@@ -15,6 +15,7 @@
 
 #include <array>
 #include <cctype>
+#include <iomanip>
 #include <string>
 #include <string_view>
 
@@ -778,6 +779,13 @@ TEST_CASE("ostream_operators") {
     std::ostringstream stream;
     stream << std::boolalpha << BoolFlags::Disabled;
     REQUIRE(stream.str() == "false");
+  }
+
+  SUBCASE("field width applies to the whole name") {
+    using namespace magic_enum::ostream_operators;
+    std::ostringstream stream;
+    stream << std::setfill('_') << std::setw(10) << (Color::BLUE | Color::RED) << '|' << std::left << std::setw(10) << (Color::BLUE | Color::RED) << '|';
+    REQUIRE(stream.str() == "__RED|BLUE|RED|BLUE__|");
   }
 
   require_ostream(std::make_optional(Color::RED), "RED");

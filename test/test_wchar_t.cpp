@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cctype>
+#include <iomanip>
 #include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -150,6 +151,18 @@ TEST_CASE("wstring_view lifetime and null termination") {
 }
 
 TEST_CASE("ostream_operators") {
+  SUBCASE("field width applies to the name") {
+    using namespace magic_enum::ostream_operators;
+
+    std::wostringstream wide;
+    wide << std::setfill(L'_') << std::setw(6) << Color::RED << L'|';
+    REQUIRE(wide.str() == L"___red|");
+
+    std::ostringstream narrow;
+    narrow << std::setfill('_') << std::setw(6) << Color::RED << '|';
+    REQUIRE(narrow.str() == "___red|");
+  }
+
   require_ostream(std::make_optional(Color::RED), L"red");
   require_ostream(Color::GREEN, L"GREEN");
   require_ostream(Color::BLUE, L"BLUE");

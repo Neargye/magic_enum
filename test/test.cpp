@@ -22,6 +22,7 @@
 
 #include <array>
 #include <cctype>
+#include <iomanip>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -1248,6 +1249,27 @@ TEST_CASE("ostream_operators") {
     enum class Character8 : char8_t { Named = 1 };
     require_ostream(static_cast<Character8>(65), "65");
 #endif
+  }
+
+  SUBCASE("field width applies to the name") {
+    using namespace magic_enum::ostream_operators;
+
+    std::ostringstream named;
+    named << std::setfill('_') << std::setw(6) << Color::GREEN << '|' << std::left << std::setw(6) << Color::BLUE << '|' << Color::BLUE << '|';
+    REQUIRE(named.str() == "_GREEN|BLUE__|BLUE|");
+
+    std::ostringstream fallback;
+    fallback << std::setfill('_') << std::setw(6) << static_cast<Color>(0) << '|' << std::setw(6) << std::make_optional(Color::BLUE) << '|';
+    REQUIRE(fallback.str() == "_____0|__BLUE|");
+
+    std::basic_ostringstream<char, CustomCharTraits<char>> custom;
+    custom << std::setfill('_') << std::setw(6) << Color::BLUE << '|';
+    const auto result = custom.str();
+    REQUIRE(std::string(result.data(), result.size()) == "__BLUE|");
+
+    std::wostringstream wide;
+    wide << std::setfill(L'_') << std::setw(6) << Color::BLUE << L'|';
+    REQUIRE(wide.str() == L"__BLUE|");
   }
 
   SUBCASE("short underlying type formatting") {
