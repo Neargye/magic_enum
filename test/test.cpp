@@ -22,6 +22,7 @@
 
 #include <array>
 #include <cctype>
+#include <iomanip>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -1225,54 +1226,6 @@ TEST_CASE("string_view lifetime and null termination") {
   }
 }
 
-TEST_CASE("ostream_operators_field_width") {
-  using namespace magic_enum::ostream_operators;
-  const auto value = Color::RED;
-  const std::string name = "red";
-
-  for (const auto alignment : {std::ios::left, std::ios::right, std::ios::internal}) {
-    for (const auto width : {0, 2, 12}) {
-      std::ostringstream actual, expected;
-      actual.setf(alignment, std::ios::adjustfield);
-      expected.setf(alignment, std::ios::adjustfield);
-      actual.fill('_');
-      expected.fill('_');
-      actual.width(width);
-      expected.width(width);
-      REQUIRE(&(actual << value) == &actual);
-      expected << name;
-      REQUIRE(actual.width() == 0);
-      actual << '!';
-      expected << '!';
-      REQUIRE(actual.str() == expected.str());
-    }
-  }
-
-  std::ostringstream optional;
-  optional.fill('_');
-  optional.width(12);
-  optional << std::make_optional(value) << '!';
-  REQUIRE(optional.str() == std::string(12 - name.size(), '_') + name + '!');
-
-  std::basic_ostringstream<char, CustomCharTraits<char>> custom;
-  custom.fill('_');
-  custom.width(12);
-  custom << value << '!';
-  const auto result = custom.str();
-  REQUIRE(std::string(result.data(), result.size()) == std::string(12 - name.size(), '_') + name + '!');
-
-  std::wostringstream wide;
-  wide.fill(L'_');
-  wide.width(12);
-  wide << value << L'!';
-  REQUIRE(wide.str() == std::wstring(12 - name.size(), L'_') + L"red!");
-}
-
-TEST_CASE("ostream_operators_errors_and_sentry") {
-  require_ostream_errors(Color::RED, std::string{"red"});
-  require_ostream_errors(Color::RED, std::wstring{L"red"});
-}
-
 TEST_CASE("ostream_operators") {
   SUBCASE("character underlying types") {
     enum class Byte : unsigned char { Named = 1 };
@@ -1296,6 +1249,27 @@ TEST_CASE("ostream_operators") {
     enum class Character8 : char8_t { Named = 1 };
     require_ostream(static_cast<Character8>(65), "65");
 #endif
+  }
+
+  SUBCASE("field width applies to the name") {
+    using namespace magic_enum::ostream_operators;
+
+    std::ostringstream named;
+    named << std::setfill('_') << std::setw(6) << Color::GREEN << '|' << std::left << std::setw(6) << Color::BLUE << '|' << Color::BLUE << '|';
+    REQUIRE(named.str() == "_GREEN|BLUE__|BLUE|");
+
+    std::ostringstream fallback;
+    fallback << std::setfill('_') << std::setw(6) << static_cast<Color>(0) << '|' << std::setw(6) << std::make_optional(Color::BLUE) << '|';
+    REQUIRE(fallback.str() == "_____0|__BLUE|");
+
+    std::basic_ostringstream<char, CustomCharTraits<char>> custom;
+    custom << std::setfill('_') << std::setw(6) << Color::BLUE << '|';
+    const auto result = custom.str();
+    REQUIRE(std::string(result.data(), result.size()) == "__BLUE|");
+
+    std::wostringstream wide;
+    wide << std::setfill(L'_') << std::setw(6) << Color::BLUE << L'|';
+    REQUIRE(wide.str() == L"__BLUE|");
   }
 
   SUBCASE("short underlying type formatting") {

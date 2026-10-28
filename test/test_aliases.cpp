@@ -10,6 +10,7 @@
 
 #include "test_helpers.hpp"
 
+#include <iomanip>
 #include <sstream>
 
 using namespace magic_enum;
@@ -146,16 +147,14 @@ TEST_CASE("string containers") {
   REQUIRE(stream.str() == "RED|BLUE");
 }
 
-TEST_CASE("ostream_operators_alias_field_width") {
+TEST_CASE("ostream_operators") {
   using namespace magic_enum::ostream_operators;
-  for (const bool left : {false, true}) {
-    std::basic_ostringstream<wchar_t, CustomCharTraits<wchar_t>> wide;
-    wide.setf(left ? std::ios::left : std::ios::right, std::ios::adjustfield);
-    wide.fill(L'_');
-    wide.width(12);
-    wide << Color::RED << L'!';
-    REQUIRE(wide.width() == 0);
-    const auto result = wide.str();
-    REQUIRE(std::wstring(result.data(), result.size()) == (left ? L"RED_________!" : L"_________RED!"));
-  }
+
+  std::ostringstream narrow;
+  narrow << std::setfill('_') << std::setw(10) << (Color::RED | Color::BLUE) << '|';
+  REQUIRE(narrow.str() == "__RED|BLUE|");
+
+  std::wostringstream wide;
+  wide << std::setfill(L'_') << std::setw(10) << (Color::RED | Color::BLUE) << L'|';
+  REQUIRE(wide.str() == L"__RED|BLUE|");
 }

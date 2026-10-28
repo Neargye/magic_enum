@@ -36,10 +36,31 @@
 #include "magic_enum_flags.hpp"
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
-#  include <ostream>
+#  include <iosfwd>
+#  include <string>
+#  include <string_view>
 #endif
 
 namespace magic_enum {
+
+namespace detail {
+
+// Formatted insertion, so width, fill and adjustfield apply to the name as a whole.
+template <typename Char, typename Traits>
+std::basic_ostream<Char, Traits>& write_name(std::basic_ostream<Char, Traits>& os, string_view name) {
+  if constexpr (std::is_same_v<Char, char_type>) {
+    return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
+  } else {
+    std::basic_string<Char, Traits> s;
+    s.reserve(name.size());
+    for (const auto c : name) {
+      s.push_back(static_cast<Char>(c));
+    }
+    return os << s;
+  }
+}
+
+} // namespace magic_enum::detail
 
 namespace ostream_operators {
 
@@ -51,29 +72,11 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   if constexpr (detail::supported<D>::value) {
     if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
       if (const auto name = enum_flags_name<D>(value); !name.empty()) {
-        if constexpr (std::is_same_v<Char, char_type>) {
-          return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
-        } else {
-          std::basic_string<Char, Traits> converted;
-          converted.reserve(name.size());
-          for (std::size_t i = 0; i < name.size(); ++i) {
-            converted.push_back(static_cast<Char>(name.data()[i]));
-          }
-          return os << converted;
-        }
+        return detail::write_name(os, string_view{name.data(), name.size()});
       }
     } else {
       if (const auto name = enum_name<D>(value); !name.empty()) {
-        if constexpr (std::is_same_v<Char, char_type>) {
-          return os << std::basic_string_view<Char, Traits>{name.data(), name.size()};
-        } else {
-          std::basic_string<Char, Traits> converted;
-          converted.reserve(name.size());
-          for (std::size_t i = 0; i < name.size(); ++i) {
-            converted.push_back(static_cast<Char>(name.data()[i]));
-          }
-          return os << converted;
-        }
+        return detail::write_name(os, name);
       }
     }
   }

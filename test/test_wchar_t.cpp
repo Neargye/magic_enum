@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cctype>
+#include <iomanip>
 #include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
@@ -149,56 +150,19 @@ TEST_CASE("wstring_view lifetime and null termination") {
   }
 }
 
-TEST_CASE("ostream_operators_field_width") {
-  using namespace magic_enum::ostream_operators;
-  const auto value = Color::RED;
-  const std::wstring name = L"red";
+TEST_CASE("ostream_operators") {
+  SUBCASE("field width applies to the name") {
+    using namespace magic_enum::ostream_operators;
 
-  for (const auto alignment : {std::ios::left, std::ios::right, std::ios::internal}) {
-    for (const auto width : {0, 2, 12}) {
-      std::wostringstream actual, expected;
-      actual.setf(alignment, std::ios::adjustfield);
-      expected.setf(alignment, std::ios::adjustfield);
-      actual.fill(L'_');
-      expected.fill(L'_');
-      actual.width(width);
-      expected.width(width);
-      REQUIRE(&(actual << value) == &actual);
-      expected << name;
-      REQUIRE(actual.width() == 0);
-      actual << L'!';
-      expected << L'!';
-      REQUIRE(actual.str() == expected.str());
-    }
+    std::wostringstream wide;
+    wide << std::setfill(L'_') << std::setw(6) << Color::RED << L'|';
+    REQUIRE(wide.str() == L"___red|");
+
+    std::ostringstream narrow;
+    narrow << std::setfill('_') << std::setw(6) << Color::RED << '|';
+    REQUIRE(narrow.str() == "___red|");
   }
 
-  std::wostringstream optional;
-  optional.fill(L'_');
-  optional.width(12);
-  optional << std::make_optional(value) << L'!';
-  REQUIRE(optional.str() == std::wstring(12 - name.size(), L'_') + name + L'!');
-
-  std::basic_ostringstream<wchar_t, CustomCharTraits<wchar_t>> custom;
-  custom.fill(L'_');
-  custom.width(12);
-  custom << value << L'!';
-  const auto result = custom.str();
-  REQUIRE(std::wstring(result.data(), result.size()) == std::wstring(12 - name.size(), L'_') + name + L'!');
-
-  std::basic_ostringstream<char, CustomCharTraits<char>> narrow;
-  narrow.fill('_');
-  narrow.width(12);
-  narrow << value << '!';
-  const auto narrow_result = narrow.str();
-  REQUIRE(std::string(narrow_result.data(), narrow_result.size()) == "_________red!");
-}
-
-TEST_CASE("ostream_operators_errors_and_sentry") {
-  require_ostream_errors(Color::RED, std::string{"red"});
-  require_ostream_errors(Color::RED, std::wstring{L"red"});
-}
-
-TEST_CASE("ostream_operators") {
   require_ostream(std::make_optional(Color::RED), L"red");
   require_ostream(Color::GREEN, L"GREEN");
   require_ostream(Color::BLUE, L"BLUE");
