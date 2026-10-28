@@ -1016,8 +1016,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(foo2::s6) == "s6");
     REQUIRE(enum_name(foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(boo1::lt1::s1) == "s1");
     REQUIRE(enum_name(boo1::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1032,8 +1031,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo1::foo2::s6) == "s6");
     REQUIRE(enum_name(boo1::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((boo1::foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((boo1::foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo1::foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(boo2::boo3::lt1::s1) == "s1");
     REQUIRE(enum_name(boo2::boo3::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1048,8 +1046,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo2::boo3::foo2::s6) == "s6");
     REQUIRE(enum_name(boo2::boo3::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((boo2::boo3::foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((boo2::boo3::foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo2::boo3::foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(a_lt1::s1) == "s1");
     REQUIRE(enum_name(a_lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1064,8 +1061,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(a_foo2::s6) == "s6");
     REQUIRE(enum_name(a_foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((a_foo1::a_lt5)12).size());
-    REQUIRE_FALSE(enum_name((a_foo2::a_lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<a_foo1::a_lt5>(12)).size());
   }
 
   SUBCASE("static storage") {
