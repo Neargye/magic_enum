@@ -1,22 +1,34 @@
 name: ubuntu
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'doc/**']
+  pull_request:
+    paths-ignore: ['**.md', 'doc/**']
+  workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ubuntu:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04" }
+        - { cc: "gcc-11",   cxx: "g++-11",     os: "ubuntu-22.04", strict: "c++17" }
         - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04" }
         - { cc: "gcc-13",   cxx: "g++-13",     os: "ubuntu-24.04" }
         - { cc: "gcc-14",   cxx: "g++-14",     os: "ubuntu-24.04" }
         - { cc: "gcc-15",   cxx: "g++-15",     os: "ubuntu-24.04" }
-        - { cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04" }
-        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04" }
+        - { cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", sanitize: true, strict: "c++17 c++20 c++23" }
+        - { cc: "clang-13", cxx: "clang++-13", os: "ubuntu-22.04", strict: "c++17" }
         - { cc: "clang-14", cxx: "clang++-14", os: "ubuntu-22.04" }
         - { cc: "clang-15", cxx: "clang++-15", os: "ubuntu-22.04" }
         - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-22.04" }
@@ -26,6 +38,7 @@ jobs:
         - { cc: "clang-20", cxx: "clang++-20", os: "ubuntu-24.04" }
         - { cc: "clang-21", cxx: "clang++-21", os: "ubuntu-24.04" }
         - { cc: "clang-22", cxx: "clang++-22", os: "ubuntu-24.04" }
+        - { cc: "clang-23", cxx: "clang++-23", os: "ubuntu-24.04", sanitize: true, strict: "c++17 c++20 c++23" }
 
     name: "${{ matrix.compiler.cc }}"
     runs-on: ${{ matrix.compiler.os }}
@@ -35,28 +48,84 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Configure clang
+    - name: Install clang
       if: ${{ startsWith(matrix.compiler.cc, 'clang') }}
       run: |
+        if command -v "$CXX" > /dev/null 2>&1; then
+          exit 0
+        fi
+
         wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
 
         clang_version="${{ matrix.compiler.cc }}"
         clang_version="${clang_version#clang-}"
         ubuntu_codename="$(lsb_release -cs)"
-        llvm_repository="http://apt.llvm.org/${ubuntu_codename}/"
-        llvm_suite="llvm-toolchain-${ubuntu_codename}-${clang_version}"
 
-        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] ${llvm_repository} ${llvm_suite} main" \
-          | sudo tee /etc/apt/sources.list.d/llvm.list
-        sudo apt update
-        sudo apt install -y ${{ matrix.compiler.cc }}
+        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.compiler.cc }}
 
-    - name: Configure gcc
+    - name: Install gcc
       if: ${{ startsWith(matrix.compiler.cc, 'gcc') }}
       run: |
+        if command -v "$CXX" > /dev/null 2>&1; then
+          exit 0
+        fi
+
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-        sudo apt update
-        sudo apt install -y ${{ matrix.compiler.cxx }}
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.compiler.cxx }}
+
+    - name: Compiler version
+      run: |
+        compiler="$("$CXX" --version | head -n 1)"
+        echo "$compiler"
+        echo "::notice title=Compiler::$compiler"
+        echo "**Compiler:** $compiler" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Strict warnings
+      if: ${{ matrix.compiler.strict }}
+      run: |
+        # Users compile the headers with their own flags, so keep them clean under strict warnings.
+        flags=(-Wall -Wextra -pedantic-errors -Werror -Wconversion -Wsign-conversion -Wold-style-cast -Wundef -Wcast-qual -Wnon-virtual-dtor -Wnull-dereference -Wimplicit-fallthrough)
+        case "$CXX" in
+          g++*) flags+=(-Wshadow -Wuseless-cast -Wduplicated-branches -Wduplicated-cond -Wlogical-op) ;;
+          *) flags+=(-Wshadow-all -Wextra-semi -Wcomma -Wunreachable-code) ;;
+        esac
+        sources=(
+          example/enum_flag_example.cpp
+          example/example.cpp
+          example/example_containers_array.cpp
+          example/example_containers_bitset.cpp
+          example/example_containers_set.cpp
+          example/example_containers_set_lookup.cpp
+          example/example_custom_name.cpp
+          example/example_switch.cpp
+          test/test.cpp
+          test/test_aliases.cpp
+          test/test_containers.cpp
+          test/test_flags.cpp
+          test/test_fuse.cpp
+          test/test_range.cpp
+          test/test_shared_config.cpp
+          test/test_shared_config_other.cpp
+          test/test_wchar_t.cpp
+        )
+        check() {
+          echo "$CXX $*"
+          "$CXX" -fsyntax-only "${flags[@]}" -DDOCTEST_CONFIG_USE_STD_HEADERS -Iinclude -isystem test/3rdparty "$@"
+        }
+        for std in ${{ matrix.compiler.strict }}; do
+          for src in "${sources[@]}"; do
+            check -std="$std" "$src"
+          done
+        done
+        # Cover the C++26 standard reflection backend.
+        if [ "$CXX" = "g++-16" ]; then
+          for src in test/test.cpp test/test_flags.cpp test/test_reflection.cpp; do
+            check -std=c++26 -freflection -DMAGIC_ENUM_TEST_STD_REFLECTION=1 "$src"
+          done
+        fi
 
     - name: Test Unicode identifiers
       if: ${{ matrix.compiler.cc == 'gcc-16' }}
@@ -66,39 +135,68 @@ jobs:
         "${CXX}" -std=c++26 -freflection -Wall -Wextra -Wshadow -pedantic-errors -Werror -Iinclude test/test_nonascii.cpp -o test_nonascii_reflection
         ./test_nonascii_reflection
 
-    - name: Configure Release
+    - name: Build and test
       run: |
         standard_options=()
         if [[ "${{ matrix.compiler.cc }}" == "gcc-16" ]]; then
           standard_options=(-DCMAKE_CXX_STANDARD=26 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
         fi
-        cmake -S . -B build-release \
-          -DCMAKE_BUILD_TYPE=Release \
-          "${standard_options[@]}"
+        for build_type in Release Debug; do
+          echo "::group::$build_type"
+          cmake -S . -B "build-$build_type" -DCMAKE_BUILD_TYPE="$build_type" "${standard_options[@]}"
+          cmake --build "build-$build_type" --parallel "$(nproc)"
+          ctest --test-dir "build-$build_type" --parallel "$(nproc)" --output-on-failure --no-tests=error
+          echo "::endgroup::"
+        done
 
-    - name: Build Release
-      run: cmake --build build-release --parallel "$(nproc)" --config Release
-
-    - name: Test Release
-      run: ctest --test-dir build-release --output-on-failure --no-tests=error -C Release
-
-    - name: Configure Debug
+    - name: Require standard reflection tests
+      if: ${{ matrix.compiler.cc == 'gcc-16' }}
       run: |
-        standard_options=()
-        if [[ "${{ matrix.compiler.cc }}" == "gcc-16" ]]; then
-          standard_options=(-DCMAKE_CXX_STANDARD=26 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
-        fi
-        cmake -S . -B build-debug \
-          -DCMAKE_BUILD_TYPE=Debug \
-          "${standard_options[@]}"
+        # The tests already ran above. Only check that CMake registered them.
+        ctest --test-dir build-Release -N -R "^(test-cpp26-reflection|test_std_reflection-auto-cpp26)$" | grep -q "Total Tests: 2"
 
-    - name: Build Debug
-      run: cmake --build build-debug --parallel "$(nproc)" --config Debug
+    - name: Sanitizers (ASan + UBSan)
+      if: ${{ matrix.compiler.sanitize }}
+      env:
+        CXXFLAGS: -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+        LDFLAGS: -fsanitize=address,undefined
+        ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
+        UBSAN_OPTIONS: print_stacktrace=1
+      run: |
+        # Newer runner kernels use more ASLR entropy than older sanitizer runtimes support.
+        sudo sysctl vm.mmap_rnd_bits=28
+        cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug
+        cmake --build build-sanitize --parallel "$(nproc)"
+        ctest --test-dir build-sanitize --parallel "$(nproc)" --output-on-failure --no-tests=error
 
-    - name: Test Debug
-      run: ctest --test-dir build-debug --output-on-failure --no-tests=error -C Debug
+  fmt:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-24.04
+        - ubuntu-26.04
+
+    name: "fmt (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install fmt
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfmt-dev
+
+    - name: Build and test
+      run: |
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON
+        cmake --build build --parallel "$(nproc)" --target test-cpp17 test_flags-cpp17
+        ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error -R "^test(_flags)?-cpp17$"
 
   bazel:
+    timeout-minutes: 30
     name: Bazel
     runs-on: ubuntu-24.04
     steps:
@@ -109,6 +207,7 @@ jobs:
       run: bazelisk test //... --config=ci
 
   meson:
+    timeout-minutes: 30
     name: Meson
     runs-on: ubuntu-24.04
     steps:
@@ -116,17 +215,14 @@ jobs:
 
     - name: Install Meson
       run: |
-        sudo apt update
-        sudo apt install -y meson ninja-build
-
-    - name: Configure
-      run: meson setup build-meson
+        sudo apt-get update
+        sudo apt-get install -y meson ninja-build
 
     - name: Test
-      run: meson test -C build-meson --print-errorlogs
-
-    - name: Configure with hash
-      run: meson setup build-meson-hash -Dhash=true
-
-    - name: Test with hash
-      run: meson test -C build-meson-hash --print-errorlogs
+      run: |
+        for option in false true; do
+          echo "::group::hash=$option"
+          meson setup "build-meson-$option" -Dhash="$option"
+          meson test -C "build-meson-$option" --print-errorlogs
+          echo "::endgroup::"
+        done

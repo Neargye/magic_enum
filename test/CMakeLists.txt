@@ -132,6 +132,10 @@ endif()
 
 add_library(magic_enum_test_options INTERFACE)
 target_compile_options(magic_enum_test_options INTERFACE ${MAGIC_ENUM_TEST_COMPILE_OPTIONS})
+# CI sets this so the fmt tests fail instead of being skipped when <fmt/format.h> is missing.
+if(MAGIC_ENUM_TEST_REQUIRE_FMT)
+  target_compile_definitions(magic_enum_test_options INTERFACE MAGIC_ENUM_TEST_REQUIRE_FMT)
+endif()
 
 function(magic_enum_make_test src target standard_flag)
   add_executable(${target} ${src})

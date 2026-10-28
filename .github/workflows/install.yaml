@@ -2,18 +2,22 @@ name: Install
 
 on:
   push:
-    branches:
-      - master
-      - main
+    branches: [master]
+    paths-ignore: ['**.md', 'doc/**']
   pull_request:
-    branches:
-      - master
-      - main
+    paths-ignore: ['**.md', 'doc/**']
+  workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   header-only-ubuntu:
+    timeout-minutes: 30
     name: Header-only / Ubuntu
     runs-on: ubuntu-24.04
 
@@ -51,7 +55,34 @@ jobs:
           cmake --build build-installed-pkgconfig --parallel "$(nproc)"
           ctest --test-dir build-installed-pkgconfig --output-on-failure --no-tests=error
 
+      - name: Test CPack archive
+        run: |
+          cpack --config build-install/CPackConfig.cmake -G TGZ -B package
+          archive="$(find package -maxdepth 1 -name 'magic_enum-*.tar.gz' -print -quit)"
+          test -n "${archive}"
+          tar -tzf "${archive}" > package-contents.txt
+          grep -Eq '(^|/)include/magic_enum/magic_enum_all\.hpp$' package-contents.txt
+          grep -Eq '(^|/)share/cmake/magic_enum/magic_enumConfig\.cmake$' package-contents.txt
+          grep -Eq '(^|/)share/pkgconfig/magic_enum\.pc$' package-contents.txt
+
+      - name: Test DESTDIR install
+        run: |
+          DESTDIR="${RUNNER_TEMP}/stage" cmake --install build-install
+          prefix="${RUNNER_TEMP}/stage${RUNNER_TEMP}/configured-install"
+          test -f "${prefix}/include/magic_enum/magic_enum_all.hpp"
+          export PKG_CONFIG_PATH="${prefix}/share/pkgconfig"
+          include_dir="$(pkg-config --variable=includedir magic_enum)"
+          test "$(realpath "${include_dir}")" = "$(realpath "${prefix}/include")"
+          cat > destdir-consumer.cpp << 'EOF'
+          #include <magic_enum/magic_enum_all.hpp>
+          enum class Color { Red };
+          int main() { return magic_enum::enum_name(Color::Red) == "Red" ? 0 : 1; }
+          EOF
+          c++ -std=c++17 $(pkg-config --cflags magic_enum) destdir-consumer.cpp -o destdir-consumer
+          ./destdir-consumer
+
   module-macos-gcc:
+    timeout-minutes: 30
     name: Module / macOS / GCC 16 / fmt::fmt / C++20
     runs-on: macos-15
     env:
@@ -122,6 +153,7 @@ jobs:
             -R '^(test_module(_aliases|_wchar_t)?-cpp20|installed-module-consumer)$'
 
   module-windows-msvc:
+    timeout-minutes: 30
     name: Module / Windows / VS 2026 / C++20
     runs-on: windows-2025-vs2026
 

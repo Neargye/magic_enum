@@ -1,34 +1,61 @@
 name: windows
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'doc/**']
+  pull_request:
+    paths-ignore: ['**.md', 'doc/**']
+  workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
+    timeout-minutes: 30
     runs-on: ${{ matrix.config.os }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       fail-fast: false
       matrix:
         config:
-        - { os: windows-2022, label: "Windows Server 2022" } # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md
-        - { os: windows-2025, label: "Windows Server 2025" } # https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md
-        platform: [x64, Win32]
-        build_type: [Release, Debug]
+        - { os: windows-2022, compiler: "msvc",      toolset: "",      build_types: [Release, Debug] }
+        - { os: windows-2025, compiler: "msvc",      toolset: "",      build_types: [Release, Debug] }
+        - { os: windows-2022, compiler: "msvc-v142", toolset: v142,    build_types: [Release] }
+        - { os: windows-2025, compiler: "clang-cl",  toolset: ClangCL, build_types: [Release] }
 
-    name: "${{ matrix.config.label }} / ${{ matrix.platform }} / ${{ matrix.build_type }}"
+    name: "${{ matrix.config.compiler }} (${{ matrix.config.os }})"
     steps:
     - uses: actions/checkout@v7
 
-    - name: Configure
-      run: cmake -S . -B build -A ${{ matrix.platform }}
-
-    - name: Build
-      run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }}
+    - name: Build and test
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true # Stop on the first failing command.
+        foreach ($platform in 'x64', 'Win32') {
+          cmake -S . -B "build-$platform" -A $platform -T "${{ matrix.config.toolset }}"
+          foreach ($buildType in "${{ join(matrix.config.build_types, ' ') }}" -split ' ') {
+            Write-Output "::group::$platform / $buildType"
+            cmake --build "build-$platform" --parallel --config $buildType
+            ctest --test-dir "build-$platform" --parallel $env:NUMBER_OF_PROCESSORS --output-on-failure --no-tests=error -C $buildType
+            Write-Output "::endgroup::"
+          }
+        }
 
     - name: Build C++/CLI smoke test
-      if: ${{ matrix.config.os == 'windows-2022' && matrix.platform == 'x64' && matrix.build_type == 'Release' }}
-      run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS --target test_clr --config ${{ matrix.build_type }}
+      if: ${{ matrix.config.os == 'windows-2022' && matrix.config.compiler == 'msvc' }}
+      run: cmake --build build-x64 --parallel --target test_clr --config Release
 
-    - name: Test
-      run: ctest --test-dir build --output-on-failure --no-tests=error -C ${{ matrix.build_type }}
+    - name: Code analysis
+      if: ${{ matrix.config.os == 'windows-2025' && matrix.config.compiler == 'msvc' }}
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true
+        # Setting CMAKE_CXX_FLAGS replaces the default flags, so repeat them.
+        cmake -S . -B build-analyze -A x64 "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /analyze"
+        cmake --build build-analyze --parallel --config Release

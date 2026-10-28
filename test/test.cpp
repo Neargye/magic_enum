@@ -2109,6 +2109,10 @@ TEST_CASE("multdimensional-switch-case") {
 #  define MAGIC_ENUM_TEST_HAS_FMT
 #endif
 
+#if defined(MAGIC_ENUM_TEST_REQUIRE_FMT) && !defined(MAGIC_ENUM_TEST_HAS_FMT)
+#  error "MAGIC_ENUM_TEST_REQUIRE_FMT requires <fmt/format.h>."
+#endif
+
 #include <magic_enum/magic_enum_format.hpp>
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
