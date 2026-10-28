@@ -424,7 +424,8 @@ constexpr int countl_zero(T x) noexcept {
 template <typename T>
 constexpr int bit_width(T x) noexcept {
 #if defined(__cpp_lib_int_pow2) && __cpp_lib_int_pow2 >= 202002L
-  return std::bit_width(x);
+  // Before LWG 3656, std::bit_width returns T.
+  return static_cast<int>(std::bit_width(x));
 #else
   return std::numeric_limits<T>::digits - countl_zero(x);
 #endif
@@ -695,9 +696,12 @@ class bitset {
         MAGIC_ENUM_CONTAINERS_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
       }
     }
-    for (std::size_t i = 1; i < base_type_count; ++i) {
-      if (a[i] != 0) {
-        MAGIC_ENUM_CONTAINERS_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
+    // Avoids MSVC /analyze C6294 for a single word.
+    if constexpr (base_type_count > 1) {
+      for (std::size_t i = 1; i < base_type_count; ++i) {
+        if (a[i] != 0) {
+          MAGIC_ENUM_CONTAINERS_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
+        }
       }
     }
     return static_cast<T>(a[0]);
@@ -896,12 +900,15 @@ class bitset {
 
   [[nodiscard]] constexpr bool operator[](E pos) const {
     auto i = index_type::at(pos);
-    return MAGIC_ENUM_ASSERT(i && *i < size()), static_cast<bool>(const_reference(this, *i));
+    // No comma expression: MSVC /analyze C6319.
+    MAGIC_ENUM_ASSERT(i && *i < size());
+    return static_cast<bool>(const_reference(this, *i));
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
     auto i = index_type::at(pos);
-    return MAGIC_ENUM_ASSERT(i && *i < size()), reference{this, *i};
+    MAGIC_ENUM_ASSERT(i && *i < size());
+    return reference{this, *i};
   }
 
   [[nodiscard]] constexpr iterator begin() noexcept { return iterator::begin(this); }

@@ -332,6 +332,36 @@ TEST_CASE("bool enum text lookup does not convert pointers to true") {
   CHECK(enum_contains<BoolTest>(ThrowingName{false}));
 }
 
+TEST_CASE("bool enum reflection excludes unnamed values") {
+  enum class EmptyBool : bool {};
+  enum class FalseBool : bool { Off = false };
+  enum class TrueBool : bool { On = true };
+
+  static_assert(enum_count<EmptyBool>() == 0);
+  static_assert(enum_count<FalseBool>() == 1);
+  static_assert(enum_count<TrueBool>() == 1);
+  static_assert(enum_name(static_cast<EmptyBool>(false)).empty());
+  static_assert(enum_name(static_cast<EmptyBool>(true)).empty());
+  static_assert(enum_name(static_cast<FalseBool>(true)).empty());
+  static_assert(enum_name(static_cast<TrueBool>(false)).empty());
+  static_assert(enum_name(FalseBool::Off) == "Off");
+  static_assert(enum_name(TrueBool::On) == "On");
+  static_assert(enum_name<FalseBool::Off>() == "Off");
+  static_assert(enum_name<TrueBool::On>() == "On");
+  static_assert(enum_name<BoolTest::Yay>() == "Yay");
+  static_assert(enum_name<BoolTest::Nay>() == "Nay");
+
+  static_assert(!enum_cast<EmptyBool>(false).has_value());
+  static_assert(!enum_cast<EmptyBool>(true).has_value());
+  static_assert(!enum_index(static_cast<EmptyBool>(false)).has_value());
+  static_assert(!enum_index(static_cast<EmptyBool>(true)).has_value());
+
+  CHECK_FALSE(enum_cast<FalseBool>(true).has_value());
+  CHECK_FALSE(enum_cast<TrueBool>(false).has_value());
+  CHECK_FALSE(enum_contains(static_cast<FalseBool>(true)));
+  CHECK_FALSE(enum_contains(static_cast<TrueBool>(false)));
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");
@@ -986,8 +1016,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(foo2::s6) == "s6");
     REQUIRE(enum_name(foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(boo1::lt1::s1) == "s1");
     REQUIRE(enum_name(boo1::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1002,8 +1031,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo1::foo2::s6) == "s6");
     REQUIRE(enum_name(boo1::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((boo1::foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((boo1::foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo1::foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(boo2::boo3::lt1::s1) == "s1");
     REQUIRE(enum_name(boo2::boo3::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1018,8 +1046,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo2::boo3::foo2::s6) == "s6");
     REQUIRE(enum_name(boo2::boo3::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((boo2::boo3::foo1::lt5)12).size());
-    REQUIRE_FALSE(enum_name((boo2::boo3::foo2::lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo2::boo3::foo1::lt5>(12)).size());
 
     REQUIRE(enum_name(a_lt1::s1) == "s1");
     REQUIRE(enum_name(a_lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1034,8 +1061,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(a_foo2::s6) == "s6");
     REQUIRE(enum_name(a_foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
-    REQUIRE_FALSE(enum_name((a_foo1::a_lt5)12).size());
-    REQUIRE_FALSE(enum_name((a_foo2::a_lt6)12).size());
+    REQUIRE_FALSE(enum_name(static_cast<a_foo1::a_lt5>(12)).size());
   }
 
   SUBCASE("static storage") {
@@ -1069,6 +1095,9 @@ TEST_CASE("enum_name") {
 
     REQUIRE(enum_name<Binary::ONE>() == "ONE");
     REQUIRE(enum_name<MaxUsedAsInvalid::ONE>() == "ONE");
+
+    // An unnamed value has no prefix to strip, so it must not trigger the prefix length check.
+    static_assert(magic_enum::detail::enum_name_v<CStyleEnum, static_cast<CStyleEnum>(0)>.str().empty());
   }
 
   SUBCASE("declared values outside the compiler-specific range") {

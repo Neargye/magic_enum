@@ -90,6 +90,9 @@
 #  pragma clang diagnostic push
 #  pragma clang diagnostic ignored "-Wunknown-warning-option"
 #  pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wconversion" // Scanning casts candidates outside the value range of unscoped enums without a fixed underlying type.
 #elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable : 28020) // MSVC analyzer loses constexpr array bounds in template instantiations.
@@ -113,7 +116,7 @@
 #define MAGIC_ENUM_CALLING_CONVENTION
 #elif defined(_MSC_VER)
 #define MAGIC_ENUM_CALLING_CONVENTION __cdecl
-#elif defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+#else
 #define MAGIC_ENUM_CALLING_CONVENTION
 #endif
 
@@ -407,11 +410,13 @@ class static_str {
   char_type chars_[static_cast<std::size_t>(N) + 1];
 
  private:
-  [[nodiscard]] static constexpr char_type to_char_type(char value) noexcept {
-    if constexpr (std::is_same_v<char_type, char>) {
+  // Dependent on C, so clang does not check the char branch against a wide char_type.
+  template <typename C = char_type>
+  [[nodiscard]] static constexpr C to_char_type(char value) noexcept {
+    if constexpr (std::is_same_v<C, char>) {
       return value;
     } else {
-      return static_cast<char_type>(value);
+      return static_cast<C>(value);
     }
   }
 
@@ -477,6 +482,10 @@ constexpr std::size_t find(string_view str, char_type c) noexcept {
 
 template <typename T>
 inline constexpr bool is_name_input_v = std::is_convertible_v<T, string_view>;
+
+// MSVC 19.29 reports std::is_nothrow_constructible_v as true for a throwing conversion operator.
+template <typename T>
+inline constexpr bool is_nothrow_name_input_v = noexcept(static_cast<string_view>(std::declval<T>()));
 
 template <typename BinaryPredicate>
 inline constexpr bool is_default_predicate_v = std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> || std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
@@ -783,9 +792,12 @@ constexpr auto enum_name() noexcept {
     constexpr auto name = n<V>();
 #endif
     constexpr auto prefix = prefix_length_v<E>;
-    constexpr bool valid_prefix = valid_prefix_length(prefix, name.size_);
+    // An unnamed value has no prefix to strip.
+    constexpr bool valid_prefix = name.size_ == 0 || valid_prefix_length(prefix, name.size_);
     static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
-    if constexpr (valid_prefix) {
+    if constexpr (name.size_ == 0) {
+      return static_str<0>{};
+    } else if constexpr (valid_prefix) {
       return static_str<name.size_ - prefix>{name.str_ + prefix};
     } else {
       return static_str<0>{};
@@ -1786,7 +1798,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using U = underlying_type_t<D>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
+  if constexpr (detail::count_v<D, S> == 0) {
+    return {};
+  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
     return detail::hash_switch_values<D, S, detail::case_call_t::index>(
         [](std::size_t i) { return optional<std::size_t>{i}; },
@@ -1886,7 +1900,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
+  if constexpr (detail::count_v<D, S> == 0) {
+    return {};
+  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
     return detail::hash_switch_values<D, S, detail::case_call_t::value>(
         [](D v) { return optional<D>{v}; },
@@ -1912,7 +1928,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Returns enum value from name.
 // Returns optional with enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_cast(String&& name, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_cast(String&& name, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   string_view value(std::forward<String>(name));
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
@@ -1927,9 +1943,12 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
         [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
   } else {
 #endif
-    for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-      if (detail::cmp_equal(value, detail::names_v<D, S>[i], p)) {
-        return enum_value<D, S>(i);
+    // Avoids MSVC /analyze C6294 for empty enums.
+    if constexpr (detail::count_v<D, S> > 0) {
+      for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
+        if (detail::cmp_equal(value, detail::names_v<D, S>[i], p)) {
+          return enum_value<D, S>(i);
+        }
       }
     }
     return {}; // Invalid value or out of range.
@@ -1963,7 +1982,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
 // Returns true if enum contains enumerator with specified name.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_contains(String&& value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && std::is_nothrow_constructible_v<string_view, String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+[[nodiscard]] constexpr auto enum_contains(String&& value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
 
   return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(std::forward<String>(value), p));
@@ -2073,6 +2092,8 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 
 #if defined(__clang__)
 #  pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif

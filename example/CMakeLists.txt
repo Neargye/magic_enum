@@ -1,13 +1,13 @@
 include(CheckCXXCompilerFlag)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  set(MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
-elseif(MSVC)
+if(MSVC)
   set(MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS /W4 /WX)
   check_cxx_compiler_flag(/permissive- MAGIC_ENUM_EXAMPLE_HAS_PERMISSIVE_FLAG)
   if(MAGIC_ENUM_EXAMPLE_HAS_PERMISSIVE_FLAG)
     list(APPEND MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS /permissive-)
   endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  set(MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
 endif()
 
 function(magic_enum_add_example target library standard)
