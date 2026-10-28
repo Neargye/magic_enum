@@ -88,7 +88,7 @@ constexpr int for_each_calls() {
   return calls;
 }
 
-// #451: zero is a supported probe, including when all values were filtered out.
+// #451: enum_count() == 0 is a supported check, including when every value is filtered out.
 template <typename E>
 constexpr bool empty_reflection() {
   static_assert(magic_enum::enum_count<const E&>() == 0);

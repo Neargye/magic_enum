@@ -78,7 +78,7 @@ constexpr auto enum_for_each(F&& f) {
   constexpr auto sep = std::make_index_sequence<detail::count_v<D, S>>{};
 
   if constexpr (detail::count_v<D, S> == 0) {
-    // Nothing to call, and no call to deduce a result type from.
+    // An empty enum has no values to call f with, so there is no result type to deduce.
     static_cast<void>(f);
   } else if constexpr (detail::all_invocable<D, S, F>(sep)) {
     return detail::for_each<D, S>(std::forward<F>(f), sep);
