@@ -268,6 +268,75 @@ magic_enum_make_compile_fail_test(
   "magic_enum::customize::enum_range requires is_flags to have bool type"
 )
 
+magic_enum_make_compile_fail_test(
+  configuration
+  name-forward-scoped
+  5
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  name-forward-scoped-underlying
+  5
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  name-forward-unscoped
+  5
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=3
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  name-empty
+  5
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=4
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  fuse-empty
+  7
+  "magic_enum::enum_fuse requires a non-empty reflected enum."
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  fuse-empty-no-check
+  7
+  "magic_enum::enum_fuse requires a non-empty reflected enum."
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  values-empty
+  8
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  values-outside-range
+  8
+  "magic_enum requires enum implementation and valid max and min."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
+magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-cpp17 c++17)
+target_compile_definitions(test_enum_count-cpp17 PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6)
+magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp17 c++17)
+target_compile_definitions(test_enum_count-no-check-cpp17 PRIVATE
+  MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+)
+magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-hash-cpp17 c++17)
+target_compile_definitions(test_enum_count-no-check-hash-cpp17 PRIVATE
+  MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+  MAGIC_ENUM_ENABLE_HASH
+)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   target_compile_definitions(test-cpp17 PRIVATE MAGIC_ENUM_TEST_VS_2017_WORKAROUND=1)
   if(MSVC_VERSION GREATER_EQUAL 1920)

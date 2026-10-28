@@ -332,6 +332,36 @@ TEST_CASE("bool enum text lookup does not convert pointers to true") {
   CHECK(enum_contains<BoolTest>(ThrowingName{false}));
 }
 
+TEST_CASE("bool enum reflection excludes unnamed values") {
+  enum class EmptyBool : bool {};
+  enum class FalseBool : bool { Off = false };
+  enum class TrueBool : bool { On = true };
+
+  static_assert(enum_count<EmptyBool>() == 0);
+  static_assert(enum_count<FalseBool>() == 1);
+  static_assert(enum_count<TrueBool>() == 1);
+  static_assert(enum_name(static_cast<EmptyBool>(false)).empty());
+  static_assert(enum_name(static_cast<EmptyBool>(true)).empty());
+  static_assert(enum_name(static_cast<FalseBool>(true)).empty());
+  static_assert(enum_name(static_cast<TrueBool>(false)).empty());
+  static_assert(enum_name(FalseBool::Off) == "Off");
+  static_assert(enum_name(TrueBool::On) == "On");
+  static_assert(enum_name<FalseBool::Off>() == "Off");
+  static_assert(enum_name<TrueBool::On>() == "On");
+  static_assert(enum_name<BoolTest::Yay>() == "Yay");
+  static_assert(enum_name<BoolTest::Nay>() == "Nay");
+
+  static_assert(!enum_cast<EmptyBool>(false).has_value());
+  static_assert(!enum_cast<EmptyBool>(true).has_value());
+  static_assert(!enum_index(static_cast<EmptyBool>(false)).has_value());
+  static_assert(!enum_index(static_cast<EmptyBool>(true)).has_value());
+
+  CHECK_FALSE(enum_cast<FalseBool>(true).has_value());
+  CHECK_FALSE(enum_cast<TrueBool>(false).has_value());
+  CHECK_FALSE(enum_contains(static_cast<FalseBool>(true)));
+  CHECK_FALSE(enum_contains(static_cast<TrueBool>(false)));
+}
+
 TEST_CASE("enum_cast") {
   SUBCASE("string") {
     constexpr auto cr = enum_cast<Color>("red");

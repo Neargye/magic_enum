@@ -40,7 +40,9 @@ namespace detail {
 
 template <typename E>
 constexpr std::size_t fuse_bit_width() noexcept {
-  return log2((enum_count<E>() << 1) - 1);
+  constexpr auto count = enum_count<E>();
+  static_assert(count > 0, "magic_enum::enum_fuse requires a non-empty reflected enum.");
+  return log2((count << 1) - 1);
 }
 
 template <typename E>

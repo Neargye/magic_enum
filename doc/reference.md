@@ -179,7 +179,7 @@ constexpr size_t enum_count() noexcept;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Returns number of enum values.
+* Returns number of reflected enum values, including 0 for empty reflection results.
 
 * Examples
 
@@ -517,7 +517,7 @@ constexpr decltype(auto) enum_switch(Lambda&& lambda, E value, Result&& result);
 
 * Calls callable with `enum_constant<V>` for matching reflected value.
 
-* If no value matches, returns default-constructed result or supplied `result`.
+* If no value matches, returns default-constructed result or supplied `result`. For empty reflection results, the result type is `void` or the decayed `Result`.
 
 * Returns by value, even when `Result` is a reference type.
 
@@ -543,7 +543,7 @@ constexpr auto enum_for_each(Lambda&& lambda);
 
 * Calls callable with `enum_constant<V>` for each reflected value.
 
-* Returns `void`, array for equal result types, or tuple for different result types.
+* Returns `void`, array for equal result types, or tuple for different result types. Returns `void` without calling the callable for empty reflection results.
 
 * Examples
 

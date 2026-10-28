@@ -1786,7 +1786,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using U = underlying_type_t<D>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
+  if constexpr (detail::count_v<D, S> == 0) {
+    return {};
+  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
     return detail::hash_switch_values<D, S, detail::case_call_t::index>(
         [](std::size_t i) { return optional<std::size_t>{i}; },
@@ -1886,7 +1888,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
+  if constexpr (detail::count_v<D, S> == 0) {
+    return {};
+  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
 #if defined(MAGIC_ENUM_ENABLE_HASH)
     return detail::hash_switch_values<D, S, detail::case_call_t::value>(
         [](D v) { return optional<D>{v}; },

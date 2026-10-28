@@ -77,7 +77,10 @@ constexpr auto enum_for_each(F&& f) {
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   constexpr auto sep = std::make_index_sequence<detail::count_v<D, S>>{};
 
-  if constexpr (detail::all_invocable<D, S, F>(sep)) {
+  if constexpr (detail::count_v<D, S> == 0) {
+    // Nothing to call, and no call to deduce a result type from.
+    static_cast<void>(f);
+  } else if constexpr (detail::all_invocable<D, S, F>(sep)) {
     return detail::for_each<D, S>(std::forward<F>(f), sep);
   } else {
     static_assert(detail::always_false_v<D>, "magic_enum::enum_for_each requires invocable of all enum value.");
