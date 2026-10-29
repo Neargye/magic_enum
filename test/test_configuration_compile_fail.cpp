@@ -138,6 +138,20 @@ enum class ValuesProbe { Value = 1000 };
 #  endif
 constexpr auto values = magic_enum::enum_values<ValuesProbe>();
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 9
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum class EmptyCustomName { First, Second };
+
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<EmptyCustomName>(EmptyCustomName value) noexcept {
+  return value == EmptyCustomName::Second ? customize_t{""} : default_tag;
+}
+
+// The scan accepts any custom name, so the empty name must be rejected even when no name is built.
+constexpr auto count = magic_enum::enum_count<EmptyCustomName>();
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

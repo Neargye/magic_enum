@@ -39,7 +39,7 @@ namespace magic_enum {
 namespace detail {
 
 template <typename E>
-constexpr auto values_ors() noexcept {
+MAGIC_ENUM_CONSTEVAL auto values_ors() noexcept {
   using U = make_unsigned_t<std::underlying_type_t<E>>;
   auto ors = U{0};
   for (const auto value : values_v<E, enum_subtype::flags>) {

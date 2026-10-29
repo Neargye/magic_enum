@@ -39,7 +39,7 @@ namespace magic_enum {
 namespace detail {
 
 template <typename E>
-constexpr std::size_t fuse_bit_width() noexcept {
+MAGIC_ENUM_CONSTEVAL std::size_t fuse_bit_width() noexcept {
   constexpr auto count = enum_count<E>();
   static_assert(count > 0, "magic_enum::enum_fuse requires a non-empty reflected enum.");
   return log2((count << 1) - 1);

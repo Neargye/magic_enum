@@ -13,8 +13,7 @@
 #include <magic_enum/magic_enum_switch.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 
-#if defined(MAGIC_ENUM_CALLING_CONVENTION) || defined(MAGIC_ENUM_VS_2017_WORKAROUND) || defined(MAGIC_ENUM_ARRAY_CONSTEXPR) || \
-    defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+#if defined(MAGIC_ENUM_CALLING_CONVENTION) || defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 #  error Internal macro leaked from magic_enum.hpp.
 #endif
 
@@ -53,7 +52,9 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
 
-#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+// For enums declared in class templates, Clang prints a cast instead of the enumerator name. See #164 and #296.
+#if !defined(__clang__)
+#  define MAGIC_ENUM_TEST_TEMPLATED_ENUM
 template <typename, typename>
 struct templated_scope {
   enum class Value { ONE, TWO };
@@ -895,7 +896,7 @@ TEST_CASE("enum_count") {
   REQUIRE(s6 == 2);
 #endif
 
-#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+#if defined(MAGIC_ENUM_TEST_TEMPLATED_ENUM)
   REQUIRE(enum_count<TemplatedValue>() == 2);
 #endif
 }
@@ -1030,7 +1031,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
-#if defined(MAGIC_ENUM_TEST_VS_2017_WORKAROUND)
+#if defined(MAGIC_ENUM_TEST_TEMPLATED_ENUM)
     REQUIRE(enum_name(TemplatedValue::ONE) == "ONE");
 #endif
 

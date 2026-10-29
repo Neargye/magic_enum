@@ -60,7 +60,7 @@ constexpr auto for_each(F&& f, std::index_sequence<J...>) {
 }
 
 template <typename E, enum_subtype S, typename F, std::size_t... J>
-constexpr bool all_invocable(std::index_sequence<J...>) {
+MAGIC_ENUM_CONSTEVAL bool all_invocable(std::index_sequence<J...>) {
   if constexpr (count_v<E, S> == 0) {
     return false;
   } else {

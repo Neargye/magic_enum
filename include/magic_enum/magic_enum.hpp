@@ -100,7 +100,7 @@
 #endif
 
 // Checks magic_enum compiler compatibility.
-#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION) || defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1910 || defined(__RESHARPER__)
+#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION) || defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920 || defined(__RESHARPER__)
 #  undef  MAGIC_ENUM_SUPPORTED
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
@@ -109,15 +109,6 @@
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION) || defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  undef  MAGIC_ENUM_SUPPORTED_ALIASES
 #  define MAGIC_ENUM_SUPPORTED_ALIASES 1
-#endif
-
-// Specify calling convention for compilers that need it to produce reliable mangled names under different compiler flags. In particular, MSVC allows changing default calling convention on x86.
-#if defined(__clang__) || defined(__GNUC__)
-#define MAGIC_ENUM_CALLING_CONVENTION
-#elif defined(_MSC_VER)
-#define MAGIC_ENUM_CALLING_CONVENTION __cdecl
-#else
-#define MAGIC_ENUM_CALLING_CONVENTION
 #endif
 
 // Enum value must be greater or equals than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
@@ -143,6 +134,21 @@
 #    define MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V) nullptr
 #    define MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(T) nullptr
 #  endif
+#endif
+
+// Specify calling convention for compilers that need it to produce reliable mangled names under different compiler flags. In particular, MSVC allows changing default calling convention on x86.
+#if defined(__clang__) || defined(__GNUC__)
+#define MAGIC_ENUM_CALLING_CONVENTION
+#elif defined(_MSC_VER)
+#define MAGIC_ENUM_CALLING_CONVENTION __cdecl
+#else
+#define MAGIC_ENUM_CALLING_CONVENTION
+#endif
+
+#if defined(__cpp_consteval) && __cpp_consteval >= 201811L
+#  define MAGIC_ENUM_CONSTEVAL consteval
+#else
+#  define MAGIC_ENUM_CONSTEVAL constexpr
 #endif
 
 namespace magic_enum {
@@ -204,7 +210,7 @@ inline constexpr std::size_t prefix_length_v = 0;
 template <typename E>
 inline constexpr auto prefix_length_v<E, std::void_t<decltype(customize::enum_range<E>::prefix_length)>> = std::size_t{customize::enum_range<E>::prefix_length};
 
-constexpr bool valid_prefix_length(std::size_t prefix, std::size_t name_size) noexcept {
+MAGIC_ENUM_CONSTEVAL bool valid_prefix_length(std::size_t prefix, std::size_t name_size) noexcept {
   return prefix == 0 || prefix < name_size;
 }
 
@@ -380,7 +386,7 @@ constexpr bool contains_underlying([[maybe_unused]] std::underlying_type_t<E> va
 }
 
 template <typename E>
-constexpr bool contains(E value) noexcept {
+MAGIC_ENUM_CONSTEVAL bool contains(E value) noexcept {
   return contains_underlying<E>(static_cast<std::underlying_type_t<E>>(value));
 }
 
@@ -459,9 +465,8 @@ class case_insensitive {
 };
 
 constexpr std::size_t find(string_view str, char_type c) noexcept {
-#if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__) || defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
+#if defined(__clang__) && __clang_major__ < 9 && defined(__GLIBCXX__)
 // https://stackoverflow.com/questions/56484834/constexpr-stdstring-viewfind-last-of-doesnt-work-on-clang-8-with-libstdc
-// https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
   constexpr bool workaround = true;
 #else
   constexpr bool workaround = false;
@@ -495,15 +500,7 @@ inline constexpr bool is_nothrow_invocable_v = is_default_predicate_v<BinaryPred
 
 template <typename BinaryPredicate>
 constexpr bool cmp_equal(string_view lhs, string_view rhs, [[maybe_unused]] BinaryPredicate&& p) noexcept(is_nothrow_invocable_v<BinaryPredicate>) {
-#if defined(_MSC_VER) && _MSC_VER < 1920 && !defined(__clang__)
-  // https://developercommunity.visualstudio.com/content/problem/360432/vs20178-regression-c-failed-in-test.html
-  // https://developercommunity.visualstudio.com/content/problem/232218/c-constexpr-string-view.html
-  constexpr bool workaround = true;
-#else
-  constexpr bool workaround = false;
-#endif
-
-  if constexpr (!is_default_predicate_v<BinaryPredicate> || workaround) {
+  if constexpr (!is_default_predicate_v<BinaryPredicate>) {
     if (lhs.size() != rhs.size()) {
       return false;
     }
@@ -555,20 +552,11 @@ constexpr T log2(T value) noexcept {
   return ret;
 }
 
-#if defined(__cpp_lib_array_constexpr) && __cpp_lib_array_constexpr >= 201603L
-#  define MAGIC_ENUM_ARRAY_CONSTEXPR 1
-#else
-template <typename T, std::size_t N, std::size_t... J>
-constexpr std::array<std::remove_cv_t<T>, N> to_array(T(&a)[N], std::index_sequence<J...>) noexcept {
-  return {{a[J]...}};
-}
-#endif
-
 template <typename T>
 inline constexpr bool is_enum_v = std::is_enum_v<T> && std::is_same_v<T, std::decay_t<T>>;
 
 template <typename E>
-constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
+MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<E>::value) {
@@ -627,7 +615,7 @@ constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
 }
 
 template <typename E>
-constexpr auto type_name() noexcept {
+MAGIC_ENUM_CONSTEVAL auto type_name() noexcept {
   [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
   if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
@@ -648,7 +636,7 @@ template <typename E>
 inline constexpr auto type_name_v = type_name<E>();
 
 template <auto V>
-constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
+MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   static_assert(is_enum_v<decltype(V)>, "magic_enum::detail::n requires enum type.");
 
   if constexpr (supported<decltype(V)>::value) {
@@ -718,62 +706,8 @@ constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   }
 }
 
-#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1920
-#  define MAGIC_ENUM_VS_2017_WORKAROUND 1
-#endif
-
-#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
 template <typename E, E V>
-constexpr auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
-  static_assert(is_enum_v<E>, "magic_enum::detail::n requires enum type.");
-
-#  if defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
-  constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
-  auto name = name_ptr ? cname_ref{name_ptr, std::char_traits<char>::length(name_ptr)} : cname_ref{};
-#  else
-  // CLI/C++ workaround (see https://github.com/Neargye/magic_enum/issues/284).
-  cname_ref name;
-  name.str_ = __FUNCSIG__;
-  name.size_ = sizeof(__FUNCSIG__) - 1;
-  while (name.size_ > 0 && name.str_[name.size_ - 1] != '>') {
-    --name.size_;
-  }
-  if (name.size_ > 0) {
-    --name.size_;
-  }
-  std::size_t p = 0, depth = 0;
-  for (std::size_t i = name.size_; i > 0; --i) {
-    if (name.str_[i - 1] == '>') {
-      ++depth;
-    } else if (name.str_[i - 1] == '<' && depth > 0) {
-      --depth;
-    } else if (name.str_[i - 1] == ',' && depth == 0) {
-      p = i;
-      break;
-    }
-  }
-  if (p > 0) {
-    name.size_ -= p;
-    name.str_ += p;
-  }
-  if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
-    name = cname_ref{};
-  } else {
-    for (std::size_t i = name.size_; i > 0; --i) {
-      if (name.str_[i - 1] == ':') {
-        name.size_ -= i;
-        name.str_ += i;
-        break;
-      }
-    }
-  }
-  return name;
-#  endif
-}
-#endif
-
-template <typename E, E V>
-constexpr auto enum_name() noexcept {
+MAGIC_ENUM_CONSTEVAL auto enum_name() noexcept {
   [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(V);
   static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
   if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
@@ -786,11 +720,7 @@ constexpr auto enum_name() noexcept {
   } else if constexpr (custom.first == customize::detail::customize_tag::invalid_tag) {
     return static_str<0>{};
   } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
-#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
-    constexpr auto name = n<E, V>();
-#else
     constexpr auto name = n<V>();
-#endif
     constexpr auto prefix = prefix_length_v<E>;
     // An unnamed value has no prefix to strip.
     constexpr bool valid_prefix = name.size_ == 0 || valid_prefix_length(prefix, name.size_);
@@ -810,40 +740,15 @@ constexpr auto enum_name() noexcept {
 template <typename E, E V>
 inline constexpr auto enum_name_v = enum_name<E, V>();
 
-// CWG1766: Values outside the range of the values of an enumeration
-// https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
+template <typename E, typename V>
+MAGIC_ENUM_CONSTEVAL E scan_cast(V value) noexcept {
 #if defined(__clang__) && __clang_major__ >= 16
-template <typename E, auto V, typename = void>
-inline constexpr bool is_enum_constexpr_static_cast_valid = false;
-template <typename E, auto V>
-inline constexpr bool is_enum_constexpr_static_cast_valid<E, V, std::void_t<std::integral_constant<E, static_cast<E>(V)>>> = true;
+  // CWG1766: Clang 16+ rejects a constant static_cast to a value outside the range of the values of an enumeration.
+  // https://reviews.llvm.org/D130058, https://reviews.llvm.org/D131307
+  return __builtin_bit_cast(E, static_cast<std::underlying_type_t<E>>(value));
 #else
-template <typename, auto>
-inline constexpr bool is_enum_constexpr_static_cast_valid = true;
+  return static_cast<E>(value);
 #endif
-
-template <typename E, auto V>
-constexpr bool is_valid() noexcept {
-  if constexpr (is_enum_constexpr_static_cast_valid<E, V>) {
-    constexpr E v = static_cast<E>(V);
-    [[maybe_unused]] constexpr auto custom = customize::enum_name<E>(v);
-    static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
-    if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {
-      constexpr auto name = custom.second;
-      static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
-      return name.size() != 0;
-    } else if constexpr (custom.first == customize::detail::customize_tag::default_tag) {
-#if defined(MAGIC_ENUM_VS_2017_WORKAROUND)
-      return n<E, v>().size_ != 0;
-#else
-      return n<v>().size_ != 0;
-#endif
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
 }
 
 enum class enum_subtype {
@@ -998,7 +903,7 @@ constexpr E value(std::size_t i) noexcept {
 }
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr int reflected_min() noexcept {
+MAGIC_ENUM_CONSTEVAL int reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
     return 0;
   } else {
@@ -1014,7 +919,7 @@ constexpr int reflected_min() noexcept {
 }
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr int reflected_max() noexcept {
+MAGIC_ENUM_CONSTEVAL int reflected_max() noexcept {
   if constexpr (S == enum_subtype::flags) {
     return std::numeric_limits<U>::digits - 1;
   } else {
@@ -1049,13 +954,18 @@ struct valid_count_t {
   }
 };
 
+// Inline, a helper template per scanned value doubles the scan instantiations.
+// Empty custom names pass here, valid_custom_names rejects them after the scan.
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
-constexpr void valid_count(valid_count_t<Size>& vc) noexcept {
-#define MAGIC_ENUM_V(O)                                     \
-  if constexpr ((J + O) < Size) {                           \
-    if constexpr (is_valid<E, ualue<E, Min, S>(J + O)>()) { \
-      vc.set(J + O);                                        \
-    }                                                       \
+MAGIC_ENUM_CONSTEVAL void valid_count(valid_count_t<Size>& vc) noexcept {
+#define MAGIC_ENUM_V(O)                                                                                   \
+  if constexpr ((J + O) < Size) {                                                                         \
+    constexpr auto v = scan_cast<E>(ualue<E, Min, S>(J + O));                                             \
+    constexpr auto custom = customize::enum_name<E>(v);                                                   \
+    if constexpr (custom.first == customize::detail::customize_tag::custom_tag ||                         \
+                  (custom.first == customize::detail::customize_tag::default_tag && n<v>().size_ != 0)) { \
+      vc.set(J + O);                                                                                      \
+    }                                                                                                     \
   }
 
   MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_V)
@@ -1067,23 +977,30 @@ constexpr void valid_count(valid_count_t<Size>& vc) noexcept {
 }
 
 template <typename E, enum_subtype S, std::size_t Size, int Min>
-constexpr auto valid_count() noexcept {
+MAGIC_ENUM_CONSTEVAL auto valid_count() noexcept {
   valid_count_t<Size> vc;
   valid_count<E, S, Size, Min, 0>(vc);
   return vc;
 }
 
+template <typename E, typename T>
+MAGIC_ENUM_CONSTEVAL bool valid_custom_names(const T& values) noexcept {
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    const auto custom = customize::enum_name<E>(values[i]);
+    if (custom.first == customize::detail::customize_tag::custom_tag && custom.second.empty()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 template <typename E, enum_subtype S, std::size_t Size, int Min>
-constexpr auto values() noexcept {
+MAGIC_ENUM_CONSTEVAL auto values() noexcept {
   constexpr auto vc = valid_count<E, S, Size, Min>();
   static_assert(vc.count <= Size);
 
   if constexpr (vc.count > 0) {
-#if defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
     std::array<E, vc.count> values = {};
-#else
-    E values[vc.count] = {};
-#endif
     if constexpr (vc.count == Size) {
       for (std::size_t i = 0; i < vc.count; ++i) {
         values[i] = value<E, Min, S>(i);
@@ -1093,18 +1010,14 @@ constexpr auto values() noexcept {
         values[i] = value<E, Min, S>(vc.offsets[i]);
       }
     }
-#if defined(MAGIC_ENUM_ARRAY_CONSTEXPR)
     return values;
-#else
-    return to_array(values, std::make_index_sequence<vc.count>{});
-#endif
   } else {
     return std::array<E, 0>{};
   }
 }
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr auto values() noexcept {
+MAGIC_ENUM_CONSTEVAL auto values() noexcept {
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
   std::array<E, reflection::table_size<E, S>()> values{};
   for (std::size_t i = 0; i < values.size(); ++i) {
@@ -1123,7 +1036,9 @@ constexpr auto values() noexcept {
     static_assert(valid_size, "magic_enum::enum_range requires valid size.");
 
     if constexpr (valid_size) {
-      return values<E, S, range_size, min>();
+      constexpr auto vals = values<E, S, range_size, min>();
+      static_assert(valid_custom_names<E>(vals), "magic_enum::customize requires not empty string.");
+      return vals;
     } else {
       return std::array<E, 0>{};
     }
@@ -1134,7 +1049,7 @@ constexpr auto values() noexcept {
 }
 
 template <typename E>
-constexpr enum_subtype subtype() noexcept {
+MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
   if constexpr (std::is_enum_v<E>) {
     if constexpr (has_is_flags<E>::value) {
       return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
@@ -1179,7 +1094,7 @@ inline constexpr auto max_v = (count_v<E, S> > 0) ? static_cast<U>(values_v<E, S
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 
 template <typename E, enum_subtype S>
-constexpr auto names() noexcept {
+MAGIC_ENUM_CONSTEVAL auto names() noexcept {
   std::array<string_view, count_v<E, S>> names{};
   for (std::size_t i = 0; i < names.size(); ++i) {
     names[i] = reflection::table_v<E, S>.entries[i].name.view();
@@ -1193,7 +1108,7 @@ inline constexpr auto names_v = names<E, S>();
 #else
 
 template <typename E, enum_subtype S, std::size_t... J>
-constexpr auto names(std::index_sequence<J...>) noexcept {
+MAGIC_ENUM_CONSTEVAL auto names(std::index_sequence<J...>) noexcept {
   constexpr auto names = std::array<string_view, sizeof...(J)>{{enum_name_v<E, values_v<E, S>[J]>.str()...}};
   return names;
 }
@@ -1209,7 +1124,7 @@ using names_t = decltype((names_v<D, S>));
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 
 template <typename E, enum_subtype S>
-constexpr auto entries() noexcept {
+MAGIC_ENUM_CONSTEVAL auto entries() noexcept {
   std::array<std::pair<E, string_view>, count_v<E, S>> entries{};
   for (std::size_t i = 0; i < entries.size(); ++i) {
     entries[i] = {reflection::table_v<E, S>.entries[i].value, reflection::table_v<E, S>.entries[i].name.view()};
@@ -1223,7 +1138,7 @@ inline constexpr auto entries_v = entries<E, S>();
 #else
 
 template <typename E, enum_subtype S, std::size_t... J>
-constexpr auto entries(std::index_sequence<J...>) noexcept {
+MAGIC_ENUM_CONSTEVAL auto entries(std::index_sequence<J...>) noexcept {
   constexpr auto entries = std::array<std::pair<E, string_view>, sizeof...(J)>{{{values_v<E, S>[J], enum_name_v<E, values_v<E, S>[J]>.str()}...}};
   return entries;
 }
@@ -1237,7 +1152,7 @@ template <typename E, enum_subtype S, typename D = std::decay_t<E>>
 using entries_t = decltype((entries_v<D, S>));
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr bool is_sparse() noexcept {
+MAGIC_ENUM_CONSTEVAL bool is_sparse() noexcept {
   if constexpr (count_v<E, S> == 0) {
     return false;
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
@@ -1342,7 +1257,7 @@ using switch_t = std::conditional_t<(sizeof(std::underlying_type_t<E>) < sizeof(
 // Padding labels must be distinct from real cases and from each other.
 // Only the last page needs padding, so labels may reuse values from earlier pages.
 template <typename T, std::size_t Size>
-constexpr void fill_cases(std::array<T, Size>& cases, std::size_t count) noexcept {
+MAGIC_ENUM_CONSTEVAL void fill_cases(std::array<T, Size>& cases, std::size_t count) noexcept {
   if (count == Size) {
     return;
   }
@@ -1377,7 +1292,7 @@ struct value_cases {
   static constexpr std::size_t count = count_v<E, S>;
 
   template <std::size_t Page, std::size_t Size>
-  static constexpr auto page() noexcept {
+  static MAGIC_ENUM_CONSTEVAL auto page() noexcept {
     std::array<type, Size> cases{};
     std::size_t i = 0;
     for (; i < Size && Page + i < count; ++i) {
@@ -1388,7 +1303,7 @@ struct value_cases {
   }
 };
 
-constexpr std::size_t switch_page_size(std::size_t n) noexcept {
+MAGIC_ENUM_CONSTEVAL std::size_t switch_page_size(std::size_t n) noexcept {
   return n <= 8 ? 8 : n <= 16 ? 16 : n <= 32 ? 32 : n <= 64 ? 64 : n <= 128 ? 128 : 256;
 }
 
@@ -1512,7 +1427,7 @@ struct hash_cases {
   static constexpr std::size_t count = GlobValues->size();
 
   template <std::size_t Page, std::size_t Size>
-  static constexpr auto page() noexcept {
+  static MAGIC_ENUM_CONSTEVAL auto page() noexcept {
     std::array<type, Size> cases{};
     std::size_t i = 0;
     for (; i < Size && Page + i < count; ++i) {
@@ -1524,7 +1439,7 @@ struct hash_cases {
 };
 
 template <typename T, std::size_t N>
-constexpr void hash_heap_sift_down(std::array<T, N>& values, std::size_t root, std::size_t end) noexcept {
+MAGIC_ENUM_CONSTEVAL void hash_heap_sift_down(std::array<T, N>& values, std::size_t root, std::size_t end) noexcept {
   while (root < end / 2) {
     auto child = root * 2 + 1;
     if (child + 1 < end && values[child] < values[child + 1]) {
@@ -1541,7 +1456,7 @@ constexpr void hash_heap_sift_down(std::array<T, N>& values, std::size_t root, s
 }
 
 template <typename T, std::size_t N>
-constexpr void hash_heap_sort(std::array<T, N>& values) noexcept {
+MAGIC_ENUM_CONSTEVAL void hash_heap_sort(std::array<T, N>& values) noexcept {
   for (auto root = N / 2; root > 0; --root) {
     hash_heap_sift_down(values, root - 1, N);
   }
@@ -1554,7 +1469,7 @@ constexpr void hash_heap_sort(std::array<T, N>& values) noexcept {
 }
 
 template <auto* Arr, typename Hash>
-constexpr bool has_unique_hashes() noexcept {
+MAGIC_ENUM_CONSTEVAL bool has_unique_hashes() noexcept {
   using value_t = std::decay_t<decltype((*Arr)[0])>;
   using hash_value_t = std::invoke_result_t<Hash, value_t>;
   if constexpr (Arr->size() > 1) {
@@ -1612,7 +1527,7 @@ template <auto* Arr, typename Hash>
 inline constexpr bool has_unique_hashes_v = has_unique_hashes<Arr, Hash>();
 
 template <auto* Arr, typename Hash, bool Enabled = true>
-constexpr bool has_usable_hash() noexcept {
+MAGIC_ENUM_CONSTEVAL bool has_usable_hash() noexcept {
   if constexpr (!Enabled) {
     return false;
   } else if constexpr (has_unique_hashes_v<Arr, Hash>) {
@@ -2096,8 +2011,6 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 #undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
 #undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
 #undef MAGIC_ENUM_CALLING_CONVENTION
-#undef MAGIC_ENUM_VS_2017_WORKAROUND
-#undef MAGIC_ENUM_ARRAY_CONSTEXPR
 #undef MAGIC_ENUM_FOR_EACH_256
 #undef MAGIC_ENUM_DETAIL_USE_STD_REFLECTION
 

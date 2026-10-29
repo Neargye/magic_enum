@@ -366,7 +366,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 ## Header-only compiler compatibility
 
 * Clang/LLVM >= 5
-* MSVC++ >= 15.3 / Visual Studio >= 2017
+* MSVC >= 19.20 / Visual Studio >= 2019 (16.0)
 * Xcode >= 10
 * GCC >= 9
 

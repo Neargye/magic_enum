@@ -159,7 +159,7 @@ constexpr auto equal_range(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
 }
 
 template <typename E, typename Cmp>
-constexpr bool is_default_order() noexcept {
+MAGIC_ENUM_CONSTEVAL bool is_default_order() noexcept {
   if constexpr (!std::is_void_v<E> && !std::is_void_v<Cmp>) {
     constexpr auto& values = enum_values<E>();
     constexpr Cmp cmp{};
@@ -432,7 +432,7 @@ constexpr int bit_width(T x) noexcept {
 }
 
 template <typename E, typename Index>
-constexpr bool valid_indexing() noexcept {
+MAGIC_ENUM_CONSTEVAL bool valid_indexing() noexcept {
   constexpr std::size_t count = enum_count<E>();
   if constexpr (count == 0) {
     return false;
@@ -900,7 +900,6 @@ class bitset {
 
   [[nodiscard]] constexpr bool operator[](E pos) const {
     auto i = index_type::at(pos);
-    // No comma expression: MSVC /analyze C6319.
     MAGIC_ENUM_ASSERT(i && *i < size());
     return static_cast<bool>(const_reference(this, *i));
   }

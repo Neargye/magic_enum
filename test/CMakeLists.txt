@@ -327,6 +327,12 @@ magic_enum_make_compile_fail_test(
   "magic_enum requires enum implementation and valid max and min."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
+magic_enum_make_compile_fail_test(
+  configuration
+  custom-name-empty
+  9
+  "magic_enum::customize requires not empty string."
+)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-cpp17 c++17)
 target_compile_definitions(test_enum_count-cpp17 PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp17 c++17)
@@ -340,14 +346,6 @@ target_compile_definitions(test_enum_count-no-check-hash-cpp17 PRIVATE
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
   MAGIC_ENUM_ENABLE_HASH
 )
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_compile_definitions(test-cpp17 PRIVATE MAGIC_ENUM_TEST_VS_2017_WORKAROUND=1)
-  if(MSVC_VERSION GREATER_EQUAL 1920)
-    # Exercise the Visual Studio 2017 fallback on current MSVC too.
-    target_compile_definitions(test-cpp17 PRIVATE MAGIC_ENUM_VS_2017_WORKAROUND=1)
-  endif()
-endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(MAGIC_ENUM_TEST_CLR_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/test_clr.obj")
