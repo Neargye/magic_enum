@@ -1336,33 +1336,129 @@ constexpr decltype(auto) invoke_constant(F&& f, std::integral_constant<T, V>&& v
   }
 }
 
-#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+template <typename E>
+using switch_t = std::conditional_t<(sizeof(std::underlying_type_t<E>) < sizeof(int)), int, std::underlying_type_t<E>>;
+
+// Padding labels must be distinct from real cases and from each other.
+// Only the last page needs padding, so labels may reuse values from earlier pages.
+template <typename T, std::size_t Size>
+constexpr void fill_cases(std::array<T, Size>& cases, std::size_t count) noexcept {
+  if (count == Size) {
+    return;
+  }
+  T min = cases[0];
+  T max = min;
+  for (std::size_t j = 1; j < count; ++j) {
+    min = cases[j] < min ? cases[j] : min;
+    max = cases[j] > max ? cases[j] : max;
+  }
+  std::size_t i = count;
+  for (; i < Size && max < (std::numeric_limits<T>::max)(); ++i) {
+    cases[i] = ++max;
+  }
+  for (; i < Size && min > (std::numeric_limits<T>::min)(); ++i) {
+    cases[i] = --min;
+  }
+  // Only reachable when the page has values at both limits of the type.
+  for (T v = (std::numeric_limits<T>::min)(); i < Size; ++v) {
+    bool used = false;
+    for (std::size_t j = 0; j < count; ++j) {
+      used = used || cases[j] == v;
+    }
+    if (!used) {
+      cases[i++] = v;
+    }
+  }
+}
+
+template <typename E, enum_subtype S>
+struct value_cases {
+  using type = switch_t<E>;
+  static constexpr std::size_t count = count_v<E, S>;
+
+  template <std::size_t Page, std::size_t Size>
+  static constexpr auto page() noexcept {
+    std::array<type, Size> cases{};
+    std::size_t i = 0;
+    for (; i < Size && Page + i < count; ++i) {
+      cases[i] = static_cast<type>(values_v<E, S>[Page + i]);
+    }
+    fill_cases(cases, i);
+    return cases;
+  }
+};
+
+constexpr std::size_t switch_page_size(std::size_t n) noexcept {
+  return n <= 8 ? 8 : n <= 16 ? 16 : n <= 32 ? 32 : n <= 64 ? 64 : n <= 128 ? 128 : 256;
+}
+
+#define MAGIC_ENUM_INDEX_CASE(J)               \
+  case cases[(J)]:                             \
+    if constexpr ((J) + Page < Cases::count) { \
+      return (J) + Page;                       \
+    } else {                                   \
+      break;                                   \
+    }
+#define MAGIC_ENUM_CASES_8(C, J) C(J) C(J + 1) C(J + 2) C(J + 3) C(J + 4) C(J + 5) C(J + 6) C(J + 7)
+#define MAGIC_ENUM_CASES_16(C, J) MAGIC_ENUM_CASES_8(C, J) MAGIC_ENUM_CASES_8(C, J + 8)
+#define MAGIC_ENUM_CASES_32(C, J) MAGIC_ENUM_CASES_16(C, J) MAGIC_ENUM_CASES_16(C, J + 16)
+#define MAGIC_ENUM_CASES_64(C, J) MAGIC_ENUM_CASES_32(C, J) MAGIC_ENUM_CASES_32(C, J + 32)
+#define MAGIC_ENUM_CASES_128(C, J) MAGIC_ENUM_CASES_64(C, J) MAGIC_ENUM_CASES_64(C, J + 64)
+#define MAGIC_ENUM_CASES_256(C, J) MAGIC_ENUM_CASES_128(C, J) MAGIC_ENUM_CASES_128(C, J + 128)
+#define MAGIC_ENUM_PAGE_SWITCH(C, V, N) \
+  if constexpr (Size == (N)) {          \
+    switch (V) {                        \
+      MAGIC_ENUM_CASES_##N(C, 0)        \
+      default:                          \
+        break;                          \
+    }                                   \
+  }
+
+template <typename Cases, std::size_t Page = 0>
+constexpr optional<std::size_t> index_switch(typename Cases::type value) noexcept {
+  constexpr std::size_t n = Cases::count - Page;
+  constexpr std::size_t Size = switch_page_size(n);
+  constexpr auto cases = Cases::template page<Page, Size>();
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 8)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 16)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 32)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 64)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 128)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_INDEX_CASE, value, 256)
+  if constexpr (n > Size) {
+    return index_switch<Cases, Page + Size>(value);
+  } else {
+    return {};
+  }
+}
+
+#undef MAGIC_ENUM_INDEX_CASE
+
+template <typename T = void>
+inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
+
+template <>
+inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
+
+#if defined(MAGIC_ENUM_ENABLE_HASH)
 
 template <typename Value, typename = void>
 struct constexpr_hash_t;
 
 template <typename Value>
-struct constexpr_hash_t<Value, std::enable_if_t<is_enum_v<Value>>> {
-  using U = typename underlying_type<Value>::type;
-
-  constexpr auto operator()(Value value) const noexcept {
-    return operator()(static_cast<U>(value));
-  }
-
-  constexpr auto operator()(U value) const noexcept {
-    if constexpr (std::is_same_v<U, bool>) { // bool special case
-      return static_cast<std::size_t>(value);
-    } else {
-      return value;
-    }
-  }
-
-  using secondary_hash = constexpr_hash_t;
-};
-
-template <typename Value>
 struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_view>>> {
-  static constexpr std::uint32_t crc_table[256] {
+  // FNV-1a. Faster than CRC32 at run time on short names.
+  constexpr std::uint32_t operator()(string_view value) const noexcept {
+    std::uint32_t acc = 2166136261U;
+    for (const auto c : value) {
+      acc = (acc ^ static_cast<std::uint32_t>(c)) * 16777619U;
+    }
+    return acc;
+  }
+
+  // CRC32, used when FNV-1a hashes of the names collide.
+  struct secondary_hash {
+    static constexpr std::uint32_t crc_table[256] {
     0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L, 0x706af48fL, 0xe963a535L, 0x9e6495a3L,
     0x0edb8832L, 0x79dcb8a4L, 0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L, 0x90bf1d91L,
     0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL, 0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L,
@@ -1395,22 +1491,13 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
     0xaed16a4aL, 0xd9d65adcL, 0x40df0b66L, 0x37d83bf0L, 0xa9bcae53L, 0xdebb9ec5L, 0x47b2cf7fL, 0x30b5ffe9L,
     0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L, 0xcdd70693L, 0x54de5729L, 0x23d967bfL,
     0xb3667a2eL, 0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL, 0x2d02ef8dL
-  };
-  constexpr std::uint32_t operator()(string_view value) const noexcept {
-    auto crc = static_cast<std::uint32_t>(0xffffffffL);
-    for (const auto c : value) {
-      crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<std::uint32_t>(c)) & 0xff];
-    }
-    return crc ^ 0xffffffffL;
-  }
-
-  struct secondary_hash {
+    };
     constexpr std::uint32_t operator()(string_view value) const noexcept {
-      std::uint64_t acc = 2166136261ULL;
+      auto crc = static_cast<std::uint32_t>(0xffffffffL);
       for (const auto c : value) {
-        acc = ((acc ^ static_cast<std::uint64_t>(c)) * 16777619ULL) & (std::numeric_limits<std::uint32_t>::max)();
+        crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<std::uint32_t>(c)) & 0xff];
       }
-      return static_cast<std::uint32_t>(acc);
+      return crc ^ 0xffffffffL;
     }
   };
 };
@@ -1419,63 +1506,22 @@ template <typename Hash>
 inline constexpr Hash hash_v{};
 
 template <auto* GlobValues, typename Hash>
-constexpr auto calculate_cases(std::size_t Page) noexcept {
-  constexpr const auto& values = *GlobValues;
-  constexpr std::size_t size = values.size();
+struct hash_cases {
+  using type = std::invoke_result_t<Hash, typename std::decay_t<decltype(*GlobValues)>::value_type>;
+  static_assert(std::is_integral_v<type> && !std::is_same_v<type, bool>);
+  static constexpr std::size_t count = GlobValues->size();
 
-  using switch_t = std::invoke_result_t<Hash, typename std::decay_t<decltype(values)>::value_type>;
-  static_assert(std::is_integral_v<switch_t> && !std::is_same_v<switch_t, bool>);
-  const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - Page);
-
-  std::array<switch_t, 256> result{};
-  auto fill = result.begin();
-  {
-    auto first = values.begin() + static_cast<std::ptrdiff_t>(Page);
-    auto last = values.begin() + static_cast<std::ptrdiff_t>(Page + values_to);
-    while (first != last) {
-      *fill++ = hash_v<Hash>(*first++);
+  template <std::size_t Page, std::size_t Size>
+  static constexpr auto page() noexcept {
+    std::array<type, Size> cases{};
+    std::size_t i = 0;
+    for (; i < Size && Page + i < count; ++i) {
+      cases[i] = hash_v<Hash>((*GlobValues)[Page + i]);
     }
+    fill_cases(cases, i);
+    return cases;
   }
-
-  auto value = (std::numeric_limits<switch_t>::min)();
-  while (fill != result.end()) {
-    bool used = false;
-    for (std::size_t i = 0; i < values_to; ++i) {
-      if (result[i] == value) {
-        used = true;
-        break;
-      }
-    }
-    if (!used) {
-      *fill++ = value;
-    }
-    value = value == (std::numeric_limits<switch_t>::max)() ? (std::numeric_limits<switch_t>::min)() : static_cast<switch_t>(value + 1);
-  }
-
-  return result;
-}
-
-template <typename R, typename F, typename... Args>
-constexpr R invoke_r(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>) {
-  if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {
-    return static_cast<R>(detail::invoke_constant(std::forward<F>(f), std::forward<Args>(args)...));
-  } else if constexpr (std::is_void_v<R>) {
-    std::forward<F>(f)(std::forward<Args>(args)...);
-  } else {
-    return static_cast<R>(std::forward<F>(f)(std::forward<Args>(args)...));
-  }
-}
-
-enum class case_call_t {
-  index,
-  value
 };
-
-template <typename T = void>
-inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
-
-template <>
-inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
 
 template <typename T, std::size_t N>
 constexpr void hash_heap_sift_down(std::array<T, N>& values, std::size_t root, std::size_t end) noexcept {
@@ -1565,64 +1611,50 @@ constexpr bool has_unique_hashes() noexcept {
 template <auto* Arr, typename Hash>
 inline constexpr bool has_unique_hashes_v = has_unique_hashes<Arr, Hash>();
 
-template <auto* Arr, typename Hash>
-inline constexpr bool has_usable_hash_v = has_unique_hashes_v<Arr, Hash> || has_unique_hashes_v<Arr, typename Hash::secondary_hash>;
+template <auto* Arr, typename Hash, bool Enabled = true>
+constexpr bool has_usable_hash() noexcept {
+  if constexpr (!Enabled) {
+    return false;
+  } else if constexpr (has_unique_hashes_v<Arr, Hash>) {
+    return true;
+  } else {
+    return has_unique_hashes_v<Arr, typename Hash::secondary_hash>;
+  }
+}
 
-#define MAGIC_ENUM_CASE(val)                                                                                                  \
-  case cases[val]:                                                                                                            \
-    if constexpr ((val) + Page < size) {                                                                                      \
-      if (!pred(values[val + Page], searched)) {                                                                              \
-        break;                                                                                                                \
-      }                                                                                                                       \
-      if constexpr (CallValue == case_call_t::index) {                                                                        \
-        if constexpr (std::is_invocable_r_v<result_t, Lambda, std::integral_constant<std::size_t, val + Page>>) {             \
-          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), std::integral_constant<std::size_t, val + Page>{}); \
-        } else if constexpr (std::is_invocable_v<Lambda, std::integral_constant<std::size_t, val + Page>>) {                  \
-          MAGIC_ENUM_ASSERT(false && "magic_enum::detail::hash_switch wrong result type.");                                   \
-        }                                                                                                                     \
-      } else if constexpr (CallValue == case_call_t::value) {                                                                 \
-        if constexpr (std::is_invocable_r_v<result_t, Lambda, enum_constant<values[val + Page]>>) {                           \
-          return detail::invoke_r<result_t>(std::forward<Lambda>(lambda), enum_constant<values[val + Page]>{});               \
-        } else if constexpr (std::is_invocable_v<Lambda, enum_constant<values[val + Page]>>) {                                \
-          MAGIC_ENUM_ASSERT(false && "magic_enum::detail::hash_switch wrong result type.");                                   \
-        }                                                                                                                     \
-      }                                                                                                                       \
-      break;                                                                                                                  \
-    } else [[fallthrough]];
+// Keep name comparison in each case so its length and characters remain compile-time constants.
+#define MAGIC_ENUM_HASH_CASE(J)                                                              \
+  case cases[(J)]:                                                                           \
+    if constexpr ((J) + Page < size) {                                                       \
+      if (pred(values[(J) + Page], searched)) {                                              \
+        return static_cast<result_t>(std::forward<Lambda>(lambda)(std::size_t{(J) + Page})); \
+      }                                                                                      \
+    }                                                                                        \
+    break;
 
-template <auto* GlobValues,
-          case_call_t CallValue,
-          std::size_t Page,
-          typename Hash,
-          typename BinaryPredicate,
-          typename Lambda,
-          typename Searched,
-          typename SearchedHash,
-          typename ResultGetterType>
-constexpr decltype(auto) hash_switch_page(
-    Lambda&& lambda,
-    Searched searched,
-    SearchedHash searched_hash,
-    ResultGetterType&& def,
-    BinaryPredicate&& pred) {
+template <auto* GlobValues, std::size_t Page, typename Hash, typename BinaryPredicate, typename Lambda, typename Searched, typename ResultGetterType>
+constexpr decltype(auto) hash_switch_page(Lambda&& lambda, Searched searched, typename hash_cases<GlobValues, Hash>::type searched_hash, ResultGetterType&& def, BinaryPredicate&& pred) {
   using result_t = std::invoke_result_t<ResultGetterType>;
   constexpr const auto& values = *GlobValues;
   constexpr std::size_t size = values.size();
-  constexpr auto cases = calculate_cases<GlobValues, Hash>(Page);
-
-  switch (searched_hash) {
-    MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_CASE)
-    default:
-      if constexpr (size > 256 + Page) {
-        return hash_switch_page<GlobValues, CallValue, Page + 256, Hash>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
-      }
-      break;
+  constexpr std::size_t Size = switch_page_size(size - Page);
+  constexpr auto cases = hash_cases<GlobValues, Hash>::template page<Page, Size>();
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 8)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 16)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 32)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 64)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 128)
+  MAGIC_ENUM_PAGE_SWITCH(MAGIC_ENUM_HASH_CASE, searched_hash, 256)
+  if constexpr (size > Page + Size) {
+    return hash_switch_page<GlobValues, Page + Size, Hash>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
+  } else {
+    return def();
   }
-  return def();
 }
 
+#undef MAGIC_ENUM_HASH_CASE
+
 template <auto* GlobValues,
-          case_call_t CallValue,
           std::size_t Page = 0,
           typename Hash = constexpr_hash_t<typename std::decay_t<decltype(*GlobValues)>::value_type>,
           typename BinaryPredicate = std::equal_to<>,
@@ -1637,32 +1669,18 @@ constexpr decltype(auto) hash_switch(
   using hash_t = std::conditional_t<has_unique_hashes_v<GlobValues, Hash>, Hash, typename Hash::secondary_hash>;
   static_assert(has_unique_hashes_v<GlobValues, hash_t>, "magic_enum::detail::hash_switch duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues.");
   const auto searched_hash = hash_v<hash_t>(searched);
-  return hash_switch_page<GlobValues, CallValue, Page, hash_t>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
+  return hash_switch_page<GlobValues, Page, hash_t>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
 }
-
-// values_v<E, S> is unique, and constexpr_hash_t<E> preserves its underlying values.
-template <typename E,
-          enum_subtype S,
-          case_call_t CallValue,
-          typename BinaryPredicate = std::equal_to<>,
-          typename Lambda,
-          typename Searched,
-          typename ResultGetterType>
-constexpr decltype(auto) hash_switch_values(
-    Lambda&& lambda,
-    Searched searched,
-    ResultGetterType&& def,
-    BinaryPredicate&& pred = {}) {
-  using D = std::decay_t<E>;
-  using hash_t = constexpr_hash_t<D>;
-  static_assert(std::is_enum_v<D>);
-  const auto searched_hash = hash_v<hash_t>(searched);
-  return hash_switch_page<&values_v<D, S>, CallValue, 0, hash_t>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
-}
-
-#undef MAGIC_ENUM_CASE
 
 #endif
+
+#undef MAGIC_ENUM_PAGE_SWITCH
+#undef MAGIC_ENUM_CASES_256
+#undef MAGIC_ENUM_CASES_128
+#undef MAGIC_ENUM_CASES_64
+#undef MAGIC_ENUM_CASES_32
+#undef MAGIC_ENUM_CASES_16
+#undef MAGIC_ENUM_CASES_8
 
 } // namespace magic_enum::detail
 
@@ -1801,20 +1819,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   if constexpr (detail::count_v<D, S> == 0) {
     return {};
   } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
-#if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::hash_switch_values<D, S, detail::case_call_t::index>(
-        [](std::size_t i) { return optional<std::size_t>{i}; },
-        value,
-        detail::default_result_type_lambda<optional<std::size_t>>,
-        [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
-#else
-    for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-      if (detail::enum_value_equal(enum_value<D, S>(i), value)) {
-        return i;
-      }
-    }
-    return {}; // Invalid value or out of range.
-#endif
+    return detail::index_switch<detail::value_cases<D, S>>(static_cast<detail::switch_t<D>>(static_cast<U>(value)));
   } else {
     const auto v = static_cast<U>(value);
     if (v >= detail::min_v<D, S> && v <= detail::max_v<D, S>) {
@@ -1903,20 +1908,10 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   if constexpr (detail::count_v<D, S> == 0) {
     return {};
   } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
-#if defined(MAGIC_ENUM_ENABLE_HASH)
-    return detail::hash_switch_values<D, S, detail::case_call_t::value>(
-        [](D v) { return optional<D>{v}; },
-        value,
-        detail::default_result_type_lambda<optional<D>>,
-        [](D lhs, underlying_type_t<D> rhs) { return detail::enum_value_equal(lhs, rhs); });
-#else
-    for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-      if (detail::enum_value_equal(enum_value<D, S>(i), value)) {
-        return static_cast<D>(value);
-      }
+    if (detail::index_switch<detail::value_cases<D, S>>(static_cast<detail::switch_t<D>>(value))) {
+      return static_cast<D>(value);
     }
     return {}; // Invalid value or out of range.
-#endif
   } else {
     if (value >= detail::min_v<D, S> && value <= detail::max_v<D, S>) {
       return static_cast<D>(value);
@@ -1935,8 +1930,8 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
   using hash_t = detail::constexpr_hash_t<string_view>;
-  if constexpr (detail::is_default_predicate_v<BinaryPredicate> && detail::has_usable_hash_v<&detail::names_v<D, S>, hash_t>) {
-    return detail::hash_switch<&detail::names_v<D, S>, detail::case_call_t::index>(
+  if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {
+    return detail::hash_switch<&detail::names_v<D, S>>(
         [](std::size_t i) { return optional<D>{detail::values_v<D, S>[i]}; },
         value,
         detail::default_result_type_lambda<optional<D>>,

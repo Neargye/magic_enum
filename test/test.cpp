@@ -95,7 +95,16 @@ enum class hash_case_collision {
   E7DvAyiJL6
 };
 
-#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+// FNV-1a hashes of these names collide, so enum_cast falls back to CRC32.
+enum class fnv_hack {
+  costarring,
+  liquid
+};
+
+#if defined(MAGIC_ENUM_ENABLE_HASH)
+static_assert(magic_enum::detail::constexpr_hash_t<magic_enum::string_view>{}("costarring") == magic_enum::detail::constexpr_hash_t<magic_enum::string_view>{}("liquid"));
+static_assert(!magic_enum::detail::has_unique_hashes_v<&magic_enum::detail::names_v<fnv_hack, magic_enum::detail::enum_subtype::common>, magic_enum::detail::constexpr_hash_t<magic_enum::string_view>>);
+
 struct identity_hash {
   constexpr int operator()(int value) const noexcept { return value; }
 };
@@ -116,6 +125,10 @@ static constexpr auto duplicate_large_hash_input = make_large_hash_input(true);
 static_assert(magic_enum::detail::has_unique_hashes_v<&unique_large_hash_input, identity_hash>);
 static_assert(!magic_enum::detail::has_unique_hashes_v<&duplicate_large_hash_input, identity_hash>);
 
+// Unused hash paths must not require a secondary hash or a callable hash.
+static_assert(magic_enum::detail::has_usable_hash<&unique_large_hash_input, identity_hash>());
+static_assert(!magic_enum::detail::has_usable_hash<&unique_large_hash_input, void, false>());
+
 enum class paged_hash_value : unsigned {};
 
 template <std::size_t... I>
@@ -124,6 +137,9 @@ constexpr auto make_paged_hash_values(std::index_sequence<I...>) noexcept {
 }
 
 static constexpr auto paged_hash_values = make_paged_hash_values(std::make_index_sequence<257>{});
+
+// No hashes remain above the largest one or below the smallest one, so unused case slots take values between them.
+static constexpr std::array<paged_hash_value, 3> extreme_hash_values{{paged_hash_value{0}, static_cast<paged_hash_value>((std::numeric_limits<unsigned>::max)()), paged_hash_value{2}}};
 
 struct paged_hash_search {
   unsigned value;
@@ -142,21 +158,15 @@ struct paged_counting_hash {
   }
 };
 
-constexpr auto reflected_value_index = magic_enum::detail::hash_switch_values<Color, magic_enum::detail::enum_subtype::common, magic_enum::detail::case_call_t::index>(
-    [](std::size_t i) { return i; },
-    Color::BLUE,
-    [] { return (std::numeric_limits<std::size_t>::max)(); },
-    [](Color lhs, Color rhs) { return magic_enum::detail::enum_value_equal(lhs, rhs); });
-static_assert(reflected_value_index == 2);
-
-#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
-constexpr auto reflected_alias_index = magic_enum::detail::hash_switch_values<number, magic_enum::detail::enum_subtype::common, magic_enum::detail::case_call_t::index>(
-    [](std::size_t i) { return i; },
-    number::_3,
-    [] { return (std::numeric_limits<std::size_t>::max)(); },
-    [](number lhs, number rhs) { return magic_enum::detail::enum_value_equal(lhs, rhs); });
-static_assert(reflected_alias_index == 2);
 #endif
+
+template <typename E>
+constexpr auto switched_index(E value) noexcept {
+  return magic_enum::detail::index_switch<magic_enum::detail::value_cases<E, magic_enum::detail::enum_subtype::common>>(static_cast<magic_enum::detail::switch_t<E>>(value));
+}
+static_assert(switched_index(Color::BLUE) == std::size_t{2});
+#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
+static_assert(switched_index(number::_3) == std::size_t{2});
 #endif
 
 enum class duplicate_custom_name { first, second };
@@ -436,6 +446,9 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<crc_hack_2>("d19f2e9e82d14b96be4fa12b8a27ee9f").value() == crc_hack_2::d19f2e9e82d14b96be4fa12b8a27ee9f);
     REQUIRE(enum_cast<hash_case_collision>("EII1mjfIgJ") == hash_case_collision::EII1mjfIgJ);
     REQUIRE(enum_cast<hash_case_collision>("E7DvAyiJL6") == hash_case_collision::E7DvAyiJL6);
+    REQUIRE(enum_cast<fnv_hack>("costarring") == fnv_hack::costarring);
+    REQUIRE(enum_cast<fnv_hack>("liquid") == fnv_hack::liquid);
+    REQUIRE_FALSE(enum_cast<fnv_hack>("liquids").has_value());
     REQUIRE(enum_cast<duplicate_custom_name>("same") == duplicate_custom_name::first);
 
     constexpr auto bool_name = string_view{"Yay"};
@@ -492,11 +505,11 @@ TEST_CASE("enum_cast") {
   }
 }
 
-#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+#if defined(MAGIC_ENUM_ENABLE_HASH)
 TEST_CASE("hash switch computes the searched hash once across pages") {
   const auto not_found = (std::numeric_limits<std::size_t>::max)();
   const auto lookup = [](paged_hash_search searched) {
-    return magic_enum::detail::hash_switch<&paged_hash_values, magic_enum::detail::case_call_t::index, 0, paged_counting_hash>(
+    return magic_enum::detail::hash_switch<&paged_hash_values, 0, paged_counting_hash>(
         [](std::size_t i) { return i; },
         searched,
         [] { return (std::numeric_limits<std::size_t>::max)(); },
@@ -510,6 +523,23 @@ TEST_CASE("hash switch computes the searched hash once across pages") {
   paged_hash_call_count = 0;
   REQUIRE(lookup({999}) == not_found);
   REQUIRE(paged_hash_call_count == 1);
+}
+
+TEST_CASE("hash switch with hashes at both limits of the type") {
+  const auto not_found = (std::numeric_limits<std::size_t>::max)();
+  const auto lookup = [](unsigned searched) {
+    return magic_enum::detail::hash_switch<&extreme_hash_values, 0, paged_counting_hash>(
+        [](std::size_t i) { return i; },
+        paged_hash_search{searched},
+        [] { return (std::numeric_limits<std::size_t>::max)(); },
+        [](paged_hash_value lhs, paged_hash_search rhs) { return static_cast<unsigned>(lhs) == rhs.value; });
+  };
+
+  REQUIRE(lookup(0) == 0);
+  REQUIRE(lookup((std::numeric_limits<unsigned>::max)()) == 1);
+  REQUIRE(lookup(2) == 2);
+  REQUIRE(lookup(1) == not_found);
+  REQUIRE(lookup(3) == not_found);
 }
 #endif
 
@@ -1497,6 +1527,115 @@ struct ImmovableSwitchResult {
   ImmovableSwitchResult(const ImmovableSwitchResult&) = delete;
 };
 
+struct CustomSwitchResult {
+  constexpr operator int() const noexcept { return 7; }
+};
+
+template <>
+struct std::common_type<CustomSwitchResult, CustomSwitchResult> { using type = int; };
+
+template <>
+struct std::common_type<int, CustomSwitchResult> { using type = long; };
+
+template <>
+struct std::common_type<CustomSwitchResult, int> { using type = long; };
+
+#define SWITCH_PAGE_VALUES(p) p##0, p##1, p##2, p##3, p##4, p##5, p##6, p##7, p##8, p##9
+// 520 values span three switch pages.
+enum class SwitchPages : short {
+  SWITCH_PAGE_VALUES(A), SWITCH_PAGE_VALUES(B), SWITCH_PAGE_VALUES(C), SWITCH_PAGE_VALUES(D), SWITCH_PAGE_VALUES(E),
+  SWITCH_PAGE_VALUES(F), SWITCH_PAGE_VALUES(G), SWITCH_PAGE_VALUES(H), SWITCH_PAGE_VALUES(I), SWITCH_PAGE_VALUES(J),
+  SWITCH_PAGE_VALUES(K), SWITCH_PAGE_VALUES(L), SWITCH_PAGE_VALUES(M), SWITCH_PAGE_VALUES(N), SWITCH_PAGE_VALUES(O),
+  SWITCH_PAGE_VALUES(P), SWITCH_PAGE_VALUES(Q), SWITCH_PAGE_VALUES(R), SWITCH_PAGE_VALUES(S), SWITCH_PAGE_VALUES(T),
+  SWITCH_PAGE_VALUES(U), SWITCH_PAGE_VALUES(V), SWITCH_PAGE_VALUES(W), SWITCH_PAGE_VALUES(X), SWITCH_PAGE_VALUES(Y),
+  SWITCH_PAGE_VALUES(Z), SWITCH_PAGE_VALUES(AA), SWITCH_PAGE_VALUES(AB), SWITCH_PAGE_VALUES(AC), SWITCH_PAGE_VALUES(AD),
+  SWITCH_PAGE_VALUES(AE), SWITCH_PAGE_VALUES(AF), SWITCH_PAGE_VALUES(AG), SWITCH_PAGE_VALUES(AH), SWITCH_PAGE_VALUES(AI),
+  SWITCH_PAGE_VALUES(AJ), SWITCH_PAGE_VALUES(AK), SWITCH_PAGE_VALUES(AL), SWITCH_PAGE_VALUES(AM), SWITCH_PAGE_VALUES(AN),
+  SWITCH_PAGE_VALUES(AO), SWITCH_PAGE_VALUES(AP), SWITCH_PAGE_VALUES(AQ), SWITCH_PAGE_VALUES(AR), SWITCH_PAGE_VALUES(AS),
+  SWITCH_PAGE_VALUES(AT), SWITCH_PAGE_VALUES(AU), SWITCH_PAGE_VALUES(AV), SWITCH_PAGE_VALUES(AW), SWITCH_PAGE_VALUES(AX),
+  SWITCH_PAGE_VALUES(AY), SWITCH_PAGE_VALUES(AZ)
+};
+
+// 522 sparse values span three switch pages.
+enum class SparsePages : short {
+  SWITCH_PAGE_VALUES(A), SWITCH_PAGE_VALUES(B), SWITCH_PAGE_VALUES(C), SWITCH_PAGE_VALUES(D), SWITCH_PAGE_VALUES(E),
+  SWITCH_PAGE_VALUES(F), SWITCH_PAGE_VALUES(G), SWITCH_PAGE_VALUES(H), SWITCH_PAGE_VALUES(I), SWITCH_PAGE_VALUES(J),
+  SWITCH_PAGE_VALUES(K), SWITCH_PAGE_VALUES(L), SWITCH_PAGE_VALUES(M), SWITCH_PAGE_VALUES(N), SWITCH_PAGE_VALUES(O),
+  SWITCH_PAGE_VALUES(P), SWITCH_PAGE_VALUES(Q), SWITCH_PAGE_VALUES(R), SWITCH_PAGE_VALUES(S), SWITCH_PAGE_VALUES(T),
+  SWITCH_PAGE_VALUES(U), SWITCH_PAGE_VALUES(V), SWITCH_PAGE_VALUES(W), SWITCH_PAGE_VALUES(X), SWITCH_PAGE_VALUES(Y),
+  SWITCH_PAGE_VALUES(Z), SWITCH_PAGE_VALUES(AA), SWITCH_PAGE_VALUES(AB), SWITCH_PAGE_VALUES(AC), SWITCH_PAGE_VALUES(AD),
+  SWITCH_PAGE_VALUES(AE), SWITCH_PAGE_VALUES(AF), SWITCH_PAGE_VALUES(AG), SWITCH_PAGE_VALUES(AH), SWITCH_PAGE_VALUES(AI),
+  SWITCH_PAGE_VALUES(AJ), SWITCH_PAGE_VALUES(AK), SWITCH_PAGE_VALUES(AL), SWITCH_PAGE_VALUES(AM), SWITCH_PAGE_VALUES(AN),
+  SWITCH_PAGE_VALUES(AO), SWITCH_PAGE_VALUES(AP), SWITCH_PAGE_VALUES(AQ), SWITCH_PAGE_VALUES(AR), SWITCH_PAGE_VALUES(AS),
+  SWITCH_PAGE_VALUES(AT), SWITCH_PAGE_VALUES(AU), SWITCH_PAGE_VALUES(AV), SWITCH_PAGE_VALUES(AW), SWITCH_PAGE_VALUES(AX),
+  SWITCH_PAGE_VALUES(AY), SWITCH_PAGE_VALUES(AZ), Neg = -10, Far = 600
+};
+#undef SWITCH_PAGE_VALUES
+
+template <>
+struct magic_enum::customize::enum_range<SparsePages> {
+  static constexpr int min = -10;
+  static constexpr int max = 600;
+};
+
+template <>
+struct magic_enum::customize::enum_range<SwitchPages> {
+  static constexpr int min = 0;
+  static constexpr int max = 519;
+};
+
+// No values remain above the largest enumerator, so unused case slots take values below the smallest one.
+enum class SwitchNearMax : int { A = 2147483647 - 3, B = 2147483647 - 1, C = 2147483647 };
+
+template <>
+struct magic_enum::customize::enum_range<SwitchNearMax> {
+  static constexpr int min = 2147483647 - 8;
+  static constexpr int max = 2147483647;
+};
+
+// Narrow underlying types are switched on as int.
+enum class SwitchInt8 : std::int8_t { Min = -128, NegOne = -1, Zero = 0, Max = 127 };
+
+template <>
+struct magic_enum::customize::enum_range<SwitchInt8> {
+  static constexpr int min = -128;
+  static constexpr int max = 127;
+};
+
+TEST_CASE("sparse lookup across switch pages") {
+  static_assert(enum_count<SparsePages>() == 522);
+  static_assert(enum_index(SparsePages::Neg) == std::size_t{0});
+  static_assert(enum_index(SparsePages::A0) == std::size_t{1});
+  static_assert(enum_index(SparsePages::Z4) == std::size_t{255});
+  static_assert(enum_index(SparsePages::Z5) == std::size_t{256});
+  static_assert(enum_index(SparsePages::Far) == std::size_t{521});
+  static_assert(enum_cast<SparsePages>(600) == SparsePages::Far);
+  static_assert(!enum_cast<SparsePages>(520).has_value());
+  for (int i = -20; i <= 620; ++i) {
+    const auto value = static_cast<SparsePages>(i);
+    const bool member = (i >= 0 && i <= 519) || i == -10 || i == 600;
+    const auto index = enum_index(value);
+    REQUIRE(index.has_value() == member);
+    REQUIRE(enum_cast<SparsePages>(static_cast<short>(i)).has_value() == member);
+    if (index) {
+      REQUIRE(enum_value<SparsePages>(*index) == value);
+    }
+  }
+
+  static_assert(enum_index(SwitchNearMax::A) == std::size_t{0});
+  static_assert(enum_index(SwitchNearMax::C) == std::size_t{2});
+  static_assert(enum_cast<SwitchNearMax>(2147483647) == SwitchNearMax::C);
+  static_assert(!enum_cast<SwitchNearMax>(2147483647 - 2).has_value());
+  static_assert(!enum_cast<SwitchNearMax>((std::numeric_limits<int>::min)()).has_value());
+  static_assert(!enum_index(static_cast<SwitchNearMax>((std::numeric_limits<int>::min)() + 1)).has_value());
+
+  for (int i = -128; i <= 127; ++i) {
+    const bool member = i == -128 || i == -1 || i == 0 || i == 127;
+    REQUIRE(enum_cast<SwitchInt8>(static_cast<std::int8_t>(i)).has_value() == member);
+    REQUIRE(enum_index(static_cast<SwitchInt8>(i)).has_value() == member);
+  }
+}
+
 TEST_CASE("enum_switch") {
   SUBCASE("member function pointer") {
     constexpr auto member = &enum_constant<Color::GREEN>::operator();
@@ -1682,6 +1821,100 @@ TEST_CASE("enum_switch") {
     REQUIRE(enum_switch<int>([](auto val) {
       return enum_integer(val());
     }, static_cast<Color>(0), -1) == -1);
+  }
+
+  SUBCASE("multiple pages and case labels") {
+    constexpr auto integer = [](auto val) { return static_cast<long long>(enum_integer(val())); };
+
+    static_assert(enum_count<SwitchPages>() == 520);
+    static_assert(enum_switch(integer, SwitchPages::A0) == 0);
+    static_assert(enum_switch(integer, SwitchPages::Z5) == 255);
+    static_assert(enum_switch(integer, SwitchPages::AA6) == 266);
+    static_assert(enum_switch(integer, SwitchPages::AZ9) == 519);
+    static_assert(enum_switch(integer, static_cast<SwitchPages>(520), -1LL) == -1);
+    static_assert(enum_switch(integer, static_cast<SwitchPages>(-1), -1LL) == -1);
+    for (auto value : enum_values<SwitchPages>()) {
+      REQUIRE(enum_switch(integer, value) == enum_integer(value));
+    }
+
+    static_assert(enum_switch(integer, SwitchNearMax::A) == 2147483647LL - 3);
+    static_assert(enum_switch(integer, SwitchNearMax::C) == 2147483647LL);
+    static_assert(enum_switch(integer, static_cast<SwitchNearMax>(2147483647 - 2), -1LL) == -1);
+    static_assert(enum_switch(integer, static_cast<SwitchNearMax>(-2147483647 - 1), -1LL) == -1);
+    REQUIRE(enum_switch(integer, SwitchNearMax::B) == 2147483647LL - 1);
+  }
+
+  SUBCASE("partial invocable across multiple pages") {
+    constexpr auto last = [](enum_constant<SwitchPages::AZ9>) { return 519; };
+    static_assert(std::is_same_v<decltype(enum_switch(last, SwitchPages::AZ9)), int>);
+    static_assert(enum_switch(last, SwitchPages::AZ9) == 519);
+    static_assert(enum_switch(last, SwitchPages::A0) == 0);
+    static_assert(enum_switch(last, SwitchPages::Z5, -1) == -1);
+    static_assert(enum_switch(last, static_cast<SwitchPages>(520), -1) == -1);
+
+    constexpr auto mixed = overloaded{
+      [](enum_constant<SwitchPages::A0>) { return 1; },
+      [](enum_constant<SwitchPages::AZ9>) { return 519L; }
+    };
+    static_assert(std::is_same_v<decltype(enum_switch(mixed, SwitchPages::A0)), long>);
+    static_assert(enum_switch(mixed, SwitchPages::A0) == 1L);
+    static_assert(enum_switch(mixed, SwitchPages::AZ9) == 519L);
+    static_assert(enum_switch(mixed, SwitchPages::AA6, -1L) == -1L);
+    for (auto value : enum_values<SwitchPages>()) {
+      REQUIRE(enum_switch(last, value, -1) == (value == SwitchPages::AZ9 ? 519 : -1));
+    }
+  }
+
+  SUBCASE("custom common type preserves the fold order") {
+    enum class One { Value };
+    enum class Two { First, Last };
+    constexpr auto custom = [](auto) { return CustomSwitchResult{}; };
+    static_assert(std::is_same_v<decltype(enum_switch(custom, One::Value)), int>);
+    static_assert(std::is_same_v<decltype(enum_switch(custom, Two::First)), int>);
+    // The first two results combine to int, then int and the third combine to long.
+    static_assert(std::is_same_v<decltype(enum_switch(custom, Color::RED)), long>);
+    static_assert(std::is_same_v<decltype(enum_switch(custom, SwitchPages::AZ9)), long>);
+    static_assert(enum_switch(custom, One::Value) == 7);
+    static_assert(enum_switch(custom, Two::Last) == 7);
+    static_assert(enum_switch(custom, Color::GREEN) == 7L);
+    static_assert(enum_switch(custom, SwitchPages::AZ9) == 7L);
+    static_assert(enum_switch(custom, static_cast<Two>(2)) == 0);
+    static_assert(enum_switch(custom, static_cast<SwitchPages>(520)) == 0L);
+    REQUIRE(enum_switch(custom, Color::BLUE) == 7L);
+    REQUIRE(enum_switch(custom, static_cast<Color>(0)) == 0L);
+  }
+
+  SUBCASE("narrow and bool underlying types") {
+    constexpr auto integer = [](auto val) { return static_cast<int>(enum_integer(val())); };
+
+    static_assert(enum_switch(integer, Binary::ONE, -1) == 0);
+    static_assert(enum_switch(integer, Binary::TWO, -1) == 1);
+    static_assert(enum_switch(integer, MaxUsedAsInvalid::TWO, -1) == 63);
+    // Outside enum_range for the scanning backend, but standard reflection still sees it.
+    static_assert(enum_switch(integer, MaxUsedAsInvalid::INVALID, -1) == (enum_contains(MaxUsedAsInvalid::INVALID) ? 255 : -1));
+    static_assert(enum_switch(integer, static_cast<MaxUsedAsInvalid>(64), -1) == -1);
+    static_assert(enum_switch(integer, SwitchInt8::Min, 1000) == -128);
+    static_assert(enum_switch(integer, SwitchInt8::Max, 1000) == 127);
+    for (int i = -128; i <= 127; ++i) {
+      const auto value = static_cast<SwitchInt8>(i);
+      REQUIRE(enum_switch(integer, value, 1000) == (enum_contains(value) ? i : 1000));
+    }
+  }
+
+  SUBCASE("different result types use common type") {
+    constexpr auto mixed = [](auto val) {
+      if constexpr (decltype(val)::value == Color::RED) {
+        return 1;
+      } else {
+        return 2L;
+      }
+    };
+
+    static_assert(std::is_same_v<decltype(enum_switch(mixed, Color::GREEN)), long>);
+    static_assert(enum_switch(mixed, Color::RED) == 1L);
+    static_assert(enum_switch(mixed, Color::BLUE) == 2L);
+    static_assert(enum_switch(mixed, static_cast<Color>(0)) == 0L);
+    static_assert(enum_switch(mixed, static_cast<Color>(0), -1) == -1L);
   }
 }
 

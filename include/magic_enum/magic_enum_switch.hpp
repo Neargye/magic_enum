@@ -47,23 +47,50 @@ struct identity {
 
 struct nonesuch {};
 
-template <typename F, typename V, bool = std::is_invocable_v<F, V>>
+// Avoid std::invoke_result instantiations for ordinary callables.
+template <typename F, typename V, bool = std::is_member_pointer_v<std::decay_t<F>>, typename = void>
 struct invoke_result : identity<nonesuch> {};
 
 template <typename F, typename V>
-struct invoke_result<F, V, true> : std::invoke_result<F, V> {};
+struct invoke_result<F, V, true, std::enable_if_t<std::is_invocable_v<F, V>>> : std::invoke_result<F, V> {};
+
+template <typename F, typename V>
+struct invoke_result<F, V, false, std::void_t<decltype(std::declval<F>()(std::declval<V>()))>> : identity<decltype(std::declval<F>()(std::declval<V>()))> {};
 
 template <typename F, typename V>
 using invoke_result_t = typename invoke_result<F, V>::type;
 
+template <typename...>
+struct type_list {};
+
+template <typename... Ts>
+struct common_type : std::common_type<Ts...> {};
+
+// Chunk the left fold to limit template depth without reordering common_type specializations.
+template <typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7,
+          typename T8, typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15,
+          typename Next, typename... Ts>
+struct common_type<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, Next, Ts...>
+    : common_type<typename std::common_type<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>::type, Next, Ts...> {};
+
 template <typename E, enum_subtype S, typename F, std::size_t... J>
 constexpr auto common_invocable(std::index_sequence<J...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::invocable_index requires enum type.");
+  static_assert(std::is_enum_v<E>, "magic_enum::detail::common_invocable requires enum type.");
 
   if constexpr (count_v<E, S> == 0) {
     return identity<nonesuch>{};
   } else {
-    return std::common_type<invoke_result_t<F, enum_constant<values_v<E, S>[J]>>...>{};
+    using R = invoke_result_t<F, enum_constant<values_v<E, S>[0]>>;
+    // Preserve user specializations of common_type<R, R> when skipping the fold.
+    if constexpr (std::is_same_v<type_list<R, invoke_result_t<F, enum_constant<values_v<E, S>[J]>>...>, type_list<invoke_result_t<F, enum_constant<values_v<E, S>[J]>>..., R>>) {
+      if constexpr (std::is_same_v<typename std::common_type<R, R>::type, std::decay_t<R>>) {
+        return identity<std::decay_t<R>>{};
+      } else {
+        return common_type<invoke_result_t<F, enum_constant<values_v<E, S>[J]>>...>{};
+      }
+    } else {
+      return common_type<invoke_result_t<F, enum_constant<values_v<E, S>[J]>>...>{};
+    }
   }
 }
 
@@ -100,43 +127,76 @@ using result_t = std::enable_if_t<std::is_enum_v<D> && !std::is_same_v<R, nonesu
 template <typename E, enum_subtype S, typename Result, typename F>
 using result_with_fallback_t = result_t<E, S, Result, F, true>;
 
-#if !defined(MAGIC_ENUM_ENABLE_HASH) && !defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
+// Same as std::is_invocable_r_v<R, F, V>, but reuses invoke_result_t already instantiated by result_type.
+template <typename R, typename F, typename V, typename T = invoke_result_t<F, V>>
+inline constexpr bool switch_invocable_v = !std::is_same_v<T, nonesuch> && (std::is_void_v<R> || std::is_same_v<T, R> || std::is_convertible_v<T, R>);
 
-template <typename T = void>
-inline constexpr auto default_result_type_lambda = []() noexcept(std::is_nothrow_default_constructible_v<T>) { return T{}; };
-
-template <>
-inline constexpr auto default_result_type_lambda<void> = []() noexcept {};
-
-template <std::size_t J, std::size_t End, typename R, typename E, enum_subtype S, typename F, typename Def>
-constexpr decltype(auto) linear_switch_impl(F&& f, E value, Def&& def) {
-  if constexpr (J < End) {
-    using V = enum_constant<enum_value<E, J, S>()>;
-    if (enum_value_equal(value, V::value)) {
-      if constexpr (std::is_invocable_r_v<R, F, V>) {
-        return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));
-      } else {
-        return def();
-      }
-    } else {
-      return linear_switch_impl<J + 1, End, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+#define MAGIC_ENUM_SWITCH_CASE(J)                                                         \
+  case cases[(J)]:                                                                        \
+    if constexpr ((J) + Page < count_v<E, S>) {                                           \
+      using V = enum_constant<values_v<E, S>[(J) + Page]>;                                \
+      if constexpr (!switch_invocable_v<R, F, V>) {                                       \
+        return def();                                                                     \
+      } else if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {                   \
+        return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));          \
+      } else {                                                                            \
+        return static_cast<R>(std::forward<F>(f)(V{}));                                   \
+      }                                                                                   \
+    } else {                                                                              \
+      break;                                                                              \
     }
+#define MAGIC_ENUM_SWITCH_CASES_8(J) MAGIC_ENUM_SWITCH_CASE(J) MAGIC_ENUM_SWITCH_CASE(J + 1) MAGIC_ENUM_SWITCH_CASE(J + 2) MAGIC_ENUM_SWITCH_CASE(J + 3) MAGIC_ENUM_SWITCH_CASE(J + 4) MAGIC_ENUM_SWITCH_CASE(J + 5) MAGIC_ENUM_SWITCH_CASE(J + 6) MAGIC_ENUM_SWITCH_CASE(J + 7)
+#define MAGIC_ENUM_SWITCH_CASES_16(J) MAGIC_ENUM_SWITCH_CASES_8(J) MAGIC_ENUM_SWITCH_CASES_8(J + 8)
+#define MAGIC_ENUM_SWITCH_CASES_32(J) MAGIC_ENUM_SWITCH_CASES_16(J) MAGIC_ENUM_SWITCH_CASES_16(J + 16)
+#define MAGIC_ENUM_SWITCH_CASES_64(J) MAGIC_ENUM_SWITCH_CASES_32(J) MAGIC_ENUM_SWITCH_CASES_32(J + 32)
+#define MAGIC_ENUM_SWITCH_CASES_128(J) MAGIC_ENUM_SWITCH_CASES_64(J) MAGIC_ENUM_SWITCH_CASES_64(J + 64)
+#define MAGIC_ENUM_SWITCH_CASES_256(J) MAGIC_ENUM_SWITCH_CASES_128(J) MAGIC_ENUM_SWITCH_CASES_128(J + 128)
+#define MAGIC_ENUM_SWITCH(N)         \
+  if constexpr (Size == (N)) {       \
+    switch (value) {                 \
+      MAGIC_ENUM_SWITCH_CASES_##N(0) \
+      default:                       \
+        break;                       \
+    }                                \
+  }
+
+template <std::size_t Page, typename R, typename E, enum_subtype S, typename F, typename Def>
+constexpr R switch_page(F&& f, switch_t<E> value, Def&& def) {
+  constexpr std::size_t n = count_v<E, S> - Page;
+  constexpr std::size_t Size = switch_page_size(n);
+  constexpr auto cases = value_cases<E, S>::template page<Page, Size>();
+  MAGIC_ENUM_SWITCH(8)
+  MAGIC_ENUM_SWITCH(16)
+  MAGIC_ENUM_SWITCH(32)
+  MAGIC_ENUM_SWITCH(64)
+  MAGIC_ENUM_SWITCH(128)
+  MAGIC_ENUM_SWITCH(256)
+  if constexpr (n > Size) {
+    return switch_page<Page + Size, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
   } else {
     return def();
   }
 }
 
+#undef MAGIC_ENUM_SWITCH
+#undef MAGIC_ENUM_SWITCH_CASES_256
+#undef MAGIC_ENUM_SWITCH_CASES_128
+#undef MAGIC_ENUM_SWITCH_CASES_64
+#undef MAGIC_ENUM_SWITCH_CASES_32
+#undef MAGIC_ENUM_SWITCH_CASES_16
+#undef MAGIC_ENUM_SWITCH_CASES_8
+#undef MAGIC_ENUM_SWITCH_CASE
+
 template <typename R, typename E, enum_subtype S, typename F, typename Def>
-constexpr decltype(auto) linear_switch(F&& f, E value, Def&& def) {
-  static_assert(is_enum_v<E>, "magic_enum::detail::linear_switch requires enum type.");
+constexpr decltype(auto) value_switch(F&& f, E value, Def&& def) {
+  static_assert(is_enum_v<E>, "magic_enum::detail::value_switch requires enum type.");
 
   if constexpr (count_v<E, S> == 0) {
     return def();
   } else {
-    return linear_switch_impl<0, count_v<E, S>, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+    return switch_page<0, R, E, S>(std::forward<F>(f), static_cast<switch_t<E>>(static_cast<std::underlying_type_t<E>>(value)), std::forward<Def>(def));
   }
 }
-#endif
 
 } // namespace magic_enum::detail
 
@@ -146,18 +206,10 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
-  return detail::hash_switch_values<D, S, detail::case_call_t::value>(
-      std::forward<F>(f),
-      value,
-      detail::default_result_type_lambda<R>,
-      [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
-#else
-  return detail::linear_switch<R, D, S>(
+  return detail::value_switch<R, D, S>(
       std::forward<F>(f),
       value,
       detail::default_result_type_lambda<R>);
-#endif
 }
 
 template <typename Result = detail::default_result_type, detail::enum_subtype S, typename E, typename F, typename R = detail::result_t<E, S, Result, F>>
@@ -171,18 +223,10 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-#if defined(MAGIC_ENUM_ENABLE_HASH) || defined(MAGIC_ENUM_ENABLE_HASH_SWITCH)
-  return detail::hash_switch_values<D, S, detail::case_call_t::value>(
-      std::forward<F>(f),
-      value,
-      [&result]() -> R { return std::forward<Result>(result); },
-      [](D lhs, D rhs) { return detail::enum_value_equal(lhs, rhs); });
-#else
-  return detail::linear_switch<R, D, S>(
+  return detail::value_switch<R, D, S>(
       std::forward<F>(f),
       value,
       [&result]() -> R { return std::forward<Result>(result); });
-#endif
 }
 
 template <typename Result, detail::enum_subtype S, typename E, typename F, typename R = detail::result_with_fallback_t<E, S, Result, F>>

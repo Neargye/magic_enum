@@ -982,6 +982,44 @@ TEST_CASE("enum_switch") {
     REQUIRE(enum_switch<int>(switcher, Color::BLUE, -1) == 4);
     REQUIRE(enum_switch<int>(switcher, Color::GREEN, -1) == -1);
   }
+
+  SUBCASE("matches enum_index for single bits, zero, and high bits") {
+    const auto check = [](auto value) {
+      using E = decltype(value);
+      constexpr auto none = enum_count<E>();
+      const auto index = enum_index(value);
+      REQUIRE(enum_switch<std::size_t>([](auto val) { return *enum_index(val()); }, value, enum_count<E>()) == (index ? *index : none));
+    };
+
+    for (auto value : enum_values<Directions>()) {
+      check(value);
+    }
+    for (std::size_t i = 0; i < 64; ++i) {
+      check(static_cast<Directions>(std::uint64_t{1} << i));
+    }
+    check(static_cast<Directions>(0));
+    check(Directions::Left | Directions::Right);
+    check(static_cast<Directions>(~std::uint64_t{0}));
+
+    for (std::size_t i = 0; i < 31; ++i) {
+      check(static_cast<Numbers>(1 << i));
+    }
+    check(Numbers::none);
+    check(static_cast<Numbers>(-1));
+
+    check(BoolFlags::Disabled);
+    check(BoolFlags::Enabled);
+
+    for (std::size_t i = 0; i < 9; ++i) {
+      check(static_cast<CStyleFlags>(1 << i));
+    }
+    check(static_cast<CStyleFlags>(0));
+    check(static_cast<CStyleFlags>(CStyleFlags_A | CStyleFlags_I));
+
+    static_assert(enum_switch<int>([](auto val) { return val() == Directions::Right ? 63 : 0; }, Directions::Right, -1) == 63);
+    static_assert(enum_switch<int>([](auto val) { return val() == Numbers::many ? 30 : 0; }, Numbers::many, -1) == 30);
+    static_assert(enum_switch<int>([](auto) { return 0; }, static_cast<Numbers>(1 << 29), -1) == -1);
+  }
 }
 
 #if defined(__clang__) && __clang_major__ >= 5 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920

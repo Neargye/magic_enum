@@ -116,6 +116,10 @@ TEST_CASE("canonical common-enum behavior") {
   static_assert(magic_enum::enum_index(Extreme::Max) == 1);
   static_assert(magic_enum::enum_value<Extreme, 0>() == Extreme::Min);
   static_assert(magic_enum::enum_cast<Extreme>((std::numeric_limits<long long>::min)()) == Extreme::Min);
+  static_assert(magic_enum::enum_cast<Extreme>((std::numeric_limits<long long>::max)()) == Extreme::Max);
+  static_assert(!magic_enum::enum_cast<Extreme>((std::numeric_limits<long long>::min)() + 1).has_value());
+  static_assert(!magic_enum::enum_contains(static_cast<Extreme>(0)));
+  static_assert(magic_enum::enum_switch([](auto v) { return magic_enum::enum_integer(v()); }, Extreme::Max, 0LL) == (std::numeric_limits<long long>::max)());
 #else
   static_assert(magic_enum::enum_values<Sparse>() == std::array{Sparse::InRange});
   static_assert(magic_enum::enum_name(Sparse::FarLow).empty());
