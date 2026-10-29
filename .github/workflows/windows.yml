@@ -26,10 +26,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: windows-2022, compiler: "msvc",      toolset: "",      build_types: [Release, Debug] }
-        - { os: windows-2025, compiler: "msvc",      toolset: "",      build_types: [Release, Debug] }
-        - { os: windows-2022, compiler: "msvc-v142", toolset: v142,    build_types: [Release] }
-        - { os: windows-2025, compiler: "clang-cl",  toolset: ClangCL, build_types: [Release] }
+        - { os: windows-2022,   compiler: "msvc",      toolset: "",      platforms: [x64, Win32], build_types: [Release, Debug], clr: true }
+        - { os: windows-2025,   compiler: "msvc",      toolset: "",      platforms: [x64, Win32], build_types: [Release, Debug], analyze: true }
+        - { os: windows-2022,   compiler: "msvc-v142", toolset: v142,    platforms: [x64, Win32], build_types: [Release] }
+        - { os: windows-2025,   compiler: "clang-cl",  toolset: ClangCL, platforms: [x64, Win32], build_types: [Release] }
+        - { os: windows-11-arm, compiler: "msvc",      toolset: "",      platforms: [ARM64],      build_types: [Release, Debug], clr: true }
 
     name: "${{ matrix.config.compiler }} (${{ matrix.config.os }})"
     steps:
@@ -38,7 +39,7 @@ jobs:
     - name: Build and test
       run: |
         $PSNativeCommandUseErrorActionPreference = $true # Stop on the first failing command.
-        foreach ($platform in 'x64', 'Win32') {
+        foreach ($platform in "${{ join(matrix.config.platforms, ' ') }}" -split ' ') {
           cmake -S . -B "build-$platform" -A $platform -T "${{ matrix.config.toolset }}"
           foreach ($buildType in "${{ join(matrix.config.build_types, ' ') }}" -split ' ') {
             Write-Output "::group::$platform / $buildType"
@@ -49,13 +50,13 @@ jobs:
         }
 
     - name: Build C++/CLI smoke test
-      if: ${{ matrix.config.os == 'windows-2022' && matrix.config.compiler == 'msvc' }}
-      run: cmake --build build-x64 --parallel --target test_clr --config Release
+      if: ${{ matrix.config.clr }}
+      run: cmake --build build-${{ matrix.config.platforms[0] }} --parallel --target test_clr --config Release
 
     - name: Code analysis
-      if: ${{ matrix.config.os == 'windows-2025' && matrix.config.compiler == 'msvc' }}
+      if: ${{ matrix.config.analyze }}
       run: |
         $PSNativeCommandUseErrorActionPreference = $true
         # Setting CMAKE_CXX_FLAGS replaces the default flags, so repeat them.
-        cmake -S . -B build-analyze -A x64 "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /analyze"
+        cmake -S . -B build-analyze -A ${{ matrix.config.platforms[0] }} "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /analyze"
         cmake --build build-analyze --parallel --config Release
