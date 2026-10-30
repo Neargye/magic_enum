@@ -95,6 +95,7 @@ constexpr bool empty_reflection() {
   static_assert(guarded_count<E>() == 0);
 #  if defined(MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM)
   static_assert(magic_enum::enum_values<E>().empty());
+  // MSVC 19.29 rejects a temporary empty array in a consteval return.
   static_assert(magic_enum::enum_names<E>().empty());
   static_assert(magic_enum::enum_entries<E>().empty());
   static_assert(magic_enum::enum_name(static_cast<E>(0)).empty());

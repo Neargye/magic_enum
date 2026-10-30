@@ -21,11 +21,12 @@
 #include <sstream>
 
 enum class Color { RED = -12, GREEN = 7, BLUE = 15 };
+constexpr wchar_t red_name[] = {L'r', L'e', L'd'};
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Color>(Color value) noexcept {
   switch (value) {
     case Color::RED:
-      return L"red";
+      return string_view{red_name, std::size(red_name)};
     default:
       return default_tag;
   }

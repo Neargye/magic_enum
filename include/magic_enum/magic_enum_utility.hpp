@@ -67,7 +67,6 @@ constexpr auto for_each(F&& f, std::index_sequence<J...>) {
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, detail::enable_if_t<E, int> = 0>
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
   return detail::for_each<D, S>(std::forward<F>(f), std::make_index_sequence<detail::count_v<D, S>>{});
 }

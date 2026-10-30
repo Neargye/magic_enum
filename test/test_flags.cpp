@@ -209,6 +209,30 @@ TEST_CASE("named composite flags require every constituent bit") {
 }
 
 TEST_CASE("enum_cast") {
+  SUBCASE("noncopyable predicate is shared across flag names") {
+    struct Predicate {
+      int calls = 0;
+      Predicate() = default;
+      Predicate(const Predicate&) = delete;
+      bool operator()(const char& lhs, const char& rhs) & noexcept {
+        ++calls;
+        return lhs == rhs;
+      }
+    };
+    Predicate predicate;
+    REQUIRE(enum_flags_cast<Color, Predicate&>("RED|BLUE", '|', predicate) == (Color::RED | Color::BLUE));
+    REQUIRE(predicate.calls > 0);
+  }
+
+  SUBCASE("colliding flag names") {
+    enum class Flags { costarring = 1, liquid = 2 };
+    static_assert(enum_flags_cast<Flags>("costarring") == Flags::costarring);
+    static_assert(enum_flags_cast<Flags>("liquid") == Flags::liquid);
+    static_assert(enum_flags_cast<Flags>("costarring|liquid") == static_cast<Flags>(3));
+    REQUIRE(enum_flags_cast<Flags>("liquid|costarring|liquid") == static_cast<Flags>(3));
+    REQUIRE_FALSE(enum_flags_cast<Flags>("liquids").has_value());
+  }
+
   SUBCASE("predicates receive character references") {
     static_assert(enum_flags_cast<Color>("RED|GREEN", '|', ConstReferencePredicate{}) == (Color::RED | Color::GREEN));
     static_assert(enum_flags_contains<Color>("RED|GREEN", '|', ConstReferencePredicate{}));

@@ -86,8 +86,7 @@ template <typename E>
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
-  using V = detail::make_unsigned_t<U>;
+  using V = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
@@ -125,15 +124,9 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
         ++last;
       }
       const auto s = value.substr(first, last - first);
-      auto flag = U{0};
-      for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-        if (detail::cmp_equal(s, detail::names_v<D, S>[i], p)) {
-          flag = static_cast<U>(detail::values_v<D, S>[i]);
-          result |= flag;
-          break;
-        }
-      }
-      if (flag == U{0}) {
+      if (const auto flag = enum_cast<D, S, BinaryPredicate&>(s, p)) {
+        result |= static_cast<U>(*flag);
+      } else {
         return {}; // Invalid value or out of range.
       }
       first = (last < value.size()) ? last + 1 : last;
@@ -149,26 +142,19 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
 // Returns true if the value is a valid nonzero flag combination.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
-  using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
-
-  return static_cast<bool>(enum_flags_cast<D>(static_cast<U>(value)));
+  return static_cast<bool>(enum_flags_cast<E>(static_cast<underlying_type_t<E>>(value)));
 }
 
 // Returns true if the integer is a valid nonzero flag combination.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
-  using D = std::decay_t<E>;
-
-  return static_cast<bool>(enum_flags_cast<D>(value));
+  return static_cast<bool>(enum_flags_cast<E>(value));
 }
 
 // Returns true if the names form a valid nonzero flag combination.
 template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
-  using D = std::decay_t<E>;
-
-  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(std::forward<String>(value), sep, p));
+  return static_cast<bool>(enum_flags_cast<E, BinaryPredicate&>(std::forward<String>(value), sep, p));
 }
 
 // Returns true if flag is nonzero and all its bits are set in flags.

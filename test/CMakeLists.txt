@@ -375,6 +375,14 @@ target_compile_definitions(test_enum_count-no-check-hash-cpp17 PRIVATE
   MAGIC_ENUM_ENABLE_HASH
 )
 
+if(MAGIC_ENUM_HAS_CPP20_FLAG)
+  magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp20 c++20)
+  target_compile_definitions(test_enum_count-no-check-cpp20 PRIVATE
+    MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6
+    MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+  )
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(MAGIC_ENUM_TEST_CLR_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/test_clr.obj")
   add_custom_command(

@@ -44,6 +44,7 @@ export module magic_enum;
 
 #ifdef MAGIC_ENUM_USE_STD_MODULE
 import std;
+#endif
 
 extern "C++" {
 #  if defined(__clang__)
@@ -54,29 +55,12 @@ extern "C++" {
 #    pragma warning(disable : 5244)
 #  endif
 
-#  include <magic_enum/magic_enum.hpp>
-#  include <magic_enum/magic_enum_containers.hpp>
-#  include <magic_enum/magic_enum_flags.hpp>
-#  include <magic_enum/magic_enum_format.hpp>
-#  include <magic_enum/magic_enum_fuse.hpp>
-#  include <magic_enum/magic_enum_iostream.hpp>
-#  include <magic_enum/magic_enum_switch.hpp>
-#  include <magic_enum/magic_enum_utility.hpp>
-
-#  if defined(__clang__)
-#    pragma clang diagnostic pop
-#  elif defined(_MSC_VER)
-#    pragma warning(pop)
-#  endif
-}
-#else
-extern "C++" {
-#  if defined(__clang__)
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
-#  elif defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 5244)
+#  ifdef MAGIC_ENUM_USE_STD_MODULE
+#    include <magic_enum/magic_enum.hpp>
+#    include <magic_enum/magic_enum_flags.hpp>
+#    include <magic_enum/magic_enum_fuse.hpp>
+#    include <magic_enum/magic_enum_iostream.hpp>
+#    include <magic_enum/magic_enum_utility.hpp>
 #  endif
 
 // Keep standard-library specializations attached to the named module. Exporting the primary template does not make specializations from the global module fragment reachable to importers.
@@ -90,7 +74,6 @@ extern "C++" {
 #    pragma warning(pop)
 #  endif
 }
-#endif
 
 export namespace magic_enum {
 namespace customize {

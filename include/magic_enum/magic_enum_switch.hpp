@@ -75,8 +75,6 @@ struct common_type<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T
 
 template <typename E, enum_subtype S, typename F, std::size_t... J>
 constexpr auto common_invocable(std::index_sequence<J...>) noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::common_invocable requires enum type.");
-
   if constexpr (count_v<E, S> == 0) {
     return identity<nonesuch>{};
   } else {
@@ -127,20 +125,20 @@ using result_t = std::enable_if_t<std::is_enum_v<D> && !std::is_same_v<R, nonesu
 template <typename E, enum_subtype S, typename Result, typename F>
 using result_with_fallback_t = result_t<E, S, Result, F, true>;
 
-#define MAGIC_ENUM_SWITCH_CASE(J)                                                         \
-  case cases[(J)]:                                                                        \
-    if constexpr ((J) + Page < count_v<E, S>) {                                           \
-      using V = enum_constant<values_v<E, S>[(J) + Page]>;                                \
-      using T = invoke_result_t<F, V>;                                                    \
+#define MAGIC_ENUM_SWITCH_CASE(J)                                                                                                 \
+  case cases[(J)]:                                                                                                                \
+    if constexpr ((J) + Page < count_v<E, S>) {                                                                                   \
+      using V = enum_constant<values_v<E, S>[(J) + Page]>;                                                                        \
+      using T = invoke_result_t<F, V>;                                                                                            \
       if constexpr (std::is_same_v<T, nonesuch> || !(std::is_void_v<R> || std::is_same_v<T, R> || std::is_convertible_v<T, R>)) { \
-        return def();                                                                     \
-      } else if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {                   \
-        return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));          \
-      } else {                                                                            \
-        return static_cast<R>(std::forward<F>(f)(V{}));                                   \
-      }                                                                                   \
-    } else {                                                                              \
-      break;                                                                              \
+        return def();                                                                                                             \
+      } else if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {                                                           \
+        return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));                                                  \
+      } else {                                                                                                                    \
+        return static_cast<R>(std::forward<F>(f)(V{}));                                                                           \
+      }                                                                                                                           \
+    } else {                                                                                                                      \
+      break;                                                                                                                      \
     }
 #define MAGIC_ENUM_SWITCH_CASES_8(J) MAGIC_ENUM_SWITCH_CASE(J) MAGIC_ENUM_SWITCH_CASE(J + 1) MAGIC_ENUM_SWITCH_CASE(J + 2) MAGIC_ENUM_SWITCH_CASE(J + 3) MAGIC_ENUM_SWITCH_CASE(J + 4) MAGIC_ENUM_SWITCH_CASE(J + 5) MAGIC_ENUM_SWITCH_CASE(J + 6) MAGIC_ENUM_SWITCH_CASE(J + 7)
 #define MAGIC_ENUM_SWITCH_CASES_16(J) MAGIC_ENUM_SWITCH_CASES_8(J) MAGIC_ENUM_SWITCH_CASES_8(J + 8)
@@ -186,8 +184,6 @@ constexpr R switch_page(F&& f, switch_t<E> value, Def&& def) {
 
 template <typename R, typename E, enum_subtype S, typename F, typename Def>
 constexpr decltype(auto) value_switch(F&& f, E value, Def&& def) {
-  static_assert(is_enum_v<E>, "magic_enum::detail::value_switch requires enum type.");
-
   if constexpr (count_v<E, S> == 0) {
     return def();
   } else {
@@ -200,7 +196,6 @@ constexpr decltype(auto) value_switch(F&& f, E value, Def&& def) {
 template <typename Result = detail::default_result_type, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::value_switch<R, D, S>(
@@ -217,7 +212,6 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
 template <typename Result, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_with_fallback_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;
-  static_assert(std::is_enum_v<D>, "magic_enum::enum_switch requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
   return detail::value_switch<R, D, S>(

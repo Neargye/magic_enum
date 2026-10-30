@@ -27,6 +27,7 @@
 #include <array>
 #include <type_traits>
 
+constexpr magic_enum::char_type custom_name[] = {'R', 'e', 'n', 'a', 'm', 'e', 'd'};
 enum class CharacterNames { First = 1, Second = 2 };
 enum class CharacterWideValue { Low = 1, High = 1'000'000 };
 enum class CharacterFlags { A = 1, B = 2, AB = 3 };
@@ -34,7 +35,7 @@ enum class CharacterFlags { A = 1, B = 2, AB = 3 };
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<CharacterNames>(CharacterNames value) noexcept {
   if (value == CharacterNames::First) {
-    return MAGIC_ENUM_TEST_LITERAL("Renamed");
+    return magic_enum::string_view{custom_name, std::size(custom_name)};
   }
   return default_tag;
 }
@@ -73,6 +74,9 @@ static_assert(magic_enum::enum_name(CharacterWideValue::High) == MAGIC_ENUM_TEST
 static_assert(magic_enum::enum_count<CharacterWideValue>() == 1);
 static_assert(magic_enum::enum_name(CharacterWideValue::High).empty());
 #endif
+
+static_assert(magic_enum::enum_flags_cast<CharacterFlags>(MAGIC_ENUM_TEST_LITERAL("A|B")) == CharacterFlags::AB);
+static_assert(!magic_enum::enum_flags_cast<CharacterFlags>(MAGIC_ENUM_TEST_LITERAL("A|Unknown")).has_value());
 
 int main() {
   const auto flags_name = magic_enum::enum_flags_name(CharacterFlags::AB);

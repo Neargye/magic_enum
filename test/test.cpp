@@ -103,8 +103,8 @@ enum class fnv_hack {
 };
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-static_assert(magic_enum::detail::constexpr_hash_t<magic_enum::string_view>{}("costarring") == magic_enum::detail::constexpr_hash_t<magic_enum::string_view>{}("liquid"));
-static_assert(!magic_enum::detail::has_unique_hashes_v<&magic_enum::detail::names_v<fnv_hack, magic_enum::detail::enum_subtype::common>, magic_enum::detail::constexpr_hash_t<magic_enum::string_view>>);
+static_assert(magic_enum::detail::constexpr_hash_t{}("costarring") == magic_enum::detail::constexpr_hash_t{}("liquid"));
+static_assert(!magic_enum::detail::has_unique_hashes_v<&magic_enum::detail::names_v<fnv_hack, magic_enum::detail::enum_subtype::common>, magic_enum::detail::constexpr_hash_t>);
 
 struct identity_hash {
   constexpr int operator()(int value) const noexcept { return value; }
@@ -510,7 +510,7 @@ TEST_CASE("enum_cast") {
 TEST_CASE("hash switch computes the searched hash once across pages") {
   const auto not_found = (std::numeric_limits<std::size_t>::max)();
   const auto lookup = [](paged_hash_search searched) {
-    return magic_enum::detail::hash_switch<&paged_hash_values, 0, paged_counting_hash>(
+    return magic_enum::detail::hash_switch<&paged_hash_values, paged_counting_hash>(
         [](std::size_t i) { return i; },
         searched,
         [] { return (std::numeric_limits<std::size_t>::max)(); },
@@ -529,7 +529,7 @@ TEST_CASE("hash switch computes the searched hash once across pages") {
 TEST_CASE("hash switch with hashes at both limits of the type") {
   const auto not_found = (std::numeric_limits<std::size_t>::max)();
   const auto lookup = [](unsigned searched) {
-    return magic_enum::detail::hash_switch<&extreme_hash_values, 0, paged_counting_hash>(
+    return magic_enum::detail::hash_switch<&extreme_hash_values, paged_counting_hash>(
         [](std::size_t i) { return i; },
         paged_hash_search{searched},
         [] { return (std::numeric_limits<std::size_t>::max)(); },

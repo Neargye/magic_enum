@@ -136,13 +136,26 @@ static_assert([] {
   return lhs[Color::RED] == 4 && rhs[Color::RED] == 1;
 }());
 
+// Volatile keeps MSVC from proving the compare loops unreachable, which is C4702 at /O1.
+volatile bool throw_on_less = true;
+
 struct ThrowingLess {
-  friend bool operator<(ThrowingLess, ThrowingLess) { throw 0; }
+  friend bool operator<(ThrowingLess, ThrowingLess) {
+    if (throw_on_less) {
+      throw 0;
+    }
+    return false;
+  }
 };
 
 enum class ThrowingEnum { A, B };
 
-bool operator<(ThrowingEnum, ThrowingEnum) { throw 0; }
+bool operator<(ThrowingEnum, ThrowingEnum) {
+  if (throw_on_less) {
+    throw 0;
+  }
+  return false;
+}
 
 struct UnderlyingLess {
   template <typename E>
@@ -493,11 +506,51 @@ TEST_CASE("containers_bitset") {
   const magic_enum::containers::bitset<Color> runtime_repeated_names {"RED|GREEN|GREEN"};
   REQUIRE(runtime_repeated_names == constexpr_repeated_names);
 
+  constexpr magic_enum::containers::bitset<Color> constexpr_empty_names {""};
+  static_assert(constexpr_empty_names.none());
+  constexpr magic_enum::containers::bitset<Color> constexpr_trailing_separator {"RED|"};
+  static_assert(constexpr_trailing_separator == magic_enum::containers::bitset<Color>{Color::RED});
+  constexpr magic_enum::containers::bitset<Color> constexpr_custom_separator {"GREEN,BLUE", {}, ','};
+  static_assert(constexpr_custom_separator == magic_enum::containers::bitset<Color>{Color::GREEN | Color::BLUE});
+  REQUIRE(magic_enum::containers::bitset<Color>{""}.none());
+  REQUIRE(magic_enum::containers::bitset<Color>{"RED|"} == constexpr_trailing_separator);
+  REQUIRE(magic_enum::containers::bitset<Color>{"GREEN,BLUE", {}, ','} == constexpr_custom_separator);
+  REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"|RED"}));
+  REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED||BLUE"}));
+  REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED|PURPLE"}));
+  REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED,BLUE"}));
+
   magic_enum::containers::bitset<Color, OutOfRangeIndex> custom_index_bitset;
   REQUIRE(custom_index_bitset.find(static_cast<Color>(8)) == custom_index_bitset.end());
   REQUIRE_THROWS(static_cast<void>(custom_index_bitset.test(static_cast<Color>(8))));
   REQUIRE_THROWS(custom_index_bitset.set(static_cast<Color>(8)));
   REQUIRE_THROWS(custom_index_bitset.reset(static_cast<Color>(8)));
+}
+
+TEST_CASE("containers_bitset_reference") {
+  const auto check = [] {
+    magic_enum::containers::bitset<Color> bits{Color::RED};
+    auto red = bits[Color::RED];
+    auto green = bits[Color::GREEN];
+    const auto& same = red;
+    red = same;
+    if (!bits.test(Color::RED)) {
+      return false;
+    }
+    green = red;
+    red = false;
+    red = same;
+    if (bits.test(Color::RED)) {
+      return false;
+    }
+    red = green;
+    if (green.flip()) {
+      return false;
+    }
+    return bits.test(Color::RED) && green.flip() && !bits.test(Color::BLUE);
+  };
+  static_assert(check());
+  REQUIRE(check());
 }
 
 TEST_CASE("containers_bitset_ostream_field_width") {
