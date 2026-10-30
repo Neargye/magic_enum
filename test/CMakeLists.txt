@@ -33,7 +33,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
   set(MAGIC_ENUM_TEST_FLAG_PREFIX -std=)
 
-  # Clang 22+ treats __COUNTER__ as C2y extension; but doctest uses it
+  # Clang 22+ treats __COUNTER__ as a C2y extension, but doctest uses it.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22.0")
     list(APPEND MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wno-c2y-extensions)
   endif()

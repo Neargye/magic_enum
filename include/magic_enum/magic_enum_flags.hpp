@@ -51,8 +51,7 @@ MAGIC_ENUM_CONSTEVAL auto values_ors() noexcept {
 
 } // namespace magic_enum::detail
 
-// Returns name from flag enum value.
-// If flag enum value has no name or is out of range, returns empty string.
+// Returns flag names joined by sep, or an empty string for zero or unknown bits.
 template <typename E>
 [[nodiscard]] auto enum_flags_name(E value, char_type sep = char_type{'|'}) -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
@@ -83,8 +82,7 @@ template <typename E>
   return {}; // Invalid value or out of range.
 }
 
-// Returns flag enum value from integer value.
-// Returns optional containing flag enum value.
+// Returns the flag combination matching the integer, or an empty optional.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
@@ -106,8 +104,7 @@ template <typename E>
   }
 }
 
-// Returns flag enum value from name.
-// Returns optional containing flag enum value.
+// Returns the flag combination matching the separated names, or an empty optional.
 template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_cast(String&& name, [[maybe_unused]] char_type sep = char_type{'|'}, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   string_view value(std::forward<String>(name));
@@ -121,7 +118,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
     return {}; // Empty enum.
   } else {
     auto result = U{0};
-    // Avoid GCC C++26 wrong-code with find/remove_prefix; see https://github.com/Neargye/magic_enum/issues/467.
+    // Avoid GCC C++26 wrong-code with find/remove_prefix (see https://github.com/Neargye/magic_enum/issues/467).
     for (std::size_t first = 0; first < value.size();) {
       auto last = first;
       while (last < value.size() && value[last] != sep) {
@@ -149,7 +146,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
   }
 }
 
-// Returns true if flag enum contains specified value.
+// Returns true if the value is a valid nonzero flag combination.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -158,7 +155,7 @@ template <typename E>
   return static_cast<bool>(enum_flags_cast<D>(static_cast<U>(value)));
 }
 
-// Returns true if flag enum contains specified integer value.
+// Returns true if the integer is a valid nonzero flag combination.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -166,7 +163,7 @@ template <typename E>
   return static_cast<bool>(enum_flags_cast<D>(value));
 }
 
-// Returns true if flag enum contains enumerator with specified name.
+// Returns true if the names form a valid nonzero flag combination.
 template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
@@ -174,8 +171,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
   return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(std::forward<String>(value), sep, p));
 }
 
-// Returns true if `flags` contains `flag`.
-// Returns false if `flag` equals 0 because 0 is not a flag.
+// Returns true if flag is nonzero and all its bits are set in flags.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_test(E flags, E flag) noexcept -> detail::enable_if_t<E, bool> {
   using U = detail::make_unsigned_t<underlying_type_t<E>>;
@@ -184,8 +180,7 @@ template <typename E>
   return flag_value != U{0} && (static_cast<U>(flags) & flag_value) == flag_value;
 }
 
-// Returns true if `lhs` and `rhs` share any flags.
-// Returns false if either value equals 0 because 0 is not a flag.
+// Returns true if lhs and rhs share at least one set bit.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t<E, bool> {
   using U = detail::make_unsigned_t<underlying_type_t<E>>;

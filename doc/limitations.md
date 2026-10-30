@@ -33,7 +33,7 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 ## Enum Range
 
-* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection; standard reflection ignores them.
+* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection. Standard reflection ignores them.
 
 * By default, `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 127`.
 
@@ -74,11 +74,11 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
   }
   ```
 
-  For flag enums, add `.flag<true>()`; `.minmax<...>()` is ignored.
+  For flag enums, add `.flag<true>()`. `.minmax<...>()` is ignored for them.
 
 ## Aliasing
 
-Aliased enumerators share one reflected name. Compiler-specific reflection [depends on the compiler](https://github.com/Neargye/magic_enum/issues/68); standard reflection uses the first declaration.
+Aliased enumerators share one reflected name. Compiler-specific reflection [depends on the compiler](https://github.com/Neargye/magic_enum/issues/68). Standard reflection uses the first declaration.
 
 ```cpp
 enum ShapeKind {

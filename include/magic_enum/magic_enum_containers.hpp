@@ -370,7 +370,7 @@ constexpr int countr_zero(T x) noexcept {
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
-  // _BitScan* intrinsics are not constexpr (C3615), so constant evaluation uses a loop.
+  // MSVC _BitScan* intrinsics cannot run at compile time, so constant evaluation uses a plain loop.
 #  if _MSC_VER >= 1925
   if (!__builtin_is_constant_evaluated()) {
     unsigned long index = 0;
@@ -408,7 +408,7 @@ constexpr int countl_zero(T x) noexcept {
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
-  // _BitScan* intrinsics are not constexpr (C3615), so constant evaluation uses a loop.
+  // MSVC _BitScan* intrinsics cannot run at compile time, so constant evaluation uses a plain loop.
 #  if _MSC_VER >= 1925
   if (!__builtin_is_constant_evaluated()) {
     unsigned long index = 0;
@@ -718,7 +718,7 @@ class bitset {
         MAGIC_ENUM_CONTAINERS_THROW(std::overflow_error("magic_enum::containers::bitset::to: Cannot represent enum in this type"));
       }
     }
-    // Avoids MSVC /analyze C6294 for a single word.
+    // Skip the loop for a single word, otherwise MSVC /analyze warns that it never runs.
     if constexpr (base_type_count > 1) {
       for (std::size_t i = 1; i < base_type_count; ++i) {
         if (a[i] != 0) {

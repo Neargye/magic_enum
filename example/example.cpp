@@ -90,7 +90,7 @@ int main() {
   // Color values: RED BLUE GREEN
 
   enum class Flags { A = 1, B = 2, C = 4, D = 8 };
-  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
+  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flag = Flags::A | Flags::C;
   std::cout << flag << std::endl; // 5

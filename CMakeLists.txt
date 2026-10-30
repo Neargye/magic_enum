@@ -136,7 +136,7 @@ function(magic_enum_make_module_library name)
     target_compile_definitions(${name} PRIVATE ${ARGN})
   endif()
 
-  # Module-only definitions stay private; CMake exports them for installed module sources without propagating them to importers.
+  # Module-only definitions stay private. CMake exports them for installed module sources without propagating them to importers.
   if(MAGIC_ENUM_MODULE_WITH_FMT)
     # Use fmt::fmt until fmt provides stable installed C++ module support.
     target_link_libraries(${name} PUBLIC fmt::fmt)

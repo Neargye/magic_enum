@@ -544,7 +544,7 @@ MAGIC_ENUM_CONSTEVAL cname_ref unqualified(cname_ref name) noexcept {
   return name;
 }
 
-// Parsing lives outside n() because a template body is copied into every scanned instantiation.
+// Parse signatures outside n() to keep each instantiation small.
 MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* str, [[maybe_unused]] std::size_t size) noexcept {
 #if defined(__clang__)
   return {str + 34, size - 35};
@@ -706,8 +706,7 @@ MAGIC_ENUM_CONSTEVAL auto enum_name() noexcept {
 template <typename E, E V>
 inline constexpr auto enum_name_v = enum_name<E, V>();
 
-// bit_cast can admit values rejected by a constant static_cast.
-// Compiler names exclude them, custom names need this check.
+// Reject custom values that bit_cast accepts but constant static_cast rejects.
 template <typename E, auto V, typename = void>
 inline constexpr bool is_valid_custom_value_v = false;
 
@@ -1576,7 +1575,7 @@ template <typename E>
   return name;
 }
 
-// Returns number of enum values.
+// Returns the number of reflected enum values.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_count() noexcept -> detail::enable_if_t<E, std::size_t> {
   return detail::count_v<std::decay_t<E>, S>;
@@ -1653,8 +1652,7 @@ template <typename E>
   return static_cast<underlying_type_t<E>>(value);
 }
 
-// Returns index in enum values from enum value.
-// Returns optional with index.
+// Returns the index of the enum value in enum_values, or an empty optional.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
@@ -1674,8 +1672,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   }
 }
 
-// Returns index in enum values from enum value.
-// Returns optional with index.
+// Returns the index of the enum value in enum_values, or an empty optional.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   return enum_index<std::decay_t<E>, S>(value);
@@ -1702,8 +1699,7 @@ template <auto V>
   return name;
 }
 
-// Returns name from enum value.
-// If enum value does not have name or value out of range, returns empty string.
+// Returns the reflected name of the enum value, or an empty string.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
@@ -1715,8 +1711,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::static_str<0>{}.str();
 }
 
-// Returns name from enum value.
-// If enum value does not have name or value out of range, returns empty string.
+// Returns the reflected name of the enum value, or an empty string.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   return enum_name<std::decay_t<E>, S>(value);
@@ -1743,8 +1738,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
 inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
-// Returns enum value from integer value.
-// Returns optional with enum value.
+// Returns the enum value matching the integer, or an empty optional.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
@@ -1765,8 +1759,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   }
 }
 
-// Returns enum value from name.
-// Returns optional with enum value.
+// Returns the enum value matching the name, or an empty optional.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_cast(String&& name, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
@@ -1783,7 +1776,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
         [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
   } else {
 #endif
-    // Avoids MSVC /analyze C6294 for empty enums.
+    // Skip the loop for empty enums, otherwise MSVC /analyze warns that it never runs.
     if constexpr (detail::count_v<D, S> > 0) {
       for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
         if (detail::cmp_equal(value, detail::names_v<D, S>[i], p)) {

@@ -197,7 +197,7 @@ static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, max};
   return value.count() == 64 && value.test(Bits65::B00) && value.test(Bits65::B63) && !value.test(Bits65::B64) && value.to_ullong(magic_enum::containers::raw_access) == max;
 }());
-// MSVC C++17 bit scans must stay usable in constant expressions (C3615).
+// Bitset iteration must stay constexpr on MSVC in C++17, where _BitScan* intrinsics are not.
 static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, (1ULL << 5) | (1ULL << 40)};
   auto it = value.begin();

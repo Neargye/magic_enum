@@ -194,7 +194,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
-  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
+  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
   magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
@@ -232,7 +232,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
   ```cpp
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // Use with care; operators are enabled for all enums.
+  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flags = Flags::A | (Flags::B & ~Flags::C);
   ```
@@ -329,7 +329,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * Use CMake with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
 * Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum?q=magic_enum), or [Meson](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
 * Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
-* Use Bazel with `MODULE.bazel` or `http_archive`; target is `@magic_enum//:magic_enum`.
+* Use Bazel with `MODULE.bazel` or `http_archive`. The target is `@magic_enum//:magic_enum`.
 * Use ROS with `<depend>magic_enum</depend>` in `package.xml`, then link `magic_enum::magic_enum`.
 
 * **CMake targets**:
@@ -370,6 +370,6 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * Xcode >= 10
 * GCC >= 9
 
-C++26 reflection is selected automatically when available; see [limitations](doc/limitations.md#c26-standard-reflection).
+C++26 reflection is selected automatically when available. See [limitations](doc/limitations.md#c26-standard-reflection).
 
 ## Licensed under the [MIT License](LICENSE)
