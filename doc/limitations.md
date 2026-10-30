@@ -56,7 +56,7 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
   struct magic_enum::customize::enum_range<number> {
     static constexpr int min = 100;
     static constexpr int max = 300;
-    // (max - min) must be less than UINT16_MAX.
+    // min and max must fit in int, (max - min) must be less than UINT16_MAX.
   };
   ```
 

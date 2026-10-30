@@ -127,15 +127,12 @@ using result_t = std::enable_if_t<std::is_enum_v<D> && !std::is_same_v<R, nonesu
 template <typename E, enum_subtype S, typename Result, typename F>
 using result_with_fallback_t = result_t<E, S, Result, F, true>;
 
-// Same as std::is_invocable_r_v<R, F, V>, but reuses invoke_result_t already instantiated by result_type.
-template <typename R, typename F, typename V, typename T = invoke_result_t<F, V>>
-inline constexpr bool switch_invocable_v = !std::is_same_v<T, nonesuch> && (std::is_void_v<R> || std::is_same_v<T, R> || std::is_convertible_v<T, R>);
-
 #define MAGIC_ENUM_SWITCH_CASE(J)                                                         \
   case cases[(J)]:                                                                        \
     if constexpr ((J) + Page < count_v<E, S>) {                                           \
       using V = enum_constant<values_v<E, S>[(J) + Page]>;                                \
-      if constexpr (!switch_invocable_v<R, F, V>) {                                       \
+      using T = invoke_result_t<F, V>;                                                    \
+      if constexpr (std::is_same_v<T, nonesuch> || !(std::is_void_v<R> || std::is_same_v<T, R> || std::is_convertible_v<T, R>)) { \
         return def();                                                                     \
       } else if constexpr (std::is_member_pointer_v<std::decay_t<F>>) {                   \
         return static_cast<R>(detail::invoke_constant(std::forward<F>(f), V{}));          \

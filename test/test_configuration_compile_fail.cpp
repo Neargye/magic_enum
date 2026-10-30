@@ -149,8 +149,36 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Em
   return value == EmptyCustomName::Second ? customize_t{""} : default_tag;
 }
 
-// The scan accepts any custom name, so the empty name must be rejected even when no name is built.
+// The empty name must be rejected even when no name is built.
 constexpr auto count = magic_enum::enum_count<EmptyCustomName>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 10
+
+#  include <magic_enum/magic_enum.hpp>
+
+#  include <limits>
+
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+enum class RangeProbe : int { Value };
+using RangeBound = int;
+#  else
+enum class RangeProbe : long long { Value };
+using RangeBound = long long;
+#  endif
+
+template <>
+struct magic_enum::customize::enum_range<RangeProbe> {
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+  static constexpr RangeBound min = (std::numeric_limits<int>::min)();
+  static constexpr RangeBound max = (std::numeric_limits<int>::max)();
+#  else
+  // Must not be truncated to [0, 10].
+  static constexpr RangeBound min = RangeBound{1} << 32;
+  static constexpr RangeBound max = (RangeBound{1} << 32) + 10;
+#  endif
+};
+
+constexpr auto count = magic_enum::enum_count<RangeProbe>();
 
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.

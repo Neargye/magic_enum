@@ -370,17 +370,28 @@ constexpr int countr_zero(T x) noexcept {
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
-  unsigned long index;
-  if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return _BitScanForward(&index, static_cast<unsigned long>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
-  } else {
-#  ifdef _WIN64
-    return _BitScanForward64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
-#  else
-    if (_BitScanForward(&index, static_cast<unsigned long>(x))) { return static_cast<int>(index); }
-    return _BitScanForward(&index, static_cast<unsigned long>(x >> 32)) ? static_cast<int>(index) + 32 : static_cast<int>(sizeof(T) * 8);
-#  endif
+  // _BitScan* intrinsics are not constexpr (C3615), so constant evaluation uses a loop.
+#  if _MSC_VER >= 1925
+  if (!__builtin_is_constant_evaluated()) {
+    unsigned long index = 0;
+    if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+      return _BitScanForward(&index, static_cast<unsigned long>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
+    } else {
+#    ifdef _WIN64
+      return _BitScanForward64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
+#    else
+      if (_BitScanForward(&index, static_cast<unsigned long>(x))) { return static_cast<int>(index); }
+      return _BitScanForward(&index, static_cast<unsigned long>(x >> 32)) ? static_cast<int>(index) + 32 : static_cast<int>(sizeof(T) * 8);
+#    endif
+    }
   }
+#  endif
+  for (int i = 0; i < static_cast<int>(sizeof(T) * 8); ++i) {
+    if (((x >> i) & 1) != 0) {
+      return i;
+    }
+  }
+  return static_cast<int>(sizeof(T) * 8);
 #else
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
     return x ? __builtin_ctz(static_cast<unsigned int>(x)) : static_cast<int>(sizeof(T) * 8);
@@ -397,17 +408,28 @@ constexpr int countl_zero(T x) noexcept {
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
-  unsigned long index;
-  if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
-  } else {
-#  ifdef _WIN64
-    return _BitScanReverse64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
-#  else
-    if (_BitScanReverse(&index, static_cast<unsigned long>(x >> 32))) { return static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 33; }
-    return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
-#  endif
+  // _BitScan* intrinsics are not constexpr (C3615), so constant evaluation uses a loop.
+#  if _MSC_VER >= 1925
+  if (!__builtin_is_constant_evaluated()) {
+    unsigned long index = 0;
+    if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+      return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+    } else {
+#    ifdef _WIN64
+      return _BitScanReverse64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+#    else
+      if (_BitScanReverse(&index, static_cast<unsigned long>(x >> 32))) { return static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 33; }
+      return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+#    endif
+    }
   }
+#  endif
+  for (int i = static_cast<int>(sizeof(T) * 8) - 1; i >= 0; --i) {
+    if (((x >> i) & 1) != 0) {
+      return static_cast<int>(sizeof(T) * 8) - 1 - i;
+    }
+  }
+  return static_cast<int>(sizeof(T) * 8);
 #else
   // __builtin_clz* counts leading zeros in the promoted type width, not in T.
   // We must subtract the extra bits introduced by zero-extension.
@@ -600,17 +622,17 @@ constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&&a)[N], std::index_sequ
 } // namespace detail
 
 template <typename E, typename T, std::size_t N>
-constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&a)[N]) {
+[[nodiscard]] constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&a)[N]) {
   return detail::to_array_impl<E>(a, std::make_index_sequence<N>{});
 }
 
 template <typename E, typename T, std::size_t N>
-constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&&a)[N]) {
+[[nodiscard]] constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&&a)[N]) {
   return detail::to_array_impl<E>(std::move(a), std::make_index_sequence<N>{});
 }
 
 template <typename E, typename... Ts>
-constexpr std::enable_if_t<(enum_count<E>() == sizeof...(Ts)), array<E, std::remove_cv_t<std::common_type_t<Ts...>>>> make_array(Ts&&... ts) {
+[[nodiscard]] constexpr std::enable_if_t<(enum_count<E>() == sizeof...(Ts)), array<E, std::remove_cv_t<std::common_type_t<Ts...>>>> make_array(Ts&&... ts) {
   return {{std::forward<Ts>(ts)...}};
 }
 
@@ -878,7 +900,7 @@ class bitset {
 
   template <typename Cmp = std::equal_to<>>
   constexpr explicit bitset(string_view sv, Cmp&& cmp = {}, char_type sep = char_type{'|'}) : a{{}} {
-    for (std::size_t to = 0; (to = magic_enum::detail::find(sv, sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
+    for (std::size_t to = 0; (to = sv.find(sep)) != string_view::npos; sv.remove_prefix(to + 1)) {
       if (auto v = enum_cast<E, magic_enum::detail::subtype_v<E>, Cmp&>(sv.substr(0, to), cmp)) {
         set(*v);
       } else {
@@ -936,7 +958,7 @@ class bitset {
     return end();
   }
 
-  constexpr bool test(E pos) const {
+  [[nodiscard]] constexpr bool test(E pos) const {
     if (auto i = index_type::at(pos); i && *i < size()) {
       return static_cast<bool>(const_reference(this, *i));
     }
@@ -1180,25 +1202,25 @@ class set {
     return *this;
   }
 
-  constexpr const_iterator begin() const noexcept {
+  [[nodiscard]] constexpr const_iterator begin() const noexcept {
     return const_iterator{this, index_type::begin(), index_type::end(), index_type::begin()};
   }
 
-  constexpr const_iterator end() const noexcept {
+  [[nodiscard]] constexpr const_iterator end() const noexcept {
     return const_iterator{this, index_type::begin(), index_type::end(), index_type::end()};
   }
 
-  constexpr const_iterator cbegin() const noexcept { return begin(); }
+  [[nodiscard]] constexpr const_iterator cbegin() const noexcept { return begin(); }
 
-  constexpr const_iterator cend() const noexcept { return end(); }
+  [[nodiscard]] constexpr const_iterator cend() const noexcept { return end(); }
 
-  constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator{end()}; }
+  [[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator{end()}; }
 
-  constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator{begin()}; }
+  [[nodiscard]] constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator{begin()}; }
 
-  constexpr const_reverse_iterator crbegin() const noexcept { return rbegin(); }
+  [[nodiscard]] constexpr const_reverse_iterator crbegin() const noexcept { return rbegin(); }
 
-  constexpr const_reverse_iterator crend() const noexcept { return rend(); }
+  [[nodiscard]] constexpr const_reverse_iterator crend() const noexcept { return rend(); }
 
   [[nodiscard]] constexpr bool empty() const noexcept { return s == 0; }
 
@@ -1404,42 +1426,42 @@ template <typename V, int = 0>
 explicit set(V starter) -> set<V>;
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
+[[nodiscard]] constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {
   return a.a[J];
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
+[[nodiscard]] constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&&> get(array<E, V, Index>&& a) noexcept {
   return std::move(a.a[J]);
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
+[[nodiscard]] constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&> get(const array<E, V, Index>& a) noexcept {
   return a.a[J];
 }
 
 template <auto J, typename E, typename V, typename Index>
-constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
+[[nodiscard]] constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), const V&&> get(const array<E, V, Index>&& a) noexcept {
   return std::move(a.a[J]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&> get(array<E, V, Index>& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&> get(array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&&> get(array<E, V, Index>&& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&&> get(array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&> get(const array<E, V, Index>& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&> get(const array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&&> get(const array<E, V, Index>&& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&&> get(const array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 

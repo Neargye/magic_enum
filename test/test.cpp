@@ -2339,7 +2339,15 @@ TEST_CASE("multdimensional-switch-case") {
 
 #if __has_include(<fmt/format.h>)
 #  define FMT_HEADER_ONLY
+// GCC 15+ reports a false -Warray-bounds in fmt 9 format_decimal when the header-only float path is inlined.
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Warray-bounds"
+#  endif
 #  include <fmt/format.h>
+#  if defined(__GNUC__) && !defined(__clang__)
+#    pragma GCC diagnostic pop
+#  endif
 #  define MAGIC_ENUM_TEST_HAS_FMT
 #endif
 

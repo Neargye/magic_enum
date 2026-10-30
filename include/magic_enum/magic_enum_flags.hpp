@@ -177,7 +177,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
 // Returns true if `flags` contains `flag`.
 // Returns false if `flag` equals 0 because 0 is not a flag.
 template <typename E>
-constexpr auto enum_flags_test(E flags, E flag) noexcept -> detail::enable_if_t<E, bool> {
+[[nodiscard]] constexpr auto enum_flags_test(E flags, E flag) noexcept -> detail::enable_if_t<E, bool> {
   using U = detail::make_unsigned_t<underlying_type_t<E>>;
 
   const auto flag_value = static_cast<U>(flag);
@@ -187,7 +187,7 @@ constexpr auto enum_flags_test(E flags, E flag) noexcept -> detail::enable_if_t<
 // Returns true if `lhs` and `rhs` share any flags.
 // Returns false if either value equals 0 because 0 is not a flag.
 template <typename E>
-constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t<E, bool> {
+[[nodiscard]] constexpr auto enum_flags_test_any(E lhs, E rhs) noexcept -> detail::enable_if_t<E, bool> {
   using U = detail::make_unsigned_t<underlying_type_t<E>>;
 
   return (static_cast<U>(lhs) & static_cast<U>(rhs)) != U{0};

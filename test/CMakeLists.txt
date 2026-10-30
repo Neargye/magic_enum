@@ -333,6 +333,20 @@ magic_enum_make_compile_fail_test(
   9
   "magic_enum::customize requires not empty string."
 )
+magic_enum_make_compile_fail_test(
+  configuration
+  range-int-span
+  10
+  "magic_enum::enum_range requires valid size."
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  range-outside-int
+  10
+  "magic_enum::enum_range requires min and max to fit in int."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-cpp17 c++17)
 target_compile_definitions(test_enum_count-cpp17 PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp17 c++17)

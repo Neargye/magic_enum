@@ -197,6 +197,14 @@ static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, max};
   return value.count() == 64 && value.test(Bits65::B00) && value.test(Bits65::B63) && !value.test(Bits65::B64) && value.to_ullong(magic_enum::containers::raw_access) == max;
 }());
+// MSVC C++17 bit scans must stay usable in constant expressions (C3615).
+static_assert([] {
+  constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, (1ULL << 5) | (1ULL << 40)};
+  auto it = value.begin();
+  const bool forward = *it == Bits65::B05 && *++it == Bits65::B40 && ++it == value.end();
+  auto rit = value.end();
+  return forward && *--rit == Bits65::B40 && *--rit == Bits65::B05;
+}());
 #if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
 static_assert(std::bidirectional_iterator<ColorBitset::iterator>);
 static_assert(std::bidirectional_iterator<ColorSet::iterator>);
