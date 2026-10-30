@@ -1014,7 +1014,7 @@ TEST_CASE("enum_switch") {
       check(static_cast<CStyleFlags>(1 << i));
     }
     check(static_cast<CStyleFlags>(0));
-    check(static_cast<CStyleFlags>(CStyleFlags_A | CStyleFlags_I));
+    check(CStyleFlags_A | CStyleFlags_I);
 
     static_assert(enum_switch<int>([](auto val) { return val() == Directions::Right ? 63 : 0; }, Directions::Right, -1) == 63);
     static_assert(enum_switch<int>([](auto val) { return val() == Numbers::many ? 30 : 0; }, Numbers::many, -1) == 30);
@@ -1039,6 +1039,15 @@ constexpr void constexpr_for(F&& f) {
 
 template <typename E, E V>
 struct Foo {};
+
+TEST_CASE("enum_for_each") {
+  REQUIRE(enum_for_each<Directions>([](auto val) { return val(); }) == enum_values<Directions>());
+  REQUIRE(enum_for_each<BoolFlags>([](auto val) { return val(); }) == enum_values<BoolFlags>());
+
+  std::size_t calls = 0;
+  enum_for_each<Numbers>([&calls](auto) { ++calls; });
+  REQUIRE(calls == enum_count<Numbers>());
+}
 
 TEST_CASE("constexpr_for") {
   constexpr_for<0, magic_enum::enum_count<Color>(), 1>([](auto i) {

@@ -929,7 +929,7 @@ class foo1 {
 };
 class foo2 {
  public:
-  enum lt6 { s6, loooooooooooooooooooong6 };
+  enum lt6 : int { s6, loooooooooooooooooooong6 };
 };
 
 namespace boo1 {
@@ -943,7 +943,7 @@ class foo1 {
 };
 class foo2 {
  public:
-  enum lt6 { s6, loooooooooooooooooooong6 };
+  enum lt6 : int { s6, loooooooooooooooooooong6 };
 };
 } // namespace boo1
 
@@ -959,7 +959,7 @@ class foo1 {
 };
 class foo2 {
  public:
-  enum lt6 { s6, loooooooooooooooooooong6 };
+  enum lt6 : int { s6, loooooooooooooooooooong6 };
 };
 } // namespace boo2::boo3
 } // namespace boo2
@@ -975,7 +975,7 @@ class a_foo1 {
 };
 class a_foo2 {
  public:
-  enum a_lt6 { s6, loooooooooooooooooooong6 };
+  enum a_lt6 : int { s6, loooooooooooooooooooong6 };
 };
 } // namespace
 
@@ -1049,6 +1049,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
     REQUIRE_FALSE(enum_name(static_cast<foo1::lt5>(12)).size());
+    REQUIRE_FALSE(enum_name(static_cast<foo2::lt6>(12)).size());
 
     REQUIRE(enum_name(boo1::lt1::s1) == "s1");
     REQUIRE(enum_name(boo1::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1064,6 +1065,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo1::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
     REQUIRE_FALSE(enum_name(static_cast<boo1::foo1::lt5>(12)).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo1::foo2::lt6>(12)).size());
 
     REQUIRE(enum_name(boo2::boo3::lt1::s1) == "s1");
     REQUIRE(enum_name(boo2::boo3::lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1079,6 +1081,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(boo2::boo3::foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
     REQUIRE_FALSE(enum_name(static_cast<boo2::boo3::foo1::lt5>(12)).size());
+    REQUIRE_FALSE(enum_name(static_cast<boo2::boo3::foo2::lt6>(12)).size());
 
     REQUIRE(enum_name(a_lt1::s1) == "s1");
     REQUIRE(enum_name(a_lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");
@@ -1094,6 +1097,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(a_foo2::loooooooooooooooooooong6) == "loooooooooooooooooooong6");
 
     REQUIRE_FALSE(enum_name(static_cast<a_foo1::a_lt5>(12)).size());
+    REQUIRE_FALSE(enum_name(static_cast<a_foo2::a_lt6>(12)).size());
   }
 
   SUBCASE("static storage") {
@@ -2032,7 +2036,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::reflected_min<number, as_common<>>() == 100);
     REQUIRE(magic_enum::detail::min_v<number, as_common<>> == 100);
 
-    REQUIRE(magic_enum::detail::reflected_min<Binary, as_common<>>() == 0);
+    REQUIRE(magic_enum::detail::reflected_min<Binary, as_common<>>() == false);
     REQUIRE(magic_enum::detail::min_v<Binary, as_common<>> == false);
 
     REQUIRE(magic_enum::detail::reflected_min<MaxUsedAsInvalid, as_common<>>() == 0);
@@ -2072,7 +2076,7 @@ TEST_CASE("extrema") {
     REQUIRE(magic_enum::detail::max_v<number, as_common<>> == 300);
 #endif
 
-    REQUIRE(magic_enum::detail::reflected_max<Binary, as_common<>>() == 1);
+    REQUIRE(magic_enum::detail::reflected_max<Binary, as_common<>>() == true);
     REQUIRE(magic_enum::detail::max_v<Binary, as_common<>> == true);
 
     REQUIRE(magic_enum::detail::reflected_max<MaxUsedAsInvalid, as_common<>>() == 64);
@@ -2185,13 +2189,6 @@ struct LvalueOnlyForEach {
   }
 };
 
-struct RvalueOnlyForEach {
-  template <typename T>
-  constexpr int operator()(T value) && noexcept {
-    return enum_integer(value());
-  }
-};
-
 struct ForEachCommaResult {
   ForEachCommaResult operator,(ForEachCommaResult) const = delete;
 };
@@ -2239,11 +2236,22 @@ TEST_CASE("enum_for_each") {
     });
     REQUIRE(workResults == std::array<std::string_view, 3>{{"default", "override", "default"}});
 
-    constexpr auto colorSequence = std::make_index_sequence<enum_count<Color>()>{};
-    static_assert(detail::all_invocable<Color, detail::subtype_v<Color>, LvalueOnlyForEach>(colorSequence));
-    static_assert(!detail::all_invocable<Color, detail::subtype_v<Color>, RvalueOnlyForEach>(colorSequence));
     constexpr auto colorValues = enum_for_each<Color>(LvalueOnlyForEach{});
     REQUIRE(colorValues == std::array<int, 3>{{-12, 7, 15}});
+  }
+
+  SUBCASE("reference and value return types") {
+    int value = 7;
+    const auto results = enum_for_each<Color>([&](auto color) -> decltype(auto) {
+      if constexpr (color == Color::RED) {
+        return (value);
+      } else {
+        return int{value};
+      }
+    });
+    static_assert(std::is_same_v<std::remove_const_t<decltype(results)>, std::tuple<int, int, int>>);
+    value = 9;
+    REQUIRE(std::get<0>(results) == 7);
   }
 
   SUBCASE("different return type") {

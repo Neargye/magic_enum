@@ -47,9 +47,11 @@ MAGIC_ENUM_CONSTEVAL std::size_t fuse_bit_width() noexcept {
 
 template <typename E>
 constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
+  // MSVC may otherwise calculate the width at runtime in C++17.
+  constexpr auto width = fuse_bit_width<E>();
   if (hash) {
     if (const auto index = enum_index(value)) {
-      return (*hash << fuse_bit_width<E>()) | *index;
+      return (*hash << width) | *index;
     }
   }
   return {};

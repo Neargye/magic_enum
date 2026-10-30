@@ -180,6 +180,23 @@ struct magic_enum::customize::enum_range<RangeProbe> {
 
 constexpr auto count = magic_enum::enum_count<RangeProbe>();
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 11
+
+#  include <magic_enum/magic_enum_utility.hpp>
+
+enum class ForEachEnum { First, Second };
+
+struct ForEachVisitor {
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+  template <typename T>
+  void operator()(T) && {}
+#  else
+  void operator()(magic_enum::enum_constant<ForEachEnum::First>) const {}
+#  endif
+};
+
+void for_each_probe() { magic_enum::enum_for_each<ForEachEnum>(ForEachVisitor{}); }
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

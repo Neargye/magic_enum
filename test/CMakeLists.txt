@@ -347,6 +347,20 @@ magic_enum_make_compile_fail_test(
   "magic_enum::enum_range requires min and max to fit in int."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
+magic_enum_make_compile_fail_test(
+  configuration
+  for-each-rvalue-only
+  11
+  "magic_enum::enum_for_each requires invocable of all enum value."
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  for-each-partial
+  11
+  "magic_enum::enum_for_each requires invocable of all enum value."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-cpp17 c++17)
 target_compile_definitions(test_enum_count-cpp17 PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp17 c++17)

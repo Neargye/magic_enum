@@ -416,18 +416,8 @@ class static_str {
   char_type chars_[static_cast<std::size_t>(N) + 1];
 
  private:
-  // Dependent on C, so clang does not check the char branch against a wide char_type.
-  template <typename C = char_type>
-  [[nodiscard]] static constexpr C to_char_type(char value) noexcept {
-    if constexpr (std::is_same_v<C, char>) {
-      return value;
-    } else {
-      return static_cast<C>(value);
-    }
-  }
-
   template <std::uint16_t... J>
-  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, J...>) noexcept : chars_{to_char_type(str[J])..., char_type{}} {}
+  constexpr static_str(const char* str, std::integer_sequence<std::uint16_t, J...>) noexcept : chars_{static_cast<char_type>(str[J])..., char_type{}} {}
 
   template <std::uint16_t... J>
   constexpr static_str(string_view str, std::integer_sequence<std::uint16_t, J...>) noexcept : chars_{str[J]..., char_type{}} {}
@@ -875,15 +865,10 @@ template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
     return 0;
+  } else if constexpr (cmp_less((std::numeric_limits<U>::min)(), range_min<E>::value)) {
+    return range_min<E>::value;
   } else {
-    constexpr auto lhs = range_min<E>::value;
-    constexpr auto rhs = (std::numeric_limits<U>::min)();
-
-    if constexpr (cmp_less(rhs, lhs)) {
-      return lhs;
-    } else {
-      return rhs;
-    }
+    return (std::numeric_limits<U>::min)();
   }
 }
 
@@ -891,15 +876,10 @@ template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_max() noexcept {
   if constexpr (S == enum_subtype::flags) {
     return std::numeric_limits<U>::digits - 1;
+  } else if constexpr (cmp_less(range_max<E>::value, (std::numeric_limits<U>::max)())) {
+    return range_max<E>::value;
   } else {
-    constexpr auto lhs = range_max<E>::value;
-    constexpr auto rhs = (std::numeric_limits<U>::max)();
-
-    if constexpr (cmp_less(lhs, rhs)) {
-      return lhs;
-    } else {
-      return rhs;
-    }
+    return (std::numeric_limits<U>::max)();
   }
 }
 

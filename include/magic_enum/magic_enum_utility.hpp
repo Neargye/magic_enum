@@ -47,24 +47,18 @@ using enum_for_each_result_t = std::decay_t<std::invoke_result_t<F&, enum_consta
 
 template <typename E, enum_subtype S, typename F, std::size_t... J>
 constexpr auto for_each(F&& f, std::index_sequence<J...>) {
-  constexpr bool has_void_return = (std::is_void_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> || ...);
-  constexpr bool all_same_return = (std::is_same_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[0]>>, std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> && ...);
-
-  if constexpr (has_void_return) {
-    (static_cast<void>(detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})), ...);
-  } else if constexpr (all_same_return) {
-    return std::array<enum_for_each_result_t<E, S, F, 0>, sizeof...(J)>{{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...}};
+  if constexpr (sizeof...(J) == 0) {
+    static_cast<void>(f);
+  } else if constexpr ((std::is_invocable_v<F&, enum_constant<values_v<E, S>[J]>> && ...)) {
+    if constexpr ((std::is_void_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> || ...)) {
+      (static_cast<void>(detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})), ...);
+    } else if constexpr ((std::is_same_v<std::invoke_result_t<F&, enum_constant<values_v<E, S>[0]>>, std::invoke_result_t<F&, enum_constant<values_v<E, S>[J]>>> && ...)) {
+      return std::array<enum_for_each_result_t<E, S, F, 0>, sizeof...(J)>{{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...}};
+    } else {
+      return std::tuple<enum_for_each_result_t<E, S, F, J>...>{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...};
+    }
   } else {
-    return std::tuple<enum_for_each_result_t<E, S, F, J>...>{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...};
-  }
-}
-
-template <typename E, enum_subtype S, typename F, std::size_t... J>
-MAGIC_ENUM_CONSTEVAL bool all_invocable(std::index_sequence<J...>) {
-  if constexpr (count_v<E, S> == 0) {
-    return false;
-  } else {
-    return (std::is_invocable_v<F&, enum_constant<values_v<E, S>[J]>> && ...);
+    static_assert(always_false_v<E>, "magic_enum::enum_for_each requires invocable of all enum value.");
   }
 }
 
@@ -75,16 +69,7 @@ constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
   static_assert(std::is_enum_v<D>, "magic_enum::enum_for_each requires enum type.");
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
-  constexpr auto sep = std::make_index_sequence<detail::count_v<D, S>>{};
-
-  if constexpr (detail::count_v<D, S> == 0) {
-    // An empty enum has no values to call f with, so there is no result type to deduce.
-    static_cast<void>(f);
-  } else if constexpr (detail::all_invocable<D, S, F>(sep)) {
-    return detail::for_each<D, S>(std::forward<F>(f), sep);
-  } else {
-    static_assert(detail::always_false_v<D>, "magic_enum::enum_for_each requires invocable of all enum value.");
-  }
+  return detail::for_each<D, S>(std::forward<F>(f), std::make_index_sequence<detail::count_v<D, S>>{});
 }
 
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
