@@ -34,6 +34,12 @@ struct magic_enum::customize::enum_range<Color> {
   static constexpr bool is_flags = true;
 };
 
+enum class BoolFlags : bool { None = false, Enabled = true };
+template <>
+struct magic_enum::customize::enum_range<BoolFlags> {
+  static constexpr bool is_flags = true;
+};
+
 enum class Empty {};
 
 enum class ReverseOrder { First, Second, Third };
@@ -729,6 +735,21 @@ TEST_CASE("container indexing preserves the requested order") {
   REQUIRE(*throwing_bits.begin() == ThrowingEnum::A);
 }
 
+TEST_CASE("containers bool flags") {
+  constexpr magic_enum::containers::set<BoolFlags> enabled(BoolFlags::Enabled);
+  static_assert(enabled.size() == 1);
+  REQUIRE(enabled.contains(BoolFlags::Enabled));
+
+  constexpr magic_enum::containers::set<BoolFlags> empty(BoolFlags::None);
+  static_assert(empty.empty());
+  REQUIRE_FALSE(empty.contains(BoolFlags::Enabled));
+
+  const magic_enum::containers::bitset<BoolFlags> enabled_bits(BoolFlags::Enabled);
+  REQUIRE(enabled_bits.count() == 1);
+  REQUIRE(enabled_bits.test(BoolFlags::Enabled));
+  REQUIRE(magic_enum::containers::bitset<BoolFlags>(BoolFlags::None).none());
+}
+
 TEST_CASE("containers_set") {
 
   using namespace magic_enum::bitwise_operators;
@@ -786,6 +807,13 @@ TEST_CASE("containers_set") {
   REQUIRE(color_set_assign.contains(Color::GREEN));
   REQUIRE_FALSE(color_set_assign.contains(Color::RED));
   REQUIRE_FALSE(color_set_assign.contains(Color::BLUE));
+
+  const magic_enum::containers::set<Color> color_set_mask(Color::RED | Color::BLUE);
+  REQUIRE(color_set_mask.size() == 2);
+  REQUIRE(color_set_mask.contains(Color::RED));
+  REQUIRE(color_set_mask.contains(Color::BLUE));
+  REQUIRE(magic_enum::containers::set<Color>(static_cast<Color>(0)).empty());
+  REQUIRE_THROWS(magic_enum::containers::set<Color>(Color::RED | static_cast<Color>(8)));
 
   magic_enum::containers::set<Color, magic_enum::containers::name_less<>> color_name_set {Color::RED, Color::GREEN, Color::BLUE};
   constexpr magic_enum::string_view green_name = "GREEN";

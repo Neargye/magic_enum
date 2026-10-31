@@ -16,6 +16,7 @@
 #include <array>
 #include <cctype>
 #include <iomanip>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -72,12 +73,10 @@ enum number : unsigned long {
   two = 1 << 2,
   three = 1 << 3,
   four = 1 << 4,
-#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
   _1 = one,
   _2 = two,
   _3 = three,
   _4 = four
-#endif
 };
 template <>
 struct magic_enum::customize::enum_range<number> {
@@ -206,6 +205,55 @@ TEST_CASE("named composite flags require every constituent bit") {
   static_assert(!enum_flags_cast<CompleteBits>("Autoincrement").has_value());
   CHECK(enum_flags_name(MissingBit::Autoincrement).empty());
   CHECK(enum_flags_name(CompleteBits::Autoincrement) == "Binary|Empty");
+}
+
+TEST_CASE("signed flags include the sign bit") {
+  enum class Int8Flags : std::int8_t { Low = 1, Mid = 4, High = -128 };
+  enum class Int64Flags : std::int64_t { Low = 1, High = std::numeric_limits<std::int64_t>::min() };
+  constexpr auto flags = as_flags<true>;
+
+  constexpr auto values = enum_values<Int8Flags, flags>();
+  static_assert(values.size() == 3);
+  static_assert(values[0] == Int8Flags::High);
+  static_assert(values[1] == Int8Flags::Low);
+  static_assert(values[2] == Int8Flags::Mid);
+  static_assert(enum_min<Int8Flags, flags>() == Int8Flags::High);
+  static_assert(enum_max<Int8Flags, flags>() == Int8Flags::Mid);
+  static_assert(enum_index<Int8Flags, flags>(Int8Flags::High).value() == 0);
+  static_assert(enum_value<Int8Flags, flags>(0) == Int8Flags::High);
+  static_assert(enum_reflected<Int8Flags, flags>(std::int8_t{-128}));
+  static_assert(enum_cast<Int8Flags, flags>(-128) == Int8Flags::High);
+  static_assert(enum_flags_cast<Int8Flags>(-127) == static_cast<Int8Flags>(-127));
+  static_assert(!enum_flags_cast<Int8Flags>(-126).has_value());
+  static_assert(enum_flags_cast<Int8Flags>("Low|High") == static_cast<Int8Flags>(-127));
+  CHECK(enum_name<Int8Flags, flags>(Int8Flags::High) == "High");
+  CHECK(enum_flags_name(static_cast<Int8Flags>(-127)) == "High|Low");
+
+  static_assert(enum_count<Int64Flags, flags>() == 2);
+  static_assert(enum_values<Int64Flags, flags>()[0] == Int64Flags::High);
+  static_assert(enum_flags_cast<Int64Flags>("High|Low") == static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1));
+  CHECK(enum_flags_name(static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1)) == "High|Low");
+}
+
+TEST_CASE("integer flags cast checks the value before narrowing") {
+  enum class U8Flags : std::uint8_t { A = 1, B = 2 };
+  enum class I8Flags : std::int8_t { A = 1, High = -128 };
+
+  static_assert(enum_flags_cast<U8Flags>(3) == static_cast<U8Flags>(3));
+  static_assert(!enum_flags_cast<U8Flags>(257).has_value());
+  static_assert(!enum_flags_contains<U8Flags>(258));
+  static_assert(enum_flags_cast<I8Flags>(-127) == static_cast<I8Flags>(-127));
+  static_assert(!enum_flags_cast<I8Flags>(129).has_value());
+  static_assert(!enum_flags_cast<BoolFlags>(2).has_value());
+  static_assert(!enum_flags_contains<BoolFlags>(2));
+
+  // Wider arguments keep their sign, so INT64_MIN does not become bit 63.
+  enum class Wide : std::uint64_t { Low = 1, High = std::uint64_t{1} << 63 };
+  static_assert(enum_flags_cast<Wide>(std::uint64_t{1} << 63) == Wide::High);
+  static_assert(!enum_flags_cast<Wide>((std::numeric_limits<std::int64_t>::min)()).has_value());
+  static_assert(!enum_flags_contains<Wide>(-1));
+  static_assert(!enum_flags_cast<I8Flags>((std::numeric_limits<std::uint64_t>::max)()).has_value());
+  static_assert(enum_flags_cast<I8Flags>(std::int64_t{-128}) == I8Flags::High);
 }
 
 TEST_CASE("enum_cast") {
@@ -421,7 +469,9 @@ TEST_CASE("enum_contains") {
 
     constexpr auto nto = enum_contains(number::three | number::one);
     REQUIRE(enum_contains(number::one));
-    REQUIRE(enum_contains<number&>(number::two));
+    // A reference E binds the enum value overload, so the argument must be an lvalue.
+    number nv = number::two;
+    REQUIRE(enum_contains<number&>(nv));
     REQUIRE(enum_contains(number::one));
     REQUIRE(enum_contains(number::four));
     REQUIRE_FALSE(nto);

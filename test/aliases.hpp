@@ -19,8 +19,8 @@ struct MyOpt {
   constexpr const T& value() const { return val; }
 
  private:
-  bool mHasValue;
-  T val;
+  const bool mHasValue;
+  const T val;
 };
 
 struct MyString {

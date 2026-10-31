@@ -100,7 +100,6 @@
 // Checks magic_enum compiler compatibility.
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION) || defined(__clang__) && __clang_major__ >= 9 || defined(__GNUC__) && __GNUC__ >= 9 || defined(_MSC_VER) && _MSC_VER >= 1920
 #  define MAGIC_ENUM_SUPPORTED 1
-#  define MAGIC_ENUM_SUPPORTED_ALIASES 1
 #elif defined(__RESHARPER__)
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
@@ -496,7 +495,7 @@ template <typename T>
 constexpr bool has_single_bit(T value) noexcept {
   using V = make_unsigned_t<T>;
   const auto v = static_cast<V>(value);
-  return value > T{0} && (v & (v - V{1})) == V{0};
+  return v != V{0} && (v & (v - V{1})) == V{0};
 }
 
 // Drops everything up to the last ':' of a qualified name.
@@ -806,7 +805,8 @@ MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_max() noexcept {
   if constexpr (S == enum_subtype::flags) {
-    return std::numeric_limits<U>::digits - 1;
+    // Include the sign bit of signed types.
+    return std::numeric_limits<U>::digits + std::is_signed_v<U> - 1;
   } else if constexpr (cmp_less(range_max<E>::value, (std::numeric_limits<U>::max)())) {
     return range_max<E>::value;
   } else {
@@ -873,9 +873,11 @@ template <typename E, enum_subtype S, std::size_t Size, int Min>
 MAGIC_ENUM_CONSTEVAL auto values() noexcept {
   constexpr auto vc = valid_offsets<E, S, Size, Min>();
   if constexpr (vc.count > 0) {
+    // A negative sign bit flag goes first, so values ascend as in the standard reflection table.
+    constexpr std::size_t first = (S == enum_subtype::flags && cmp_less(ualue<E, Min, S>(vc.offsets[vc.count - 1]), 0)) ? 1 : 0;
     std::array<E, vc.count> values = {};
     for (std::size_t i = 0; i < vc.count; ++i) {
-      values[i] = value<E, Min, S>(vc.offsets[i]);
+      values[(i + first) % vc.count] = value<E, Min, S>(vc.offsets[i]);
     }
     return values;
   } else {
@@ -997,9 +999,9 @@ MAGIC_ENUM_CONSTEVAL bool is_sparse() noexcept {
   } else if constexpr (S == enum_subtype::flags) {
     constexpr auto max = log2(static_cast<V>(max_v<E, S>));
     constexpr auto min = log2(static_cast<V>(min_v<E, S>));
-    constexpr auto range_size = max - min + 1;
 
-    return range_size != count_v<E, S>;
+    // A negative sign bit flag goes first, so min can exceed max.
+    return max < min || static_cast<std::size_t>(max - min) + 1 != count_v<E, S>;
   } else {
     // Dense lookup passes min to value() as an int. The unsigned span does not overflow on wide ranges.
     constexpr auto span = static_cast<V>(static_cast<V>(max_v<E, S>) - static_cast<V>(min_v<E, S>));
@@ -1060,6 +1062,23 @@ struct underlying_type {};
 
 template <typename T>
 struct underlying_type<T, true> : std::underlying_type<std::decay_t<T>> {};
+
+// Integer overloads take integral types and unscoped enums, which convert implicitly like integers.
+template <typename T, bool = std::is_enum_v<T>>
+struct is_integer_input : std::is_integral<T> {};
+
+template <typename T>
+struct is_integer_input<T, true> : std::is_convertible<T, std::underlying_type_t<T>> {};
+
+// Integer arguments keep their own type, so a value outside the underlying type is rejected before narrowing.
+template <typename E, typename I, typename U = typename underlying_type<E>::type>
+constexpr bool in_underlying_range(I value) noexcept {
+  if constexpr (std::is_enum_v<I>) {
+    return in_underlying_range<E>(static_cast<std::underlying_type_t<I>>(value));
+  } else {
+    return !cmp_less(value, (std::numeric_limits<U>::min)()) && !cmp_less((std::numeric_limits<U>::max)(), value);
+  }
+}
 
 template <typename F, typename T, T V>
 constexpr decltype(auto) invoke_constant(F&& f, std::integral_constant<T, V>&& value) noexcept(std::is_nothrow_invocable_v<F, std::integral_constant<T, V>>) {
@@ -1170,8 +1189,8 @@ constexpr optional<std::size_t> index_switch(typename Cases::type value) noexcep
   }
 }
 
-template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr optional<std::size_t> index_of(U value) noexcept {
+template <typename E, enum_subtype S>
+constexpr optional<std::size_t> index_of(std::underlying_type_t<E> value) noexcept {
   if constexpr (count_v<E, S> == 0) {
     return {};
   } else if constexpr (is_sparse_v<E, S> || (S == enum_subtype::flags)) {
@@ -1270,8 +1289,8 @@ struct hash_cases {
   }
 };
 
-template <typename T, std::size_t N>
-MAGIC_ENUM_CONSTEVAL void hash_heap_sift_down(std::array<T, N>& values, std::size_t root, std::size_t end) noexcept {
+template <typename T>
+MAGIC_ENUM_CONSTEVAL void hash_heap_sift_down(T* values, std::size_t root, std::size_t end) noexcept {
   while (root < end / 2) {
     auto child = root * 2 + 1;
     if (child + 1 < end && values[child] < values[child + 1]) {
@@ -1287,12 +1306,12 @@ MAGIC_ENUM_CONSTEVAL void hash_heap_sift_down(std::array<T, N>& values, std::siz
   }
 }
 
-template <typename T, std::size_t N>
-MAGIC_ENUM_CONSTEVAL void hash_heap_sort(std::array<T, N>& values) noexcept {
-  for (auto root = N / 2; root > 0; --root) {
-    hash_heap_sift_down(values, root - 1, N);
+template <typename T>
+MAGIC_ENUM_CONSTEVAL void hash_heap_sort(T* values, std::size_t size) noexcept {
+  for (auto root = size / 2; root > 0; --root) {
+    hash_heap_sift_down(values, root - 1, size);
   }
-  for (auto end = N; end > 1; --end) {
+  for (auto end = size; end > 1; --end) {
     auto tmp = values[0];
     values[0] = values[end - 1];
     values[end - 1] = tmp;
@@ -1306,7 +1325,7 @@ MAGIC_ENUM_CONSTEVAL bool has_unique_hashes() noexcept {
   for (std::size_t i = 0; i < hashes.size(); ++i) {
     hashes[i] = hash_v<Hash>((*Arr)[i]);
   }
-  hash_heap_sort(hashes);
+  hash_heap_sort(hashes.data(), hashes.size());
   for (std::size_t i = 1; i < hashes.size(); ++i) {
     if (hashes[i - 1] == hashes[i]) {
       return false;
@@ -1585,13 +1604,15 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
 // Returns the enum value matching the integer, or an empty optional.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
-[[nodiscard]] constexpr auto enum_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I, std::enable_if_t<detail::is_integer_input<I>::value, int> = 0>
+[[nodiscard]] constexpr auto enum_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if (detail::index_of<D, S>(value)) {
-    return static_cast<D>(value);
+  if (detail::in_underlying_range<D>(value)) {
+    if (const auto u = static_cast<underlying_type_t<D>>(value); detail::index_of<D, S>(u)) {
+      return static_cast<D>(u);
+    }
   }
   return {}; // Invalid value or out of range.
 }
@@ -1639,8 +1660,9 @@ template <detail::enum_subtype S, typename E>
 }
 
 // Returns true if enum contains specified integer value.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
-[[nodiscard]] constexpr auto enum_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
+// The enum value overload handles arguments of type E.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
+[[nodiscard]] constexpr auto enum_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   return static_cast<bool>(enum_cast<E, S>(value));
 }
 

@@ -97,14 +97,15 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
 
   std::basic_string<Char, Traits> s;
   is >> s;
-  optional<D> v;
-  if constexpr (detail::supported<D>::value) {
-    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-      v = enum_flags_cast<D>(string_view{s.data(), s.size()});
+  const auto v = [&] {
+    if constexpr (!detail::supported<D>::value) {
+      return optional<D>{};
+    } else if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+      return enum_flags_cast<D>(string_view{s.data(), s.size()});
     } else {
-      v = enum_cast<D>(string_view{s.data(), s.size()});
+      return enum_cast<D>(string_view{s.data(), s.size()});
     }
-  }
+  }();
   if (v) {
     value = *v;
   } else {

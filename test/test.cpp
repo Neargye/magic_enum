@@ -69,12 +69,10 @@ enum number : unsigned long {
   two = 200,
   three = 300,
   four = 400,
-#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
   _1 = one,
   _2 = two,
   _3 = three,
   _4 = four
-#endif
 };
 template <>
 struct magic_enum::customize::enum_range<number> {
@@ -166,9 +164,7 @@ constexpr auto switched_index(E value) noexcept {
   return magic_enum::detail::index_switch<magic_enum::detail::value_cases<E, magic_enum::detail::enum_subtype::common>>(static_cast<magic_enum::detail::switch_t<E>>(value));
 }
 static_assert(switched_index(Color::BLUE) == std::size_t{2});
-#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
 static_assert(switched_index(number::_3) == std::size_t{2});
-#endif
 
 enum class duplicate_custom_name { first, second };
 template <>
@@ -636,6 +632,42 @@ TEST_CASE("enum_index") {
   REQUIRE(hostile.value() == 1);
 }
 
+TEST_CASE("integer cast checks the value before narrowing") {
+  enum class U8 : std::uint8_t { One = 1, Max = 100 };
+  enum class I8 : std::int8_t { Neg = -100, One = 1 };
+
+  static_assert(enum_cast<U8>(1) == U8::One);
+  static_assert(!enum_cast<U8>(257).has_value());
+  static_assert(!enum_contains<U8>(257));
+  static_assert(enum_cast<I8>(-100) == I8::Neg);
+  static_assert(!enum_cast<I8>(156).has_value());
+  static_assert(!enum_cast<I8>(257).has_value());
+  static_assert(!enum_contains<I8>(-255));
+  static_assert(enum_cast<Binary>(1) == Binary::TWO);
+  static_assert(!enum_cast<Binary>(2).has_value());
+
+  int negative = -255;
+  REQUIRE_FALSE(enum_cast<U8>(static_cast<std::uintmax_t>(negative)).has_value());
+  REQUIRE_FALSE(enum_contains<U8>(static_cast<std::uintmax_t>(negative)));
+  REQUIRE_FALSE(enum_cast<U8>(negative).has_value());
+  REQUIRE_FALSE(enum_contains<U8>(negative));
+
+  // Wider arguments keep their sign, so UINT64_MAX does not wrap to -1.
+  enum class Small : std::int8_t { MinusOne = -1, One = 1 };
+  static_assert(enum_cast<Small>(-1) == Small::MinusOne);
+  static_assert(enum_cast<Small>(std::uint64_t{1}) == Small::One);
+  static_assert(!enum_cast<Small>((std::numeric_limits<std::uint64_t>::max)()).has_value());
+  static_assert(!enum_contains<Small>((std::numeric_limits<std::uintmax_t>::max)()));
+  static_assert(!enum_cast<U8>(-1).has_value());
+  static_assert(!enum_cast<U8>((std::numeric_limits<std::int64_t>::min)()).has_value());
+
+  // Unscoped enums of another type are checked through their underlying value.
+  enum Raw : int { RawOne = 1, RawBig = 257 };
+  static_assert(enum_cast<U8>(RawOne) == U8::One);
+  static_assert(!enum_cast<U8>(RawBig).has_value());
+  static_assert(!enum_contains<U8>(RawBig));
+}
+
 TEST_CASE("enum_contains") {
   SUBCASE("value") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -667,7 +699,9 @@ TEST_CASE("enum_contains") {
 
     constexpr auto nt = enum_contains(number::three);
     REQUIRE(enum_contains(number::one));
-    REQUIRE(enum_contains<number&>(number::two));
+    // A reference E binds the enum value overload, so the argument must be an lvalue.
+    number nv = number::two;
+    REQUIRE(enum_contains<number&>(nv));
     REQUIRE(nt);
 #if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
     REQUIRE(enum_contains(number::four));
@@ -1966,7 +2000,6 @@ TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<decltype(a_foo2::s6)>() == "a_lt6");
 }
 
-#if defined(MAGIC_ENUM_SUPPORTED_ALIASES)
 TEST_CASE("aliases") {
 #if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
   REQUIRE(enum_count<number>() == 4);
@@ -1989,7 +2022,6 @@ TEST_CASE("aliases") {
   REQUIRE_FALSE(enum_cast<number>("_3").has_value());
   REQUIRE_FALSE(enum_cast<number>("_4").has_value());
 }
-#endif
 
 TEST_CASE("extrema") {
   enum class BadColor : std::uint64_t {

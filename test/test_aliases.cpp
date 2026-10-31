@@ -104,6 +104,22 @@ TEST_CASE("istream_operators") {
   require_istream(Direction::Right, "Right");
   require_istream(Color::GREEN, "GREEN");
   require_istream(Color::RED | Color::BLUE, "RED|BLUE");
+
+  // Reading an enum only requires constructing the custom optional.
+  static_assert(!std::is_copy_assignable_v<optional<Direction>>);
+  static_assert(!std::is_move_assignable_v<optional<Color>>);
+  const auto check_invalid = [](auto initial) {
+    using magic_enum::istream_operators::operator>>;
+    for (const auto text : {"UNKNOWN", ""}) {
+      std::istringstream stream{text};
+      auto value = initial;
+      stream >> value;
+      REQUIRE(stream.fail());
+      REQUIRE(value == initial);
+    }
+  };
+  check_invalid(Direction::Right);
+  check_invalid(Color::GREEN);
 }
 
 TEST_CASE("string_view lifetime and null termination") {

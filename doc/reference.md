@@ -79,8 +79,8 @@
 ## `enum_cast`
 
 ```cpp
-template <typename E>
-constexpr optional<E> enum_cast(underlying_type_t<E> value) noexcept;
+template <typename E, typename I>
+constexpr optional<E> enum_cast(I value) noexcept;
 
 template <typename E>
 constexpr optional<E> enum_cast(string_view value) noexcept;
@@ -92,6 +92,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
 * Returns the matching enum value as `optional<E>`, or an empty optional if no value matches.
+
+* The integer overload takes any integral type or unscoped enum and keeps the argument type. It checks that the value fits the underlying type before narrowing it. For a `std::uint8_t` underlying type, `enum_cast<E>(257)` and `enum_cast<E>(-1)` are empty, and for a `std::int8_t` underlying type `enum_cast<E>(UINT64_MAX)` is empty. `enum_contains`, `enum_flags_cast`, and `enum_flags_contains` do the same. Floating point arguments are not accepted.
 
 * `case_insensitive` provides ASCII case-insensitive matching for `enum_cast`, `enum_contains`, `enum_flags_cast`, and `enum_flags_contains`.
 
@@ -421,8 +423,8 @@ constexpr size_t enum_index() noexcept;
 template <typename E>
 constexpr bool enum_contains(E value) noexcept;
 
-template <typename E>
-constexpr bool enum_contains(underlying_type_t<E> value) noexcept;
+template <typename E, typename I>
+constexpr bool enum_contains(I value) noexcept;
 
 template <typename E>
 constexpr bool enum_contains(string_view value) noexcept;
@@ -461,7 +463,7 @@ constexpr bool enum_reflected(underlying_type_t<E> value) noexcept;
 
 * With compiler-specific reflection, returns `true` for a value in the configured range.
 
-* For flags, the value must be positive and single-bit.
+* For flags, the value must be single-bit. For a signed underlying type, the sign bit counts as a flag.
 
 ## `enum_type_name`
 
@@ -598,8 +600,8 @@ constexpr E enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept;
 template <typename E>
 string enum_flags_name(E value, char_type sep = '|');
 
-template <typename E>
-constexpr optional<E> enum_flags_cast(underlying_type_t<E> value) noexcept;
+template <typename E, typename I>
+constexpr optional<E> enum_flags_cast(I value) noexcept;
 
 template <typename E>
 constexpr optional<E> enum_flags_cast(string_view value, char_type sep = '|') noexcept;
@@ -610,8 +612,8 @@ constexpr optional<E> enum_flags_cast(string_view value, char_type sep, BinaryPr
 template <typename E>
 constexpr bool enum_flags_contains(E value) noexcept;
 
-template <typename E>
-constexpr bool enum_flags_contains(underlying_type_t<E> value) noexcept;
+template <typename E, typename I>
+constexpr bool enum_flags_contains(I value) noexcept;
 
 template <typename E>
 constexpr bool enum_flags_contains(string_view value, char_type sep = '|') noexcept;
@@ -632,9 +634,11 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * `enum_flags_cast` - Returns the flag combination as `optional<E>`, or an empty optional for zero, unknown bits, or invalid names.
 
+* Flag names are split at each separator without trimming. Repeated names are allowed, and one trailing separator is ignored, so `"Left|"` parses as `Left`. An empty string, a leading separator, or two adjacent separators are rejected.
+
 * `enum_flags_contains` - Checks whether the value or names form a valid nonzero flag combination.
 
-* `enum_flags_test` - Checks whether `flags` contains `flag`. Returns `false` if `flag` equals `0`.
+* `enum_flags_test` - Checks whether `flags` contains `flag`. Returns `false` if `flag` equals `0`, even when `flags` is also `0`. Compare with the zero value directly, for example `flags == E{}`, to check for an empty mask.
 
 * `enum_flags_test_any` - Checks whether `lhs` and `rhs` share any flags. Returns `false` if either value equals `0`.
 
@@ -1086,7 +1090,9 @@ class bitset {
 
 * With `raw_access`, bit `I` corresponds to `enum_values<E>()[I]` for default indexing and to `*Index::it(I)` for custom indexing. This mapping is independent of underlying enum values.
 
-* Construction from single `E` value and conversion to `E` are available only for flag enums.
+* Construction from single `E` value and conversion to `E` are available only for flag enums. Construction from a value with unknown bits throws `std::invalid_argument`.
+
+* Construction from names follows the `enum_flags_cast` grammar, except that an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`.
 
 * Provides `std::hash` specialization for use in unordered containers.
 
@@ -1256,7 +1262,7 @@ class set {
 
 * Distinct enum values remain distinct even if comparator treats them as equivalent. Lookup with another key type can match multiple values.
 
-* Construction from single `E` value is available only for flag enums.
+* Construction from single `E` value is available only for flag enums. It inserts each reflected flag set in the value. A value with unknown bits throws `std::invalid_argument`, and zero gives an empty set.
 
 * Examples
 

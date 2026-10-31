@@ -83,8 +83,8 @@ template <typename E>
 }
 
 // Returns the flag combination matching the integer, or an empty optional.
-template <typename E>
-[[nodiscard]] constexpr auto enum_flags_cast(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
+template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value, int> = 0>
+[[nodiscard]] constexpr auto enum_flags_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using V = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
@@ -94,10 +94,14 @@ template <typename E>
     static_cast<void>(value);
     return {}; // Empty enum.
   } else {
-    const auto flag_value = static_cast<V>(value);
+    if (!detail::in_underlying_range<D>(value)) {
+      return {}; // Value does not fit the underlying type.
+    }
+    const auto u = static_cast<underlying_type_t<D>>(value);
+    const auto flag_value = static_cast<V>(u);
     constexpr auto mask = detail::values_ors<D>();
     if (flag_value != V{0} && (flag_value & static_cast<V>(~mask)) == V{0}) {
-      return static_cast<D>(value);
+      return static_cast<D>(u);
     }
     return {}; // Invalid value or out of range.
   }
@@ -146,8 +150,9 @@ template <typename E>
 }
 
 // Returns true if the integer is a valid nonzero flag combination.
-template <typename E>
-[[nodiscard]] constexpr auto enum_flags_contains(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
+// The enum value overload handles arguments of type E.
+template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
+[[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   return static_cast<bool>(enum_flags_cast<E>(value));
 }
 

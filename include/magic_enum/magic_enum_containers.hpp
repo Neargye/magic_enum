@@ -861,7 +861,7 @@ class bitset {
         break;
       }
       if (auto ul = enum_underlying(v); (ul & u) != 0) {
-        u &= ~ul;
+        u ^= ul;
         (*this)[v] = true;
       }
     }
@@ -1124,9 +1124,13 @@ class set {
   constexpr explicit set(V starter) {
     auto u = enum_underlying(starter);
     for (E v : enum_values<E>()) {
-      if ((enum_underlying(v) & u) != 0) {
+      if (auto ul = enum_underlying(v); (ul & u) != 0) {
+        u ^= ul;
         insert(v);
       }
+    }
+    if (u != 0) {
+      MAGIC_ENUM_CONTAINERS_THROW(std::invalid_argument("magic_enum::containers::set::constructor: Unrecognized enum value in flag"));
     }
   }
 

@@ -31,6 +31,8 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 * Zero is not reflected for flag enums.
 
+* For a signed underlying type, the sign bit is reflected as a flag. Values are ordered by signed value, so a negative sign bit flag comes first.
+
 ## Enum Range
 
 * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection. Standard reflection ignores them.
@@ -118,19 +120,6 @@ enum ShapeKind {
 // Non-reflected aliases.
 // magic_enum::enum_cast<ShapeKind>("ConvexBegin") -> nullopt
 // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
-```
-
-On compilers without enum alias support, [such as Visual Studio 2017](https://github.com/Neargye/magic_enum/issues/36), `MAGIC_ENUM_SUPPORTED_ALIASES` is not defined.
-
-```cpp
-enum Number {
-  one = 1,
-  ONE = 1
-};
-// magic_enum::enum_cast<Number>("one") -> nullopt
-// magic_enum::enum_name(Number::one) -> ""
-// magic_enum::enum_cast<Number>("ONE") -> nullopt
-// magic_enum::enum_name(Number::ONE) -> ""
 ```
 
 ## Other Compiler Issues
