@@ -80,8 +80,10 @@ static_assert(reflection_range_values.size() == 2);
 static_assert(reflection_range_values[0] == ReflectionRange::Low);
 static_assert(reflection_range_values[1] == ReflectionRange::High);
 static_assert(magic_enum::enum_reflected(ReflectionRange::High));
-static_assert(!magic_enum::enum_reflected(ReflectionRange{0}));
+static_assert(magic_enum::enum_reflected<ReflectionRange>(5000));
 #endif
+
+static_assert(magic_enum::enum_reflected(ReflectionRange{0}));
 
 constexpr magic_enum::containers::bitset<Color> color_bits{magic_enum::containers::raw_access, 5ULL};
 

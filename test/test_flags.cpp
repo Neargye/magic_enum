@@ -169,15 +169,11 @@ TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<Color, as_flags<>>(Color::BLUE));
   REQUIRE(enum_reflected<Directions>(Directions::Left));
   REQUIRE(enum_reflected<Directions>(Directions::Right));
-#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
-  REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{1} << 62));
-#else
   REQUIRE(enum_reflected<Directions>(std::uint64_t{1} << 62));
-#endif
-  REQUIRE_FALSE(enum_reflected<Directions>(Directions::NoDirection));
+  REQUIRE(enum_reflected<Directions>(Directions::NoDirection));
   REQUIRE_FALSE(enum_reflected<Directions>(Directions::Left | Directions::Down));
   REQUIRE_FALSE(enum_reflected<Directions>(std::uint64_t{3}));
-  REQUIRE_FALSE(enum_reflected(BoolFlags::Disabled));
+  REQUIRE(enum_reflected(BoolFlags::Disabled));
   REQUIRE(enum_reflected(BoolFlags::Enabled));
   REQUIRE(enum_reflected<BoolFlags, as_common<>>(BoolFlags::Disabled));
   REQUIRE(enum_reflected<BoolFlags, as_common<>>(BoolFlags::Enabled));
@@ -187,6 +183,40 @@ TEST_CASE("enum_reflected") {
   REQUIRE_FALSE(enum_reflected<Directions, as_common<>>(Directions::Left));
 #endif
   REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
+}
+
+TEST_CASE("enum_reflected separates the flags domain from membership and masks") {
+  enum class ReflF : std::uint8_t { None = 0, A = 1, B = 2, Both = 3 };
+  constexpr auto flags = as_flags<true>;
+
+  static_assert(!enum_reflected<ReflF, flags>(257));
+  static_assert(!enum_reflected<ReflF, flags>(-1));
+  static_assert(enum_reflected<ReflF, flags>(0));
+  static_assert(enum_reflected<ReflF, flags>(4));
+  static_assert(enum_reflected<ReflF, flags>(128));
+  static_assert(!enum_contains<ReflF, flags>(4));
+  static_assert(!enum_reflected<ReflF, flags>(3));
+  static_assert(!enum_reflected<flags>(ReflF::Both));
+  static_assert(enum_flags_contains<ReflF>(3));
+  static_assert(!enum_flags_contains<ReflF>(4));
+
+  static_assert(enum_reflected<BoolFlags>(0));
+  static_assert(enum_reflected<BoolFlags>(1));
+  static_assert(!enum_reflected<BoolFlags>(2));
+
+  enum class ReflInt8Flags : std::int8_t { Low = 1, High = -128 };
+  enum class ReflInt64Flags : std::int64_t { Low = 1 };
+  static_assert(enum_reflected<ReflInt8Flags, flags>(-128));
+  static_assert(enum_reflected<ReflInt8Flags, flags>(64));
+  static_assert(!enum_reflected<ReflInt8Flags, flags>(-127));
+  static_assert(!enum_reflected<ReflInt8Flags, flags>(128));
+  static_assert(enum_reflected<ReflInt64Flags, flags>((std::numeric_limits<std::int64_t>::min)()));
+  static_assert(!enum_reflected<ReflInt64Flags, flags>((std::numeric_limits<std::uint64_t>::max)()));
+
+  enum class ReflEmptyFlags : std::uint8_t {};
+  static_assert(enum_reflected<ReflEmptyFlags, flags>(0));
+  static_assert(enum_reflected<ReflEmptyFlags, flags>(64));
+  static_assert(!enum_reflected<ReflEmptyFlags, flags>(65));
 }
 
 TEST_CASE("bool flag text lookup does not convert pointers to true") {
@@ -355,6 +385,7 @@ TEST_CASE("customization decides whether zero is a flag value") {
   static_assert(enum_values<HiddenZeroFlags>()[0] == HiddenZeroFlags::A);
   static_assert(!enum_flags_cast<HiddenZeroFlags>(0).has_value());
   static_assert(!enum_flags_cast<HiddenZeroFlags>("None").has_value());
+  static_assert(enum_reflected<HiddenZeroFlags>(0));
   static_assert(!enum_cast<HiddenZeroFlags, as_common<>>(0).has_value());
   CHECK(enum_flags_name(HiddenZeroFlags::None).empty());
   CHECK(enum_name<as_common<>>(HiddenZeroFlags::None).empty());

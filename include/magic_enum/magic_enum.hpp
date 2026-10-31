@@ -498,6 +498,12 @@ constexpr bool has_single_bit(T value) noexcept {
   return v != V{0} && (v & (v - V{1})) == V{0};
 }
 
+// Flag candidates need not have reflected names.
+template <typename T>
+constexpr bool is_flag_candidate(T value) noexcept {
+  return value == T{0} || has_single_bit(value);
+}
+
 // Drops everything up to the last ':' of a qualified name.
 MAGIC_ENUM_CONSTEVAL cname_ref unqualified(cname_ref name) noexcept {
   for (std::size_t i = name.size_; i > 0; --i) {
@@ -650,15 +656,6 @@ enum class enum_subtype {
 
 namespace reflection {
 
-template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr bool value_valid(E value) noexcept {
-  if constexpr (S == enum_subtype::common) {
-    return true;
-  } else {
-    return has_single_bit(static_cast<U>(value));
-  }
-}
-
 struct name_ref {
   const char_type* data = nullptr;
   std::size_t size = 0;
@@ -688,8 +685,7 @@ consteval auto canonical_data() noexcept {
 
   template for (constexpr auto enumerator : enumerators_v<E>) {
     constexpr E value = [:enumerator:];
-    // A named zero belongs to the flags table, although it is not a bit.
-    if constexpr (value_valid<E, S>(value) || static_cast<U>(value) == U{0}) {
+    if constexpr (S == enum_subtype::common || is_flag_candidate(static_cast<U>(value))) {
       constexpr auto custom = customize::enum_name<E>(value);
       static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
 
@@ -1675,36 +1671,32 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
   return static_cast<bool>(enum_cast<E, S, BinaryPredicate&>(std::forward<String>(value), p));
 }
 
-// Returns true if enum integer value can be reflected.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
-[[nodiscard]] constexpr auto enum_reflected(underlying_type_t<E> value) noexcept -> detail::enable_if_t<E, bool> {
+// Checks the reflection domain, not enumerator membership.
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
+[[nodiscard]] constexpr auto enum_reflected(I value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
+  using U = underlying_type_t<D>;
 
-#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-  return detail::reflection::contains_underlying<D>(value) && detail::reflection::value_valid<D, S>(static_cast<D>(value));
-#else
-  using T = underlying_type_t<D>;
-  if constexpr (!detail::is_reflected_v<D, S>) {
+  if (!detail::in_underlying_range<D>(value)) {
     return false;
+  }
+
+  [[maybe_unused]] const auto v = static_cast<U>(value);
+  if constexpr (S == detail::enum_subtype::flags) {
+    return detail::is_flag_candidate(v);
   } else {
+#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+    // Standard reflection has no scan range.
+    return true;
+#else
     constexpr auto min = detail::reflected_min<D, S>();
     constexpr auto max = detail::reflected_max<D, S>();
-
-    if constexpr (S == detail::enum_subtype::common) {
-      return !detail::cmp_less(value, min) && !detail::cmp_less(max, value);
-    } else {
-      if (!detail::has_single_bit(value)) {
-        return false;
-      }
-
-      const auto bit = detail::log2(static_cast<detail::make_unsigned_t<T>>(value));
-      return !detail::cmp_less(bit, min) && !detail::cmp_less(max, bit);
-    }
-  }
+    return !detail::cmp_less(v, min) && !detail::cmp_less(max, v);
 #endif
+  }
 }
 
-// Returns true if enum value can be reflected.
+// Checks the reflection domain, not enumerator membership.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_reflected(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -1712,7 +1704,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return enum_reflected<D, S>(static_cast<underlying_type_t<D>>(value));
 }
 
-// Returns true if enum value can be reflected.
+// Checks the reflection domain, not enumerator membership.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_reflected(E value) noexcept -> detail::enable_if_t<E, bool> {
   return enum_reflected<std::decay_t<E>, S>(value);

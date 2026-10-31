@@ -668,6 +668,91 @@ TEST_CASE("integer cast checks the value before narrowing") {
   static_assert(!enum_contains<U8>(RawBig));
 }
 
+template <typename E, typename V, typename = void>
+struct can_reflect : std::false_type {};
+
+template <typename E, typename V>
+struct can_reflect<E, V, std::void_t<decltype(enum_reflected<E>(std::declval<V>()))>> : std::true_type {};
+
+template <typename E, typename V, typename = void>
+struct can_contain : std::false_type {};
+
+template <typename E, typename V>
+struct can_contain<E, V, std::void_t<decltype(enum_contains<E>(std::declval<V>()))>> : std::true_type {};
+
+TEST_CASE("enum_reflected checks the value before narrowing") {
+  enum class ReflU8 : std::uint8_t { One = 1, Max = 100 };
+  enum class ReflI8 : std::int8_t { Neg = -100, One = 1 };
+  enum class ReflSmall : std::int8_t { MinusOne = -1, One = 1 };
+  enum class ReflU64 : std::uint64_t { One = 1 };
+  enum class ReflEmpty {};
+
+  static_assert(enum_reflected<ReflU8>(1));
+  static_assert(enum_reflected<ReflU8>(100));
+  static_assert(!enum_reflected<ReflU8>(257));
+  static_assert(!enum_reflected<ReflU8>(-1));
+  static_assert(!enum_reflected<ReflU8>((std::numeric_limits<std::int64_t>::min)()));
+  static_assert(!enum_reflected<ReflI8>(156));
+  static_assert(!enum_reflected<ReflSmall>((std::numeric_limits<std::uint64_t>::max)()));
+  static_assert(enum_reflected<ReflSmall>(-1));
+  static_assert(!enum_reflected<ReflU64>((std::numeric_limits<std::int64_t>::min)()));
+  static_assert(enum_reflected<BoolTest>(0));
+  static_assert(enum_reflected<BoolTest>(1));
+  static_assert(enum_reflected<BoolTest>(true));
+  static_assert(!enum_reflected<BoolTest>(2));
+  static_assert(enum_reflected<ReflEmpty>(0));
+  static_assert(enum_reflected<ReflU8>(2));
+  static_assert(!enum_contains<ReflU8>(2));
+
+  // Explicit narrowing is the caller's choice.
+  static_assert(enum_reflected<ReflU8>(static_cast<std::uint8_t>(257)));
+
+  enum ReflRaw : int { ReflRawOne = 1, ReflRawBig = 257 };
+  static_assert(enum_reflected<ReflU8>(ReflRawOne));
+  static_assert(!enum_reflected<ReflU8>(ReflRawBig));
+
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  static_assert(enum_reflected<ReflU8>(200));
+  static_assert(enum_reflected<ReflI8>(-128));
+  static_assert(enum_reflected<ReflU64>((std::numeric_limits<std::uint64_t>::max)()));
+  static_assert(enum_reflected<ReflEmpty>(121));
+#else
+  static_assert(!enum_reflected<ReflU8>(200));
+  static_assert(!enum_reflected<ReflI8>(-128));
+  static_assert(!enum_reflected<ReflU64>((std::numeric_limits<std::uint64_t>::max)()));
+  static_assert(!enum_reflected<ReflEmpty>(121));
+  static_assert(enum_reflected<ReflEmpty>(120));
+  static_assert(enum_reflected<ReflEmpty>(-120));
+#endif
+
+  static_assert(can_reflect<ReflU8, int>::value && can_contain<ReflU8, int>::value);
+  static_assert(can_reflect<ReflU8, bool>::value && can_contain<ReflU8, bool>::value);
+  static_assert(can_reflect<ReflU8, ReflU8>::value && can_contain<ReflU8, ReflU8>::value);
+  static_assert(can_reflect<ReflU8, ReflRaw>::value && can_contain<ReflU8, ReflRaw>::value);
+  static_assert(!can_reflect<ReflU8, double>::value && !can_contain<ReflU8, double>::value);
+  static_assert(!can_reflect<ReflU8, ReflI8>::value && !can_contain<ReflU8, ReflI8>::value);
+  static_assert(!can_reflect<int, int>::value && !can_contain<int, int>::value);
+
+  // An enum prvalue cannot bind to a non-const reference E.
+  static_assert(can_reflect<ReflRaw&, ReflRaw&>::value && can_contain<ReflRaw&, ReflRaw&>::value);
+  static_assert(!can_reflect<ReflRaw&, ReflRaw>::value && !can_contain<ReflRaw&, ReflRaw>::value);
+  static_assert(can_reflect<const ReflRaw&, ReflRaw>::value && can_contain<const ReflRaw&, ReflRaw>::value);
+  ReflRaw raw = ReflRawOne;
+  REQUIRE(enum_reflected<ReflRaw&>(raw));
+  ReflU8 u8 = ReflU8::One;
+  REQUIRE(enum_reflected<ReflU8&>(u8));
+  REQUIRE(enum_reflected<const ReflU8&>(1));
+  REQUIRE_FALSE(enum_reflected<const ReflU8&>(257));
+
+  constexpr bool (*from_int)(int) noexcept = &enum_reflected<ReflU8>;
+  constexpr bool (*from_u64)(std::uint64_t) noexcept = &enum_reflected<ReflU8>;
+  constexpr bool (*from_enum)(ReflU8) noexcept = &enum_reflected<ReflU8>;
+  REQUIRE(from_int(1));
+  REQUIRE_FALSE(from_int(257));
+  REQUIRE_FALSE(from_u64((std::numeric_limits<std::uint64_t>::max)()));
+  REQUIRE(from_enum(ReflU8::Max));
+}
+
 TEST_CASE("enum_contains") {
   SUBCASE("value") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};
@@ -2520,20 +2605,19 @@ TEST_CASE("valid_enum") {
 TEST_CASE("enum_reflected") {
   REQUIRE(enum_reflected<number>(number::one));
   REQUIRE(enum_reflected<number>(number::three));
-#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
-  REQUIRE(enum_reflected<number>(number::four));
-  REQUIRE(enum_reflected<number>(100));
-  REQUIRE_FALSE(enum_reflected<number>(101));
-  REQUIRE_FALSE(enum_reflected<number>(234));
-  REQUIRE(enum_reflected<number>(300));
-  REQUIRE(enum_reflected<number>(400));
-#else
-  REQUIRE_FALSE(enum_reflected<number>(number::four));
   REQUIRE(enum_reflected<number>(100));
   REQUIRE(enum_reflected<number>(101));
   REQUIRE(enum_reflected<number>(234));
   REQUIRE(enum_reflected<number>(300));
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  // Standard reflection has no scan range, so every representable value is in the domain.
+  REQUIRE(enum_reflected<number>(number::four));
+  REQUIRE(enum_reflected<number>(400));
+  REQUIRE(enum_reflected<number>(500));
+#else
+  REQUIRE_FALSE(enum_reflected<number>(number::four));
   REQUIRE_FALSE(enum_reflected<number>(400));
-#endif
   REQUIRE_FALSE(enum_reflected<number>(500));
+#endif
+  REQUIRE_FALSE(enum_reflected<number>(-1));
 }

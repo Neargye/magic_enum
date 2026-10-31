@@ -12,6 +12,9 @@
 
 enum class Dense { A = -2, B = -1, C = 0, D = 1, E = 2 };
 enum class Empty {};
+enum class Opaque : std::uint8_t;
+enum class OpaqueFlags : std::int8_t;
+enum class NoNameScan { A = 1 };
 enum class Sparse : long long { FarLow = -1'000'000, InRange = 17, FarHigh = 900'000'000 };
 enum class Unordered { C = 30, A = 10, B = 20 };
 enum class Aliased { First = 1, AliasFirst = 1, Second = 2, AliasSecond = 2 };
@@ -44,6 +47,17 @@ template <typename>
 struct Holder {
   enum class Nested { B = 2, A = 1 };
 };
+
+template <>
+struct magic_enum::customize::enum_range<OpaqueFlags> {
+  static constexpr bool is_flags = true;
+};
+
+// Non-constexpr customization makes accidental name scanning fail to compile.
+template <>
+magic_enum::customize::customize_t magic_enum::customize::enum_name<NoNameScan>(NoNameScan) noexcept {
+  return invalid_tag;
+}
 
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Customized>(Customized value) noexcept {
@@ -90,6 +104,23 @@ static_assert(magic_enum::detail::is_reflected_v<volatile Dense, magic_enum::det
 static_assert(!magic_enum::detail::is_reflected_v<Empty, magic_enum::detail::enum_subtype::common>);
 static_assert(!magic_enum::detail::is_reflected_v<int, magic_enum::detail::enum_subtype::common>);
 
+TEST_CASE("reflection domain does not require enum names") {
+  static_assert(magic_enum::enum_reflected<Opaque>(0));
+  static_assert(magic_enum::enum_reflected<Opaque>(1));
+  static_assert(!magic_enum::enum_reflected<Opaque>(256));
+  static_assert(!magic_enum::enum_reflected<Opaque>(-1));
+  static_assert(magic_enum::enum_reflected<OpaqueFlags>(0));
+  static_assert(magic_enum::enum_reflected<OpaqueFlags>(-128));
+  static_assert(magic_enum::enum_reflected<OpaqueFlags>(64));
+  static_assert(!magic_enum::enum_reflected<OpaqueFlags>(-127));
+  static_assert(!magic_enum::enum_reflected<OpaqueFlags>(128));
+  static_assert(magic_enum::enum_reflected<NoNameScan>(0));
+  static_assert(magic_enum::enum_reflected<NoNameScan>(1));
+  static_assert(magic_enum::enum_reflected<NoNameScan, magic_enum::as_flags<>>(0));
+  static_assert(magic_enum::enum_reflected<NoNameScan, magic_enum::as_flags<>>(2));
+  static_assert(!magic_enum::enum_reflected<NoNameScan, magic_enum::as_flags<>>(3));
+}
+
 TEST_CASE("canonical common-enum behavior") {
   constexpr auto dense_values = magic_enum::enum_values<Dense>();
   static_assert(dense_values == std::array{Dense::A, Dense::B, Dense::C, Dense::D, Dense::E});
@@ -104,11 +135,11 @@ TEST_CASE("canonical common-enum behavior") {
   static_assert(!magic_enum::enum_contains(Gapped{2}));
   static_assert(!magic_enum::enum_cast<Gapped>(2).has_value());
   static_assert(magic_enum::enum_index(Gapped::B).value() == 1);
-  static_assert(!magic_enum::enum_reflected<Empty>(0));
+  static_assert(magic_enum::enum_reflected<Empty>(0));
   using UnfixedUnderlying = magic_enum::underlying_type_t<Unfixed>;
-  static_assert(!magic_enum::enum_reflected<Unfixed>((std::numeric_limits<UnfixedUnderlying>::max)()));
 
 #if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  static_assert(magic_enum::enum_reflected<Unfixed>((std::numeric_limits<UnfixedUnderlying>::max)()));
   static_assert(magic_enum::enum_values<Sparse>() == std::array{Sparse::FarLow, Sparse::InRange, Sparse::FarHigh});
   static_assert(magic_enum::enum_name(Sparse::FarLow) == "FarLow");
   static_assert(magic_enum::enum_values<Extreme>() == std::array{Extreme::Min, Extreme::Max});
@@ -121,6 +152,7 @@ TEST_CASE("canonical common-enum behavior") {
   static_assert(!magic_enum::enum_contains(static_cast<Extreme>(0)));
   static_assert(magic_enum::enum_switch([](auto v) { return magic_enum::enum_integer(v()); }, Extreme::Max, 0LL) == (std::numeric_limits<long long>::max)());
 #else
+  static_assert(!magic_enum::enum_reflected<Unfixed>((std::numeric_limits<UnfixedUnderlying>::max)()));
   static_assert(magic_enum::enum_values<Sparse>() == std::array{Sparse::InRange});
   static_assert(magic_enum::enum_name(Sparse::FarLow).empty());
 #endif
@@ -169,7 +201,6 @@ TEST_CASE("customization and range semantics") {
   static_assert(magic_enum::enum_values<HugeRange>() == std::array{HugeRange::Low, HugeRange::High});
   static_assert(magic_enum::enum_reflected(HugeRange::Low));
   static_assert(magic_enum::enum_reflected(HugeRange::High));
-  static_assert(!magic_enum::enum_reflected<HugeRange>(0));
 #else
   static_assert(magic_enum::enum_values<Customized>() == std::array{Customized::Declared, Customized{2}});
   static_assert(magic_enum::enum_name(Customized{2}) == "Synthetic");
@@ -177,8 +208,8 @@ TEST_CASE("customization and range semantics") {
   static_assert(magic_enum::enum_cast<Customized>("Synthetic") == Customized{2});
   static_assert(!magic_enum::enum_reflected(HugeRange::Low));
   static_assert(!magic_enum::enum_reflected(HugeRange::High));
-  static_assert(!magic_enum::enum_reflected<HugeRange>(0));
 #endif
+  static_assert(magic_enum::enum_reflected<HugeRange>(0));
 
   static_assert(magic_enum::enum_values<InvalidCustomized>() == std::array{InvalidCustomized::Keep});
   static_assert(magic_enum::enum_name(InvalidCustomized::Drop).empty());
@@ -197,11 +228,9 @@ TEST_CASE("flags and dependent APIs keep canonical indexing") {
   CHECK(magic_enum::enum_flags_name(WideFlags::None) == "None");
   static_assert(magic_enum::enum_flags_cast<WideFlags>("A|B") == WideFlags::AB);
   static_assert(!magic_enum::enum_flags_cast<WideFlags>(std::uint32_t{4}).has_value());
-#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
-  static_assert(!magic_enum::enum_reflected<WideFlags>(std::uint32_t{4}));
-#else
   static_assert(magic_enum::enum_reflected<WideFlags>(std::uint32_t{4}));
-#endif
+  static_assert(magic_enum::enum_reflected<WideFlags>(std::uint32_t{0}));
+  static_assert(!magic_enum::enum_reflected(WideFlags::AB));
 
   constexpr auto visited = magic_enum::enum_for_each<Unordered>([](auto value) {
     return magic_enum::enum_integer(value());

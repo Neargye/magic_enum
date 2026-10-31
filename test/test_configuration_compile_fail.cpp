@@ -107,9 +107,8 @@ constexpr bool empty_reflection() {
   static_assert(std::is_void_v<decltype(magic_enum::enum_switch(ReturnsOne{}, static_cast<E>(0)))>);
   static_assert(magic_enum::enum_switch<int>(ReturnsOne{}, static_cast<E>(0)) == 0);
   static_assert(magic_enum::enum_switch(ReturnsOne{}, static_cast<E>(0), 2) == 2);
-#  else
-  static_assert(!magic_enum::enum_reflected<E>(0));
 #  endif
+  static_assert(magic_enum::enum_reflected<E>(0));
   return true;
 }
 static_assert(empty_reflection<EmptyEnum>());

@@ -66,6 +66,7 @@ static_assert(magic_enum::enum_min<Directions>() == Directions::LEFT);
 static_assert(magic_enum::enum_max<Directions, magic_enum::as_flags<>>() == Directions::RIGHT);
 static_assert(magic_enum::enum_reflected<Directions>(Directions::RIGHT));
 static_assert(!magic_enum::enum_reflected<Directions>(static_cast<Directions>(3)));
+static_assert(!magic_enum::enum_reflected<BoolValue>(2));
 static_assert(magic_enum::enum_cast<Color>("GREEN").value() == Color::GREEN);
 static_assert(magic_enum::enum_contains<Color>("BLUE"));
 static_assert(magic_enum::enum_flags_cast<Directions>("LEFT|RIGHT").value() == static_cast<Directions>(3));
@@ -77,7 +78,8 @@ static_assert(reflection_range_values.size() == 2);
 static_assert(reflection_range_values[0] == ReflectionRange::Low);
 static_assert(reflection_range_values[1] == ReflectionRange::High);
 static_assert(magic_enum::enum_reflected(ReflectionRange::Low));
-static_assert(!magic_enum::enum_reflected(ReflectionRange{0}));
+static_assert(magic_enum::enum_reflected(ReflectionRange{0}));
+static_assert(magic_enum::enum_reflected<ReflectionRange>(5000));
 #endif
 
 // Keep this list in sync with the public declarations exported by magic_enum.cppm.
