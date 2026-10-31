@@ -885,16 +885,15 @@ class bitset {
       : bitset(detail::raw_access_t{}, n == string_view::npos ? string_view{str} : string_view{str, n}, 0, n, zero, one) {}
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
-    if constexpr (magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags) {
-      for (auto& f : starters) {
+    for (const auto f : starters) {
+      if constexpr (magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags) {
         *this |= bitset(f);
-      }
-    } else {
-      for (auto& f : starters) {
+      } else {
         set(f);
       }
     }
   }
+
   template <typename V, std::enable_if_t<std::is_same_v<V, E> && magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, int> = 0>
   constexpr explicit bitset(V starter) : a{{}} {
     auto u = enum_underlying(starter);
@@ -917,7 +916,14 @@ class bitset {
     while (!sv.empty()) {
       const auto to = sv.find(sep);
       if (auto v = enum_cast<E, magic_enum::detail::subtype_v<E>, Cmp&>(sv.substr(0, to), cmp)) {
-        set(*v);
+        // A zero flag is neutral, not a position.
+        if constexpr (magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags) {
+          if (enum_underlying(*v) != 0) {
+            set(*v);
+          }
+        } else {
+          set(*v);
+        }
       } else {
         MAGIC_ENUM_CONTAINERS_THROW(std::invalid_argument("magic_enum::containers::bitset::constructor: Unrecognized enum value in string"));
       }
@@ -970,9 +976,6 @@ class bitset {
   [[nodiscard]] constexpr bool test(E pos) const {
     if (auto i = domain::at(pos); i && *i < size()) {
       return static_cast<bool>(const_reference(this, *i));
-    }
-    if (domain::is_skipped(pos)) {
-      return false; // A named zero has no bit.
     }
     MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::test: Unrecognized position"));
   }
@@ -1045,9 +1048,6 @@ class bitset {
       reference{this, *i} = value;
       return *this;
     }
-    if (domain::is_skipped(pos)) {
-      return *this; // A named zero has no bit.
-    }
     MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::set: Unrecognized position"));
   }
 
@@ -1082,7 +1082,7 @@ class bitset {
     string name;
 
     for (const auto& e : enum_values<E>()) {
-      if (test(e)) {
+      if (!domain::is_skipped(e) && test(e)) {
         if (!name.empty()) {
           name.append(1, sep);
         }
@@ -1090,9 +1090,11 @@ class bitset {
         name.append(n.data(), n.size());
       }
     }
-    if (domain::skip_zero && name.empty()) {
-      const auto n = enum_name(static_cast<E>(0));
-      name.append(n.data(), n.size());
+    if constexpr (domain::skip_zero) {
+      if (name.empty()) {
+        const auto n = enum_name(static_cast<E>(0));
+        name.append(n.data(), n.size());
+      }
     }
     return name;
   }
@@ -1166,29 +1168,21 @@ class set {
 
   constexpr set(std::initializer_list<E> ilist) { insert(ilist); }
 
-  template <typename V, std::enable_if_t<std::is_same_v<V, E> && magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, int> = 0>
-  constexpr explicit set(V starter) {
-    auto u = enum_underlying(starter);
-    for (E v : enum_values<E>()) {
-      if (auto ul = enum_underlying(v); (ul & u) != 0) {
-        u ^= ul;
-        insert(v);
-      }
-    }
-    if (u != 0) {
-      MAGIC_ENUM_CONTAINERS_THROW(std::invalid_argument("magic_enum::containers::set::constructor: Unrecognized enum value in flag"));
-    }
-  }
-
   constexpr set(const set&) noexcept = default;
   constexpr set(set&&) noexcept = default;
 
   constexpr set& operator=(const set&) noexcept = default;
   constexpr set& operator=(set&&) noexcept = default;
-  constexpr set& operator=(std::initializer_list<E> ilist) {
-    clear();
-    insert(ilist);
-    return *this;
+  // Preserve the contents if validation throws.
+  constexpr set& operator=(std::initializer_list<E> ilist) { return *this = set(ilist); }
+
+  // A zero mask yields an empty set, even when zero is named.
+  template <typename V = E, std::enable_if_t<std::is_same_v<V, E> && magic_enum::detail::subtype_v<V> == magic_enum::detail::enum_subtype::flags, int> = 0>
+  [[nodiscard]] static constexpr set from_mask(E mask) {
+    set r;
+    r.a = container_type(mask);
+    r.s = r.a.count();
+    return r;
   }
 
   [[nodiscard]] constexpr const_iterator begin() const noexcept {
@@ -1222,7 +1216,7 @@ class set {
     s = 0;
   }
 
-  constexpr std::pair<iterator, bool> insert(const value_type& value) noexcept {
+  constexpr std::pair<iterator, bool> insert(const value_type& value) {
     if (auto i = index_type::at(value)) {
       auto ref = a[value];
       const bool res = !ref;
@@ -1233,14 +1227,14 @@ class set {
 
       return {iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)}, res};
     }
-    return {end(), false};
+    MAGIC_ENUM_CONTAINERS_THROW(std::invalid_argument("magic_enum::containers::set::insert: Unrecognized enum value"));
   }
 
-  constexpr std::pair<iterator, bool> insert(value_type&& value) noexcept { return insert(value); }
+  constexpr std::pair<iterator, bool> insert(value_type&& value) { return insert(value); }
 
-  constexpr iterator insert(const_iterator, const value_type& value) noexcept { return insert(value).first; }
+  constexpr iterator insert(const_iterator, const value_type& value) { return insert(value).first; }
 
-  constexpr iterator insert(const_iterator hint, value_type&& value) noexcept { return insert(hint, value); }
+  constexpr iterator insert(const_iterator hint, value_type&& value) { return insert(hint, value); }
 
   template <typename InputIt>
   constexpr void insert(InputIt first, InputIt last) {
@@ -1249,7 +1243,7 @@ class set {
     }
   }
 
-  constexpr void insert(std::initializer_list<value_type> ilist) noexcept { insert(ilist.begin(), ilist.end()); }
+  constexpr void insert(std::initializer_list<value_type> ilist) { insert(ilist.begin(), ilist.end()); }
 
   template <typename... Args>
   constexpr std::pair<iterator, bool> emplace(Args&&... args) {
@@ -1406,9 +1400,6 @@ class set {
   container_type a;
   std::size_t s = 0;
 };
-
-template <typename V, int = 0>
-explicit set(V starter) -> set<V>;
 
 template <auto J, typename E, typename V, typename Index>
 [[nodiscard]] constexpr std::enable_if_t<(std::is_integral_v<decltype(J)> && J >= 0 && J < enum_count<E>()), V&> get(array<E, V, Index>& a) noexcept {

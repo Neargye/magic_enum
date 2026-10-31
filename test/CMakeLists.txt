@@ -259,6 +259,16 @@ magic_enum_make_test(test_fuse.cpp test_fuse-cpp17 c++17)
 magic_enum_make_test("test_shared_config.cpp;test_shared_config_other.cpp" test_shared_config-cpp17 c++17)
 magic_enum_make_test("test_shared_config.cpp;test_shared_config_other.cpp" test_shared_config-hash-cpp17 c++17)
 target_compile_definitions(test_shared_config-hash-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+magic_enum_make_test(test_containers_no_exceptions.cpp test_containers_no_exceptions-cpp17 c++17)
+if(MSVC)
+  target_compile_definitions(test_containers_no_exceptions-cpp17 PRIVATE MAGIC_ENUM_NO_EXCEPTION)
+else()
+  target_compile_options(test_containers_no_exceptions-cpp17 PRIVATE -fno-exceptions)
+endif()
+foreach(case_name IN ITEMS set-key set-plain-key from-mask bitset-mask bitset-name bitset-raw-number bitset-raw-string array-at bitset-zero bitset-combination)
+  add_test(NAME test_containers_no_exceptions-${case_name}-cpp17 COMMAND test_containers_no_exceptions-cpp17 ${case_name})
+  set_tests_properties(test_containers_no_exceptions-${case_name}-cpp17 PROPERTIES PASS_REGULAR_EXPRESSION "magic_enum::containers aborted")
+endforeach()
 magic_enum_make_compile_fail_test(
   configuration
   conflicting-assert

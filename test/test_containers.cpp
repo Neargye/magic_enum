@@ -52,6 +52,40 @@ struct magic_enum::customize::enum_range<OnlyZeroFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class ZeroFlags8 : std::uint8_t {
+  None = 0,
+  B0 = std::uint8_t{1} << 0, B1 = std::uint8_t{1} << 1, B2 = std::uint8_t{1} << 2, B3 = std::uint8_t{1} << 3,
+  B4 = std::uint8_t{1} << 4, B5 = std::uint8_t{1} << 5, B6 = std::uint8_t{1} << 6, B7 = std::uint8_t{1} << 7,
+};
+template <>
+struct magic_enum::customize::enum_range<ZeroFlags8> {
+  static constexpr bool is_flags = true;
+};
+
+enum class ZeroFlags64 : std::uint64_t {
+  None = 0,
+  B0 = std::uint64_t{1} << 0, B1 = std::uint64_t{1} << 1, B2 = std::uint64_t{1} << 2, B3 = std::uint64_t{1} << 3,
+  B4 = std::uint64_t{1} << 4, B5 = std::uint64_t{1} << 5, B6 = std::uint64_t{1} << 6, B7 = std::uint64_t{1} << 7,
+  B8 = std::uint64_t{1} << 8, B9 = std::uint64_t{1} << 9, B10 = std::uint64_t{1} << 10, B11 = std::uint64_t{1} << 11,
+  B12 = std::uint64_t{1} << 12, B13 = std::uint64_t{1} << 13, B14 = std::uint64_t{1} << 14, B15 = std::uint64_t{1} << 15,
+  B16 = std::uint64_t{1} << 16, B17 = std::uint64_t{1} << 17, B18 = std::uint64_t{1} << 18, B19 = std::uint64_t{1} << 19,
+  B20 = std::uint64_t{1} << 20, B21 = std::uint64_t{1} << 21, B22 = std::uint64_t{1} << 22, B23 = std::uint64_t{1} << 23,
+  B24 = std::uint64_t{1} << 24, B25 = std::uint64_t{1} << 25, B26 = std::uint64_t{1} << 26, B27 = std::uint64_t{1} << 27,
+  B28 = std::uint64_t{1} << 28, B29 = std::uint64_t{1} << 29, B30 = std::uint64_t{1} << 30, B31 = std::uint64_t{1} << 31,
+  B32 = std::uint64_t{1} << 32, B33 = std::uint64_t{1} << 33, B34 = std::uint64_t{1} << 34, B35 = std::uint64_t{1} << 35,
+  B36 = std::uint64_t{1} << 36, B37 = std::uint64_t{1} << 37, B38 = std::uint64_t{1} << 38, B39 = std::uint64_t{1} << 39,
+  B40 = std::uint64_t{1} << 40, B41 = std::uint64_t{1} << 41, B42 = std::uint64_t{1} << 42, B43 = std::uint64_t{1} << 43,
+  B44 = std::uint64_t{1} << 44, B45 = std::uint64_t{1} << 45, B46 = std::uint64_t{1} << 46, B47 = std::uint64_t{1} << 47,
+  B48 = std::uint64_t{1} << 48, B49 = std::uint64_t{1} << 49, B50 = std::uint64_t{1} << 50, B51 = std::uint64_t{1} << 51,
+  B52 = std::uint64_t{1} << 52, B53 = std::uint64_t{1} << 53, B54 = std::uint64_t{1} << 54, B55 = std::uint64_t{1} << 55,
+  B56 = std::uint64_t{1} << 56, B57 = std::uint64_t{1} << 57, B58 = std::uint64_t{1} << 58, B59 = std::uint64_t{1} << 59,
+  B60 = std::uint64_t{1} << 60, B61 = std::uint64_t{1} << 61, B62 = std::uint64_t{1} << 62, B63 = std::uint64_t{1} << 63,
+};
+template <>
+struct magic_enum::customize::enum_range<ZeroFlags64> {
+  static constexpr bool is_flags = true;
+};
+
 // Places the named zero between the bits.
 struct ZeroInsideIndex {
   static constexpr ZeroFlags order[] = {ZeroFlags::A, ZeroFlags::None, ZeroFlags::B};
@@ -783,11 +817,11 @@ TEST_CASE("container indexing preserves the requested order") {
 }
 
 TEST_CASE("containers bool flags") {
-  constexpr magic_enum::containers::set<BoolFlags> enabled(BoolFlags::Enabled);
+  constexpr auto enabled = magic_enum::containers::set<BoolFlags>::from_mask(BoolFlags::Enabled);
   static_assert(enabled.size() == 1);
   REQUIRE(enabled.contains(BoolFlags::Enabled));
 
-  constexpr magic_enum::containers::set<BoolFlags> empty(BoolFlags::None);
+  constexpr auto empty = magic_enum::containers::set<BoolFlags>::from_mask(BoolFlags::None);
   static_assert(empty.empty());
   REQUIRE_FALSE(empty.contains(BoolFlags::Enabled));
 
@@ -813,17 +847,18 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   static_assert(key.size() == 1);
   static_assert(key.contains(ZeroFlags::None));
   static_assert(key.max_size() == 3);
-  constexpr set<ZeroFlags> mask(ZeroFlags::None);
-  static_assert(mask.empty());
-  constexpr set<ZeroFlags> bits(ZeroFlags::A | ZeroFlags::B);
+  static_assert(set<ZeroFlags>::from_mask(ZeroFlags::None).empty());
+  constexpr auto bits = set<ZeroFlags>::from_mask(ZeroFlags::A | ZeroFlags::B);
   static_assert(bits.size() == 2);
   static_assert(!bits.contains(ZeroFlags::None));
+  static_assert(set<OnlyZeroFlags>{}.empty());
   static_assert(set<OnlyZeroFlags>{OnlyZeroFlags::None}.size() == 1);
+  static_assert(set<OnlyZeroFlags>::from_mask(OnlyZeroFlags::None).empty());
 
   set<ZeroFlags> keys;
   REQUIRE(keys.insert(ZeroFlags::None).second);
   REQUIRE(keys.insert(ZeroFlags::B).second);
-  REQUIRE_FALSE(keys.insert(ZeroFlags::A | ZeroFlags::B).second);
+  REQUIRE_THROWS_AS(keys.insert(ZeroFlags::A | ZeroFlags::B), std::invalid_argument);
   REQUIRE(keys.size() == 2);
   REQUIRE(*keys.begin() == ZeroFlags::None);
   REQUIRE(keys.erase(ZeroFlags::None) == 1);
@@ -841,12 +876,16 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   static_assert(bitset<ZeroFlags>(ZeroFlags::None).none());
   static_assert(bitset<ZeroFlags>(ZeroFlags::A | ZeroFlags::B).all());
 
+  static_assert(bitset<ZeroFlags>{ZeroFlags::None, ZeroFlags::A}.count() == 1);
+
   bitset<ZeroFlags> flags;
-  REQUIRE_FALSE(flags.test(ZeroFlags::None));
-  flags.set(ZeroFlags::None);
+  REQUIRE_THROWS_AS((void)flags.test(ZeroFlags::None), std::out_of_range);
+  REQUIRE_THROWS_AS(flags.set(ZeroFlags::None), std::out_of_range);
+  REQUIRE_THROWS_AS(flags.set(ZeroFlags::None, false), std::out_of_range);
+  REQUIRE_THROWS_AS(flags.reset(ZeroFlags::None), std::out_of_range);
+  REQUIRE_THROWS_AS(flags.set(ZeroFlags::A | ZeroFlags::B), std::out_of_range);
   REQUIRE(flags.none());
   flags.set(ZeroFlags::B);
-  flags.reset(ZeroFlags::None);
   REQUIRE(flags.count() == 1);
   REQUIRE(flags.find(ZeroFlags::None) == flags.end());
   REQUIRE(*flags.begin() == ZeroFlags::B);
@@ -858,16 +897,159 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   REQUIRE(bitset<ZeroFlags>().to_string() == "None");
   REQUIRE(bitset<ZeroFlags>("None|A").to_string() == "A");
   REQUIRE(bitset<ZeroFlags>("None").none());
+  constexpr bitset<ZeroFlags, ZeroInsideIndex> parsed{"None,B,A,None", {}, ','};
+  static_assert(parsed.all());
+  REQUIRE(parsed.to_string() == "A|B");
+  REQUIRE(parsed.to_string(magic_enum::containers::raw_access) == "11");
+  constexpr bitset<Numbers> common_zero{"ONE"};
+  static_assert(common_zero.count() == 1 && common_zero.test(Numbers::ONE));
   REQUIRE(std::hash<bitset<ZeroFlags>>{}(bitset<ZeroFlags>{ZeroFlags::None}) == std::hash<bitset<ZeroFlags>>{}(bitset<ZeroFlags>{}));
 
   bitset<ZeroFlags, ZeroInsideIndex> inside;
   inside.set(ZeroFlags::B);
-  inside.set(ZeroFlags::None);
+  REQUIRE_THROWS_AS(inside.set(ZeroFlags::None), std::out_of_range);
   REQUIRE(inside.size() == 2);
   REQUIRE(inside.to_string(magic_enum::containers::raw_access) == "01");
   REQUIRE(*inside.begin() == ZeroFlags::B);
   inside.set(ZeroFlags::A);
   REQUIRE(std::vector<ZeroFlags>(inside.begin(), inside.end()) == std::vector<ZeroFlags>{ZeroFlags::A, ZeroFlags::B});
+}
+
+template <typename S, typename E, typename = void>
+inline constexpr bool has_from_mask_v = false;
+
+template <typename S, typename E>
+inline constexpr bool has_from_mask_v<S, E, std::void_t<decltype(S::from_mask(std::declval<E>()))>> = true;
+
+template <typename S, typename V, typename = void>
+inline constexpr bool has_explicit_from_mask_v = false;
+
+template <typename S, typename V>
+inline constexpr bool has_explicit_from_mask_v<S, V, std::void_t<decltype(S::template from_mask<V>(std::declval<typename S::value_type>()))>> = true;
+
+TEST_CASE("set takes keys, masks go through from_mask") {
+  using namespace magic_enum::bitwise_operators;
+  using magic_enum::containers::set;
+  constexpr auto unknown = static_cast<ZeroFlags>(4);
+
+  static_assert(!std::is_constructible_v<set<ZeroFlags>, ZeroFlags>);
+  static_assert(!std::is_constructible_v<set<Numbers>, Numbers>);
+  static_assert(std::is_same_v<decltype(set{ZeroFlags::A}), set<ZeroFlags>>);
+  static_assert(has_from_mask_v<set<ZeroFlags>, ZeroFlags>);
+  static_assert(!has_from_mask_v<set<Numbers>, Numbers>);
+  static_assert(!has_from_mask_v<set<ZeroFlags>, int>);
+  static_assert(has_explicit_from_mask_v<set<ZeroFlags>, ZeroFlags>);
+  static_assert(!has_explicit_from_mask_v<set<Numbers>, ZeroFlags>);
+  static_assert(!has_explicit_from_mask_v<set<ZeroFlags>, Color>);
+  static_assert(std::is_same_v<decltype(set<ZeroFlags, std::greater<>>::from_mask(ZeroFlags::A)), set<ZeroFlags, std::greater<>>>);
+  static_assert(*set<ZeroFlags, std::greater<>>::from_mask(ZeroFlags::A | ZeroFlags::B).begin() == ZeroFlags::B);
+  static_assert(!noexcept(std::declval<set<ZeroFlags>&>().insert(ZeroFlags::A)));
+  static_assert(!noexcept(std::declval<set<ZeroFlags>&>().insert(std::declval<std::initializer_list<ZeroFlags>>())));
+
+  REQUIRE_THROWS_AS((void)set<ZeroFlags>{ZeroFlags::A | ZeroFlags::B}, std::invalid_argument);
+  REQUIRE_THROWS_AS((void)set<Numbers>{static_cast<Numbers>(7)}, std::invalid_argument);
+  REQUIRE_THROWS_AS((void)set<ZeroFlags>::from_mask(unknown), std::invalid_argument);
+
+  set<ZeroFlags> keys;
+  const ZeroFlags input[] = {ZeroFlags::A, ZeroFlags::A | ZeroFlags::B, ZeroFlags::B};
+  REQUIRE_THROWS_AS(keys.insert(std::begin(input), std::end(input)), std::invalid_argument);
+  // Range insertion keeps the keys added before the error.
+  REQUIRE(keys.size() == 1);
+  REQUIRE(std::distance(keys.begin(), keys.end()) == 1);
+  REQUIRE(keys.contains(ZeroFlags::A));
+
+  // A failed list assignment keeps the old contents.
+  REQUIRE_THROWS_AS((keys = {ZeroFlags::None, ZeroFlags::A | ZeroFlags::B}), std::invalid_argument);
+  REQUIRE(keys.size() == 1);
+  REQUIRE(keys.contains(ZeroFlags::A));
+  keys = {ZeroFlags::None, ZeroFlags::B};
+  REQUIRE(keys.size() == 2);
+  REQUIRE_FALSE(keys.contains(ZeroFlags::A));
+
+  REQUIRE_THROWS_AS((void)keys.emplace(unknown), std::invalid_argument);
+  REQUIRE_THROWS_AS((void)keys.insert(keys.begin(), unknown), std::invalid_argument);
+  REQUIRE_FALSE(keys.insert(ZeroFlags::B).second);
+  REQUIRE(keys.size() == 2);
+  REQUIRE_FALSE(keys.contains(unknown));
+  REQUIRE(keys.find(unknown) == keys.end());
+  REQUIRE(keys.erase(unknown) == 0);
+}
+
+TEST_CASE_TEMPLATE("named zero preserves full-width flag storage boundaries", E, ZeroFlags8, ZeroFlags64) {
+  using magic_enum::containers::bitset;
+  using magic_enum::containers::raw_access;
+  using magic_enum::containers::set;
+  using U = magic_enum::underlying_type_t<E>;
+  constexpr auto width = static_cast<std::size_t>(std::numeric_limits<U>::digits);
+  constexpr auto full_mask = static_cast<unsigned long long>((std::numeric_limits<U>::max)());
+  constexpr auto high_mask = 1ULL << (width - 1);
+  constexpr auto high = static_cast<E>(high_mask);
+  constexpr auto values = magic_enum::enum_values<E>();
+
+  static_assert(values.size() == width + 1);
+  static_assert(bitset<E>{}.size() == width);
+  static_assert(set<E>{}.max_size() == width + 1);
+  constexpr bitset<E> full{raw_access, full_mask};
+  static_assert(full.all() && full.count() == width);
+  static_assert(full.to_ullong(raw_access) == full_mask);
+  static_assert(static_cast<E>(full) == static_cast<E>(full_mask));
+  static_assert(full.test(high));
+
+  bitset<E> bits;
+  bits.set();
+  REQUIRE(bits == full);
+  REQUIRE(bitset<E>(bits.to_string()) == full);
+  REQUIRE(bits.to_string(raw_access) == std::string(width, '1'));
+  REQUIRE(bits.find(E::None) == bits.end());
+  REQUIRE(std::hash<bitset<E>>{}(bits) == std::hash<unsigned long long>{}(full_mask));
+
+  std::size_t index = 1;
+  for (const auto value : bits) {
+    REQUIRE(index < values.size());
+    REQUIRE(value == values[index++]);
+  }
+  REQUIRE(index == values.size());
+  auto it = bits.end();
+  while (index > 1) {
+    REQUIRE(*--it == values[--index]);
+  }
+  REQUIRE(it == bits.begin());
+
+  bits.flip();
+  REQUIRE(bits.none());
+  REQUIRE(bits.count() == 0);
+  REQUIRE(bits.begin() == bits.end());
+  REQUIRE(bits.to_ullong(raw_access) == 0);
+  REQUIRE(bits.to_string() == "None");
+  bits.flip();
+  REQUIRE(bits == full);
+
+  bits.reset().set(high);
+  REQUIRE(bits.count() == 1);
+  REQUIRE(bits.to_ullong(raw_access) == high_mask);
+  REQUIRE(*bits.begin() == high);
+  REQUIRE(std::next(bits.begin()) == bits.end());
+  REQUIRE(*std::prev(bits.end()) == high);
+  REQUIRE(std::hash<bitset<E>>{}(bits) == std::hash<unsigned long long>{}(high_mask));
+
+  set<E> keys(values.begin(), values.end());
+  REQUIRE(keys.size() == width + 1);
+  REQUIRE(keys.contains(E::None));
+  REQUIRE(keys.contains(high));
+  REQUIRE(std::equal(keys.begin(), keys.end(), values.begin(), values.end()));
+  REQUIRE(*std::prev(keys.end()) == high);
+  REQUIRE(keys.erase(E::None) == 1);
+  REQUIRE(keys.size() == width);
+  REQUIRE_FALSE(keys.contains(E::None));
+  REQUIRE(keys.contains(E::B0));
+  REQUIRE(keys.contains(high));
+  REQUIRE(std::equal(keys.begin(), keys.end(), std::next(values.begin()), values.end()));
+  REQUIRE(keys.erase(high) == 1);
+  REQUIRE(keys.size() == width - 1);
+  REQUIRE_FALSE(keys.contains(high));
+  REQUIRE(keys.insert(E::None).second);
+  REQUIRE(keys.insert(high).second);
+  REQUIRE(std::equal(keys.begin(), keys.end(), values.begin(), values.end()));
 }
 
 TEST_CASE("bitset custom index keeps its contract") {
@@ -898,10 +1080,8 @@ TEST_CASE("containers_set") {
   color_set.insert(Color::GREEN);
   color_set.insert(Color::BLUE);
   color_set.insert(Color::RED);
-  color_set.insert(Color::RED|Color::GREEN);
-  color_set.insert(Color::RED|Color::BLUE);
-  color_set.insert(Color::GREEN|Color::BLUE);
-  color_set.insert(Color::RED|Color::GREEN|Color::BLUE);
+  REQUIRE_THROWS_AS(color_set.insert(Color::RED|Color::GREEN), std::invalid_argument);
+  REQUIRE_THROWS_AS(color_set.insert(Color::RED|Color::GREEN|Color::BLUE), std::invalid_argument);
 
   REQUIRE_FALSE(color_set.empty());
   REQUIRE(color_set.size() == 3);
@@ -941,12 +1121,12 @@ TEST_CASE("containers_set") {
   REQUIRE_FALSE(color_set_assign.contains(Color::RED));
   REQUIRE_FALSE(color_set_assign.contains(Color::BLUE));
 
-  const magic_enum::containers::set<Color> color_set_mask(Color::RED | Color::BLUE);
+  const auto color_set_mask = magic_enum::containers::set<Color>::from_mask(Color::RED | Color::BLUE);
   REQUIRE(color_set_mask.size() == 2);
   REQUIRE(color_set_mask.contains(Color::RED));
   REQUIRE(color_set_mask.contains(Color::BLUE));
-  REQUIRE(magic_enum::containers::set<Color>(static_cast<Color>(0)).empty());
-  REQUIRE_THROWS(magic_enum::containers::set<Color>(Color::RED | static_cast<Color>(8)));
+  REQUIRE(magic_enum::containers::set<Color>::from_mask(static_cast<Color>(0)).empty());
+  REQUIRE_THROWS_AS((void)magic_enum::containers::set<Color>::from_mask(Color::RED | static_cast<Color>(8)), std::invalid_argument);
 
   magic_enum::containers::set<Color, magic_enum::containers::name_less<>> color_name_set {Color::RED, Color::GREEN, Color::BLUE};
   constexpr magic_enum::string_view green_name = "GREEN";
