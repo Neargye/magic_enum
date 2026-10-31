@@ -37,7 +37,14 @@ TEST_CASE("bool enum lookup with custom string_view and optional") {
 }
 
 struct DirectNameInput {
-  operator MyStringView() const { throw 42; }
+  bool should_throw = true;
+  // Keep both conversion paths opaque to MSVC's unreachable-code analysis.
+  DOCTEST_NOINLINE operator MyStringView() const {
+    if (should_throw) {
+      throw 42;
+    }
+    return "RED";
+  }
 };
 
 TEST_CASE("name lookup construction matches noexcept with custom string_view") {
@@ -56,6 +63,7 @@ TEST_CASE("name lookup construction matches noexcept with custom string_view") {
 
   const auto copy_initialize = [](string_view) noexcept {};
   CHECK_THROWS_AS(copy_initialize(name), int);
+  CHECK_NOTHROW(copy_initialize(DirectNameInput{false}));
 }
 
 TEST_CASE("optional") {
