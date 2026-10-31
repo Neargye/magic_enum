@@ -688,7 +688,8 @@ consteval auto canonical_data() noexcept {
 
   template for (constexpr auto enumerator : enumerators_v<E>) {
     constexpr E value = [:enumerator:];
-    if constexpr (value_valid<E, S>(value)) {
+    // A named zero belongs to the flags table, although it is not a bit.
+    if constexpr (value_valid<E, S>(value) || static_cast<U>(value) == U{0}) {
       constexpr auto custom = customize::enum_name<E>(value);
       static_assert(std::is_same_v<std::decay_t<decltype(custom)>, customize::customize_t>, "magic_enum::customize requires customize_t type.");
 
@@ -772,8 +773,9 @@ template <typename E, int O, enum_subtype S, typename U = std::underlying_type_t
 constexpr U ualue(std::size_t i) noexcept {
   if constexpr (S == enum_subtype::flags) {
     using V = make_unsigned_t<U>;
-    const auto shifted = V{1} << static_cast<V>(static_cast<int>(i) + O);
-    return static_cast<U>(shifted);
+    // Position -1 is zero, so the scan finds a named zero like a bit.
+    const auto bit = static_cast<int>(i) + O;
+    return bit < 0 ? U{0} : static_cast<U>(V{1} << static_cast<V>(bit));
   } else {
     return static_cast<U>(static_cast<int>(i) + O);
   }
@@ -794,7 +796,8 @@ constexpr E value(std::size_t i) noexcept {
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
-    return 0;
+    // Zero before bit 0, see ualue.
+    return -1;
   } else if constexpr (cmp_less((std::numeric_limits<U>::min)(), range_min<E>::value)) {
     return range_min<E>::value;
   } else {
@@ -1000,8 +1003,8 @@ MAGIC_ENUM_CONSTEVAL bool is_sparse() noexcept {
     constexpr auto max = log2(static_cast<V>(max_v<E, S>));
     constexpr auto min = log2(static_cast<V>(min_v<E, S>));
 
-    // A negative sign bit flag goes first, so min can exceed max.
-    return max < min || static_cast<std::size_t>(max - min) + 1 != count_v<E, S>;
+    // A named zero has no bit position. A negative sign bit flag goes first, so min can exceed max.
+    return static_cast<V>(min_v<E, S>) == V{0} || max < min || static_cast<std::size_t>(max - min) + 1 != count_v<E, S>;
   } else {
     // Dense lookup passes min to value() as an int. The unsigned span does not overflow on wide ranges.
     constexpr auto span = static_cast<V>(static_cast<V>(max_v<E, S>) - static_cast<V>(min_v<E, S>));

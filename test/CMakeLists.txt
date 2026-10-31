@@ -361,6 +361,12 @@ magic_enum_make_compile_fail_test(
   "magic_enum::enum_for_each requires invocable of all enum value."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
+magic_enum_make_compile_fail_test(
+  configuration
+  bitset-only-zero
+  13
+  "magic_enum::containers::bitset requires at least one flag bit, a named zero has no bit."
+)
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   magic_enum_make_compile_fail_test(
     configuration

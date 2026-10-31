@@ -40,6 +40,50 @@ struct magic_enum::customize::enum_range<BoolFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class BoolEnabledFlag : bool { Enabled = true };
+template <>
+struct magic_enum::customize::enum_range<BoolEnabledFlag> {
+  static constexpr bool is_flags = true;
+};
+
+enum class ZeroFlags : std::uint8_t { None = 0, A = 1, B = 2, Both = 3 };
+template <>
+struct magic_enum::customize::enum_range<ZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+enum class OnlyZeroFlags : std::uint8_t { None = 0 };
+template <>
+struct magic_enum::customize::enum_range<OnlyZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+enum class SignedZeroFlags : std::int8_t { High = -128, None = 0, Low = 1 };
+template <>
+struct magic_enum::customize::enum_range<SignedZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+enum class HiddenZeroFlags : std::uint8_t { None = 0, A = 1, B = 2 };
+template <>
+struct magic_enum::customize::enum_range<HiddenZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<HiddenZeroFlags>(HiddenZeroFlags value) noexcept {
+  return value == HiddenZeroFlags::None ? customize_t{invalid_tag} : customize_t{default_tag};
+}
+
+enum class CustomZeroFlags : std::uint8_t { A = 1, B = 2 };
+template <>
+struct magic_enum::customize::enum_range<CustomZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<CustomZeroFlags>(CustomZeroFlags value) noexcept {
+  return static_cast<std::uint8_t>(value) == 0 ? customize_t{"Nothing"} : customize_t{default_tag};
+}
+
 namespace Namespace {
     enum class Numbers : int {
         none = 0,
@@ -147,14 +191,14 @@ TEST_CASE("enum_reflected") {
 
 TEST_CASE("bool flag text lookup does not convert pointers to true") {
   static_assert(enum_cast<BoolFlags>("Enabled") == BoolFlags::Enabled);
-  static_assert(!enum_cast<BoolFlags>("Disabled").has_value());
+  static_assert(enum_cast<BoolFlags>("Disabled") == BoolFlags::Disabled);
   static_assert(!enum_cast<BoolFlags>("INVALID").has_value());
   static_assert(!enum_cast<BoolFlags>("").has_value());
   static_assert(enum_cast<BoolFlags, as_common<>>("Disabled") == BoolFlags::Disabled);
-  static_assert(!enum_contains<BoolFlags>("Disabled"));
+  static_assert(enum_contains<BoolFlags>("Disabled"));
   static_assert(!enum_contains<BoolFlags>("INVALID"));
   static_assert(enum_flags_cast<BoolFlags>("Enabled") == BoolFlags::Enabled);
-  static_assert(!enum_flags_cast<BoolFlags>("Disabled").has_value());
+  static_assert(enum_flags_cast<BoolFlags>("Disabled") == BoolFlags::Disabled);
   static_assert(!enum_flags_cast<BoolFlags>("INVALID").has_value());
   static_assert(!enum_flags_cast<BoolFlags>("").has_value());
   static_assert(!enum_flags_contains<BoolFlags>("INVALID"));
@@ -165,26 +209,27 @@ TEST_CASE("bool flag text lookup does not convert pointers to true") {
   CHECK(enum_flags_cast<BoolFlags>("enabled", '|', case_insensitive) == BoolFlags::Enabled);
 }
 
-TEST_CASE("bool flags use the sole non-zero bit") {
+TEST_CASE("bool flags reflect the named zero") {
   constexpr auto enabled_name = string_view{"Enabled"};
   constexpr auto common_values = enum_values<BoolFlags, as_common<>>();
   static_assert(common_values.size() == 2);
   static_assert(common_values[0] == BoolFlags::Disabled);
   static_assert(common_values[1] == BoolFlags::Enabled);
   constexpr auto flag_values = enum_values<BoolFlags>();
-  static_assert(flag_values.size() == 1);
-  static_assert(flag_values[0] == BoolFlags::Enabled);
-  CHECK(enum_flags_name(BoolFlags::Disabled).empty());
+  static_assert(flag_values.size() == 2);
+  static_assert(flag_values[0] == BoolFlags::Disabled);
+  static_assert(flag_values[1] == BoolFlags::Enabled);
+  CHECK(enum_flags_name(BoolFlags::Disabled) == "Disabled");
   CHECK(enum_flags_name(BoolFlags::Enabled) == "Enabled");
-  static_assert(!enum_flags_cast<BoolFlags>(false).has_value());
+  static_assert(enum_flags_cast<BoolFlags>(false) == BoolFlags::Disabled);
   static_assert(enum_flags_cast<BoolFlags>(true) == BoolFlags::Enabled);
   static_assert(enum_flags_cast<BoolFlags>(enabled_name) == BoolFlags::Enabled);
-  static_assert(!enum_flags_cast<BoolFlags>(string_view{"Disabled"}).has_value());
+  static_assert(enum_flags_cast<BoolFlags>(string_view{"Disabled"}) == BoolFlags::Disabled);
   static_assert(enum_cast<BoolFlags, as_common<>>(string_view{"Disabled"}) == BoolFlags::Disabled);
   static_assert(enum_cast<BoolFlags, as_common<>>(string_view{"Enabled"}) == BoolFlags::Enabled);
   static_assert(enum_contains<BoolFlags, as_common<>>(string_view{"Disabled"}));
   static_assert(enum_flags_contains<BoolFlags>(enabled_name));
-  static_assert(!enum_flags_contains<BoolFlags>(string_view{"Disabled"}));
+  static_assert(enum_flags_contains<BoolFlags>(string_view{"Disabled"}));
   static_assert(enum_flags_test(BoolFlags::Enabled, BoolFlags::Enabled));
   static_assert(!enum_flags_test(BoolFlags::Disabled, BoolFlags::Enabled));
   static_assert(enum_flags_test_any(BoolFlags::Enabled, BoolFlags::Enabled));
@@ -233,6 +278,96 @@ TEST_CASE("signed flags include the sign bit") {
   static_assert(enum_values<Int64Flags, flags>()[0] == Int64Flags::High);
   static_assert(enum_flags_cast<Int64Flags>("High|Low") == static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1));
   CHECK(enum_flags_name(static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1)) == "High|Low");
+}
+
+TEST_CASE("named zero is a flag value") {
+  constexpr auto values = enum_values<ZeroFlags>();
+  static_assert(values.size() == 3);
+  static_assert(values[0] == ZeroFlags::None);
+  static_assert(values[1] == ZeroFlags::A);
+  static_assert(values[2] == ZeroFlags::B);
+  static_assert(enum_index(ZeroFlags::None) == std::size_t{0});
+  static_assert(enum_index(ZeroFlags::B) == std::size_t{2});
+  static_assert(enum_value<ZeroFlags>(0) == ZeroFlags::None);
+  static_assert(enum_value<ZeroFlags>(2) == ZeroFlags::B);
+  static_assert(enum_min<ZeroFlags>() == ZeroFlags::None);
+  static_assert(enum_contains(ZeroFlags::None));
+  static_assert(!enum_contains(ZeroFlags::Both));
+  static_assert(enum_name(ZeroFlags::None) == "None");
+  CHECK(enum_flags_name(ZeroFlags::None) == "None");
+  CHECK(enum_flags_name(ZeroFlags::Both) == "A|B");
+  CHECK(enum_flags_name(ZeroFlags::A) == "A");
+  CHECK(enum_flags_name(static_cast<ZeroFlags>(4)).empty());
+  static_assert(enum_flags_cast<ZeroFlags>(0) == ZeroFlags::None);
+  static_assert(enum_flags_cast<ZeroFlags>(3) == ZeroFlags::Both);
+  static_assert(enum_flags_contains<ZeroFlags>(0));
+  static_assert(enum_flags_contains(ZeroFlags::None));
+  static_assert(enum_flags_cast<ZeroFlags>("None") == ZeroFlags::None);
+  static_assert(enum_flags_cast<ZeroFlags>("None|A") == ZeroFlags::A);
+  static_assert(enum_flags_cast<ZeroFlags>("None|None") == ZeroFlags::None);
+  static_assert(enum_flags_cast<ZeroFlags>("None|") == ZeroFlags::None);
+  static_assert(!enum_flags_cast<ZeroFlags>("").has_value());
+  static_assert(!enum_flags_cast<ZeroFlags>("|None").has_value());
+  static_assert(!enum_flags_cast<ZeroFlags>("Both").has_value());
+  static_assert(!enum_flags_test(ZeroFlags::Both, ZeroFlags::None));
+  static_assert(!enum_flags_test(ZeroFlags::None, ZeroFlags::None));
+  static_assert(!enum_flags_test_any(ZeroFlags::Both, ZeroFlags::None));
+  static_assert(enum_switch<int>([](auto val) { return val() == ZeroFlags::None ? 1 : 2; }, ZeroFlags::None, -1) == 1);
+  static_assert(enum_fuse(ZeroFlags::None, ZeroFlags::A) != enum_fuse(ZeroFlags::A, ZeroFlags::None));
+
+  for (std::size_t i = 0; i < enum_count<ZeroFlags>(); ++i) {
+    CHECK(enum_index(enum_value<ZeroFlags>(i)) == i);
+  }
+}
+
+TEST_CASE("only named zero is a non-empty flag enum") {
+  static_assert(enum_count<OnlyZeroFlags>() == 1);
+  static_assert(enum_values<OnlyZeroFlags>()[0] == OnlyZeroFlags::None);
+  static_assert(enum_index(OnlyZeroFlags::None) == std::size_t{0});
+  static_assert(enum_value<OnlyZeroFlags>(0) == OnlyZeroFlags::None);
+  CHECK(enum_flags_name(OnlyZeroFlags::None) == "None");
+  CHECK(enum_flags_name(static_cast<OnlyZeroFlags>(1)).empty());
+  static_assert(enum_flags_cast<OnlyZeroFlags>(0) == OnlyZeroFlags::None);
+  static_assert(!enum_flags_cast<OnlyZeroFlags>(1).has_value());
+  static_assert(enum_flags_cast<OnlyZeroFlags>("None") == OnlyZeroFlags::None);
+}
+
+TEST_CASE("named zero precedes the bits after the sign bit") {
+  constexpr auto values = enum_values<SignedZeroFlags>();
+  static_assert(values.size() == 3);
+  static_assert(values[0] == SignedZeroFlags::High);
+  static_assert(values[1] == SignedZeroFlags::None);
+  static_assert(values[2] == SignedZeroFlags::Low);
+  static_assert(enum_index(SignedZeroFlags::None) == std::size_t{1});
+  static_assert(enum_value<SignedZeroFlags>(1) == SignedZeroFlags::None);
+  static_assert(enum_flags_cast<SignedZeroFlags>(0) == SignedZeroFlags::None);
+  CHECK(enum_flags_name(SignedZeroFlags::None) == "None");
+  CHECK(enum_flags_name(static_cast<SignedZeroFlags>(-127)) == "High|Low");
+
+  for (std::size_t i = 0; i < enum_count<SignedZeroFlags>(); ++i) {
+    CHECK(enum_index(enum_value<SignedZeroFlags>(i)) == i);
+  }
+}
+
+TEST_CASE("customization decides whether zero is a flag value") {
+  // invalid_tag hides zero from every reflection path, not only from flags.
+  static_assert(enum_count<HiddenZeroFlags>() == 2);
+  static_assert(enum_values<HiddenZeroFlags>()[0] == HiddenZeroFlags::A);
+  static_assert(!enum_flags_cast<HiddenZeroFlags>(0).has_value());
+  static_assert(!enum_flags_cast<HiddenZeroFlags>("None").has_value());
+  static_assert(!enum_cast<HiddenZeroFlags, as_common<>>(0).has_value());
+  CHECK(enum_flags_name(HiddenZeroFlags::None).empty());
+  CHECK(enum_name<as_common<>>(HiddenZeroFlags::None).empty());
+
+#if !defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  // A custom name adds an undeclared zero, as it adds other values with compiler-specific reflection.
+  static_assert(enum_count<CustomZeroFlags>() == 3);
+  static_assert(enum_flags_cast<CustomZeroFlags>("Nothing") == static_cast<CustomZeroFlags>(0));
+  CHECK(enum_flags_name(static_cast<CustomZeroFlags>(0)) == "Nothing");
+#else
+  static_assert(enum_count<CustomZeroFlags>() == 2);
+  static_assert(!enum_flags_cast<CustomZeroFlags>(0).has_value());
+#endif
 }
 
 TEST_CASE("integer flags cast checks the value before narrowing") {
@@ -378,14 +513,14 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<Numbers>(8).value() == Numbers::three);
     REQUIRE(enum_cast<Numbers>(1 << 30).value() == Numbers::many);
     REQUIRE_FALSE(enum_cast<Numbers>(127).has_value());
-    REQUIRE_FALSE(enum_cast<Numbers>(0).has_value());
+    REQUIRE(enum_cast<Numbers>(0) == Numbers::none);
 
     constexpr auto dr = enum_cast<Directions>(std::uint64_t{1} << 63);
     REQUIRE(enum_cast<Directions&>(std::uint64_t{1} << 31).value() == Directions::Up);
     REQUIRE(enum_cast<const Directions>(std::uint64_t{1} << 20).value() == Directions::Down);
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>(std::uint64_t{1} << 10).value() == Directions::Left);
-    REQUIRE_FALSE(enum_cast<Directions>(0).has_value());
+    REQUIRE(enum_cast<Directions>(0) == Directions::NoDirection);
 
     constexpr auto nto = enum_flags_cast<number>(2 | 8);
     REQUIRE(enum_cast<number>(1 << 1).value() == number::one);
@@ -393,7 +528,7 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_cast<number>(1 << 3).value() == number::three);
     REQUIRE(enum_cast<number>(1 << 4).value() == number::four);
     REQUIRE(nto.value() == (number::three | number::one));
-    REQUIRE_FALSE(enum_cast<number>(0).has_value());
+    REQUIRE(enum_cast<number>(0) == number::no_number);
   }
 }
 
@@ -411,27 +546,27 @@ TEST_CASE("enum_index") {
   REQUIRE_FALSE(enum_index(static_cast<Color>(0)).has_value());
 
   constexpr auto no = enum_index(Numbers::one);
-  REQUIRE(no.value() == 0);
-  REQUIRE(enum_index(Numbers::two).value() == 1);
-  REQUIRE(enum_index(Numbers::three).value() == 2);
-  REQUIRE(enum_index(Numbers::many).value() == 3);
-  REQUIRE_FALSE(enum_index(static_cast<Numbers>(0)).has_value());
+  REQUIRE(no.value() == 1);
+  REQUIRE(enum_index(Numbers::two).value() == 2);
+  REQUIRE(enum_index(Numbers::three).value() == 3);
+  REQUIRE(enum_index(Numbers::many).value() == 4);
+  REQUIRE(enum_index(Numbers::none).value() == 0);
 
   constexpr auto dr = enum_index(Directions::Right);
   Directions dl = Directions::Left;
-  REQUIRE(enum_index<Directions&>(dl).value() == 0);
-  REQUIRE(enum_index<const Directions>(Directions::Down).value() == 1);
-  REQUIRE(enum_index(Directions::Up).value() == 2);
-  REQUIRE(dr.value() == 3);
-  REQUIRE_FALSE(enum_index(static_cast<Directions>(0)).has_value());
+  REQUIRE(enum_index<Directions&>(dl).value() == 1);
+  REQUIRE(enum_index<const Directions>(Directions::Down).value() == 2);
+  REQUIRE(enum_index(Directions::Up).value() == 3);
+  REQUIRE(dr.value() == 4);
+  REQUIRE(enum_index(Directions::NoDirection).value() == 0);
 
   constexpr auto nto = enum_index(number::three | number::one);
-  REQUIRE(enum_index(number::one).value() == 0);
-  REQUIRE(enum_index(number::two).value() == 1);
-  REQUIRE(enum_index(number::three).value() == 2);
-  REQUIRE(enum_index(number::four).value() == 3);
+  REQUIRE(enum_index(number::one).value() == 1);
+  REQUIRE(enum_index(number::two).value() == 2);
+  REQUIRE(enum_index(number::three).value() == 3);
+  REQUIRE(enum_index(number::four).value() == 4);
   REQUIRE_FALSE(nto.has_value());
-  REQUIRE_FALSE(enum_index(static_cast<number>(0)).has_value());
+  REQUIRE(enum_index(number::no_number).value() == 0);
 }
 
 TEST_CASE("enum_contains") {
@@ -457,7 +592,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains(Numbers::two));
     REQUIRE(enum_contains(Numbers::three));
     REQUIRE(enum_contains(Numbers::many));
-    REQUIRE_FALSE(enum_contains(static_cast<Numbers>(0)));
+    REQUIRE(enum_contains(static_cast<Numbers>(0)));
 
     constexpr auto dr = enum_contains(Directions::Right);
     Directions dl = Directions::Left;
@@ -465,7 +600,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<const Directions>(Directions::Down));
     REQUIRE(enum_contains(Directions::Up));
     REQUIRE(dr);
-    REQUIRE_FALSE(enum_contains(static_cast<Directions>(0)));
+    REQUIRE(enum_contains(static_cast<Directions>(0)));
 
     constexpr auto nto = enum_contains(number::three | number::one);
     REQUIRE(enum_contains(number::one));
@@ -475,7 +610,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains(number::one));
     REQUIRE(enum_contains(number::four));
     REQUIRE_FALSE(nto);
-    REQUIRE_FALSE(enum_contains(static_cast<number>(0)));
+    REQUIRE(enum_contains(static_cast<number>(0)));
 
     REQUIRE(enum_flags_contains(number::three | number::one));
   }
@@ -505,7 +640,7 @@ TEST_CASE("enum_contains") {
     REQUIRE(enum_contains<const Directions>(std::uint64_t{1} << 10));
     REQUIRE(enum_contains<Directions>(std::uint64_t{1} << 20));
     REQUIRE(enum_contains<Directions>(std::uint64_t{1} << 31));
-    REQUIRE_FALSE(enum_contains<Directions>(static_cast<Directions>(0)));
+    REQUIRE(enum_contains<Directions>(static_cast<Directions>(0)));
 
     constexpr auto nto = enum_contains<number>(8 | 2);
     REQUIRE(enum_contains<number>(1 << 1));
@@ -516,7 +651,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_contains<number>(8 | 16 | 16));
     REQUIRE_FALSE(nto);
     REQUIRE_FALSE(enum_contains<number>(8 | 64));
-    REQUIRE_FALSE(enum_contains<number>(0));
+    REQUIRE(enum_contains<number>(0));
   }
 
   SUBCASE("string") {
@@ -581,38 +716,41 @@ TEST_CASE("enum_value") {
   REQUIRE(enum_value<Color, 1>() == Color::GREEN);
   REQUIRE(enum_value<Color, 2>() == Color::BLUE);
 
-  constexpr auto no = enum_value<Numbers>(0);
+  REQUIRE(enum_value<Numbers>(0) == Numbers::none);
+  constexpr auto no = enum_value<Numbers>(1);
   REQUIRE(no == Numbers::one);
-  REQUIRE(enum_value<Numbers>(1) == Numbers::two);
-  REQUIRE(enum_value<Numbers>(2) == Numbers::three);
-  REQUIRE(enum_value<Numbers>(3) == Numbers::many);
+  REQUIRE(enum_value<Numbers>(2) == Numbers::two);
+  REQUIRE(enum_value<Numbers>(3) == Numbers::three);
+  REQUIRE(enum_value<Numbers>(4) == Numbers::many);
 
-  REQUIRE(enum_value<Numbers, 0>() == Numbers::one);
-  REQUIRE(enum_value<Numbers, 1>() == Numbers::two);
-  REQUIRE(enum_value<Numbers, 2>() == Numbers::three);
-  REQUIRE(enum_value<Numbers, 3>() == Numbers::many);
+  REQUIRE(enum_value<Numbers, 1>() == Numbers::one);
+  REQUIRE(enum_value<Numbers, 2>() == Numbers::two);
+  REQUIRE(enum_value<Numbers, 3>() == Numbers::three);
+  REQUIRE(enum_value<Numbers, 4>() == Numbers::many);
 
-  constexpr auto dr = enum_value<Directions>(3);
-  REQUIRE(enum_value<Directions&>(0) == Directions::Left);
-  REQUIRE(enum_value<const Directions>(1) == Directions::Down);
-  REQUIRE(enum_value<Directions>(2) == Directions::Up);
+  REQUIRE(enum_value<Directions>(0) == Directions::NoDirection);
+  constexpr auto dr = enum_value<Directions>(4);
+  REQUIRE(enum_value<Directions&>(1) == Directions::Left);
+  REQUIRE(enum_value<const Directions>(2) == Directions::Down);
+  REQUIRE(enum_value<Directions>(3) == Directions::Up);
   REQUIRE(dr == Directions::Right);
 
-  REQUIRE(enum_value<Directions, 0>() == Directions::Left);
-  REQUIRE(enum_value<Directions, 1>() == Directions::Down);
-  REQUIRE(enum_value<Directions, 2>() == Directions::Up);
-  REQUIRE(enum_value<Directions, 3>() == Directions::Right);
+  REQUIRE(enum_value<Directions, 1>() == Directions::Left);
+  REQUIRE(enum_value<Directions, 2>() == Directions::Down);
+  REQUIRE(enum_value<Directions, 3>() == Directions::Up);
+  REQUIRE(enum_value<Directions, 4>() == Directions::Right);
 
-  constexpr auto nt = enum_value<number>(2);
-  REQUIRE(enum_value<number>(0) == number::one);
-  REQUIRE(enum_value<number>(1) == number::two);
+  REQUIRE(enum_value<number>(0) == number::no_number);
+  constexpr auto nt = enum_value<number>(3);
+  REQUIRE(enum_value<number>(1) == number::one);
+  REQUIRE(enum_value<number>(2) == number::two);
   REQUIRE(nt == number::three);
-  REQUIRE(enum_value<number>(3) == number::four);
+  REQUIRE(enum_value<number>(4) == number::four);
 
-  REQUIRE(enum_value<number, 0>() == number::one);
-  REQUIRE(enum_value<number, 1>() == number::two);
-  REQUIRE(enum_value<number, 2>() == number::three);
-  REQUIRE(enum_value<number, 3>() == number::four);
+  REQUIRE(enum_value<number, 1>() == number::one);
+  REQUIRE(enum_value<number, 2>() == number::two);
+  REQUIRE(enum_value<number, 3>() == number::three);
+  REQUIRE(enum_value<number, 4>() == number::four);
 }
 
 TEST_CASE("enum_values") {
@@ -622,13 +760,13 @@ TEST_CASE("enum_values") {
   REQUIRE(s1 == std::array<Color, 3>{{Color::RED, Color::GREEN, Color::BLUE}});
 
   constexpr auto& s2 = enum_values<Numbers>();
-  REQUIRE(s2 == std::array<Numbers, 4>{{Numbers::one, Numbers::two, Numbers::three, Numbers::many}});
+  REQUIRE(s2 == std::array<Numbers, 5>{{Numbers::none, Numbers::one, Numbers::two, Numbers::three, Numbers::many}});
 
   constexpr auto& s3 = enum_values<const Directions>();
-  REQUIRE(s3 == std::array<Directions, 4>{{Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
+  REQUIRE(s3 == std::array<Directions, 5>{{Directions::NoDirection, Directions::Left, Directions::Down, Directions::Up, Directions::Right}});
 
   constexpr auto& s4 = enum_values<number>();
-  REQUIRE(s4 == std::array<number, 4>{{number::one, number::two, number::three, number::four}});
+  REQUIRE(s4 == std::array<number, 5>{{number::no_number, number::one, number::two, number::three, number::four}});
 }
 
 TEST_CASE("enum_count") {
@@ -636,13 +774,13 @@ TEST_CASE("enum_count") {
   REQUIRE(s1 == 3);
 
   constexpr auto s2 = enum_count<Numbers>();
-  REQUIRE(s2 == 4);
+  REQUIRE(s2 == 5);
 
   constexpr auto s3 = enum_count<const Directions>();
-  REQUIRE(s3 == 4);
+  REQUIRE(s3 == 5);
 
   constexpr auto s4 = enum_count<number>();
-  REQUIRE(s4 == 4);
+  REQUIRE(s4 == 5);
 }
 
 TEST_CASE("enum_min_max") {
@@ -651,13 +789,13 @@ TEST_CASE("enum_min_max") {
   REQUIRE(color_min == Color::RED);
   REQUIRE(color_max == Color::BLUE);
 
-  REQUIRE(enum_min<Directions>() == Directions::Left);
+  REQUIRE(enum_min<Directions>() == Directions::NoDirection);
   REQUIRE(enum_max<Directions>() == Directions::Right);
-  REQUIRE(enum_min<number>() == number::one);
+  REQUIRE(enum_min<number>() == number::no_number);
   REQUIRE(enum_max<number>() == number::four);
   REQUIRE(enum_min<number, as_common<>>() == number::no_number);
   REQUIRE(enum_max<number, as_common<>>() == number::four);
-  REQUIRE(enum_min<BoolFlags>() == BoolFlags::Enabled);
+  REQUIRE(enum_min<BoolFlags>() == BoolFlags::Disabled);
   REQUIRE(enum_max<BoolFlags>() == BoolFlags::Enabled);
 }
 
@@ -683,7 +821,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(Numbers::three) == "three");
     REQUIRE(enum_name(Numbers::many) == "many");
     REQUIRE(enum_name(Numbers::many | Numbers::two).empty());
-    REQUIRE(enum_name(static_cast<Numbers>(0)).empty());
+    REQUIRE(enum_name(static_cast<Numbers>(0)) == "none");
 
     constexpr Directions dr = Directions::Right;
     constexpr auto dr_name = enum_name(dr);
@@ -693,7 +831,7 @@ TEST_CASE("enum_name") {
     REQUIRE(dr_name == "Right");
     REQUIRE(enum_name(Directions::Left) == "Left");
     REQUIRE(enum_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down).empty());
-    REQUIRE(enum_name(static_cast<Directions>(0)).empty());
+    REQUIRE(enum_name(static_cast<Directions>(0)) == "NoDirection");
 
     constexpr number nto = number::three | number::one;
     constexpr auto nto_name = enum_name(nto);
@@ -702,7 +840,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(number::three) == "three");
     REQUIRE(enum_name(number::four) == "four");
     REQUIRE(nto_name.empty());
-    REQUIRE(enum_name(static_cast<number>(0)).empty());
+    REQUIRE(enum_name(static_cast<number>(0)) == "no_number");
   }
 }
 
@@ -726,7 +864,7 @@ TEST_CASE("enum_flags_name") {
   REQUIRE(enum_flags_name(Numbers::three) == "three");
   REQUIRE(enum_flags_name(Numbers::many) == "many");
   REQUIRE(enum_flags_name(Numbers::many | Numbers::two) == "two|many");
-  REQUIRE(enum_flags_name(static_cast<Numbers>(0)).empty());
+  REQUIRE(enum_flags_name(static_cast<Numbers>(0)) == "none");
 
   constexpr Directions dr = Directions::Right;
   auto dr_name = enum_flags_name(dr);
@@ -736,7 +874,7 @@ TEST_CASE("enum_flags_name") {
   REQUIRE(dr_name == "Right");
   REQUIRE(enum_flags_name(Directions::Left) == "Left");
   REQUIRE(enum_flags_name(Directions::Right | Directions::Up | Directions::Left | Directions::Down) == "Left|Down|Up|Right");
-  REQUIRE(enum_flags_name(static_cast<Directions>(0)).empty());
+  REQUIRE(enum_flags_name(static_cast<Directions>(0)) == "NoDirection");
 
   constexpr number nto = number::three | number::one;
   auto nto_name = enum_flags_name(nto);
@@ -745,7 +883,7 @@ TEST_CASE("enum_flags_name") {
   REQUIRE(enum_flags_name(number::three) == "three");
   REQUIRE(enum_flags_name(number::four) == "four");
   REQUIRE(nto_name == "one|three");
-  REQUIRE(enum_flags_name(static_cast<number>(0)).empty());
+  REQUIRE(enum_flags_name(static_cast<number>(0)) == "no_number");
 
   REQUIRE(enum_flags_name(CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_D) == "A|B|C|D");
 
@@ -764,13 +902,13 @@ TEST_CASE("enum_names") {
   REQUIRE(s1 == std::array<std::string_view, 3>{{"RED", "GREEN", "BLUE"}});
 
   constexpr auto& s2 = enum_names<Numbers>();
-  REQUIRE(s2 == std::array<std::string_view, 4>{{"one", "two", "three", "many"}});
+  REQUIRE(s2 == std::array<std::string_view, 5>{{"none", "one", "two", "three", "many"}});
 
   constexpr auto& s3 = enum_names<const Directions>();
-  REQUIRE(s3 == std::array<std::string_view, 4>{{"Left", "Down", "Up", "Right"}});
+  REQUIRE(s3 == std::array<std::string_view, 5>{{"NoDirection", "Left", "Down", "Up", "Right"}});
 
   constexpr auto& s4 = enum_names<number>();
-  REQUIRE(s4 == std::array<std::string_view, 4>{{"one", "two", "three", "four"}});
+  REQUIRE(s4 == std::array<std::string_view, 5>{{"no_number", "one", "two", "three", "four"}});
 }
 
 TEST_CASE("enum_entries") {
@@ -780,13 +918,13 @@ TEST_CASE("enum_entries") {
   REQUIRE(s1 == std::array<std::pair<Color, std::string_view>, 3>{{{Color::RED, "RED"}, {Color::GREEN, "GREEN"}, {Color::BLUE, "BLUE"}}});
 
   constexpr auto& s2 = enum_entries<Numbers>();
-  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 4>{{{Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}, {Numbers::many, "many"}}});
+  REQUIRE(s2 == std::array<std::pair<Numbers, std::string_view>, 5>{{{Numbers::none, "none"}, {Numbers::one, "one"}, {Numbers::two, "two"}, {Numbers::three, "three"}, {Numbers::many, "many"}}});
 
   constexpr auto& s3 = enum_entries<Directions&>();
-  REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 4>{{{Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
+  REQUIRE(s3 == std::array<std::pair<Directions, std::string_view>, 5>{{{Directions::NoDirection, "NoDirection"}, {Directions::Left, "Left"}, {Directions::Down, "Down"}, {Directions::Up, "Up"}, {Directions::Right, "Right"}}});
 
   constexpr auto& s4 = enum_entries<number>();
-  REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 4>{{{number::one, "one"}, {number::two, "two"}, {number::three, "three"}, {number::four, "four"}}});
+  REQUIRE(s4 == std::array<std::pair<number, std::string_view>, 5>{{{number::no_number, "no_number"}, {number::one, "one"}, {number::two, "two"}, {number::three, "three"}, {number::four, "four"}}});
 }
 
 TEST_CASE("flags string lifetime and null termination") {
@@ -807,7 +945,7 @@ TEST_CASE("flags string lifetime and null termination") {
   require_null_terminated(array_name, "GREEN");
 
   std::string_view entry_name{};
-  entry_name = enum_entries<Directions>()[3].second;
+  entry_name = enum_entries<Directions>()[4].second;
   require_null_terminated(entry_name, "Right");
 
   std::string_view prefixed_name{};
@@ -851,8 +989,8 @@ TEST_CASE("ostream_operators") {
   SUBCASE("boolalpha fallback") {
     using namespace magic_enum::ostream_operators;
     std::ostringstream stream;
-    stream << std::boolalpha << BoolFlags::Disabled;
-    REQUIRE(stream.str() == "false");
+    stream << std::boolalpha << BoolFlags::Disabled << ' ' << static_cast<BoolEnabledFlag>(false);
+    REQUIRE(stream.str() == "Disabled false");
   }
 
   SUBCASE("field width applies to the whole name") {
@@ -874,24 +1012,24 @@ TEST_CASE("ostream_operators") {
   require_ostream(Numbers::two, "two");
   require_ostream(Numbers::three, "three");
   require_ostream(Numbers::many, "many");
-  require_ostream(static_cast<Numbers>(0), "0");
-  require_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
+  require_ostream(static_cast<Numbers>(0), "none");
+  require_ostream(std::make_optional(static_cast<Numbers>(0)), "none");
 
   require_ostream(std::make_optional(Directions::Up), "Up");
   require_ostream(Directions::Down, "Down");
   require_ostream(Directions::Right, "Right");
   require_ostream(Directions::Left, "Left");
   require_ostream(Directions::Right | Directions::Left, "Left|Right");
-  require_ostream(static_cast<Directions>(0), "0");
-  require_ostream(std::make_optional(static_cast<Directions>(0)), "0");
+  require_ostream(static_cast<Directions>(0), "NoDirection");
+  require_ostream(std::make_optional(static_cast<Directions>(0)), "NoDirection");
 
   require_ostream(std::make_optional(number::one), "one");
   require_ostream(number::two, "two");
   require_ostream(number::three, "three");
   require_ostream(number::four, "four");
   require_ostream(number::four | number::one, "one|four");
-  require_ostream(static_cast<number>(0), "0");
-  require_ostream(std::make_optional(static_cast<number>(0)), "0");
+  require_ostream(static_cast<number>(0), "no_number");
+  require_ostream(std::make_optional(static_cast<number>(0)), "no_number");
 }
 
 TEST_CASE("istream_operators") {

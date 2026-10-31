@@ -462,6 +462,45 @@ MAGIC_ENUM_CONSTEVAL bool valid_indexing() noexcept {
   }
 }
 
+// set keeps its keys in a bitset, so its index keeps a named zero as a key.
+template <typename Index>
+struct key_indexing : Index {};
+
+// Positions of a bitset. A flags bitset holds only bits and skips a named zero, array and set keep it as a key.
+// A custom index may map an unknown value to any position, so reflection decides whether zero is named.
+template <typename E, typename Index, bool Keys = false>
+struct bit_domain {
+  static constexpr bool skip_zero = !Keys && magic_enum::detail::subtype_v<E> == magic_enum::detail::enum_subtype::flags && static_cast<bool>(enum_index(static_cast<E>(0)));
+
+  static constexpr std::size_t zero = skip_zero ? *Index::at(static_cast<E>(0)) : 0;
+
+  static constexpr std::size_t count = enum_count<E>() - (skip_zero ? 1 : 0);
+
+  [[nodiscard]] static constexpr bool is_skipped(E value) noexcept { return skip_zero && value == static_cast<E>(0); }
+
+  [[nodiscard]] static constexpr optional<std::size_t> at(E value) noexcept {
+    if constexpr (skip_zero) {
+      if (const auto i = Index::at(value); i && *i != zero) {
+        return *i > zero ? *i - 1 : *i;
+      }
+      return {};
+    } else {
+      return Index::at(value);
+    }
+  }
+
+  [[nodiscard]] static constexpr auto it(std::size_t i) noexcept {
+    if constexpr (skip_zero) {
+      return Index::it(i < zero ? i : i + 1);
+    } else {
+      return Index::it(i);
+    }
+  }
+};
+
+template <typename E, typename Index>
+struct bit_domain<E, key_indexing<Index>> : bit_domain<E, Index, true> {};
+
 } // namespace detail
 
 template <typename E = void>
@@ -631,14 +670,17 @@ class bitset {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::bitset requires enum type.");
   static_assert(detail::valid_indexing<E, Index>(), "magic_enum::containers::bitset requires non-empty reflected enum and valid indexing.");
 
-  using base_type = std::conditional_t<enum_count<E>() <= 8,  std::uint_least8_t,
-                    std::conditional_t<enum_count<E>() <= 16, std::uint_least16_t,
-                    std::conditional_t<enum_count<E>() <= 32, std::uint_least32_t,
+  using domain = detail::bit_domain<E, Index>;
+  static_assert(enum_count<E>() == 0 || domain::count > 0, "magic_enum::containers::bitset requires at least one flag bit, a named zero has no bit.");
+
+  using base_type = std::conditional_t<domain::count <= 8,  std::uint_least8_t,
+                    std::conditional_t<domain::count <= 16, std::uint_least16_t,
+                    std::conditional_t<domain::count <= 32, std::uint_least32_t,
                                                               std::uint_least64_t>>>;
 
   static constexpr std::size_t bits_per_base = sizeof(base_type) * 8;
-  static constexpr std::size_t base_type_count = (enum_count<E>() > 0 ? (enum_count<E>() - 1) / bits_per_base + 1 : 0);
-  static constexpr std::size_t not_interested = base_type_count * bits_per_base - enum_count<E>();
+  static constexpr std::size_t base_type_count = (domain::count > 0 ? (domain::count - 1) / bits_per_base + 1 : 0);
+  static constexpr std::size_t not_interested = base_type_count * bits_per_base - domain::count;
   static constexpr base_type last_value_max = [] {
     if constexpr (not_interested == 0) {
       return (std::numeric_limits<base_type>::max)();
@@ -742,11 +784,11 @@ class bitset {
       return end(p);
     }
     [[nodiscard]] static constexpr iterator_impl end(parent_t p) noexcept {
-      return iterator_impl(p, enum_count<E>());
+      return iterator_impl(p, domain::count);
     }
 
    public:
-    [[nodiscard]] constexpr reference operator*() const noexcept { return *Index::it(num_index * bits_per_base + static_cast<std::size_t>(detail::countr_zero(bit_index))); }
+    [[nodiscard]] constexpr reference operator*() const noexcept { return *domain::it(num_index * bits_per_base + static_cast<std::size_t>(detail::countr_zero(bit_index))); }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
@@ -815,8 +857,8 @@ class bitset {
   constexpr explicit bitset(detail::raw_access_t = raw_access) noexcept : a{{}} {}
 
   constexpr explicit bitset(detail::raw_access_t, unsigned long long val) : a{{}} {
-    if constexpr (enum_count<E>() < std::numeric_limits<unsigned long long>::digits) {
-      if ((val >> enum_count<E>()) != 0) {
+    if constexpr (domain::count < std::numeric_limits<unsigned long long>::digits) {
+      if ((val >> domain::count) != 0) {
         MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::constructor: Upper bit set in raw number"));
       }
     }
@@ -828,7 +870,7 @@ class bitset {
     std::size_t i = 0;
     for (auto c : sv.substr(pos, n)) {
       if (c == one) {
-        if (i >= enum_count<E>()) {
+        if (i >= domain::count) {
           MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::constructor: Upper bit set in raw string"));
         }
         reference{this, i} = true;
@@ -888,13 +930,13 @@ class bitset {
   [[nodiscard]] friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept { return !detail::equal(lhs.a, rhs.a); }
 
   [[nodiscard]] constexpr bool operator[](E pos) const {
-    auto i = index_type::at(pos);
+    auto i = domain::at(pos);
     MAGIC_ENUM_ASSERT(i && *i < size());
     return static_cast<bool>(const_reference(this, *i));
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
-    auto i = index_type::at(pos);
+    auto i = domain::at(pos);
     MAGIC_ENUM_ASSERT(i && *i < size());
     return reference{this, *i};
   }
@@ -912,22 +954,25 @@ class bitset {
   [[nodiscard]] constexpr const_iterator cend() const noexcept { return const_iterator::end(this); }
 
   [[nodiscard]] constexpr const_iterator find(E pos) const noexcept {
-    if (auto i = index_type::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
+    if (auto i = domain::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
       return const_iterator(this, *i);
     }
     return end();
   }
 
   [[nodiscard]] constexpr iterator find(E pos) noexcept {
-    if (auto i = index_type::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
+    if (auto i = domain::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
       return iterator(this, *i);
     }
     return end();
   }
 
   [[nodiscard]] constexpr bool test(E pos) const {
-    if (auto i = index_type::at(pos); i && *i < size()) {
+    if (auto i = domain::at(pos); i && *i < size()) {
       return static_cast<bool>(const_reference(this, *i));
+    }
+    if (domain::is_skipped(pos)) {
+      return false; // A named zero has no bit.
     }
     MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::test: Unrecognized position"));
   }
@@ -960,9 +1005,9 @@ class bitset {
     return c;
   }
 
-  [[nodiscard]] constexpr std::size_t size() const noexcept { return enum_count<E>(); }
+  [[nodiscard]] constexpr std::size_t size() const noexcept { return domain::count; }
 
-  [[nodiscard]] constexpr std::size_t max_size() const noexcept { return enum_count<E>(); }
+  [[nodiscard]] constexpr std::size_t max_size() const noexcept { return domain::count; }
 
   constexpr bitset& operator&=(const bitset& other) noexcept {
     for (std::size_t i = 0; i < base_type_count; ++i) {
@@ -996,22 +1041,19 @@ class bitset {
   }
 
   constexpr bitset& set(E pos, bool value = true) {
-    if (auto i = index_type::at(pos); i && *i < size()) {
+    if (auto i = domain::at(pos); i && *i < size()) {
       reference{this, *i} = value;
       return *this;
+    }
+    if (domain::is_skipped(pos)) {
+      return *this; // A named zero has no bit.
     }
     MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::set: Unrecognized position"));
   }
 
   constexpr bitset& reset() noexcept { return *this = bitset{}; }
 
-  constexpr bitset& reset(E pos) {
-    if (auto i = index_type::at(pos); i && *i < size()) {
-      reference{this, *i} = false;
-      return *this;
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::reset: Unrecognized position"));
-  }
+  constexpr bitset& reset(E pos) { return set(pos, false); }
 
   constexpr bitset& flip() noexcept {
     for (auto& value : a) {
@@ -1047,6 +1089,10 @@ class bitset {
         auto n = enum_name(e);
         name.append(n.data(), n.size());
       }
+    }
+    if (domain::skip_zero && name.empty()) {
+      const auto n = enum_name(static_cast<E>(0));
+      name.append(n.data(), n.size());
     }
     return name;
   }
@@ -1097,7 +1143,7 @@ class set {
   };
 
  public:
-  using container_type = bitset<E, index_type>;
+  using container_type = bitset<E, detail::key_indexing<index_type>>;
   using key_type = E;
   using value_type = E;
   using size_type = std::size_t;
@@ -1409,14 +1455,15 @@ template <auto Enum, typename E, typename V, typename Index>
 template <typename E, typename Index>
 struct std::hash<magic_enum::containers::bitset<E, Index>> {
   std::size_t operator()(const magic_enum::containers::bitset<E, Index>& bs) const noexcept {
-    if constexpr (magic_enum::enum_count<E>() <= sizeof(unsigned long long) * 8) {
+    using domain = magic_enum::containers::detail::bit_domain<E, Index>;
+    if constexpr (domain::count <= sizeof(unsigned long long) * 8) {
       return std::hash<unsigned long long>{}(bs.to_ullong(magic_enum::containers::raw_access));
     } else {
       unsigned long long low_bits = 0;
       std::size_t seed = 0;
       bool has_high_bits = false;
       for (const auto value : bs) {
-        const auto index = Index::at(value);
+        const auto index = domain::at(value);
         MAGIC_ENUM_ASSERT(index);
         if (*index < sizeof(low_bits) * 8) {
           low_bits |= 1ULL << *index;

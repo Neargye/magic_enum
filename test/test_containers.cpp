@@ -40,6 +40,53 @@ struct magic_enum::customize::enum_range<BoolFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class ZeroFlags : std::uint8_t { None = 0, A = 1, B = 2 };
+template <>
+struct magic_enum::customize::enum_range<ZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+enum class OnlyZeroFlags : std::uint8_t { None = 0 };
+template <>
+struct magic_enum::customize::enum_range<OnlyZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+// Places the named zero between the bits.
+struct ZeroInsideIndex {
+  static constexpr ZeroFlags order[] = {ZeroFlags::A, ZeroFlags::None, ZeroFlags::B};
+
+  [[nodiscard]] static constexpr const ZeroFlags* it(std::size_t i) noexcept { return order + i; }
+
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(ZeroFlags value) noexcept {
+    for (std::size_t i = 0; i < 3; ++i) {
+      if (order[i] == value) {
+        return i;
+      }
+    }
+    return {};
+  }
+};
+
+// Maps the unnamed zero onto the position of RED.
+struct ZeroCollidingIndex {
+  [[nodiscard]] static constexpr const Color* it(std::size_t i) noexcept { return magic_enum::enum_values<Color>().data() + i; }
+
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color value) noexcept { return static_cast<std::size_t>(value) / 2; }
+};
+
+// Iterates through std::reverse_iterator instead of a pointer.
+struct ReverseIteratorIndex {
+  [[nodiscard]] static constexpr auto it(std::size_t i) noexcept { return std::make_reverse_iterator(magic_enum::enum_values<Color>().data() + 3 - i); }
+
+  [[nodiscard]] static constexpr magic_enum::optional<std::size_t> at(Color value) noexcept {
+    if (const auto i = magic_enum::enum_index(value)) {
+      return 2 - *i;
+    }
+    return {};
+  }
+};
+
 enum class Empty {};
 
 enum class ReverseOrder { First, Second, Third };
@@ -748,6 +795,92 @@ TEST_CASE("containers bool flags") {
   REQUIRE(enabled_bits.count() == 1);
   REQUIRE(enabled_bits.test(BoolFlags::Enabled));
   REQUIRE(magic_enum::containers::bitset<BoolFlags>(BoolFlags::None).none());
+}
+
+TEST_CASE("containers keep a named zero as a key but not as a bit") {
+  using namespace magic_enum::bitwise_operators;
+  using magic_enum::containers::array;
+  using magic_enum::containers::bitset;
+  using magic_enum::containers::set;
+
+  constexpr array<ZeroFlags, int> values{{{0, 1, 2}}};
+  static_assert(values.size() == 3);
+  static_assert(values[ZeroFlags::None] == 0);
+  static_assert(values[ZeroFlags::B] == 2);
+  static_assert(array<OnlyZeroFlags, int>{}.size() == 1);
+
+  constexpr set<ZeroFlags> key{ZeroFlags::None};
+  static_assert(key.size() == 1);
+  static_assert(key.contains(ZeroFlags::None));
+  static_assert(key.max_size() == 3);
+  constexpr set<ZeroFlags> mask(ZeroFlags::None);
+  static_assert(mask.empty());
+  constexpr set<ZeroFlags> bits(ZeroFlags::A | ZeroFlags::B);
+  static_assert(bits.size() == 2);
+  static_assert(!bits.contains(ZeroFlags::None));
+  static_assert(set<OnlyZeroFlags>{OnlyZeroFlags::None}.size() == 1);
+
+  set<ZeroFlags> keys;
+  REQUIRE(keys.insert(ZeroFlags::None).second);
+  REQUIRE(keys.insert(ZeroFlags::B).second);
+  REQUIRE_FALSE(keys.insert(ZeroFlags::A | ZeroFlags::B).second);
+  REQUIRE(keys.size() == 2);
+  REQUIRE(*keys.begin() == ZeroFlags::None);
+  REQUIRE(keys.erase(ZeroFlags::None) == 1);
+  REQUIRE(keys.size() == 1);
+
+  set<ZeroFlags, std::greater<>> reversed{ZeroFlags::None, ZeroFlags::B};
+  REQUIRE(reversed.size() == 2);
+  REQUIRE(*reversed.begin() == ZeroFlags::B);
+  REQUIRE(*std::next(reversed.begin()) == ZeroFlags::None);
+
+  constexpr bitset<ZeroFlags> zero_bits{ZeroFlags::None};
+  static_assert(zero_bits.none());
+  static_assert(zero_bits.size() == 2);
+  static_assert(zero_bits.max_size() == 2);
+  static_assert(bitset<ZeroFlags>(ZeroFlags::None).none());
+  static_assert(bitset<ZeroFlags>(ZeroFlags::A | ZeroFlags::B).all());
+
+  bitset<ZeroFlags> flags;
+  REQUIRE_FALSE(flags.test(ZeroFlags::None));
+  flags.set(ZeroFlags::None);
+  REQUIRE(flags.none());
+  flags.set(ZeroFlags::B);
+  flags.reset(ZeroFlags::None);
+  REQUIRE(flags.count() == 1);
+  REQUIRE(flags.find(ZeroFlags::None) == flags.end());
+  REQUIRE(*flags.begin() == ZeroFlags::B);
+  REQUIRE(static_cast<ZeroFlags>(flags) == ZeroFlags::B);
+  REQUIRE(flags.to_string() == "B");
+  REQUIRE(flags.to_string(magic_enum::containers::raw_access) == "01");
+  flags.flip();
+  REQUIRE(flags.to_string() == "A");
+  REQUIRE(bitset<ZeroFlags>().to_string() == "None");
+  REQUIRE(bitset<ZeroFlags>("None|A").to_string() == "A");
+  REQUIRE(bitset<ZeroFlags>("None").none());
+  REQUIRE(std::hash<bitset<ZeroFlags>>{}(bitset<ZeroFlags>{ZeroFlags::None}) == std::hash<bitset<ZeroFlags>>{}(bitset<ZeroFlags>{}));
+
+  bitset<ZeroFlags, ZeroInsideIndex> inside;
+  inside.set(ZeroFlags::B);
+  inside.set(ZeroFlags::None);
+  REQUIRE(inside.size() == 2);
+  REQUIRE(inside.to_string(magic_enum::containers::raw_access) == "01");
+  REQUIRE(*inside.begin() == ZeroFlags::B);
+  inside.set(ZeroFlags::A);
+  REQUIRE(std::vector<ZeroFlags>(inside.begin(), inside.end()) == std::vector<ZeroFlags>{ZeroFlags::A, ZeroFlags::B});
+}
+
+TEST_CASE("bitset custom index keeps its contract") {
+  magic_enum::containers::bitset<Color, ZeroCollidingIndex> colliding;
+  REQUIRE(colliding.size() == 3);
+  colliding.set(Color::RED);
+  colliding.set(Color::BLUE);
+  REQUIRE(colliding.test(Color::RED));
+  REQUIRE(colliding.to_string() == "RED|BLUE");
+
+  const magic_enum::containers::bitset<Color, ReverseIteratorIndex> reversed{Color::RED, Color::BLUE};
+  REQUIRE(reversed.size() == 3);
+  REQUIRE(std::vector<Color>(reversed.begin(), reversed.end()) == std::vector<Color>{Color::BLUE, Color::RED});
 }
 
 TEST_CASE("containers_set") {

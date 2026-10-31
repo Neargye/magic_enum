@@ -64,7 +64,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Fi
 static_assert(magic_enum::enum_count<const DefinedEnum&>() == 1);
 static_assert(magic_enum::enum_count<DefinedFlags, magic_enum::as_flags<true>>() == 2);
 static_assert(magic_enum::enum_count<ZeroOnly>() == 1);
-static_assert(magic_enum::enum_count<ZeroOnly, magic_enum::as_flags<true>>() == 0);
+static_assert(magic_enum::enum_count<ZeroOnly, magic_enum::as_flags<true>>() == 1);
 static_assert(magic_enum::enum_name<OutOfRange::Value>() == "Value");
 
 template <typename E>
@@ -202,6 +202,21 @@ void for_each_probe() { magic_enum::enum_for_each<ForEachEnum>(ForEachVisitor{})
 
 #  define __PRETTY_FUNCTION__ __FUNCTION__
 #  include <magic_enum/magic_enum.hpp>
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 13
+
+#  include <magic_enum/magic_enum_containers.hpp>
+
+enum class OnlyZeroFlags : unsigned { None = 0 };
+
+template <>
+struct magic_enum::customize::enum_range<OnlyZeroFlags> {
+  static constexpr bool is_flags = true;
+};
+
+static_assert(magic_enum::enum_count<OnlyZeroFlags>() == 1);
+static_assert(magic_enum::containers::set<OnlyZeroFlags>{OnlyZeroFlags::None}.size() == 1);
+magic_enum::containers::bitset<OnlyZeroFlags> only_zero_bits;
 
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.

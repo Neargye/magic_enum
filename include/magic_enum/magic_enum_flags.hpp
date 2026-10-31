@@ -51,7 +51,7 @@ MAGIC_ENUM_CONSTEVAL auto values_ors() noexcept {
 
 } // namespace magic_enum::detail
 
-// Returns flag names joined by sep, or an empty string for zero or unknown bits.
+// Returns flag names joined by sep, the name of a named zero, or an empty string for unknown bits.
 template <typename E>
 [[nodiscard]] auto enum_flags_name(E value, char_type sep = char_type{'|'}) -> detail::enable_if_t<E, string> {
   using D = std::decay_t<E>;
@@ -61,6 +61,13 @@ template <typename E>
 
   const auto flag_value = static_cast<U>(value);
   string name;
+  if (flag_value == U{0}) {
+    // The zero name never joins a nonzero mask.
+    const auto n = enum_name<S>(value);
+    name.append(n.data(), n.size());
+    return name;
+  }
+
   auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
     if (const auto v = static_cast<U>(detail::values_v<D, S>[i]); (flag_value & v) != U{0}) {
@@ -76,7 +83,7 @@ template <typename E>
     }
   }
 
-  if (check_value != U{0} && check_value == flag_value) {
+  if (check_value == flag_value) {
     return name;
   }
   return {}; // Invalid value or out of range.
@@ -100,7 +107,8 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::
     const auto u = static_cast<underlying_type_t<D>>(value);
     const auto flag_value = static_cast<V>(u);
     constexpr auto mask = detail::values_ors<D>();
-    if (flag_value != V{0} && (flag_value & static_cast<V>(~mask)) == V{0}) {
+    // Zero is valid only when it is named.
+    if ((flag_value & static_cast<V>(~mask)) == V{0} && (flag_value != V{0} || detail::index_of<D, S>(u))) {
       return static_cast<D>(u);
     }
     return {}; // Invalid value or out of range.
@@ -119,6 +127,8 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
     return {}; // Empty enum.
+  } else if (value.empty()) {
+    return {}; // Empty string. A named zero parses to zero, so the result cannot mark it.
   } else {
     auto result = U{0};
     // Avoid GCC C++26 wrong-code with find/remove_prefix, see #467.
@@ -136,27 +146,24 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
       first = (last < value.size()) ? last + 1 : last;
     }
 
-    if (result != U{0}) {
-      return static_cast<D>(result);
-    }
-    return {}; // Invalid value or out of range.
+    return static_cast<D>(result);
   }
 }
 
-// Returns true if the value is a valid nonzero flag combination.
+// Returns true if the value is a valid flag combination. Zero is valid only when it is named.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   return static_cast<bool>(enum_flags_cast<E>(static_cast<underlying_type_t<E>>(value)));
 }
 
-// Returns true if the integer is a valid nonzero flag combination.
+// Returns true if the integer is a valid flag combination. Zero is valid only when it is named.
 // The enum value overload handles arguments of type E.
 template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   return static_cast<bool>(enum_flags_cast<E>(value));
 }
 
-// Returns true if the names form a valid nonzero flag combination.
+// Returns true if the names form a valid flag combination.
 template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   return static_cast<bool>(enum_flags_cast<E, BinaryPredicate&>(std::forward<String>(value), sep, p));

@@ -192,8 +192,9 @@ TEST_CASE("customization and range semantics") {
 
 TEST_CASE("flags and dependent APIs keep canonical indexing") {
   constexpr auto flag_values = magic_enum::enum_values<WideFlags>();
-  static_assert(flag_values == std::array{WideFlags::A, WideFlags::B, WideFlags::High});
+  static_assert(flag_values == std::array{WideFlags::None, WideFlags::A, WideFlags::B, WideFlags::High});
   CHECK(magic_enum::enum_flags_name(WideFlags::AB) == "A|B");
+  CHECK(magic_enum::enum_flags_name(WideFlags::None) == "None");
   static_assert(magic_enum::enum_flags_cast<WideFlags>("A|B") == WideFlags::AB);
   static_assert(!magic_enum::enum_flags_cast<WideFlags>(std::uint32_t{4}).has_value());
 #if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
