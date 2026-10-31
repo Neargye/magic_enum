@@ -117,7 +117,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
     return {}; // Empty enum.
   } else {
     auto result = U{0};
-    // Avoid GCC C++26 wrong-code with find/remove_prefix (see https://github.com/Neargye/magic_enum/issues/467).
+    // Avoid GCC C++26 wrong-code with find/remove_prefix, see #467.
     for (std::size_t first = 0; first < value.size();) {
       auto last = first;
       while (last < value.size() && value[last] != sep) {

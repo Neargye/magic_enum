@@ -52,7 +52,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
 
-// For enums declared in class templates, Clang prints a cast instead of the enumerator name. See #164 and #296.
+// For enums declared in class templates, Clang prints a cast instead of the enumerator name, see #164 and #296.
 #if !defined(__clang__)
 #  define MAGIC_ENUM_TEST_TEMPLATED_ENUM
 template <typename, typename>
@@ -1017,6 +1017,10 @@ TEST_CASE("enum_name") {
     REQUIRE(dr_name == "Right");
     REQUIRE(enum_name(Directions::Left) == "Left");
     REQUIRE(enum_name(static_cast<Directions>(0)).empty());
+    // The empty name of an invalid value must not point into a destroyed temporary.
+    constexpr auto unknown_name = enum_name(static_cast<Directions>(0));
+    static_assert(unknown_name.data()[0] == '\0');
+    REQUIRE(enum_name(static_cast<Directions>(0)).data()[0] == '\0');
 
     constexpr number nt = number::three;
     constexpr auto nt_name = enum_name(nt);

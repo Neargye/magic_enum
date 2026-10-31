@@ -31,7 +31,7 @@ enum class Five { A, B, C, D, E };
 enum class Six { A, B, C, D, E, F };
 enum class Eight { A, B, C, D, E, F, G, H };
 
-// #386: check the public bijection rather than the bit-width formula.
+// Check the public bijection rather than the bit-width formula, see #386.
 template <typename E, typename F>
 constexpr bool unique_fused_values() {
   using result_type = decltype(magic_enum::enum_fuse(magic_enum::enum_value<E, 0>(), magic_enum::enum_value<F, 0>()));
@@ -72,7 +72,7 @@ static_assert(std::is_same_v<forward_type, magic_enum::optional<std::uintmax_t>>
 static_assert(std::is_same_v<forward_type, reverse_type>);
 static_assert(std::is_same_v<forward_type, three_types>);
 #else
-// #143: argument types, order, and arity belong to the fused type.
+// Argument types, order, and arity belong to the fused type, see #143.
 static_assert(!std::is_same_v<forward_type, reverse_type>);
 static_assert(!std::is_same_v<forward_type, three_types>);
 #endif

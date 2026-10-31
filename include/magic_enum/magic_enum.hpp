@@ -137,6 +137,18 @@
 #  define MAGIC_ENUM_CALLING_CONVENTION
 #endif
 
+// Signature of the enclosing function. n() reads type and enum names from it.
+#if defined(_MSC_VER) && !defined(__clang__)
+#  define MAGIC_ENUM_SIGNATURE __FUNCSIG__
+#elif defined(__clang__) || defined(__GNUC__)
+#  if defined(__PRETTY_FUNCTION__) && !defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+#    error magic_enum requires the builtin __PRETTY_FUNCTION__, not a macro.
+#  endif
+#  define MAGIC_ENUM_SIGNATURE __PRETTY_FUNCTION__
+#else
+#  define MAGIC_ENUM_SIGNATURE ""
+#endif
+
 #if defined(__cpp_consteval) && __cpp_consteval >= 201811L
 #  define MAGIC_ENUM_CONSTEVAL consteval
 #else
@@ -375,44 +387,32 @@ MAGIC_ENUM_CONSTEVAL bool contains(E value) noexcept {
 
 #endif
 
+// Always null-terminated. The empty string points to static storage.
 template <std::uint16_t N>
 class static_str {
  public:
+  constexpr static_str() noexcept : chars_{} {}
+
   constexpr explicit static_str(cname_ref str) noexcept : static_str{str.str_, std::make_integer_sequence<std::uint16_t, N>{}} {}
 
   constexpr explicit static_str(const char* const str) noexcept : static_str{str, std::make_integer_sequence<std::uint16_t, N>{}} {}
 
   constexpr explicit static_str(string_view str) noexcept : static_str{str.data(), std::make_integer_sequence<std::uint16_t, N>{}} {}
 
-  constexpr const char_type* data() const noexcept { return chars_; }
+  constexpr const char_type* data() const noexcept { return N == 0 ? empty_ : chars_; }
 
   constexpr std::uint16_t size() const noexcept { return N; }
 
   constexpr string_view str() const noexcept { return string_view(data(), size()); }
 
+  // Public because GCC 13-15 wrongly checks access to them when a constexpr name is used in a templated lambda, see #452.
   char_type chars_[static_cast<std::size_t>(N) + 1];
+
+  static constexpr char_type empty_[1] = {};
 
  private:
   template <typename Char, std::uint16_t... J>
-  constexpr static_str(const Char* str, std::integer_sequence<std::uint16_t, J...>) noexcept : chars_{static_cast<char_type>(str[J])..., char_type{}} {}
-};
-
-template <>
-class static_str<0> {
- public:
-  constexpr static_str() noexcept = default;
-
-  constexpr static_str(cname_ref) noexcept {}
-
-  constexpr static_str(string_view) noexcept {}
-
-  constexpr const char_type* data() const noexcept { return chars_; }
-
-  constexpr std::uint16_t size() const noexcept { return 0; }
-
-  constexpr string_view str() const noexcept { return string_view(data(), size()); }
-
-  static constexpr char_type chars_[1] = {};
+  constexpr static_str([[maybe_unused]] const Char* str, std::integer_sequence<std::uint16_t, J...>) noexcept : chars_{static_cast<char_type>(str[J])..., char_type{}} {}
 };
 
 template <typename Op = std::equal_to<>>
@@ -492,6 +492,13 @@ constexpr T log2(T value) noexcept {
   return ret;
 }
 
+template <typename T>
+constexpr bool has_single_bit(T value) noexcept {
+  using V = make_unsigned_t<T>;
+  const auto v = static_cast<V>(value);
+  return value > T{0} && (v & (v - V{1})) == V{0};
+}
+
 // Drops everything up to the last ':' of a qualified name.
 MAGIC_ENUM_CONSTEVAL cname_ref unqualified(cname_ref name) noexcept {
   for (std::size_t i = name.size_; i > 0; --i) {
@@ -509,7 +516,7 @@ MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* 
 #elif defined(__GNUC__)
   return str[size - 1] == ']' ? cname_ref{str + 49, size - 50} : cname_ref{str + 37, size - 40};
 #elif defined(_MSC_VER)
-  // CLI/C++ workaround (see https://github.com/Neargye/magic_enum/issues/284).
+  // CLI/C++ workaround, see #284.
   return {str + 40, size - 56};
 #else
   return {};
@@ -533,7 +540,7 @@ MAGIC_ENUM_CONSTEVAL cname_ref enum_signature_name([[maybe_unused]] const char* 
   }
   return str[37] == '(' ? cname_ref{} : cname_ref{str + 37, size - 40};
 #elif defined(_MSC_VER)
-  // CLI/C++ workaround (see https://github.com/Neargye/magic_enum/issues/284).
+  // CLI/C++ workaround, see #284.
   if ((str[5] == '_' && str[35] != '(') || (str[5] == 'c' && str[41] != '(')) {
     return {str + 35, size - 51};
   }
@@ -547,27 +554,12 @@ template <typename E>
 MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   if constexpr (supported<E>::value) {
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-    auto name = reflection::type_name<E>();
+    return reflection::type_name<E>();
 #elif defined(MAGIC_ENUM_GET_TYPE_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_TYPE_NAME_BUILTIN(E);
-    constexpr auto name = name_ptr ? cname_ref{name_ptr, std::char_traits<char>::length(name_ptr)} : cname_ref{};
-#elif defined(_MSC_VER) && !defined(__clang__)
-    auto name = type_signature_name(__FUNCSIG__, sizeof(__FUNCSIG__) - 1);
-#elif defined(__clang__) || defined(__GNUC__)
-    cname_ref name;
-    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
-      static_assert(always_false_v<E>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
-      return cname_ref{};
-    } else {
-      name = type_signature_name(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1);
-    }
+    return unqualified(name_ptr ? cname_ref{name_ptr, std::char_traits<char>::length(name_ptr)} : cname_ref{});
 #else
-    auto name = cname_ref{};
-#endif
-#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-    return name;
-#else
-    return unqualified(name);
+    return unqualified(type_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
 #endif
   } else {
     return cname_ref{}; // Unsupported compiler or Invalid customize.
@@ -599,27 +591,12 @@ template <auto V>
 MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   if constexpr (supported<decltype(V)>::value) {
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-    auto name = reflection::enum_name<V>();
+    return reflection::enum_name<V>();
 #elif defined(MAGIC_ENUM_GET_ENUM_NAME_BUILTIN)
     constexpr auto name_ptr = MAGIC_ENUM_GET_ENUM_NAME_BUILTIN(V);
-    auto name = name_ptr ? cname_ref{name_ptr, std::char_traits<char>::length(name_ptr)} : cname_ref{};
-#elif defined(_MSC_VER) && !defined(__clang__)
-    auto name = enum_signature_name(__FUNCSIG__, sizeof(__FUNCSIG__) - 1);
-#elif defined(__clang__) || defined(__GNUC__)
-    cname_ref name;
-    if constexpr (sizeof(__PRETTY_FUNCTION__) == sizeof(__FUNCTION__)) {
-      static_assert(always_false_v<decltype(V)>, "magic_enum::detail::n requires __PRETTY_FUNCTION__.");
-      return cname_ref{};
-    } else {
-      name = enum_signature_name(__PRETTY_FUNCTION__, sizeof(__PRETTY_FUNCTION__) - 1);
-    }
+    return unqualified(name_ptr ? cname_ref{name_ptr, std::char_traits<char>::length(name_ptr)} : cname_ref{});
 #else
-    auto name = cname_ref{};
-#endif
-#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-    return name;
-#else
-    return unqualified(name);
+    return unqualified(enum_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
 #endif
   } else {
     return cname_ref{}; // Unsupported compiler or Invalid customize.
@@ -679,15 +656,7 @@ constexpr bool value_valid(E value) noexcept {
   if constexpr (S == enum_subtype::common) {
     return true;
   } else {
-    const auto integer = static_cast<U>(value);
-    if constexpr (std::is_signed_v<U>) {
-      if (integer <= 0) {
-        return false;
-      }
-    }
-    using V = make_unsigned_t<U>;
-    const auto flag = static_cast<V>(integer);
-    return flag != V{0} && (flag & (flag - V{1})) == V{0};
+    return has_single_bit(static_cast<U>(value));
   }
 }
 
@@ -1022,34 +991,20 @@ using entries_t = decltype((entries_v<D, S>));
 
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL bool is_sparse() noexcept {
+  using V = make_unsigned_t<U>;
   if constexpr (count_v<E, S> == 0) {
     return false;
-#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
-  } else if constexpr (S == enum_subtype::common) {
-    if constexpr (cmp_less(min_v<E, S>, (std::numeric_limits<int>::min)()) || cmp_less((std::numeric_limits<int>::max)(), max_v<E, S>)) {
-      return true;
-    } else {
-      for (std::size_t i = 1; i < count_v<E, S>; ++i) {
-        if (static_cast<U>(reflection::table_v<E, S>.entries[i - 1].value) + U{1} != static_cast<U>(reflection::table_v<E, S>.entries[i].value)) {
-          return true;
-        }
-      }
-      return false;
-    }
-#endif
   } else if constexpr (S == enum_subtype::flags) {
-    using V = make_unsigned_t<U>;
     constexpr auto max = log2(static_cast<V>(max_v<E, S>));
     constexpr auto min = log2(static_cast<V>(min_v<E, S>));
     constexpr auto range_size = max - min + 1;
 
     return range_size != count_v<E, S>;
   } else {
-    constexpr auto max = max_v<E, S>;
-    constexpr auto min = min_v<E, S>;
-    constexpr auto range_size = max - min + 1;
+    // Dense lookup passes min to value() as an int. The unsigned span does not overflow on wide ranges.
+    constexpr auto span = static_cast<V>(static_cast<V>(max_v<E, S>) - static_cast<V>(min_v<E, S>));
 
-    return range_size != count_v<E, S>;
+    return cmp_less(min_v<E, S>, (std::numeric_limits<int>::min)()) || cmp_less((std::numeric_limits<int>::max)(), max_v<E, S>) || static_cast<std::size_t>(span) != count_v<E, S> - 1;
   }
 }
 
@@ -1091,11 +1046,8 @@ struct is_scoped_enum : std::false_type {};
 template <typename T>
 struct is_scoped_enum<T, true> : std::bool_constant<!std::is_convertible_v<T, std::underlying_type_t<T>>> {};
 
-template <typename T, bool = std::is_enum_v<T>>
-struct is_unscoped_enum : std::false_type {};
-
 template <typename T>
-struct is_unscoped_enum<T, true> : std::bool_constant<std::is_convertible_v<T, std::underlying_type_t<T>>> {};
+struct is_unscoped_enum : std::bool_constant<std::is_enum_v<T> && !is_scoped_enum<T>::value> {};
 
 template <typename T, bool = std::is_enum_v<T>>
 struct is_flags_enum : std::false_type {};
@@ -1762,17 +1714,11 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
     if constexpr (S == detail::enum_subtype::common) {
       return !detail::cmp_less(value, min) && !detail::cmp_less(max, value);
     } else {
-      if (value <= T{0}) {
+      if (!detail::has_single_bit(value)) {
         return false;
       }
 
-      using U = detail::make_unsigned_t<T>;
-      const auto v = static_cast<U>(value);
-      if ((v & (v - U{1})) != U{0}) {
-        return false;
-      }
-
-      const auto bit = detail::log2(v);
+      const auto bit = detail::log2(static_cast<detail::make_unsigned_t<T>>(value));
       return !detail::cmp_less(bit, min) && !detail::cmp_less(max, bit);
     }
   }
@@ -1857,6 +1803,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 #undef MAGIC_ENUM_GET_ENUM_NAME_BUILTIN
 #undef MAGIC_ENUM_GET_TYPE_NAME_BUILTIN
 #undef MAGIC_ENUM_CALLING_CONVENTION
+#undef MAGIC_ENUM_SIGNATURE
 #undef MAGIC_ENUM_FOR_EACH_256
 #undef MAGIC_ENUM_DETAIL_USE_STD_REFLECTION
 

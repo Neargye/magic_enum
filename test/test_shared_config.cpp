@@ -4,7 +4,7 @@
 
 #include "test_shared_config.hpp"
 
-// #231: every reflecting TU sees the same enum definition and customization.
+// Every reflecting TU sees the same enum definition and customization, see #231.
 int main() {
   using shared_config::Value;
   if (magic_enum::enum_count<Value>() != 2 || shared_config::count_from_other_tu() != 2) {

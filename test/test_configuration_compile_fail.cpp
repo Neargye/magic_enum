@@ -88,7 +88,7 @@ constexpr int for_each_calls() {
   return calls;
 }
 
-// #451: enum_count() == 0 is a supported check, including when every value is filtered out.
+// enum_count() == 0 is a supported check, including when every value is filtered out, see #451.
 template <typename E>
 constexpr bool empty_reflection() {
   static_assert(magic_enum::enum_count<const E&>() == 0);
@@ -197,6 +197,11 @@ struct ForEachVisitor {
 };
 
 void for_each_probe() { magic_enum::enum_for_each<ForEachEnum>(ForEachVisitor{}); }
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 12
+
+#  define __PRETTY_FUNCTION__ __FUNCTION__
+#  include <magic_enum/magic_enum.hpp>
 
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.

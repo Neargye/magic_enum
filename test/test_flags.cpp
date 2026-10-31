@@ -193,7 +193,7 @@ TEST_CASE("bool flags use the sole non-zero bit") {
 }
 
 TEST_CASE("named composite flags require every constituent bit") {
-  // #409: a named combination does not supply an otherwise unnamed bit.
+  // A named combination does not supply an otherwise unnamed bit, see #409.
   enum class MissingBit : std::uint8_t { System = 1, Null = 2, Binary = 4, Autoincrement = 12 };
   enum class CompleteBits : std::uint8_t { System = 1, Null = 2, Binary = 4, Empty = 8, Autoincrement = 12 };
 
