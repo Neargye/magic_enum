@@ -1170,6 +1170,19 @@ constexpr optional<std::size_t> index_switch(typename Cases::type value) noexcep
   }
 }
 
+template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
+constexpr optional<std::size_t> index_of(U value) noexcept {
+  if constexpr (count_v<E, S> == 0) {
+    return {};
+  } else if constexpr (is_sparse_v<E, S> || (S == enum_subtype::flags)) {
+    return index_switch<value_cases<E, S>>(static_cast<switch_t<E>>(value));
+  } else if (value >= min_v<E, S> && value <= max_v<E, S>) {
+    return static_cast<std::size_t>(value - min_v<E, S>);
+  } else {
+    return {};
+  }
+}
+
 #undef MAGIC_ENUM_INDEX_CASE
 
 template <typename T = void>
@@ -1289,53 +1302,14 @@ MAGIC_ENUM_CONSTEVAL void hash_heap_sort(std::array<T, N>& values) noexcept {
 
 template <auto* Arr, typename Hash>
 MAGIC_ENUM_CONSTEVAL bool has_unique_hashes() noexcept {
-  using hash_value_t = std::invoke_result_t<Hash, std::decay_t<decltype((*Arr)[0])>>;
-  if constexpr (Arr->size() > 1) {
-    auto previous = hash_v<Hash>((*Arr)[0]);
-    bool strictly_increasing = true;
-    for (std::size_t i = 1; i < Arr->size(); ++i) {
-      const auto current = hash_v<Hash>((*Arr)[i]);
-      if (!(previous < current)) {
-        if (previous == current) {
-          return false;
-        }
-        strictly_increasing = false;
-        break;
-      }
-      previous = current;
-    }
-    if (strictly_increasing) {
-      return true;
-    }
+  std::array<std::invoke_result_t<Hash, std::decay_t<decltype((*Arr)[0])>>, Arr->size()> hashes{};
+  for (std::size_t i = 0; i < hashes.size(); ++i) {
+    hashes[i] = hash_v<Hash>((*Arr)[i]);
   }
-
-  std::array<hash_value_t, Arr->size()> hashes{};
-  if constexpr (Arr->size() <= 32) {
-    std::size_t size = 0;
-    for (auto elem : *Arr) {
-      hashes[size] = hash_v<Hash>(elem);
-      for (auto i = size++; i > 0; --i) {
-        if (hashes[i] < hashes[i - 1]) {
-          auto tmp = hashes[i];
-          hashes[i] = hashes[i - 1];
-          hashes[i - 1] = tmp;
-        } else if (hashes[i] == hashes[i - 1]) {
-          return false;
-        } else {
-          break;
-        }
-      }
-    }
-  } else {
-    std::size_t size = 0;
-    for (auto elem : *Arr) {
-      hashes[size++] = hash_v<Hash>(elem);
-    }
-    hash_heap_sort(hashes);
-    for (std::size_t i = 1; i < hashes.size(); ++i) {
-      if (hashes[i - 1] == hashes[i]) {
-        return false;
-      }
+  hash_heap_sort(hashes);
+  for (std::size_t i = 1; i < hashes.size(); ++i) {
+    if (hashes[i - 1] == hashes[i]) {
+      return false;
     }
   }
   return true;
@@ -1539,20 +1513,9 @@ template <typename E>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
-  using U = underlying_type_t<D>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::count_v<D, S> == 0) {
-    return {};
-  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
-    return detail::index_switch<detail::value_cases<D, S>>(static_cast<detail::switch_t<D>>(static_cast<U>(value)));
-  } else {
-    const auto v = static_cast<U>(value);
-    if (v >= detail::min_v<D, S> && v <= detail::max_v<D, S>) {
-      return static_cast<std::size_t>(v - detail::min_v<D, S>);
-    }
-    return {}; // Invalid value or out of range.
-  }
+  return detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value));
 }
 
 // Returns the index of the enum value in enum_values, or an empty optional.
@@ -1627,19 +1590,10 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
 
-  if constexpr (detail::count_v<D, S> == 0) {
-    return {};
-  } else if constexpr (detail::is_sparse_v<D, S> || (S == detail::enum_subtype::flags)) {
-    if (detail::index_switch<detail::value_cases<D, S>>(static_cast<detail::switch_t<D>>(value))) {
-      return static_cast<D>(value);
-    }
-    return {}; // Invalid value or out of range.
-  } else {
-    if (value >= detail::min_v<D, S> && value <= detail::max_v<D, S>) {
-      return static_cast<D>(value);
-    }
-    return {}; // Invalid value or out of range.
+  if (detail::index_of<D, S>(value)) {
+    return static_cast<D>(value);
   }
+  return {}; // Invalid value or out of range.
 }
 
 // Returns the enum value matching the name, or an empty optional.
