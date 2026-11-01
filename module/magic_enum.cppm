@@ -22,6 +22,7 @@ module;
 #  endif
 
 #  include <magic_enum/magic_enum.hpp>
+#  include <magic_enum/magic_enum_bitwise.hpp>
 #  include <magic_enum/magic_enum_flags.hpp>
 #  include <magic_enum/magic_enum_fuse.hpp>
 #  include <magic_enum/magic_enum_iostream.hpp>
@@ -57,6 +58,7 @@ extern "C++" {
 
 #  ifdef MAGIC_ENUM_USE_STD_MODULE
 #    include <magic_enum/magic_enum.hpp>
+#    include <magic_enum/magic_enum_bitwise.hpp>
 #    include <magic_enum/magic_enum_flags.hpp>
 #    include <magic_enum/magic_enum_fuse.hpp>
 #    include <magic_enum/magic_enum_iostream.hpp>

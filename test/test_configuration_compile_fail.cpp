@@ -217,6 +217,18 @@ static_assert(magic_enum::enum_count<OnlyZeroFlags>() == 1);
 static_assert(magic_enum::containers::set<OnlyZeroFlags>{OnlyZeroFlags::None}.size() == 1);
 magic_enum::containers::bitset<OnlyZeroFlags> only_zero_bits;
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 14
+
+#  include <magic_enum/magic_enum_bitwise.hpp>
+
+MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(int);
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 15
+
+#  include <magic_enum/magic_enum_iostream.hpp>
+
+MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(int);
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

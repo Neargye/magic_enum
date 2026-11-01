@@ -33,6 +33,7 @@
 #define NEARGYE_MAGIC_ENUM_ALL_HPP
 
 #include "magic_enum.hpp"
+#include "magic_enum_bitwise.hpp"
 #include "magic_enum_containers.hpp"
 #include "magic_enum_flags.hpp"
 #include "magic_enum_format.hpp"

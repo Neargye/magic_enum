@@ -25,6 +25,7 @@
 #include <string>
 
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_bitwise.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
 enum class AnimalFlags : std::uint64_t { HasClaws = 1 << 10, CanFly = 1 << 20, EatsFish = 1 << 30, Endangered = std::uint64_t{1} << 40 };
@@ -33,6 +34,10 @@ template <>
 struct magic_enum::customize::enum_range<AnimalFlags> {
   static constexpr bool is_flags = true;
 };
+
+// Operators only for AnimalFlags, found by ADL without a using directive.
+MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(AnimalFlags);
+MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(AnimalFlags);
 
 int main() {
   // Enum-flags variable to string name.
@@ -63,7 +68,7 @@ int main() {
   }
 
   // Integer value to enum-flags value.
-  auto f3 = magic_enum::enum_cast<AnimalFlags>(1073742848);
+  auto f3 = magic_enum::enum_flags_cast<AnimalFlags>(1073742848);
   if (f3.has_value()) {
     std::cout << magic_enum::enum_flags_name(f3.value()) << " = " << magic_enum::enum_integer(f3.value()) << std::endl; // HasClaws|EatsFish = 1073742848
   }
@@ -72,9 +77,8 @@ int main() {
   auto f4_integer = magic_enum::enum_integer(AnimalFlags::HasClaws);
   std::cout << "HasClaws = " << f4_integer << std::endl; // HasClaws = 1024
 
-  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operator for enum-flags.
   // Ostream operator for enum-flags.
-  std::cout << f1 << " " << f2 << " " << f3 << std::endl; // Endangered CanFly|EatsFish HasClaws|EatsFish
+  std::cout << f1 << " " << *f2 << " " << *f3 << std::endl; // Endangered CanFly|EatsFish HasClaws|EatsFish
 
   // Number of enum-flags values.
   std::cout << "AnimalFlags enum size: " << magic_enum::enum_count<AnimalFlags>() << std::endl; // AnimalFlags enum size: 4
@@ -91,7 +95,6 @@ int main() {
   std::cout << std::endl;
   // AnimalFlags values: HasClaws CanFly EatsFish Endangered
 
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   AnimalFlags flag = AnimalFlags::HasClaws | AnimalFlags::CanFly;
   std::cout << flag << std::endl; // HasClaws|CanFly

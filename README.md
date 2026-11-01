@@ -194,7 +194,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
+  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Directions); // From <magic_enum/magic_enum_bitwise.hpp>.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
   magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
@@ -217,25 +217,28 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * I/O stream operators for enums
 
   ```cpp
-  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operators for enums.
+  #include <magic_enum/magic_enum_iostream.hpp>
+
+  enum class Color { RED, GREEN, BLUE };
+  MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color); // Operators only for Color, found without using.
+
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
-  ```
-
-  ```cpp
-  using magic_enum::iostream_operators::operator>>; // out-of-the-box istream operators for enums.
-  Color color;
   std::cin >> color;
   ```
 
 * Bitwise operators for enums
 
   ```cpp
+  #include <magic_enum/magic_enum_bitwise.hpp>
+
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
-  // Support operators: ~, |, &, ^, |=, &=, ^=.
+  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Flags); // Support operators: ~, |, &, ^, |=, &=, ^=.
+
   Flags flags = Flags::A | (Flags::B & ~Flags::C);
   ```
+
+  `MAGIC_ENUM_DEFINE_FRIEND_*` variants work inside a class, for private enums and class templates. The `bitwise_operators` and `iostream_operators` namespaces still enable operators for all enums in the scope of a `using`, see [risks](doc/reference.md#risks-of-operator-namespaces).
 
 * Formatting
 

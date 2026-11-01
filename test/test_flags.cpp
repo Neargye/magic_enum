@@ -5,6 +5,7 @@
 #include <doctest/doctest.h>
 
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_bitwise.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
 #include <magic_enum/magic_enum_fuse.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>

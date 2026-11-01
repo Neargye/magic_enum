@@ -23,9 +23,12 @@
 * [`is_unscoped_enum` identifies unscoped enum types.](#is_unscoped_enum)
 * [`is_scoped_enum` identifies scoped enum types.](#is_scoped_enum)
 * [`underlying_type` provides underlying enum type.](#underlying_type)
-* [`ostream_operators` provides stream insertion operators.](#ostream_operators)
-* [`istream_operators` provides stream extraction operators.](#istream_operators)
-* [`bitwise_operators` provides bitwise operators.](#bitwise_operators)
+* [`MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS` defines stream operators for one enum.](#magic_enum_define_iostream_operators)
+* [`ostream_operators` provides stream insertion operators for all enums.](#ostream_operators)
+* [`istream_operators` provides stream extraction operators for all enums.](#istream_operators)
+* [`MAGIC_ENUM_DEFINE_BITWISE_OPERATORS` defines bitwise operators for one enum.](#magic_enum_define_bitwise_operators)
+* [`bitwise_operators` provides bitwise operators for all enums.](#bitwise_operators)
+* [Risks of operator namespaces.](#risks-of-operator-namespaces)
 * [`std::format` and `fmt::format` support for enums.](#formatting)
 * [Container comparators and indexing helpers.](#container-helpers)
 * [`containers::array` array container for enums.](#containersarray)
@@ -669,7 +672,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   struct magic_enum::customize::enum_range<Directions> {
     static constexpr bool is_flags = true;
   };
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
+  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Directions); // From <magic_enum/magic_enum_bitwise.hpp>.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
   magic_enum::enum_flags_name(Directions::LeftAndDown); // -> "Left|Down"
@@ -773,6 +776,44 @@ using underlying_type_t = typename underlying_type<T>::type;
   magic_enum::underlying_type_t<Direction> -> int
   ```
 
+## `MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS`
+
+```cpp
+#define MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(E)
+#define MAGIC_ENUM_DEFINE_FRIEND_IOSTREAM_OPERATORS(E)
+```
+
+* Defined in header `<magic_enum/magic_enum_iostream.hpp>`
+
+* Defines `operator<<` and `operator>>` for `E` only. Argument-dependent lookup finds them, no `using` is needed. They behave like [`ostream_operators`](#ostream_operators) and [`istream_operators`](#istream_operators). The `optional<E>` overload is not defined.
+
+* `MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(E)` is used in the namespace that declares `E`, or in the global namespace for a global enum. For a public nested enum it is used in the namespace of the class after the class definition, with `C::E`.
+
+* `MAGIC_ENUM_DEFINE_FRIEND_IOSTREAM_OPERATORS(E)` is used inside the class that declares `E` and defines hidden friends. It is needed for private enums and enums inside class templates.
+
+* Both macros require an enum type and a trailing semicolon. A `using` of the iostream namespaces in the same scope is not ambiguous, the operators of the macro are preferred.
+
+* The `magic_enum` module does not export macros. Module users bring the namespaces in with `using` inside a function body.
+
+* Examples
+
+  ```cpp
+  namespace app {
+  enum class Color { RED, GREEN, BLUE };
+  MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color);
+  } // namespace app
+
+  std::cout << app::Color::BLUE << std::endl; // "BLUE"
+
+  app::Color color;
+  std::cin >> color;
+
+  class Widget {
+    enum class State { Idle, Busy };
+    MAGIC_ENUM_DEFINE_FRIEND_IOSTREAM_OPERATORS(State);
+  };
+  ```
+
 ## `ostream_operators`
 
 ```cpp
@@ -785,14 +826,19 @@ basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, optiona
 
 * Defined in header `<magic_enum/magic_enum_iostream.hpp>`
 
-* Provides stream insertion operators for all enums.
+* Provides stream insertion operators for all enums. Writes the name of a reflected value, a combination of flags joined by `|`, or the underlying integer of an unnamed value. An empty `optional<E>` writes nothing.
+
+* `iostream_operators` contains both `ostream_operators` and `istream_operators`.
+
+* Use with care, see [risks of operator namespaces](#risks-of-operator-namespaces). For own enums prefer [`MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS`](#magic_enum_define_iostream_operators).
 
 * Examples
 
   ```cpp
-  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operators for enums.
-  Color color = Color::BLUE;
-  std::cout << color << std::endl; // "BLUE"
+  void print(Color color) {
+    using magic_enum::iostream_operators::operator<<; // Enables operator<< for all enums in this function.
+    std::cout << color << std::endl; // "BLUE"
+  }
   ```
 
 ## `istream_operators`
@@ -804,14 +850,51 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Defined in header `<magic_enum/magic_enum_iostream.hpp>`
 
-* Provides stream extraction operators for all enums.
+* Provides stream extraction operators for all enums. Reads one word and parses it with `enum_cast`, or with `enum_flags_cast` for flags. On failure sets `failbit` and leaves `value` unchanged. The stream character type must match `magic_enum::char_type`.
+
+* Use with care, see [risks of operator namespaces](#risks-of-operator-namespaces). For own enums prefer [`MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS`](#magic_enum_define_iostream_operators).
 
 * Examples
 
   ```cpp
-  using magic_enum::iostream_operators::operator>>; // out-of-the-box istream operators for enums.
-  Color color;
-  std::cin >> color;
+  Color read() {
+    using magic_enum::iostream_operators::operator>>; // Enables operator>> for all enums in this function.
+    Color color = Color::RED;
+    std::cin >> color;
+    return color;
+  }
+  ```
+
+## `MAGIC_ENUM_DEFINE_BITWISE_OPERATORS`
+
+```cpp
+#define MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(E)
+#define MAGIC_ENUM_DEFINE_FRIEND_BITWISE_OPERATORS(E)
+```
+
+* Defined in header `<magic_enum/magic_enum_bitwise.hpp>`. The header needs only `<type_traits>` and does not include `<magic_enum/magic_enum.hpp>`. `<magic_enum/magic_enum_all.hpp>` includes it.
+
+* Defines non-template `constexpr` and `noexcept` operators `~`, `|`, `&`, `^`, `|=`, `&=`, `^=` for `E` only. Argument-dependent lookup finds them, no `using` is needed. Results have type `E`, also for unscoped enums. `~` complements the underlying value, for a `bool` underlying type it is a logical not.
+
+* Placement rules are the same as for [`MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS`](#magic_enum_define_iostream_operators). Both macros require an enum type and a trailing semicolon. A `using namespace magic_enum::bitwise_operators` in the same scope is not ambiguous, the operators of the macro are preferred.
+
+* `is_flags` does not enable the operators, and the operators do not make an enum flags.
+
+* The `magic_enum` module does not export macros. Module users bring `bitwise_operators` in with `using` inside a function body.
+
+* Examples
+
+  ```cpp
+  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
+  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Flags);
+
+  constexpr Flags flags = Flags::A | (Flags::B & ~Flags::C);
+
+  template <typename T>
+  class Buffer {
+    enum class Mode { Read = 1, Write = 2 };
+    MAGIC_ENUM_DEFINE_FRIEND_BITWISE_OPERATORS(Mode);
+  };
   ```
 
 ## `bitwise_operators`
@@ -839,18 +922,31 @@ template <typename E>
 constexpr E& operator^=(E& lhs, E rhs) noexcept;
 ```
 
-* Defined in header `<magic_enum/magic_enum.hpp>`
+* Defined in header `<magic_enum/magic_enum_bitwise.hpp>`. Since 0.10 `<magic_enum/magic_enum.hpp>` does not provide it.
 
-* Provides bitwise operators for all enums.
+* Provides bitwise operators for all enums. Mostly useful for enums local to a function, where the macros cannot be used.
+
+* Use with care, see [risks of operator namespaces](#risks-of-operator-namespaces). For own enums prefer [`MAGIC_ENUM_DEFINE_BITWISE_OPERATORS`](#magic_enum_define_bitwise_operators).
 
 * Examples
 
   ```cpp
-  enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
-  // Support operators: ~, |, &, ^, |=, &=, ^=.
-  Flags flags = Flags::A | (Flags::B & ~Flags::C);
+  void f() {
+    enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
+    using namespace magic_enum::bitwise_operators; // Enables operators for all enums in this function.
+    Flags flags = Flags::A | (Flags::B & ~Flags::C);
+  }
   ```
+
+## Risks of operator namespaces
+
+* A `using` of `bitwise_operators`, `ostream_operators`, `istream_operators` or `iostream_operators` enables the operators for every enum in that scope. This includes enums of other libraries and enums from headers included after the `using`.
+
+* For an unscoped enum the meaning of existing code changes. `a | b` has type `E` instead of an integer, and `std::cout << e` writes the name instead of the number. Operators declared for the enum by its own library are still preferred if they are not templates.
+
+* Translation units can see different sets of operators. If the same inline function or template resolves an operator differently in two translation units, the program violates the one definition rule, see [#434](https://github.com/Neargye/magic_enum/issues/434).
+
+* Never put such a `using` in a header or at namespace scope. For own enums use the macros. For enums local to a function keep the `using` inside the function body.
 
 ## Formatting
 

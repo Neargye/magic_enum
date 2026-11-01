@@ -6,6 +6,7 @@
 #include <doctest/doctest.h>
 
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_bitwise.hpp>
 #define max(a, b) MAGIC_ENUM_TEST_MAX_MACRO
 #include <magic_enum/magic_enum_containers.hpp>
 #undef max

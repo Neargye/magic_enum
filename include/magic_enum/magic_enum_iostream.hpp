@@ -62,6 +62,7 @@ std::basic_ostream<Char, Traits>& write_name(std::basic_ostream<Char, Traits>& o
 
 } // namespace magic_enum::detail
 
+// A using directive applies these templates to every enum in its scope. Prefer MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS for own enums.
 namespace ostream_operators {
 
 template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int> = 0>
@@ -124,5 +125,26 @@ using magic_enum::istream_operators::operator>>;
 } // namespace magic_enum::iostream_operators
 
 } // namespace magic_enum
+
+// Defines stream operators for E only, found by ADL without a using directive.
+// Use in the namespace of E, or in the namespace of the enclosing class after its definition.
+#define MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(E) MAGIC_ENUM_DETAIL_DEFINE_IOSTREAM_OPERATORS(, E)
+
+// Defines hidden friend stream operators for E. Use inside the class that declares E, for private enums and class templates.
+#define MAGIC_ENUM_DEFINE_FRIEND_IOSTREAM_OPERATORS(E) MAGIC_ENUM_DETAIL_DEFINE_IOSTREAM_OPERATORS(friend, E)
+
+// Fixing E makes these templates more specialized than the namespace ones, so a using directive in the same scope is not ambiguous.
+// Prefixed names avoid -Wshadow with members and template parameters of the enclosing class.
+#define MAGIC_ENUM_DETAIL_DEFINE_IOSTREAM_OPERATORS(SPEC, E) \
+  static_assert(::std::is_enum_v<E>, "magic_enum iostream operators require an enum type."); \
+  template <typename MagicEnumChar, typename MagicEnumTraits> \
+  SPEC ::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& operator<<(::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& magic_enum_os, E magic_enum_value) { \
+    return ::magic_enum::ostream_operators::operator<<(magic_enum_os, magic_enum_value); \
+  } \
+  template <typename MagicEnumChar, typename MagicEnumTraits> \
+  SPEC ::std::basic_istream<MagicEnumChar, MagicEnumTraits>& operator>>(::std::basic_istream<MagicEnumChar, MagicEnumTraits>& magic_enum_is, E& magic_enum_value) { \
+    return ::magic_enum::istream_operators::operator>>(magic_enum_is, magic_enum_value); \
+  } \
+  static_assert(true, "")
 
 #endif // NEARGYE_MAGIC_ENUM_IOSTREAM_HPP

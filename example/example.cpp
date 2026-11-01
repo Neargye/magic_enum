@@ -23,9 +23,12 @@
 #include <iostream>
 
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_bitwise.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
+// Stream operators only for Color, found by ADL without a using directive.
+MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color);
 
 template <typename E>
 auto to_integer(magic_enum::Enum<E> value) {
@@ -70,9 +73,8 @@ int main() {
   auto c4_integer = magic_enum::enum_integer(Color::RED);
   std::cout << "RED = " << c4_integer << std::endl; // RED = -10
 
-  using magic_enum::iostream_operators::operator<<; // out-of-the-box ostream operator for all enums.
   // Ostream operator for enum.
-  std::cout << "Color: " << c1 << " " << c2 << " " << c3 << std::endl; // Color: RED BLUE GREEN
+  std::cout << "Color: " << c1 << " " << *c2 << " " << *c3 << std::endl; // Color: RED BLUE GREEN
 
   // Number of enum values.
   std::cout << "Color enum size: " << magic_enum::enum_count<Color>() << std::endl; // Color size: 3
@@ -90,10 +92,11 @@ int main() {
   // Color values: RED BLUE GREEN
 
   enum class Flags { A = 1, B = 2, C = 4, D = 8 };
-  using namespace magic_enum::bitwise_operators; // Use with care: operators are enabled for all enums.
+  // Macros cannot be used for a local enum. Keep the using directive inside the function, it enables operators for all enums in scope.
+  using namespace magic_enum::bitwise_operators;
   // Support operators: ~, |, &, ^, |=, &=, ^=.
   Flags flag = Flags::A | Flags::C;
-  std::cout << flag << std::endl; // 5
+  std::cout << magic_enum::enum_integer(flag) << std::endl; // 5
 
   enum color { red, green, blue };
 

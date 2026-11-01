@@ -33,6 +33,14 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 * For a signed underlying type, the sign bit is reflected as a flag. Values are ordered by signed value, so a negative sign bit flag comes first.
 
+## Operators
+
+* `MAGIC_ENUM_DEFINE_BITWISE_OPERATORS` and `MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS` need a namespace or class scope. For an enum local to a function, put a `using` of the operator namespace inside the function body.
+
+* The `magic_enum` module exports `bitwise_operators` and the iostream namespaces, but not the macros. Including `magic_enum_bitwise.hpp` or `magic_enum_iostream.hpp` after `import magic_enum` is not supported.
+
+* A `using` of an operator namespace applies to every enum in its scope and can violate the one definition rule across translation units. See [risks of operator namespaces](reference.md#risks-of-operator-namespaces).
+
 ## Enum Range
 
 * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection. Standard reflection ignores them.

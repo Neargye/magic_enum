@@ -74,6 +74,7 @@ set(MAGIC_ENUM_EXPORT_NAMESPACE "${PROJECT_NAME}::")
 set(MAGIC_ENUM_HEADERS
     "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum.hpp"
     "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum_all.hpp"
+    "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum_bitwise.hpp"
     "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum_containers.hpp"
     "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum_flags.hpp"
     "${MAGIC_ENUM_INCLUDE_DIR}/magic_enum_format.hpp"

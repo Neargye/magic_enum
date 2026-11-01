@@ -88,6 +88,23 @@ static_assert(magic_enum::enum_reflected(ReflectionRange{0}));
 constexpr magic_enum::containers::bitset<Color> color_bits{magic_enum::containers::raw_access, 5ULL};
 
 int main() {
+  {
+    enum class LocalFlags : unsigned { A = 1, B = 2, C = 4 };
+    using namespace magic_enum::bitwise_operators;
+
+    static_assert((LocalFlags::A | LocalFlags::B) == static_cast<LocalFlags>(3));
+    static_assert((LocalFlags::A & LocalFlags::B) == static_cast<LocalFlags>(0));
+    static_assert((LocalFlags::A ^ LocalFlags::C) == static_cast<LocalFlags>(5));
+    static_assert(~LocalFlags::A == static_cast<LocalFlags>(~1u));
+
+    auto flags = LocalFlags::A;
+    if (&(flags |= LocalFlags::B) != &flags ||
+        &(flags &= LocalFlags::B) != &flags ||
+        &(flags ^= LocalFlags::C) != &flags ||
+        flags != (LocalFlags::B | LocalFlags::C)) {
+      return 8;
+    }
+  }
   if (std::hash<magic_enum::containers::bitset<Color>>{}(color_bits) !=
       std::hash<unsigned long long>{}(5ULL)) {
     return 1;

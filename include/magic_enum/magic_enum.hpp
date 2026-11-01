@@ -1716,51 +1716,6 @@ inline constexpr auto as_flags = AsFlags ? detail::enum_subtype::flags : detail:
 template <bool AsCommon = true>
 inline constexpr auto as_common = AsCommon ? detail::enum_subtype::common : detail::enum_subtype::flags;
 
-namespace bitwise_operators {
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E operator~(E rhs) noexcept {
-  using U = underlying_type_t<E>;
-
-  if constexpr (std::is_same_v<U, bool>) {
-    return static_cast<E>(!static_cast<U>(rhs));
-  } else {
-    return static_cast<E>(~static_cast<U>(rhs));
-  }
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E operator|(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) | static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E operator&(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) & static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E operator^(E lhs, E rhs) noexcept {
-  return static_cast<E>(static_cast<underlying_type_t<E>>(lhs) ^ static_cast<underlying_type_t<E>>(rhs));
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E& operator|=(E& lhs, E rhs) noexcept {
-  return lhs = (lhs | rhs);
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E& operator&=(E& lhs, E rhs) noexcept {
-  return lhs = (lhs & rhs);
-}
-
-template <typename E, detail::enable_if_t<E, int> = 0>
-constexpr E& operator^=(E& lhs, E rhs) noexcept {
-  return lhs = (lhs ^ rhs);
-}
-
-} // namespace magic_enum::bitwise_operators
-
 } // namespace magic_enum
 
 #if defined(__clang__)

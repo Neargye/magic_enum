@@ -238,7 +238,7 @@ function(magic_enum_make_module_test src target module_target)
 endfunction()
 
 set(MAGIC_ENUM_TEST_SOURCES test test_flags test_aliases test_containers test_wchar_t)
-set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection)
+set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection test_operators)
 
 function(magic_enum_add_tests suffix standard_flag)
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
@@ -259,6 +259,7 @@ magic_enum_make_test(test_fuse.cpp test_fuse-cpp17 c++17)
 magic_enum_make_test("test_shared_config.cpp;test_shared_config_other.cpp" test_shared_config-cpp17 c++17)
 magic_enum_make_test("test_shared_config.cpp;test_shared_config_other.cpp" test_shared_config-hash-cpp17 c++17)
 target_compile_definitions(test_shared_config-hash-cpp17 PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+magic_enum_make_test("test_operators.cpp;test_operators_other.cpp" test_operators-cpp17 c++17)
 magic_enum_make_test(test_containers_no_exceptions.cpp test_containers_no_exceptions-cpp17 c++17)
 if(MSVC)
   target_compile_definitions(test_containers_no_exceptions-cpp17 PRIVATE MAGIC_ENUM_NO_EXCEPTION)
@@ -373,6 +374,18 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  bitwise-macro-non-enum
+  14
+  "magic_enum bitwise operators require an enum type."
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  iostream-macro-non-enum
+  15
+  "magic_enum iostream operators require an enum type."
+)
+magic_enum_make_compile_fail_test(
+  configuration
   bitset-only-zero
   13
   "magic_enum::containers::bitset requires at least one flag bit, a named zero has no bit."
@@ -448,6 +461,8 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
   endforeach()
   target_compile_definitions(test-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
   target_compile_definitions(test_flags-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
+  magic_enum_make_test("test_operators.cpp;test_operators_other.cpp" test_operators-cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+  magic_enum_add_std_reflection_options(test_operators-cpp26-reflection)
 
   magic_enum_add_tests(cpp26-force-compiler-specific ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
