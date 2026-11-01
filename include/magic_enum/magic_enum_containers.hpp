@@ -1078,8 +1078,10 @@ class bitset {
     return static_cast<E>(res);
   }
 
-  [[nodiscard]] string to_string(char_type sep = char_type{'|'}) const {
-    string name;
+  template <typename String = string>
+  [[nodiscard]] constexpr String to_string(char_type sep = char_type{'|'}) const {
+    static_assert(std::is_same_v<typename String::value_type, char_type>, "magic_enum::containers::bitset::to_string requires String::value_type to be magic_enum::char_type.");
+    String name;
 
     for (const auto& e : enum_values<E>()) {
       if (!domain::is_skipped(e) && test(e)) {
@@ -1091,7 +1093,7 @@ class bitset {
       }
     }
     if constexpr (domain::skip_zero) {
-      if (name.empty()) {
+      if (none()) {
         const auto n = enum_name(static_cast<E>(0));
         name.append(n.data(), n.size());
       }
@@ -1099,8 +1101,10 @@ class bitset {
     return name;
   }
 
-  [[nodiscard]] string to_string(detail::raw_access_t, char_type zero = char_type{'0'}, char_type one = char_type{'1'}) const {
-    string name;
+  template <typename String = string>
+  [[nodiscard]] constexpr String to_string(detail::raw_access_t, char_type zero = char_type{'0'}, char_type one = char_type{'1'}) const {
+    static_assert(std::is_same_v<typename String::value_type, char_type>, "magic_enum::containers::bitset::to_string requires String::value_type to be magic_enum::char_type.");
+    String name;
     name.reserve(size());
     for (std::size_t i = 0; i < size(); ++i) {
       name.append(1, const_reference{this, i} ? one : zero);

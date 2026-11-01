@@ -17,6 +17,8 @@
 
 #include <magic_enum/magic_enum_iostream.hpp>
 
+#include "test_fixed_string.hpp"
+
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -914,6 +916,52 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   REQUIRE(*inside.begin() == ZeroFlags::B);
   inside.set(ZeroFlags::A);
   REQUIRE(std::vector<ZeroFlags>(inside.begin(), inside.end()) == std::vector<ZeroFlags>{ZeroFlags::A, ZeroFlags::B});
+}
+
+TEST_CASE("bitset to_string with a custom String") {
+  using magic_enum::containers::bitset;
+  using magic_enum::containers::raw_access;
+  using magic_enum_tests::FixedString;
+  using Name = FixedString<16>;
+
+  constexpr bitset<Color> colors{Color::RED, Color::BLUE};
+  static_assert(std::is_same_v<decltype(colors.to_string()), std::string>);
+  static_assert(std::is_same_v<decltype(colors.to_string(raw_access)), std::string>);
+  static_assert(colors.to_string<Name>() == "RED|BLUE");
+  static_assert(colors.to_string<Name>(',') == "RED,BLUE");
+  static_assert(colors.to_string<Name>(raw_access) == "101");
+  static_assert(colors.to_string<Name>(raw_access, '-', '+') == "+-+");
+  static_assert(colors.to_string<Name>(raw_access).reserved == 3);
+  static_assert(bitset<Color>{}.to_string<Name>().empty());
+  static_assert(bitset<ZeroFlags>{}.to_string<Name>() == "None");
+
+  constexpr auto truncated = colors.to_string<FixedString<2>>(raw_access);
+  static_assert(truncated == "10" && truncated.overflow);
+
+  bitset<Color> runtime;
+  runtime.set(Color::GREEN);
+  REQUIRE(runtime.to_string<Name>() == "GREEN");
+  REQUIRE(runtime.to_string<std::string>(raw_access) == "010");
+}
+
+TEST_CASE("bitset string overflow does not select the zero name") {
+  struct Name : magic_enum_tests::FixedString<4> {
+    using FixedString::append;
+
+    constexpr void append(const char* s, size_type count) noexcept {
+      if (count > 4 - size()) {
+        overflow = true;
+      } else {
+        FixedString::append(s, count);
+      }
+    }
+  };
+
+  using magic_enum::containers::bitset;
+  constexpr auto enabled = bitset<BoolFlags>{BoolFlags::Enabled}.to_string<Name>();
+  static_assert(enabled.empty() && enabled.overflow);
+  constexpr auto zero = bitset<BoolFlags>{}.to_string<Name>();
+  static_assert(zero == "None" && !zero.overflow);
 }
 
 template <typename S, typename E, typename = void>

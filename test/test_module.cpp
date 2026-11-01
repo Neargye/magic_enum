@@ -21,6 +21,8 @@ import std;
 
 import magic_enum;
 
+#include "test_fixed_string.hpp"
+
 enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };
 enum class ReflectionRange { Low = -1000, High = 1000 };
@@ -195,6 +197,9 @@ constexpr magic_enum::containers::bitset<Color> color_bits {magic_enum::containe
 static_assert(color_bits.test(Color::RED));
 static_assert(!color_bits.test(Color::GREEN));
 static_assert(color_bits.test(Color::BLUE));
+static_assert(color_bits.to_string<magic_enum_tests::FixedString<16>>() == "RED|BLUE");
+static_assert(color_bits.to_string<magic_enum_tests::FixedString<16>>(magic_enum::containers::raw_access) == "101");
+static_assert(magic_enum::enum_flags_name<Directions, magic_enum_tests::FixedString<16>>(static_cast<Directions>(3)) == "LEFT|RIGHT");
 
 using ColorBitset = magic_enum::containers::bitset<Color>;
 

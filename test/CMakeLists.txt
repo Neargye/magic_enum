@@ -393,6 +393,18 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  flags-name-string-value-type
+  16
+  "magic_enum::enum_flags_name requires String::value_type to be magic_enum::char_type."
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  bitset-to-string-value-type
+  17
+  "magic_enum::containers::bitset::to_string requires String::value_type to be magic_enum::char_type."
+)
+magic_enum_make_compile_fail_test(
+  configuration
   bitset-only-zero
   13
   "magic_enum::containers::bitset requires at least one flag bit, a named zero has no bit."

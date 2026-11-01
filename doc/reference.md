@@ -600,8 +600,8 @@ constexpr E enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept;
 ## `enum_flags`
 
 ```cpp
-template <typename E>
-string enum_flags_name(E value, char_type sep = '|');
+template <typename E, typename String = string>
+constexpr String enum_flags_name(E value, char_type sep = '|');
 
 template <typename E, typename I>
 constexpr optional<E> enum_flags_cast(I value) noexcept;
@@ -634,6 +634,8 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 * Defined in header `<magic_enum/magic_enum_flags.hpp>`
 
 * `enum_flags_name` - Returns flag names joined by the separator (default `'|'`), or an empty string for zero or unknown bits.
+
+* `String` selects the result type. It must be default constructible, have `value_type` equal to `char_type` and provide `empty()`, `append(count, ch)` and `append(data, size)`. The function is `constexpr`, so a `String` with constexpr members gives the name in a constant expression in C++17. `String` decides what happens when the result does not fit, magic_enum does not truncate on its own.
 
 * `enum_flags_cast` - Returns the flag combination as `optional<E>`, or an empty optional for zero, unknown bits, or invalid names.
 
@@ -1164,9 +1166,11 @@ class bitset {
 
   constexpr explicit operator E() const;
 
-  string to_string(char_type sep = '|') const;
+  template <typename String = string>
+  constexpr String to_string(char_type sep = '|') const;
 
-  string to_string(detail::raw_access_t, char_type zero = '0', char_type one = '1') const;
+  template <typename String = string>
+  constexpr String to_string(detail::raw_access_t, char_type zero = '0', char_type one = '1') const;
 
   constexpr unsigned long long to_ullong(detail::raw_access_t raw) const;
 
@@ -1189,6 +1193,8 @@ class bitset {
 * Construction from single `E` value and conversion to `E` are available only for flag enums. Construction from a value with unknown bits throws `std::invalid_argument`.
 
 * Construction from names follows the `enum_flags_cast` grammar, except that an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`.
+
+* `to_string<String>()` has the same `String` requirements as `enum_flags_name`. The raw form also calls `reserve(size())`. Stream output always uses the default `string`.
 
 * Provides `std::hash` specialization for use in unordered containers.
 

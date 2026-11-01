@@ -13,6 +13,7 @@
 #include <magic_enum/magic_enum_containers.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
+#include "test_fixed_string.hpp"
 #include "test_helpers.hpp"
 
 #include <array>
@@ -31,6 +32,12 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
       return default_tag;
   }
 }
+
+enum class WideFlags { First = 1, Second = 2 };
+template <>
+struct magic_enum::customize::enum_range<WideFlags> {
+  static constexpr bool is_flags = true;
+};
 
 using namespace magic_enum;
 using namespace magic_enum_tests;
@@ -174,6 +181,17 @@ TEST_CASE("ostream_operators") {
 TEST_CASE("istream_operators") {
   require_istream(Color::GREEN, L"GREEN");
   require_istream(Color::BLUE, L"BLUE");
+}
+
+TEST_CASE("wide String parameter") {
+  using Name = FixedString<16, wchar_t>;
+  static_assert(std::is_same_v<decltype(enum_flags_name(WideFlags::First)), std::wstring>);
+  static_assert(enum_flags_name<WideFlags, Name>(static_cast<WideFlags>(3), L',') == L"First,Second");
+  REQUIRE(enum_flags_name(static_cast<WideFlags>(3)) == L"First|Second");
+
+  constexpr containers::bitset<Color> bits{Color::RED, Color::BLUE};
+  static_assert(bits.to_string<Name>() == L"red|BLUE");
+  static_assert(bits.to_string<Name>(containers::raw_access) == L"101");
 }
 
 TEST_CASE("containers_bitset_iostream") {

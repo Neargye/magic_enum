@@ -52,15 +52,16 @@ MAGIC_ENUM_CONSTEVAL auto values_ors() noexcept {
 } // namespace magic_enum::detail
 
 // Returns flag names joined by sep, the name of a named zero, or an empty string for unknown bits.
-template <typename E>
-[[nodiscard]] auto enum_flags_name(E value, char_type sep = char_type{'|'}) -> detail::enable_if_t<E, string> {
+template <typename E, typename String = string>
+[[nodiscard]] constexpr auto enum_flags_name(E value, char_type sep = char_type{'|'}) -> detail::enable_if_t<E, String> {
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(std::is_same_v<typename String::value_type, char_type>, "magic_enum::enum_flags_name requires String::value_type to be magic_enum::char_type.");
 
   const auto flag_value = static_cast<U>(value);
-  string name;
+  String name;
   if (flag_value == U{0}) {
     // The zero name never joins a nonzero mask.
     const auto n = enum_name<S>(value);

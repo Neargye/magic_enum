@@ -24,6 +24,8 @@
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
 
+#include "test_fixed_string.hpp"
+
 #include <array>
 #include <type_traits>
 
@@ -77,6 +79,7 @@ static_assert(magic_enum::enum_name(CharacterWideValue::High).empty());
 
 static_assert(magic_enum::enum_flags_cast<CharacterFlags>(MAGIC_ENUM_TEST_LITERAL("A|B")) == CharacterFlags::AB);
 static_assert(!magic_enum::enum_flags_cast<CharacterFlags>(MAGIC_ENUM_TEST_LITERAL("A|Unknown")).has_value());
+static_assert(magic_enum::enum_flags_name<CharacterFlags, magic_enum_tests::FixedString<8, magic_enum::char_type>>(CharacterFlags::AB) == MAGIC_ENUM_TEST_LITERAL("A|B"));
 
 int main() {
   const auto flags_name = magic_enum::enum_flags_name(CharacterFlags::AB);

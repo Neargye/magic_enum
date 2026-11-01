@@ -8,6 +8,7 @@
 
 #include <magic_enum/magic_enum_all.hpp>
 
+#include "test_fixed_string.hpp"
 #include "test_helpers.hpp"
 
 #include <iomanip>
@@ -155,6 +156,17 @@ TEST_CASE("string_view lifetime and null termination") {
   for (const auto& entry : enum_entries<Color>()) {
     require_null_terminated(entry.second);
   }
+}
+
+TEST_CASE("string parameter overrides the alias") {
+  static_assert(std::is_same_v<decltype(enum_flags_name(Color::RED)), MyString>);
+  static_assert(enum_flags_name<Color, FixedString<16>>(Color::RED | Color::GREEN) == "RED|GREEN");
+  REQUIRE(enum_flags_name<Color, std::string>(Color::RED | Color::GREEN) == "RED|GREEN");
+
+  constexpr magic_enum::containers::bitset<Color> colors{Color::RED, Color::BLUE};
+  static_assert(std::is_same_v<decltype(colors.to_string()), MyString>);
+  static_assert(colors.to_string<FixedString<16>>() == "RED|BLUE");
+  REQUIRE(colors.to_string<std::string>(magic_enum::containers::raw_access) == "101");
 }
 
 TEST_CASE("string containers") {

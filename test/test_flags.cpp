@@ -11,6 +11,7 @@
 #include <magic_enum/magic_enum_fuse.hpp>
 #include <magic_enum/magic_enum_switch.hpp>
 
+#include "test_fixed_string.hpp"
 #include "test_helpers.hpp"
 
 #include <array>
@@ -220,6 +221,27 @@ TEST_CASE("signed flags include the sign bit") {
   static_assert(enum_values<Int64Flags, flags>()[0] == Int64Flags::High);
   static_assert(enum_flags_cast<Int64Flags>("High|Low") == static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1));
   CHECK(enum_flags_name(static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1)) == "High|Low");
+}
+
+TEST_CASE("flags name with a custom String") {
+  using Name = FixedString<16>;
+  static_assert(std::is_same_v<decltype(enum_flags_name(Color::RED)), std::string>);
+  static_assert(std::is_same_v<decltype(enum_flags_name<Color, Name>(Color::RED)), Name>);
+  static_assert(enum_flags_name<Color, Name>(Color::RED | Color::BLUE) == "RED|BLUE");
+  static_assert(enum_flags_name<const Color&, Name>(Color::RED | Color::BLUE, ',') == "RED,BLUE");
+  static_assert(enum_flags_name<ZeroFlags, Name>(ZeroFlags::None) == "None");
+  static_assert(enum_flags_name<ZeroFlags, Name>(static_cast<ZeroFlags>(4)).empty());
+  static_assert(enum_flags_name<Color, Name>(Color{0}).empty());
+  static_assert(!enum_flags_name<Color, Name>(Color::RED | Color::GREEN).overflow);
+
+  // Overflow belongs to String. This one drops the tail and records it.
+  constexpr auto truncated = enum_flags_name<Color, FixedString<4>>(Color::RED | Color::GREEN);
+  static_assert(truncated == "RED|" && truncated.overflow);
+
+  auto runtime = Color::GREEN;
+  runtime |= Color::BLUE;
+  CHECK(enum_flags_name<Color, Name>(runtime) == "GREEN|BLUE");
+  CHECK(enum_flags_name<Color, std::string>(runtime) == "GREEN|BLUE");
 }
 
 TEST_CASE("named zero is a flag value") {

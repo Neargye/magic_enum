@@ -229,6 +229,31 @@ MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(int);
 
 MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(int);
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 16
+
+#  include <magic_enum/magic_enum_flags.hpp>
+
+#  include <string>
+
+enum class WideNameFlags { A = 1, B = 2 };
+
+template <>
+struct magic_enum::customize::enum_range<WideNameFlags> {
+  static constexpr bool is_flags = true;
+};
+
+auto wide_flags_name = magic_enum::enum_flags_name<WideNameFlags, std::wstring>(WideNameFlags::A);
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 17
+
+#  include <magic_enum/magic_enum_containers.hpp>
+
+#  include <string>
+
+enum class WideNameBits { A, B };
+
+auto wide_bitset_name = magic_enum::containers::bitset<WideNameBits>{}.to_string<std::wstring>();
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif
