@@ -105,10 +105,15 @@ jobs:
           test/test_aliases.cpp
           test/test_containers.cpp
           test/test_flags.cpp
+          test/test_format.cpp
           test/test_fuse.cpp
+          test/test_operators.cpp
+          test/test_operators_other.cpp
           test/test_range.cpp
           test/test_shared_config.cpp
           test/test_shared_config_other.cpp
+          test/test_switch.cpp
+          test/test_utility.cpp
           test/test_wchar_t.cpp
         )
         check() {
@@ -122,7 +127,7 @@ jobs:
         done
         # Cover the C++26 standard reflection backend.
         if [ "$CXX" = "g++-16" ]; then
-          for src in test/test.cpp test/test_flags.cpp test/test_reflection.cpp; do
+          for src in test/test.cpp test/test_flags.cpp test/test_format.cpp test/test_operators.cpp test/test_reflection.cpp test/test_switch.cpp test/test_utility.cpp; do
             check -std=c++26 -freflection -DMAGIC_ENUM_TEST_STD_REFLECTION=1 "$src"
           done
         fi
@@ -192,8 +197,8 @@ jobs:
     - name: Build and test
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON
-        cmake --build build --parallel "$(nproc)" --target test-cpp17 test_flags-cpp17
-        ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error -R "^test(_flags)?-cpp17$"
+        cmake --build build --parallel "$(nproc)" --target test_format-cpp17
+        ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error -R "^test_format-cpp17$"
 
   bazel:
     timeout-minutes: 30

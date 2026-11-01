@@ -4,7 +4,8 @@
 
 #include <doctest/doctest.h>
 
-#include <magic_enum/magic_enum.hpp>
+#include "test_enums.hpp"
+#include "test_flags_enums.hpp"
 
 #if defined(NEARGYE_MAGIC_ENUM_BITWISE_HPP)
 #  error magic_enum.hpp must not provide bitwise operators.
@@ -18,8 +19,12 @@
 
 #include "test_operators.hpp"
 
+#include "test_helpers.hpp"
+
 #include <cstdint>
+#include <iomanip>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -296,3 +301,394 @@ TEST_CASE("iostream macros with the namespace") {
   in >> v;
   REQUIRE(v == Bits::C);
 }
+
+namespace common_test {
+
+using namespace magic_enum;
+using namespace magic_enum_tests;
+
+TEST_CASE("ostream_operators") {
+  SUBCASE("character underlying types") {
+    enum class Byte : unsigned char { Named = 1 };
+    enum class SignedByte : signed char { Named = 1 };
+    enum class Character : char { Named = 1 };
+    enum class WideCharacter : wchar_t { Named = 1 };
+    enum class Character16 : char16_t { Named = 1 };
+    enum class Character32 : char32_t { Named = 1 };
+
+    require_ostream(Byte::Named, "Named");
+    require_ostream(static_cast<Byte>(255), "255");
+    require_ostream(static_cast<SignedByte>(-1), "-1");
+    require_ostream(static_cast<Character>(65), "65");
+    require_ostream(static_cast<WideCharacter>(65), "65");
+    require_ostream(Character16::Named, "Named");
+    require_ostream(static_cast<Character16>(65), "65");
+    require_ostream(static_cast<Character32>(65), "65");
+    require_ostream(std::make_optional(static_cast<Byte>(255)), "255");
+    require_ostream(static_cast<WideCharacter>(65), L"65");
+#if defined(__cpp_char8_t)
+    enum class Character8 : char8_t { Named = 1 };
+    require_ostream(static_cast<Character8>(65), "65");
+#endif
+  }
+
+  SUBCASE("field width applies to the name") {
+    using namespace magic_enum::ostream_operators;
+
+    std::ostringstream named;
+    named << std::setfill('_') << std::setw(6) << Color::GREEN << '|' << std::left << std::setw(6) << Color::BLUE << '|' << Color::BLUE << '|';
+    REQUIRE(named.str() == "_GREEN|BLUE__|BLUE|");
+
+    std::ostringstream fallback;
+    fallback << std::setfill('_') << std::setw(6) << static_cast<Color>(0) << '|' << std::setw(6) << std::make_optional(Color::BLUE) << '|';
+    REQUIRE(fallback.str() == "_____0|__BLUE|");
+
+    std::basic_ostringstream<char, CustomCharTraits<char>> custom;
+    custom << std::setfill('_') << std::setw(6) << Color::BLUE << '|';
+    const auto result = custom.str();
+    REQUIRE(std::string(result.data(), result.size()) == "__BLUE|");
+
+    std::wostringstream wide;
+    wide << std::setfill(L'_') << std::setw(6) << Color::BLUE << L'|';
+    REQUIRE(wide.str() == L"__BLUE|");
+  }
+
+  SUBCASE("short underlying type formatting") {
+    using namespace magic_enum::ostream_operators;
+    enum class Small : short { Named = 1 };
+
+    for (const auto format : {std::dec, std::hex, std::oct}) {
+      std::ostringstream actual, expected;
+      actual << format << static_cast<Small>(-1);
+      expected << format << short{-1};
+      REQUIRE(actual.str() == expected.str());
+    }
+  }
+
+  require_ostream(std::make_optional(Color::RED), "red");
+  require_ostream(Color::GREEN, "GREEN");
+  require_ostream(Color::BLUE, "BLUE");
+  require_ostream(static_cast<Color>(0), "0");
+  require_ostream(std::make_optional(static_cast<Color>(0)), "0");
+
+  require_ostream(std::make_optional(Numbers::one), "one");
+  require_ostream(Numbers::two, "two");
+  require_ostream(Numbers::three, "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  require_ostream(Numbers::many, "many");
+#else
+  require_ostream(Numbers::many, "127");
+#endif
+  require_ostream(static_cast<Numbers>(0), "0");
+  require_ostream(std::make_optional(static_cast<Numbers>(0)), "0");
+
+  require_ostream(std::make_optional(Directions::Up), "Up");
+  require_ostream(Directions::Down, "Down");
+  require_ostream(Directions::Right, "Right");
+  require_ostream(Directions::Left, "Left");
+  require_ostream(static_cast<Directions>(0), "0");
+  require_ostream(std::make_optional(static_cast<Directions>(0)), "0");
+
+  require_ostream(std::make_optional(number::one), "one");
+  require_ostream(number::two, "two");
+  require_ostream(number::three, "three");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  require_ostream(number::four, "four");
+#else
+  require_ostream(number::four, "400");
+#endif
+  require_ostream(static_cast<number>(0), "0");
+  require_ostream(std::make_optional(static_cast<number>(0)), "0");
+}
+
+TEST_CASE("istream_operators") {
+  require_istream(Color::GREEN, "GREEN");
+  require_istream(Color::BLUE, "BLUE");
+
+  require_istream(Numbers::two, "two");
+  require_istream(Numbers::three, "three");
+
+  require_istream(Directions::Down, "Down");
+  require_istream(Directions::Right, "Right");
+  require_istream(Directions::Left, "Left");
+
+  require_istream(number::two, "two");
+  require_istream(number::three, "three");
+}
+
+TEST_CASE("istream_operators invalid input with custom traits") {
+  using namespace magic_enum::istream_operators;
+  using String = std::basic_string<char, CustomCharTraits<char>>;
+  constexpr char embedded_null[] = "GREEN\0UNKNOWN";
+
+  for (const auto& input : {String{"UNKNOWN"}, String{embedded_null, sizeof(embedded_null) - 1}}) {
+    std::basic_istringstream<char, CustomCharTraits<char>> stream{input};
+    auto value = Color::BLUE;
+    stream >> value;
+    REQUIRE((stream.rdstate() & std::ios::failbit) != 0);
+    REQUIRE(value == Color::BLUE);
+  }
+}
+
+TEST_CASE("bitwise_operators") {
+  using namespace magic_enum::bitwise_operators;
+
+  SUBCASE("operator^") {
+    REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
+    REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
+    REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
+    REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
+  }
+
+  SUBCASE("operator|") {
+    REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SUBCASE("operator&") {
+    REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SUBCASE("operator^") {
+    REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+
+  SUBCASE("operator|=") {
+    Color x1 = Color::RED;
+    x1 |= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 |= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 |= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 |= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SUBCASE("operator&=") {
+    Color x1 = Color::RED;
+    x1 &= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 &= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 &= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 &= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SUBCASE("operator^=") {
+    Color x1 = Color::RED;
+    x1 ^= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 ^= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 ^= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 ^= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+}
+
+} // namespace common_test
+
+namespace flags_test {
+
+using namespace magic_enum;
+using namespace magic_enum::bitwise_operators;
+using namespace magic_enum_tests;
+
+TEST_CASE("flags ostream_operators") {
+  SUBCASE("boolalpha fallback") {
+    using namespace magic_enum::ostream_operators;
+    std::ostringstream stream;
+    stream << std::boolalpha << BoolFlags::Disabled << ' ' << static_cast<BoolEnabledFlag>(false);
+    REQUIRE(stream.str() == "Disabled false");
+  }
+
+  SUBCASE("field width applies to the whole name") {
+    using namespace magic_enum::ostream_operators;
+    std::ostringstream stream;
+    stream << std::setfill('_') << std::setw(10) << (Color::BLUE | Color::RED) << '|' << std::left << std::setw(10) << (Color::BLUE | Color::RED) << '|';
+    REQUIRE(stream.str() == "__RED|BLUE|RED|BLUE__|");
+  }
+
+  require_ostream(std::make_optional(Color::RED), "RED");
+  require_ostream(Color::GREEN, "GREEN");
+  require_ostream(Color::BLUE, "BLUE");
+  require_ostream(Color::BLUE | Color::RED, "RED|BLUE");
+  require_ostream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+  require_ostream(static_cast<Color>(0), "0");
+  require_ostream(std::make_optional(static_cast<Color>(0)), "0");
+
+  require_ostream(std::make_optional(Numbers::one), "one");
+  require_ostream(Numbers::two, "two");
+  require_ostream(Numbers::three, "three");
+  require_ostream(Numbers::many, "many");
+  require_ostream(static_cast<Numbers>(0), "none");
+  require_ostream(std::make_optional(static_cast<Numbers>(0)), "none");
+
+  require_ostream(std::make_optional(Directions::Up), "Up");
+  require_ostream(Directions::Down, "Down");
+  require_ostream(Directions::Right, "Right");
+  require_ostream(Directions::Left, "Left");
+  require_ostream(Directions::Right | Directions::Left, "Left|Right");
+  require_ostream(static_cast<Directions>(0), "NoDirection");
+  require_ostream(std::make_optional(static_cast<Directions>(0)), "NoDirection");
+
+  require_ostream(std::make_optional(number::one), "one");
+  require_ostream(number::two, "two");
+  require_ostream(number::three, "three");
+  require_ostream(number::four, "four");
+  require_ostream(number::four | number::one, "one|four");
+  require_ostream(static_cast<number>(0), "no_number");
+  require_ostream(std::make_optional(static_cast<number>(0)), "no_number");
+}
+
+TEST_CASE("flags istream_operators") {
+  require_istream(Color::GREEN, "GREEN");
+  require_istream(Color::BLUE, "BLUE");
+  require_istream(Color::BLUE | Color::RED, "RED|BLUE");
+  require_istream(Color::BLUE | Color::RED | Color::RED, "RED|BLUE");
+  require_istream(Color::GREEN | Color::RED, "GREEN|RED|RED");
+
+  require_istream(Numbers::two, "two");
+  require_istream(Numbers::three, "three");
+  require_istream(Numbers::many, "many");
+
+  require_istream(Directions::Down, "Down");
+  require_istream(Directions::Right, "Right");
+  require_istream(Directions::Left, "Left");
+  require_istream(Directions::Right | Directions::Left, "Left|Right");
+
+  require_istream(number::two, "two");
+  require_istream(number::three, "three");
+  require_istream(number::four, "four");
+  require_istream(number::four | number::one, "one|four");
+}
+
+TEST_CASE("flags istream_operators invalid input with custom traits") {
+  using namespace magic_enum::istream_operators;
+  using String = std::basic_string<char, CustomCharTraits<char>>;
+  constexpr char embedded_null[] = "RED\0|BLUE";
+
+  for (const auto& input : {String{"UNKNOWN"}, String{"RED|UNKNOWN"}, String{embedded_null, sizeof(embedded_null) - 1}}) {
+    std::basic_istringstream<char, CustomCharTraits<char>> stream{input};
+    auto value = Color::BLUE;
+    stream >> value;
+    REQUIRE((stream.rdstate() & std::ios::failbit) != 0);
+    REQUIRE(value == Color::BLUE);
+  }
+}
+
+TEST_CASE("flags bitwise_operators") {
+  SUBCASE("operator^") {
+    REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
+    REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
+    REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
+    REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
+  }
+
+  SUBCASE("operator|") {
+    REQUIRE(enum_integer(Color::RED | Color::BLUE) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one | Numbers::two) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up | Directions::Down) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one | number::two) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SUBCASE("operator&") {
+    REQUIRE(enum_integer(Color::RED & Color::BLUE) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one & Numbers::two) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up & Directions::Down) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one & number::two) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SUBCASE("operator^") {
+    REQUIRE(enum_integer(Color::RED ^ Color::BLUE) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+    REQUIRE(enum_integer(Numbers::one ^ Numbers::two) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+    REQUIRE(enum_integer(Directions::Up ^ Directions::Down) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+    REQUIRE(enum_integer(number::one ^ number::two) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+
+  SUBCASE("operator|=") {
+    Color x1 = Color::RED;
+    x1 |= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) | enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 |= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) | enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 |= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) | enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 |= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) | enum_integer(number::two)));
+  }
+
+  SUBCASE("operator&=") {
+    Color x1 = Color::RED;
+    x1 &= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) & enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 &= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) & enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 &= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) & enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 &= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) & enum_integer(number::two)));
+  }
+
+  SUBCASE("operator^=") {
+    Color x1 = Color::RED;
+    x1 ^= Color::BLUE;
+    REQUIRE(enum_integer(x1) == (enum_integer(Color::RED) ^ enum_integer(Color::BLUE)));
+
+    Numbers x2 = Numbers::one;
+    x2 ^= Numbers::two;
+    REQUIRE(enum_integer(x2) == (enum_integer(Numbers::one) ^ enum_integer(Numbers::two)));
+
+    Directions x3 = Directions::Up;
+    x3 ^= Directions::Down;
+    REQUIRE(enum_integer(x3) == (enum_integer(Directions::Up) ^ enum_integer(Directions::Down)));
+
+    number x4 = number::one;
+    x4 ^= number::two;
+    REQUIRE(enum_integer(x4) == (enum_integer(number::one) ^ enum_integer(number::two)));
+  }
+}
+
+} // namespace flags_test

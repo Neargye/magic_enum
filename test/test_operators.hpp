@@ -5,6 +5,8 @@
 #ifndef MAGIC_ENUM_TEST_OPERATORS_HPP
 #define MAGIC_ENUM_TEST_OPERATORS_HPP
 
+#include "test_enums.hpp"
+
 #include <magic_enum/magic_enum_bitwise.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 

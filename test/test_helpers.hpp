@@ -6,6 +6,8 @@
 
 #include <doctest/doctest.h>
 
+#include <magic_enum/magic_enum_iostream.hpp>
+
 #include <cstddef>
 #include <sstream>
 #include <string>
@@ -27,6 +29,14 @@ struct ThrowingReferencePredicate {
     return false;
   }
   bool operator()(char&& lhs, char&& rhs) & noexcept { return lhs == rhs; }
+};
+
+struct RvalueOnlyArgument {
+  template <typename T>
+  constexpr int operator()(T&&) const { return 7; }
+
+  template <typename T>
+  int operator()(T&) const = delete;
 };
 
 template <typename View>
