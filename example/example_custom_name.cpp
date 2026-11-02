@@ -26,7 +26,7 @@
 
 enum class Color : int { RED = -10, BLUE = 0, GREEN = 10 };
 
-// Сustom definitions of names for enum.
+// Custom definitions of names for enum.
 // Specialization of `enum_name` must be injected in `namespace magic_enum::customize`.
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Color>(Color value) noexcept {
@@ -43,7 +43,7 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 
 enum class Numbers : int { One, Two, Three };
 
-// Сustom definitions of names for enum.
+// Custom definitions of names for enum.
 // Specialization of `enum_name` must be injected in `namespace magic_enum::customize`.
 template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Numbers>(Numbers value) noexcept {

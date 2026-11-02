@@ -1,20 +1,22 @@
 # Limitations
 
-* Without standard reflection, this library uses a compiler-specific hack based on `__PRETTY_FUNCTION__` / `__FUNCSIG__`.
+Without standard reflection, magic_enum reads compiler signatures to discover enum names.
 
 ## C++26 Standard Reflection
 
-Standard reflection is selected automatically when available. Otherwise the compiler-specific implementation is used. Keep reflection settings consistent across all translation units and module BMIs.
+Standard reflection is selected automatically when available. Otherwise magic_enum uses compiler-specific reflection.
 
-* `customize::enum_name(E)` cannot add undeclared values.
+* Standard reflection ignores scan ranges and finds every declared value. Counts, indices and names can differ from compiler-specific reflection.
 
-Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_enum.hpp` to force the compiler-specific implementation and its `enum_range` scan.
+* Each value has one name, taken from its first declaration. Customization can rename or hide declared values, but cannot add new ones.
 
-* Use `MAGIC_ENUM_SUPPORTED` or `magic_enum::is_magic_enum_supported` to check compiler support. Unsupported compilers cause compilation errors unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
+* Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including magic_enum to keep compiler-specific reflection.
 
-* magic_enum cannot reflect forward-declared enums. Include the full enum definition in every translation unit that reflects it.
+* Reflecting values requires the enum definition. See [empty enums](#empty-enums) for opaque declarations.
 
-  Disabling validation with `MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM` does not prevent ODR violations.
+* Use the same enum definitions and configuration in every translation unit and in the module build.
+
+* `enum_reflected` checks whether a value can be reflected, not whether it has a name. See [`enum_reflected`](reference.md#enum_reflected).
 
 ## Enum Flags
 
@@ -29,25 +31,39 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
 * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection.
 
-* Zero is not reflected for flag enums.
+* Only a named zero and named single bits are reflected.
 
-* For a signed underlying type, the sign bit is reflected as a flag. Values are ordered by signed value, so a negative sign bit flag comes first.
+* For signed enums, a named sign bit is reflected too. It comes first, since it is negative.
+
+* Combinations such as `Both = A | B` are not flag values. They are formatted as `"A|B"`, and `enum_flags_cast` rejects `"Both"`. To look up a combination by name, use `as_common<>` with `enum_name` or `enum_cast`. With compiler-specific reflection, the combination must be within the common range.
+
+* Names round-trip only if they are unique and do not contain the separator. Otherwise parsing takes the first match in value order.
+
+## Containers
+
+* `array` and `set` use reflected values as keys. For flags, a named zero is a key and combinations are not. Use `set<E>{value}` for a key and `set<E>::from_mask(mask)` for a mask.
+
+* A flag `bitset` has a position only for each nonzero bit. Zero and combinations work as masks, but `test`, `set`, `reset` and `flip` reject them. Use `none()` to check for emptiness. An enum with only a named zero cannot be used with `bitset`.
+
+* Invalid keys, masks and positions throw, or call `std::abort()` when exceptions are disabled. See [container errors](reference.md#container-helpers).
 
 ## Operators
 
-* `MAGIC_ENUM_DEFINE_BITWISE_OPERATORS` and `MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS` need a namespace or class scope. For an enum local to a function, put a `using` of the operator namespace inside the function body.
+* Put operator macros in the enum's namespace, or the `MAGIC_ENUM_DEFINE_FRIEND_*` variants inside the class that declares the enum. For function-local enums, use the operator namespace inside the function.
 
-* The `magic_enum` module exports `bitwise_operators` and the iostream namespaces, but not the macros. Including `magic_enum_bitwise.hpp` or `magic_enum_iostream.hpp` after `import magic_enum` is not supported.
+* For enums without a fixed underlying type, `~` is undefined behavior if the result is outside the enum's value range. Use `enum class` or an explicit underlying type, for example `enum Permission : unsigned { Read = 1, Write = 2 }`.
 
-* A `using` of an operator namespace applies to every enum in its scope and can violate the one definition rule across translation units. See [risks of operator namespaces](reference.md#risks-of-operator-namespaces).
+* The module exports the operator namespaces, but not the macros. Do not include `magic_enum_bitwise.hpp` or `magic_enum_iostream.hpp` after `import magic_enum`.
+
+* A `using` of an operator namespace affects every enum in scope. Keep it inside a function. See [namespace risks](reference.md#risks-of-operator-namespaces).
 
 ## Enum Range
 
-* `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` limit only compiler-specific reflection. Standard reflection ignores them.
+* The scan range applies only to non-flag enums with compiler-specific reflection. Flags and standard reflection ignore it.
 
-* By default, `MAGIC_ENUM_RANGE_MIN = -128`, `MAGIC_ENUM_RANGE_MAX = 127`.
+* The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`.
 
-* To change default range for all enum types, redefine `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`:
+* To change the default range for all enums, define these macros before including magic_enum:
 
     ```cpp
     #define MAGIC_ENUM_RANGE_MIN 0
@@ -55,7 +71,7 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
     #include <magic_enum/magic_enum.hpp>
     ```
 
-* To change range for one enum type, specialize `enum_range` for that type. Specializations must be declared in `namespace magic_enum::customize`.
+* To change one enum's range, specialize `magic_enum::customize::enum_range`:
 
   ```cpp
   #include <magic_enum/magic_enum.hpp>
@@ -66,11 +82,11 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
   struct magic_enum::customize::enum_range<number> {
     static constexpr int min = 100;
     static constexpr int max = 300;
-    // min and max must fit in int, (max - min) must be less than UINT16_MAX.
+    // Bounds are clamped to the underlying type. Requires min <= max and max - min < 65535.
   };
   ```
 
-* For ADL customization, define `magic_enum_define_range_adl(my_enum_type)` in associated namespace or as friend of associated class. Return `magic_enum::customize::adl_info()`:
+* Alternatively, define `magic_enum_define_range_adl(E)` in the enum's namespace or as a friend in its class:
 
   ```cpp
   namespace Deeply::Nested::Namespace {
@@ -86,9 +102,38 @@ Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including `magic_e
 
   For flag enums, add `.flag<true>()`. `.minmax<...>()` is ignored for them.
 
+## Empty Enums
+
+* APIs that read reflected values, such as `enum_values`, `enum_name` and `enum_cast`, fail to compile if no values are reflected.
+
+  With compiler-specific reflection, no values can mean an empty enum, a missing definition, values outside the range or values hidden by customization.
+
+  Standard reflection requires the full enum definition, even for `enum_count`. An opaque declaration is a compile-time error.
+
+* `enum_count` returns 0 when no values are reflected. Use it as a guard:
+
+  ```cpp
+  template <typename E>
+  std::size_t count_name_chars() {
+    std::size_t n = 0;
+    if constexpr (magic_enum::enum_count<E>() != 0) {
+      for (auto name : magic_enum::enum_names<E>()) {
+        n += name.size();
+      }
+    }
+    return n;
+  }
+  ```
+
+* `MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM` allows enums with no reflected values. Arrays are empty, names are empty, casts and `enum_index` return empty optionals, and membership checks return `false`. `enum_for_each` and `enum_switch` call nothing, and `enum_switch` returns its fallback or a default value. `enum_value(index)` and circular navigation have no valid input.
+
+* `enum_min`, `enum_max`, `enum_fuse` and containers still require reflected values.
+
+* Prefer the `enum_count` guard. Disabling the check can hide a missing definition or a wrong range. Use the same setting in every translation unit and in the module build.
+
 ## Aliasing
 
-Aliased enumerators share one reflected name. Compiler-specific reflection [depends on the compiler](https://github.com/Neargye/magic_enum/issues/68). Standard reflection uses the first declaration.
+Aliases share one reflected name. Standard reflection uses the first declaration. With compiler-specific reflection it [depends on the compiler](https://github.com/Neargye/magic_enum/issues/68). The examples below assume the first declaration:
 
 ```cpp
 enum ShapeKind {
@@ -104,7 +149,7 @@ enum ShapeKind {
 // magic_enum::enum_name(ShapeKind::Box) -> "ConvexBegin"
 ```
 
-One possible workaround for the issue is to define the enum values you want reflected before their aliases:
+Place the desired name before its aliases:
 
 ```cpp
 enum ShapeKind {
@@ -132,19 +177,19 @@ enum ShapeKind {
 
 ## Other Compiler Issues
 
-* If you hit a message like this:
+* If compilation hits the constexpr evaluation limit:
 
   ```text
   [...]
-  note: constexpr evaluation hit maximum step limit; possible infinite loop?
+  note: constexpr evaluation hit maximum step limit
   ```
 
-  Increase constexpr evaluation limit:
+  Increase the compiler's constexpr limit:
 
-  * MSVC: `/constexpr:depthN`, `/constexpr:stepsN` <https://docs.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
+  * MSVC: `/constexpr:depthN`, `/constexpr:stepsN` <https://learn.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
   * Clang: `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
   * GCC: `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc-9.2.0/gcc/C_002b_002b-Dialect-Options.html>
 
 * Visual Studio's IntelliSense may have problems analyzing magic_enum.
 
-* Enums in templates may not work correctly, especially on Clang. See [#164](https://github.com/Neargye/magic_enum/issues/164) and [#65](https://github.com/Neargye/magic_enum/issues/65).
+* Some compilers have problems reflecting enums inside templates. See [#164](https://github.com/Neargye/magic_enum/issues/164) and [#65](https://github.com/Neargye/magic_enum/issues/65).

@@ -1,7 +1,7 @@
-[![Github releases](https://img.shields.io/github/release/Neargye/magic_enum.svg)](https://github.com/Neargye/magic_enum/releases)
+[![Github releases](https://img.shields.io/github/v/release/Neargye/magic_enum.svg)](https://github.com/Neargye/magic_enum/releases)
 [![Conan package](https://img.shields.io/badge/Conan-package-blueviolet)](https://conan.io/center/recipes/magic_enum)
 [![Vcpkg package](https://img.shields.io/badge/Vcpkg-package-blueviolet)](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum)
-[![Build2 package](https://img.shields.io/badge/Build2-package-blueviolet)](https://www.cppget.org/magic_enum?q=magic_enum)
+[![Build2 package](https://img.shields.io/badge/Build2-package-blueviolet)](https://cppget.org/magic_enum)
 [![Meson wrap](https://img.shields.io/badge/Meson-wrap-blueviolet)](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap)
 [![License](https://img.shields.io/github/license/Neargye/magic_enum.svg)](LICENSE)
 [![Compiler explorer](https://img.shields.io/badge/compiler_explorer-online-blue.svg)](https://godbolt.org/z/feqcPa5G6)
@@ -9,7 +9,7 @@
 
 # Magic Enum C++
 
-Header-only C++17 library provides static reflection for enums, work with any enum type without any macro or boilerplate code.
+A header-only C++17 library for enum reflection, without registration macros or boilerplate.
 
 ## Documentation
 
@@ -171,6 +171,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
 
   ```cpp
   magic_enum::enum_reflected(Color::GREEN); // -> true
+  magic_enum::enum_reflected<Color>(1);     // -> true, but not an enumerator
   ```
 
 * Enum index in sequence
@@ -220,7 +221,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   #include <magic_enum/magic_enum_iostream.hpp>
 
   enum class Color { RED, GREEN, BLUE };
-  MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color); // Operators only for Color, found without using.
+  MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color); // Operators for Color only, no using needed.
 
   Color color = Color::BLUE;
   std::cout << color << std::endl; // "BLUE"
@@ -233,12 +234,12 @@ Header-only C++17 library provides static reflection for enums, work with any en
   #include <magic_enum/magic_enum_bitwise.hpp>
 
   enum class Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2, D = 1 << 3 };
-  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Flags); // Support operators: ~, |, &, ^, |=, &=, ^=.
+  MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Flags); // Defines ~, |, &, ^, |=, &=, ^= for Flags.
 
   Flags flags = Flags::A | (Flags::B & ~Flags::C);
   ```
 
-  `MAGIC_ENUM_DEFINE_FRIEND_*` variants work inside a class, for private enums and class templates. The `bitwise_operators` and `iostream_operators` namespaces still enable operators for all enums in the scope of a `using`, see [risks](doc/reference.md#risks-of-operator-namespaces).
+  For a nested enum, use `MAGIC_ENUM_DEFINE_FRIEND_*` inside its class. Prefer these macros to operator namespaces, which affect every enum in scope. See [operator namespace risks](doc/reference.md#risks-of-operator-namespaces).
 
 * Formatting
 
@@ -250,7 +251,7 @@ Header-only C++17 library provides static reflection for enums, work with any en
   std::format("{}", Color{42});  // -> "42"
   ```
 
-  Include `{fmt}` before `magic_enum_format.hpp` to enable `{fmt}` formatter support.
+  For `{fmt}`, include it before `magic_enum_format.hpp`.
 
 * [Unscoped enum](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) trait
 
@@ -258,8 +259,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
   enum color { red, green, blue };
   enum class direction { left, right };
 
-  magic_enum::is_unscoped_enum_v<color> -> true
-  magic_enum::is_unscoped_enum_v<direction> -> false
+  static_assert(magic_enum::is_unscoped_enum_v<color>);
+  static_assert(!magic_enum::is_unscoped_enum_v<direction>);
   ```
 
 * [Scoped enum](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) trait
@@ -268,11 +269,11 @@ Header-only C++17 library provides static reflection for enums, work with any en
   enum color { red, green, blue };
   enum class direction { left, right };
 
-  magic_enum::is_scoped_enum_v<color> -> false
-  magic_enum::is_scoped_enum_v<direction> -> true
+  static_assert(!magic_enum::is_scoped_enum_v<color>);
+  static_assert(magic_enum::is_scoped_enum_v<direction>);
   ```
 
-* Compile-time enum value to string. This overload compiles faster and is not restricted by `enum_range` [limitation](doc/limitations.md).
+* Compile-time enum value to string, without the `enum_range` [limit](doc/limitations.md).
 
   ```cpp
   constexpr Color color = Color::BLUE;
@@ -283,7 +284,8 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * `containers::array` array container for enums.
 
   ```cpp
-  constexpr auto color_rgb_values = magic_enum::containers::make_array<Color>(RGB{255, 0, 0}, RGB{0, 255, 0}, RGB{0, 0, 255});
+  // In enum_values order: RED, BLUE, GREEN.
+  constexpr auto color_rgb_values = magic_enum::containers::make_array<Color>(RGB{255, 0, 0}, RGB{0, 0, 255}, RGB{0, 255, 0});
 
   magic_enum::containers::array<Color, RGB> color_rgb_array {};
   color_rgb_array[Color::RED] = {255, 0, 0};
@@ -322,15 +324,15 @@ Header-only C++17 library provides static reflection for enums, work with any en
 * [Underlying type](https://en.cppreference.com/w/cpp/types/underlying_type)
 
   ```cpp
-  magic_enum::underlying_type<Color>::type -> int
-  magic_enum::underlying_type_t<Color> -> int
+  static_assert(std::is_same_v<magic_enum::underlying_type<Color>::type, int>);
+  static_assert(std::is_same_v<magic_enum::underlying_type_t<Color>, int>);
   ```
 
 ## Integration
 
-* Copy required headers from [`include/magic_enum`](include/magic_enum) or use [release archive](https://github.com/Neargye/magic_enum/releases/latest). `magic_enum_all.hpp` includes all public headers.
-* Use CMake with `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
-* Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum?q=magic_enum), or [Meson](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
+* Copy the required headers from [`include/magic_enum`](include/magic_enum) or a [release archive](https://github.com/Neargye/magic_enum/releases/latest). `magic_enum_all.hpp` includes all public headers.
+* With CMake 3.22+, use `add_subdirectory` or `find_package(magic_enum CONFIG REQUIRED)`, then link `magic_enum::magic_enum`.
+* Use [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/magic-enum), [Conan](https://conan.io/center/recipes/magic_enum), [Build2](https://cppget.org/magic_enum), or [Meson](https://github.com/mesonbuild/wrapdb/blob/master/subprojects/magic_enum.wrap).
 * Fetch sources with CMake [`FetchContent`](https://cmake.org/cmake/help/latest/module/FetchContent.html) or [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). Release tags use `vx.y.z` format.
 * Use Bazel with `MODULE.bazel` or `http_archive`. The target is `@magic_enum//:magic_enum`.
 * Use ROS with `<depend>magic_enum</depend>` in `package.xml`, then link `magic_enum::magic_enum`.
@@ -360,17 +362,17 @@ Header-only C++17 library provides static reflection for enums, work with any en
   auto name = magic_enum::enum_name(Color::RED); // "RED"
   ```
 
-  Do not use `#include <magic_enum/...>` and `import magic_enum;` in the same program. Use the same compiler, standard library, and C++ standard when building and consuming an installed module. The pkg-config package supports only the header-only target.
+  Use either the headers or the module in the whole program. Build and use an installed module with the same compiler, standard library and C++ standard. pkg-config provides only the header-only target.
 
   Optional settings:
-  - Set `MAGIC_ENUM_MODULE_WITH_FMT=ON` to enable `{fmt}` support through `fmt::fmt`. It is disabled by default. The `{fmt}` C++ module is not supported.
-  - Set `MAGIC_ENUM_MODULE_IMPORT_STD=ON` to enable `import std` support. This requires a compatible CMake toolchain.
+  - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` through `fmt::fmt`. The `{fmt}` module is not supported.
+  - `MAGIC_ENUM_MODULE_IMPORT_STD=ON` enables `import std`. It requires C++23+, CMake 3.31+ and a compatible toolchain.
 
-## Header-only compiler compatibility
+## Compiler compatibility
 
 * Clang/LLVM >= 9
 * MSVC >= 19.20 / Visual Studio >= 2019 (16.0)
-* Xcode >= 10
+* Xcode >= 11
 * GCC >= 9
 
 C++26 reflection is selected automatically when available. See [limitations](doc/limitations.md#c26-standard-reflection).

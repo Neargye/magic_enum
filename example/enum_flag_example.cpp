@@ -26,6 +26,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_bitwise.hpp>
+#include <magic_enum/magic_enum_flags.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>
 
 enum class AnimalFlags : std::uint64_t { HasClaws = 1 << 10, CanFly = 1 << 20, EatsFish = 1 << 30, Endangered = std::uint64_t{1} << 40 };
@@ -57,7 +58,7 @@ int main() {
   // String name to enum-flags value.
   auto f2 = magic_enum::enum_flags_cast<AnimalFlags>("EatsFish|CanFly");
   if (f2.has_value()) {
-    std::cout << "EatsFish|CanFly = " << magic_enum::enum_integer(f2.value()) << std::endl; // CanFly|EatsFish = 1074790400
+    std::cout << "EatsFish|CanFly = " << magic_enum::enum_integer(f2.value()) << std::endl; // EatsFish|CanFly = 1074790400
   }
 
   // String name to enum-flags value with custom separator.
@@ -106,7 +107,7 @@ int main() {
     std::cout << " "  << e.second << " = " << magic_enum::enum_integer(e.first);
   }
   std::cout << std::endl;
-  // AnimalFlags entries: AnimalFlags entries: HasClaws = 1024 CanFly = 1048576 EatsFish = 1073741824 Endangered = 1099511627776
+  // AnimalFlags entries: HasClaws = 1024 CanFly = 1048576 EatsFish = 1073741824 Endangered = 1099511627776
 
   return 0;
 }
