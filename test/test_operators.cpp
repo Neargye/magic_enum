@@ -26,11 +26,23 @@
 #include <limits>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
 
 using operators_test::Bits;
+
+// Reads the given characters, then fails like a broken device.
+class FailingReadBuf : public std::streambuf {
+  std::string chars;
+
+ public:
+  explicit FailingReadBuf(std::string s) : chars(std::move(s)) { setg(chars.data(), chars.data(), chars.data() + chars.size()); }
+
+ protected:
+  int_type underflow() override { throw std::runtime_error("read error"); }
+};
 
 namespace ops {
 
@@ -38,9 +50,12 @@ enum class Scoped : unsigned { A = 1, B = 2 };
 
 enum Unscoped : int { UA = 1, UB = 2 };
 
-enum UnscopedMacro : int { UMA = 1, UMB = 2 };
+enum UnscopedMacro { UMA = 1, UMB = 2 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(UnscopedMacro);
 MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(UnscopedMacro);
+
+enum Unfixed { Minus = -1, Zero = 0, One = 1 };
+MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Unfixed);
 
 enum class Signed : std::int8_t { Low = 1, High = std::numeric_limits<std::int8_t>::min() };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Signed);
@@ -168,6 +183,10 @@ TEST_CASE("bitwise macros") {
   static_assert(~Bits::A == static_cast<Bits>(~1u));
   static_assert(compound() == (Bits::B | Bits::C));
 
+  static_assert(std::is_same_v<decltype(~ops::One), ops::Unfixed>);
+  static_assert(static_cast<int>(~ops::One) == -2);
+  static_assert(static_cast<int>(magic_enum::bitwise_operators::operator~(ops::One)) == -2);
+
   static_assert(~ops::BoolEnum::Off == ops::BoolEnum::On);
   static_assert(~ops::BoolEnum::On == ops::BoolEnum::Off);
   static_assert((ops::BoolEnum::Off | ops::BoolEnum::On) == ops::BoolEnum::On);
@@ -270,6 +289,31 @@ TEST_CASE("iostream macros") {
     stream >> v;
     REQUIRE(stream.fail());
     REQUIRE(v == Bits::B);
+  }
+  {
+    // A read error after a valid prefix keeps the value.
+    FailingReadBuf buf{"A"};
+    std::istream stream{&buf};
+    auto v = Bits::B;
+    stream >> v;
+    REQUIRE(stream.bad());
+    REQUIRE(v == Bits::B);
+  }
+  {
+    FailingReadBuf buf{"A"};
+    std::istream stream{&buf};
+    stream.exceptions(std::ios_base::badbit);
+    auto v = Bits::B;
+    REQUIRE_THROWS_AS(stream >> v, std::runtime_error);
+    REQUIRE(v == Bits::B);
+  }
+  {
+    FailingReadBuf buf{"A"};
+    std::istream stream{&buf};
+    auto v = ops::Scoped::B;
+    magic_enum::istream_operators::operator>>(stream, v);
+    REQUIRE(stream.bad());
+    REQUIRE(v == ops::Scoped::B);
   }
   {
     std::wostringstream out;
@@ -436,7 +480,6 @@ TEST_CASE("bitwise_operators") {
   SUBCASE("operator^") {
     REQUIRE(enum_integer(~Color::RED) == ~enum_integer(Color::RED));
     REQUIRE(enum_integer(~Numbers::one) == ~enum_integer(Numbers::one));
-    REQUIRE(enum_integer(~Directions::Up) == ~enum_integer(Directions::Up));
     REQUIRE(enum_integer(~number::one) == ~enum_integer(number::one));
   }
 

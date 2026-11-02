@@ -179,21 +179,23 @@ MAGIC_ENUM_CONSTEVAL bool is_default_order() noexcept {
 template <typename E = void, typename Cmp = void, typename = void>
 class indexing {
   [[nodiscard]] static constexpr auto get_indices() noexcept {
+    constexpr auto& values = enum_values<E>();
+    constexpr auto count = values.size();
+
     // reverse result index mapping
-    std::array<std::size_t, enum_count<E>()> rev_res{};
+    std::array<std::size_t, count> rev_res{};
 
     // std::iota
-    for (std::size_t i = 0; i < enum_count<E>(); ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
       rev_res[i] = i;
     }
 
-    constexpr auto orig_values = enum_values<E>();
     constexpr Cmp cmp{};
 
     // ~std::sort
-    for (std::size_t i = 0; i < enum_count<E>(); ++i) {
-      for (std::size_t j = i + 1; j < enum_count<E>(); ++j) {
-        if (cmp(orig_values[rev_res[j]], orig_values[rev_res[i]])) {
+    for (std::size_t i = 0; i < count; ++i) {
+      for (std::size_t j = i + 1; j < count; ++j) {
+        if (cmp(values[rev_res[j]], values[rev_res[i]])) {
           auto tmp = rev_res[i];
           rev_res[i] = rev_res[j];
           rev_res[j] = tmp;
@@ -201,12 +203,12 @@ class indexing {
       }
     }
 
-    std::array<E, enum_count<E>()> sorted_values{};
+    std::array<E, count> sorted_values{};
     // reverse the sorted indices
-    std::array<std::size_t, enum_count<E>()> res{};
-    for (std::size_t i = 0; i < enum_count<E>(); ++i) {
+    std::array<std::size_t, count> res{};
+    for (std::size_t i = 0; i < count; ++i) {
       res[rev_res[i]] = i;
-      sorted_values[i] = orig_values[rev_res[i]];
+      sorted_values[i] = values[rev_res[i]];
     }
 
     return std::pair{sorted_values, res};
@@ -271,9 +273,6 @@ struct name_sort_impl<void, Cmp> {
   };
 
   template <typename T>
-  using cmp_arg_t = std::conditional_t<std::is_enum_v<std::decay_t<T>> || std::is_constructible_v<string_view, T>, string_view, T>;
-
-  template <typename T>
   [[nodiscard]] static constexpr decltype(auto) cmp_arg(T&& value) {
     if constexpr (std::is_enum_v<std::decay_t<T>>) {
       return enum_name(value);
@@ -284,14 +283,14 @@ struct name_sort_impl<void, Cmp> {
     }
   }
 
+  template <typename T>
+  using cmp_arg_t = decltype(cmp_arg(std::declval<T>()));
+
   template <typename E1, typename E2>
   [[nodiscard]] constexpr std::enable_if_t<
-      // at least one of need to be an enum type
       (std::is_enum_v<std::decay_t<E1>> || std::is_enum_v<std::decay_t<E2>>) &&
-      // if both is enum, only accept if the same enum
       (!std::is_enum_v<std::decay_t<E1>> || !std::is_enum_v<std::decay_t<E2>> || std::is_same_v<std::decay_t<E1>, std::decay_t<E2>>) &&
-      // is invocable with comparator
-      (std::is_invocable_r_v<bool, const FullCmp<>&, cmp_arg_t<E1>, cmp_arg_t<E2>>),
+      std::is_invocable_r_v<bool, const FullCmp<>&, cmp_arg_t<E1>, cmp_arg_t<E2>>,
       bool>
   operator()(E1&& e1, E2&& e2) const {
     constexpr FullCmp<> cmp{};
@@ -362,6 +361,10 @@ struct FilteredIterator {
 
 template <typename T>
 constexpr int countr_zero(T x) noexcept {
+  constexpr int digits = std::numeric_limits<T>::digits;
+  if (x == 0) {
+    return digits;
+  }
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countr_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
@@ -370,36 +373,43 @@ constexpr int countr_zero(T x) noexcept {
   if (!__builtin_is_constant_evaluated()) {
     unsigned long index = 0;
     if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-      return _BitScanForward(&index, static_cast<unsigned long>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
+      _BitScanForward(&index, static_cast<unsigned long>(x));
     } else {
 #    ifdef _WIN64
-      return _BitScanForward64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(index) : static_cast<int>(sizeof(T) * 8);
+      _BitScanForward64(&index, static_cast<unsigned __int64>(x));
 #    else
-      if (_BitScanForward(&index, static_cast<unsigned long>(x))) { return static_cast<int>(index); }
-      return _BitScanForward(&index, static_cast<unsigned long>(x >> 32)) ? static_cast<int>(index) + 32 : static_cast<int>(sizeof(T) * 8);
+      if (!_BitScanForward(&index, static_cast<unsigned long>(x))) {
+        _BitScanForward(&index, static_cast<unsigned long>(x >> 32));
+        index += 32;
+      }
 #    endif
     }
+    return static_cast<int>(index);
   }
 #  endif
-  for (int i = 0; i < static_cast<int>(sizeof(T) * 8); ++i) {
+  for (int i = 0; i < digits; ++i) {
     if (((x >> i) & 1) != 0) {
       return i;
     }
   }
-  return static_cast<int>(sizeof(T) * 8);
+  return digits;
 #else
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
-    return x ? __builtin_ctz(static_cast<unsigned int>(x)) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_ctz(static_cast<unsigned int>(x));
   } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return x ? __builtin_ctzl(static_cast<unsigned long>(x)) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_ctzl(static_cast<unsigned long>(x));
   } else {
-    return x ? __builtin_ctzll(static_cast<unsigned long long>(x)) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_ctzll(static_cast<unsigned long long>(x));
   }
 #endif
 }
 
 template <typename T>
 constexpr int countl_zero(T x) noexcept {
+  constexpr int digits = std::numeric_limits<T>::digits;
+  if (x == 0) {
+    return digits;
+  }
 #if defined(__cpp_lib_bitops) && __cpp_lib_bitops >= 201907L
   return std::countl_zero(x);
 #elif defined(_MSC_VER) && !defined(__clang__)
@@ -408,32 +418,35 @@ constexpr int countl_zero(T x) noexcept {
   if (!__builtin_is_constant_evaluated()) {
     unsigned long index = 0;
     if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-      return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+      _BitScanReverse(&index, static_cast<unsigned long>(x));
     } else {
 #    ifdef _WIN64
-      return _BitScanReverse64(&index, static_cast<unsigned __int64>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+      _BitScanReverse64(&index, static_cast<unsigned __int64>(x));
 #    else
-      if (_BitScanReverse(&index, static_cast<unsigned long>(x >> 32))) { return static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 33; }
-      return _BitScanReverse(&index, static_cast<unsigned long>(x)) ? static_cast<int>(sizeof(T) * 8) - static_cast<int>(index) - 1 : static_cast<int>(sizeof(T) * 8);
+      if (_BitScanReverse(&index, static_cast<unsigned long>(x >> 32))) {
+        index += 32;
+      } else {
+        _BitScanReverse(&index, static_cast<unsigned long>(x));
+      }
 #    endif
     }
+    return digits - static_cast<int>(index) - 1;
   }
 #  endif
-  for (int i = static_cast<int>(sizeof(T) * 8) - 1; i >= 0; --i) {
+  for (int i = digits - 1; i >= 0; --i) {
     if (((x >> i) & 1) != 0) {
-      return static_cast<int>(sizeof(T) * 8) - 1 - i;
+      return digits - 1 - i;
     }
   }
-  return static_cast<int>(sizeof(T) * 8);
+  return digits;
 #else
-  // __builtin_clz* counts leading zeros in the promoted type width, not in T.
-  // We must subtract the extra bits introduced by zero-extension.
+  // Subtract the leading zeros introduced by promotion to the intrinsic's argument type.
   if constexpr (sizeof(T) <= sizeof(unsigned int)) {
-    return x ? __builtin_clz(static_cast<unsigned int>(x)) - static_cast<int>((sizeof(unsigned int) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_clz(static_cast<unsigned int>(x)) - (std::numeric_limits<unsigned int>::digits - digits);
   } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-    return x ? __builtin_clzl(static_cast<unsigned long>(x)) - static_cast<int>((sizeof(unsigned long) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_clzl(static_cast<unsigned long>(x)) - (std::numeric_limits<unsigned long>::digits - digits);
   } else {
-    return x ? __builtin_clzll(static_cast<unsigned long long>(x)) - static_cast<int>((sizeof(unsigned long long) - sizeof(T)) * 8) : static_cast<int>(sizeof(T) * 8);
+    return __builtin_clzll(static_cast<unsigned long long>(x)) - (std::numeric_limits<unsigned long long>::digits - digits);
   }
 #endif
 }
@@ -714,6 +727,8 @@ class bitset {
     constexpr reference_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), num_index(num), bit_index(bit) {}
 
    public:
+    constexpr reference_impl(const reference_impl&) noexcept = default;
+
     constexpr reference_impl& operator=(bool v) noexcept {
       if (v) {
         parent->a[num_index] |= bit_index;
@@ -1059,6 +1074,14 @@ class bitset {
     return *this;
   }
 
+  constexpr bitset& flip(E pos) {
+    if (auto i = domain::at(pos); i && *i < size()) {
+      reference{this, *i}.flip();
+      return *this;
+    }
+    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::flip: Unrecognized position"));
+  }
+
   [[nodiscard]] friend constexpr bitset operator&(const bitset& lhs, const bitset& rhs) noexcept { return bitset(lhs) &= rhs; }
 
   [[nodiscard]] friend constexpr bitset operator|(const bitset& lhs, const bitset& rhs) noexcept { return bitset(lhs) |= rhs; }
@@ -1121,7 +1144,7 @@ class bitset {
   template <typename Traits>
   friend std::basic_istream<char_type, Traits>& operator>>(std::basic_istream<char_type, Traits>& i, bitset& bs) {
     std::basic_string<char_type, Traits> s;
-    if (i >> s; !s.empty()) {
+    if (i >> s) {
       bitset result;
       if (result.set_names(string_view{s.data(), s.size()})) {
         bs = result;
@@ -1161,7 +1184,7 @@ class bitset {
   container_type a;
 };
 
-template <typename V, int = 0>
+template <typename V, std::enable_if_t<is_flags_v<V>, int> = 0>
 explicit bitset(V starter) -> bitset<V>;
 
 template <typename E, typename Cmp = std::less<E>>
@@ -1221,13 +1244,9 @@ class set {
     return r;
   }
 
-  [[nodiscard]] constexpr const_iterator begin() const noexcept {
-    return const_iterator{this, index_type::begin(), index_type::end(), index_type::begin()};
-  }
+  [[nodiscard]] constexpr const_iterator begin() const noexcept { return make_iterator(index_type::begin()); }
 
-  [[nodiscard]] constexpr const_iterator end() const noexcept {
-    return const_iterator{this, index_type::begin(), index_type::end(), index_type::end()};
-  }
+  [[nodiscard]] constexpr const_iterator end() const noexcept { return make_iterator(index_type::end()); }
 
   [[nodiscard]] constexpr const_iterator cbegin() const noexcept { return begin(); }
 
@@ -1261,7 +1280,7 @@ class set {
         ++s;
       }
 
-      return {iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)}, res};
+      return {make_iterator(index_type::it(*i)), res};
     }
     MAGIC_ENUM_CONTAINERS_THROW(std::invalid_argument("magic_enum::containers::set::insert: Unrecognized enum value"));
   }
@@ -1281,12 +1300,12 @@ class set {
 
   constexpr void insert(std::initializer_list<value_type> ilist) { insert(ilist.begin(), ilist.end()); }
 
-  template <typename... Args>
+  template <typename... Args, std::enable_if_t<std::is_constructible_v<value_type, Args&&...>, int> = 0>
   constexpr std::pair<iterator, bool> emplace(Args&&... args) {
-    return insert(value_type{std::forward<Args>(args)...});
+    return insert(value_type(std::forward<Args>(args)...));
   }
 
-  template <typename... Args>
+  template <typename... Args, std::enable_if_t<std::is_constructible_v<value_type, Args&&...>, int> = 0>
   constexpr iterator emplace_hint(const_iterator, Args&&... args) {
     return emplace(std::forward<Args>(args)...).first;
   }
@@ -1343,7 +1362,7 @@ class set {
 
   [[nodiscard]] constexpr const_iterator find(const key_type& key) const noexcept {
     if (auto i = index_type::at(key); i && a.test(key)) {
-      return const_iterator{this, index_type::begin(), index_type::end(), index_type::it(*i)};
+      return make_iterator(index_type::it(*i));
     }
     return end();
   }
@@ -1352,7 +1371,7 @@ class set {
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const {
     for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last; ++first) {
       if (a.test(*first)) {
-        return const_iterator{this, index_type::begin(), index_type::end(), first};
+        return make_iterator(first);
       }
     }
     return end();
@@ -1366,11 +1385,15 @@ class set {
   }
 
  private:
+  [[nodiscard]] constexpr const_iterator make_iterator(const E* pos) const noexcept {
+    return const_iterator{this, index_type::begin(), index_type::end(), pos};
+  }
+
   [[nodiscard]] constexpr const_iterator iterator_at_or_after(const E* it) const noexcept {
     while (it != index_type::end() && !a.test(*it)) {
       ++it;
     }
-    return const_iterator{this, index_type::begin(), index_type::end(), it};
+    return make_iterator(it);
   }
 
  public:

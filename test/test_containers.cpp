@@ -26,6 +26,8 @@
 #include <limits>
 #include <set>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
@@ -291,6 +293,17 @@ struct ThrowingConversion {
   }
 };
 
+// Reads the given characters, then fails like a broken device.
+class FailingReadBuf : public std::streambuf {
+  std::string chars;
+
+ public:
+  explicit FailingReadBuf(std::string s) : chars(std::move(s)) { setg(chars.data(), chars.data(), chars.data() + chars.size()); }
+
+ protected:
+  int_type underflow() override { throw std::runtime_error("read error"); }
+};
+
 using ColorBitset = magic_enum::containers::bitset<Color>;
 using ColorSet = magic_enum::containers::set<Color>;
 using ThrowingSet = magic_enum::containers::set<ThrowingEnum, UnderlyingLess>;
@@ -360,6 +373,38 @@ struct LvalueCharLess {
 struct RvalueCharLess {
   constexpr bool operator()(char lhs, char rhs) && { return lhs < rhs; }
 };
+
+TEST_CASE_TEMPLATE("bit counts preserve width in constant and runtime evaluation", T, std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t) {
+  using magic_enum::containers::detail::countr_zero;
+  using magic_enum::containers::detail::countl_zero;
+  constexpr int digits = std::numeric_limits<T>::digits;
+  static_assert(countr_zero(T{0}) == digits);
+  static_assert(countl_zero(T{0}) == digits);
+  static_assert(countr_zero((std::numeric_limits<T>::max)()) == 0);
+  static_assert(countl_zero((std::numeric_limits<T>::max)()) == 0);
+  static_assert([] {
+    for (int i = 0; i < digits; ++i) {
+      const auto bit = static_cast<T>(T{1} << i);
+      if (countr_zero(bit) != i || countl_zero(bit) != digits - i - 1) {
+        return false;
+      }
+    }
+    return true;
+  }());
+
+  // Volatile inputs exercise runtime intrinsics as well as the constexpr paths above.
+  volatile T value = 0;
+  REQUIRE(countr_zero(static_cast<T>(value)) == digits);
+  REQUIRE(countl_zero(static_cast<T>(value)) == digits);
+  value = (std::numeric_limits<T>::max)();
+  REQUIRE(countr_zero(static_cast<T>(value)) == 0);
+  REQUIRE(countl_zero(static_cast<T>(value)) == 0);
+  for (int i = 0; i < digits; ++i) {
+    value = static_cast<T>(T{1} << i);
+    REQUIRE(countr_zero(static_cast<T>(value)) == i);
+    REQUIRE(countl_zero(static_cast<T>(value)) == digits - i - 1);
+  }
+}
 
 TEST_CASE("name comparator categories") {
   using StringLess = magic_enum::containers::detail::name_sort_impl<void, ConstLvalueStringLess>;
@@ -638,11 +683,31 @@ TEST_CASE("containers_bitset") {
   REQUIRE(throwing_stream.fail());
   REQUIRE(streamed == constexpr_custom_separator);
 
+  // A read error after a valid prefix keeps the value.
+  FailingReadBuf bad_buf{"RED"};
+  std::istream bad_stream{&bad_buf};
+  REQUIRE_FALSE(static_cast<bool>(bad_stream >> streamed));
+  REQUIRE(bad_stream.bad());
+  REQUIRE(streamed == constexpr_custom_separator);
+  FailingReadBuf throwing_bad_buf{"RED"};
+  std::istream throwing_bad_stream{&throwing_bad_buf};
+  throwing_bad_stream.exceptions(std::ios_base::badbit);
+  REQUIRE_THROWS_AS(throwing_bad_stream >> streamed, std::runtime_error);
+  REQUIRE(streamed == constexpr_custom_separator);
+
   magic_enum::containers::bitset<Color, OutOfRangeIndex> custom_index_bitset;
   REQUIRE(custom_index_bitset.find(static_cast<Color>(8)) == custom_index_bitset.end());
   REQUIRE_THROWS(static_cast<void>(custom_index_bitset.test(static_cast<Color>(8))));
   REQUIRE_THROWS(custom_index_bitset.set(static_cast<Color>(8)));
   REQUIRE_THROWS(custom_index_bitset.reset(static_cast<Color>(8)));
+  REQUIRE_THROWS(custom_index_bitset.flip(static_cast<Color>(8)));
+
+  static_assert(magic_enum::containers::bitset<Color>{}.flip(Color::GREEN) == magic_enum::containers::bitset<Color>{Color::GREEN});
+  magic_enum::containers::bitset<Color> flipped{Color::RED};
+  flipped.flip(Color::RED).flip(Color::BLUE);
+  REQUIRE(flipped == magic_enum::containers::bitset<Color>{Color::BLUE});
+  REQUIRE_THROWS_AS(flipped.flip(static_cast<Color>(8)), std::out_of_range);
+  REQUIRE(flipped == magic_enum::containers::bitset<Color>{Color::BLUE});
 }
 
 TEST_CASE("containers_bitset_reference") {
@@ -650,6 +715,11 @@ TEST_CASE("containers_bitset_reference") {
     magic_enum::containers::bitset<Color> bits{Color::RED};
     auto red = bits[Color::RED];
     auto green = bits[Color::GREEN];
+    // Copying a reference must not warn under -Wdeprecated-copy.
+    auto copy = red;
+    if (!copy) {
+      return false;
+    }
     const auto& same = red;
     red = same;
     if (!bits.test(Color::RED)) {
@@ -914,6 +984,7 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   REQUIRE_THROWS_AS(flags.set(ZeroFlags::None), std::out_of_range);
   REQUIRE_THROWS_AS(flags.set(ZeroFlags::None, false), std::out_of_range);
   REQUIRE_THROWS_AS(flags.reset(ZeroFlags::None), std::out_of_range);
+  REQUIRE_THROWS_AS(flags.flip(ZeroFlags::None), std::out_of_range);
   REQUIRE_THROWS_AS(flags.set(ZeroFlags::A | ZeroFlags::B), std::out_of_range);
   REQUIRE(flags.none());
   flags.set(ZeroFlags::B);
@@ -1006,6 +1077,24 @@ inline constexpr bool has_explicit_from_mask_v = false;
 template <typename S, typename V>
 inline constexpr bool has_explicit_from_mask_v<S, V, std::void_t<decltype(S::template from_mask<V>(std::declval<typename S::value_type>()))>> = true;
 
+template <typename S, typename T, typename = void>
+inline constexpr bool has_emplace_v = false;
+
+template <typename S, typename T>
+inline constexpr bool has_emplace_v<S, T, std::void_t<decltype(std::declval<S&>().emplace(std::declval<T>()))>> = true;
+
+template <typename S, typename T, typename = void>
+inline constexpr bool has_emplace_hint_v = false;
+
+template <typename S, typename T>
+inline constexpr bool has_emplace_hint_v<S, T, std::void_t<decltype(std::declval<S&>().emplace_hint(std::declval<typename S::const_iterator>(), std::declval<T>()))>> = true;
+
+template <typename T, typename = void>
+inline constexpr bool has_bitset_guide_v = false;
+
+template <typename T>
+inline constexpr bool has_bitset_guide_v<T, std::void_t<decltype(magic_enum::containers::bitset(std::declval<T>()))>> = true;
+
 TEST_CASE("set takes keys, masks go through from_mask") {
   using namespace magic_enum::bitwise_operators;
   using magic_enum::containers::set;
@@ -1021,6 +1110,14 @@ TEST_CASE("set takes keys, masks go through from_mask") {
   static_assert(has_explicit_from_mask_v<set<ZeroFlags>, ZeroFlags>);
   static_assert(!has_explicit_from_mask_v<set<Numbers>, ZeroFlags>);
   static_assert(!has_explicit_from_mask_v<set<ZeroFlags>, Color>);
+  // An integer is not a key, as in std::set.
+  static_assert(has_emplace_v<set<Numbers>, Numbers>);
+  static_assert(!has_emplace_v<set<Numbers>, int>);
+  static_assert(!has_emplace_v<set<ZeroFlags>, int>);
+  static_assert(has_emplace_hint_v<set<Numbers>, Numbers>);
+  static_assert(!has_emplace_hint_v<set<Numbers>, int>);
+  static_assert(has_bitset_guide_v<ZeroFlags>);
+  static_assert(!has_bitset_guide_v<int>);
   static_assert(std::is_same_v<decltype(set<ZeroFlags, std::greater<>>::from_mask(ZeroFlags::A)), set<ZeroFlags, std::greater<>>>);
   static_assert(*set<ZeroFlags, std::greater<>>::from_mask(ZeroFlags::A | ZeroFlags::B).begin() == ZeroFlags::B);
   static_assert(!noexcept(std::declval<set<ZeroFlags>&>().insert(ZeroFlags::A)));
@@ -1053,6 +1150,44 @@ TEST_CASE("set takes keys, masks go through from_mask") {
   REQUIRE_FALSE(keys.contains(unknown));
   REQUIRE(keys.find(unknown) == keys.end());
   REQUIRE(keys.erase(unknown) == 0);
+}
+
+TEST_CASE("set emplace constructs enum keys") {
+  using magic_enum::containers::set;
+  struct Key {
+    ZeroFlags value;
+    constexpr explicit operator ZeroFlags() && noexcept { return value; }
+  };
+  static_assert(has_emplace_v<set<ZeroFlags>, Key>);
+  static_assert(!has_emplace_v<set<ZeroFlags>, Key&>);
+  static_assert(has_emplace_hint_v<set<ZeroFlags>, Key>);
+  static_assert(!has_emplace_hint_v<set<ZeroFlags>, Key&>);
+
+  constexpr auto constructed = [] {
+    set<ZeroFlags> keys;
+    keys.emplace();
+    keys.emplace(Key{ZeroFlags::A});
+    keys.emplace_hint(keys.end(), Key{ZeroFlags::B});
+    return keys;
+  }();
+  static_assert(constructed.size() == 3);
+
+  set<ZeroFlags> keys;
+  const auto zero = keys.emplace();
+  REQUIRE(zero.second);
+  REQUIRE(*zero.first == ZeroFlags::None);
+  REQUIRE(*keys.emplace_hint(keys.end()) == ZeroFlags::None);
+  REQUIRE(keys.emplace(Key{ZeroFlags::A}).second);
+  REQUIRE(*keys.emplace_hint(keys.end(), Key{ZeroFlags::B}) == ZeroFlags::B);
+  REQUIRE_FALSE(keys.emplace(Key{ZeroFlags::A}).second);
+  const auto unknown = static_cast<ZeroFlags>(4);
+  REQUIRE_THROWS_AS(keys.emplace(Key{unknown}), std::invalid_argument);
+  REQUIRE_THROWS_AS(keys.emplace_hint(keys.end(), Key{unknown}), std::invalid_argument);
+  REQUIRE(keys == constructed);
+
+  set<Color> unnamed_zero;
+  REQUIRE_THROWS_AS(unnamed_zero.emplace(), std::invalid_argument);
+  REQUIRE(unnamed_zero.empty());
 }
 
 TEST_CASE_TEMPLATE("named zero preserves full-width flag storage boundaries", E, ZeroFlags8, ZeroFlags64) {

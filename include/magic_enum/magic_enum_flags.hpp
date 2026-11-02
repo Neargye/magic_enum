@@ -49,6 +49,18 @@ MAGIC_ENUM_CONSTEVAL auto values_ors() noexcept {
   return ors;
 }
 
+template <typename E>
+MAGIC_ENUM_CONSTEVAL std::size_t zero_index() noexcept {
+  constexpr auto& values = values_v<E, enum_subtype::flags>;
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    if (enum_value_equal(values[i], 0)) {
+      return i;
+    }
+  }
+
+  return values.size();
+}
+
 } // namespace magic_enum::detail
 
 // Returns flag names joined by sep, the name of a named zero, or an empty string for unknown bits.
@@ -64,8 +76,10 @@ template <typename E, typename String = string>
   String name;
   if (flag_value == U{0}) {
     // The zero name never joins a nonzero mask.
-    const auto n = enum_name<S>(value);
-    name.append(n.data(), n.size());
+    if constexpr (constexpr auto z = detail::zero_index<D>(); z < detail::count_v<D, S>) {
+      const auto n = detail::names_v<D, S>[z];
+      name.append(n.data(), n.size());
+    }
     return name;
   }
 

@@ -413,6 +413,29 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  range-min-max
+  10
+  "magic_enum::enum_range requires min <= max."
+  MAGIC_ENUM_TEST_ENUM_FORM=3
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  reflected-range-outside-int
+  10
+  "magic_enum::enum_range requires min and max to fit in int."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+  MAGIC_ENUM_TEST_REFLECTED
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  reflected-range-min-max
+  10
+  "magic_enum::enum_range requires min <= max."
+  MAGIC_ENUM_TEST_ENUM_FORM=3
+  MAGIC_ENUM_TEST_REFLECTED
+)
+magic_enum_make_compile_fail_test(
+  configuration
   for-each-rvalue-only
   11
   "magic_enum::enum_for_each requires invocable of all enum value."

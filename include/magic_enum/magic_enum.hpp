@@ -840,21 +840,20 @@ struct valid_offsets_t {
 // Avoid a helper template instantiation per scanned value.
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
 MAGIC_ENUM_CONSTEVAL void valid_offsets(valid_offsets_t<Size>& vc) noexcept {
-#define MAGIC_ENUM_V(O)                                                                   \
-  if constexpr ((J + O) < Size) {                                                         \
-    constexpr auto v = value<E, Min, S>(J + O);                                           \
-    constexpr auto custom = customize::enum_name<E>(v);                                   \
-    if constexpr (custom.first == customize::detail::customize_tag::default_tag) {        \
-      if constexpr (n<v>().size_ != 0) {                                                  \
-        vc.append(J + O);                                                                 \
-      }                                                                                   \
-    } else if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {  \
-      if constexpr (is_valid_custom_value_v<E, ualue<E, Min, S>(J + O)>) {                \
-        static_assert(!custom.second.empty(),                                             \
-                      "magic_enum::customize requires not empty string.");                \
-        vc.append(J + O);                                                                 \
-      }                                                                                   \
-    }                                                                                     \
+#define MAGIC_ENUM_V(O)                                                                            \
+  if constexpr ((J + O) < Size) {                                                                  \
+    constexpr auto v = value<E, Min, S>(J + O);                                                    \
+    constexpr auto custom = customize::enum_name<E>(v);                                            \
+    if constexpr (custom.first == customize::detail::customize_tag::default_tag) {                 \
+      if constexpr (n<v>().size_ != 0) {                                                           \
+        vc.append(J + O);                                                                          \
+      }                                                                                            \
+    } else if constexpr (custom.first == customize::detail::customize_tag::custom_tag) {           \
+      if constexpr (is_valid_custom_value_v<E, ualue<E, Min, S>(J + O)>) {                         \
+        static_assert(!custom.second.empty(), "magic_enum::customize requires not empty string."); \
+        vc.append(J + O);                                                                          \
+      }                                                                                            \
+    }                                                                                              \
   }
 
   MAGIC_ENUM_FOR_EACH_256(MAGIC_ENUM_V)
@@ -888,6 +887,29 @@ MAGIC_ENUM_CONSTEVAL auto values() noexcept {
   }
 }
 
+template <typename E, enum_subtype S>
+MAGIC_ENUM_CONSTEVAL auto scan_span() noexcept {
+  // Unsigned subtraction avoids signed overflow.
+  return static_cast<unsigned int>(reflected_max<E, S>()) - static_cast<unsigned int>(reflected_min<E, S>());
+}
+
+template <typename E, enum_subtype S>
+MAGIC_ENUM_CONSTEVAL bool check_range() noexcept {
+  constexpr auto min = reflected_min<E, S>();
+  constexpr auto max = reflected_max<E, S>();
+  constexpr bool valid_range = !cmp_less(max, min);
+  constexpr bool valid_bounds = !cmp_less(min, (std::numeric_limits<int>::min)()) && !cmp_less((std::numeric_limits<int>::max)(), max);
+  constexpr bool valid_size = scan_span<E, S>() < (std::numeric_limits<std::uint16_t>::max)();
+  if constexpr (!valid_range) {
+    static_assert(valid_range, "magic_enum::enum_range requires min <= max.");
+  } else if constexpr (!valid_bounds) {
+    static_assert(valid_bounds, "magic_enum::enum_range requires min and max to fit in int.");
+  } else {
+    static_assert(valid_size, "magic_enum::enum_range requires valid size.");
+  }
+  return valid_range && valid_bounds && valid_size;
+}
+
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto values() noexcept {
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
@@ -897,24 +919,10 @@ MAGIC_ENUM_CONSTEVAL auto values() noexcept {
   }
   return values;
 #else
-  constexpr auto min = reflected_min<E, S>();
-  constexpr auto max = reflected_max<E, S>();
-  constexpr bool valid_range = !cmp_less(max, min);
-  constexpr bool valid_bounds = !cmp_less(min, (std::numeric_limits<int>::min)()) && !cmp_less((std::numeric_limits<int>::max)(), max);
-  // Unsigned subtraction avoids signed overflow.
-  constexpr auto span = static_cast<unsigned int>(max) - static_cast<unsigned int>(min);
-  constexpr bool valid_size = span < (std::numeric_limits<std::uint16_t>::max)();
-  if constexpr (!valid_range) {
-    static_assert(valid_range, "magic_enum::enum_range requires min <= max.");
-    return std::array<E, 0>{};
-  } else if constexpr (!valid_bounds) {
-    static_assert(valid_bounds, "magic_enum::enum_range requires min and max to fit in int.");
-    return std::array<E, 0>{};
-  } else if constexpr (!valid_size) {
-    static_assert(valid_size, "magic_enum::enum_range requires valid size.");
-    return std::array<E, 0>{};
+  if constexpr (check_range<E, S>()) {
+    return values<E, S, std::size_t{scan_span<E, S>()} + 1, static_cast<int>(reflected_min<E, S>())>();
   } else {
-    return values<E, S, std::size_t{span} + 1, static_cast<int>(min)>();
+    return std::array<E, 0>{};
   }
 #endif
 }
@@ -1707,7 +1715,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I,
 #else
     constexpr auto min = detail::reflected_min<D, S>();
     constexpr auto max = detail::reflected_max<D, S>();
-    return !detail::cmp_less(v, min) && !detail::cmp_less(max, v);
+    return detail::check_range<D, S>() && !detail::cmp_less(v, min) && !detail::cmp_less(max, v);
 #endif
   }
 }

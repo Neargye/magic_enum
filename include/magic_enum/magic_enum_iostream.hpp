@@ -102,7 +102,9 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
   using D = std::decay_t<E>;
 
   std::basic_string<Char, Traits> s;
-  is >> s;
+  if (!(is >> s)) {
+    return is;
+  }
   const auto v = [&] {
     if constexpr (!detail::supported<D>::value) {
       return optional<D>{};
@@ -140,18 +142,16 @@ using magic_enum::istream_operators::operator>>;
 
 // Fixing E makes these templates more specialized than the namespace ones, so a using directive in the same scope is not ambiguous.
 // Prefixed names avoid -Wshadow with members and template parameters of the enclosing class.
-#define MAGIC_ENUM_DETAIL_DEFINE_IOSTREAM_OPERATORS(SPEC, E)                                      \
-  static_assert(::std::is_enum_v<E>, "magic_enum iostream operators require an enum type.");      \
-  template <typename MagicEnumChar, typename MagicEnumTraits>                                     \
-  SPEC ::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& operator<<(                          \
-      ::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& magic_enum_os, E magic_enum_value) {  \
-    return ::magic_enum::ostream_operators::operator<<(magic_enum_os, magic_enum_value);          \
-  }                                                                                               \
-  template <typename MagicEnumChar, typename MagicEnumTraits>                                     \
-  SPEC ::std::basic_istream<MagicEnumChar, MagicEnumTraits>& operator>>(                          \
-      ::std::basic_istream<MagicEnumChar, MagicEnumTraits>& magic_enum_is, E& magic_enum_value) { \
-    return ::magic_enum::istream_operators::operator>>(magic_enum_is, magic_enum_value);          \
-  }                                                                                               \
+#define MAGIC_ENUM_DETAIL_DEFINE_IOSTREAM_OPERATORS(SPEC, E)                                                                                                         \
+  static_assert(::std::is_enum_v<E>, "magic_enum iostream operators require an enum type.");                                                                         \
+  template <typename MagicEnumChar, typename MagicEnumTraits>                                                                                                        \
+  SPEC ::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& operator<<(::std::basic_ostream<MagicEnumChar, MagicEnumTraits>& magic_enum_os, E magic_enum_value) {   \
+    return ::magic_enum::ostream_operators::operator<<(magic_enum_os, magic_enum_value);                                                                             \
+  }                                                                                                                                                                  \
+  template <typename MagicEnumChar, typename MagicEnumTraits>                                                                                                        \
+  SPEC ::std::basic_istream<MagicEnumChar, MagicEnumTraits>& operator>>(::std::basic_istream<MagicEnumChar, MagicEnumTraits>& magic_enum_is, E& magic_enum_value) {  \
+    return ::magic_enum::istream_operators::operator>>(magic_enum_is, magic_enum_value);                                                                             \
+  }                                                                                                                                                                  \
   static_assert(true, "")
 
 #endif // NEARGYE_MAGIC_ENUM_IOSTREAM_HPP

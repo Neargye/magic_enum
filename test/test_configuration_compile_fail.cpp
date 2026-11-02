@@ -169,12 +169,12 @@ constexpr auto count = magic_enum::enum_count<EmptyCustomName>();
 
 #  include <limits>
 
-#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
-enum class RangeProbe : int { Value };
-using RangeBound = int;
-#  else
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 2
 enum class RangeProbe : long long { Value };
 using RangeBound = long long;
+#  else
+enum class RangeProbe : int { Value };
+using RangeBound = int;
 #  endif
 
 template <>
@@ -182,14 +182,22 @@ struct magic_enum::customize::enum_range<RangeProbe> {
 #  if MAGIC_ENUM_TEST_ENUM_FORM == 1
   static constexpr RangeBound min = (std::numeric_limits<int>::min)();
   static constexpr RangeBound max = (std::numeric_limits<int>::max)();
-#  else
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 2
   // Must not be truncated to [0, 10].
   static constexpr RangeBound min = RangeBound{1} << 32;
   static constexpr RangeBound max = (RangeBound{1} << 32) + 10;
+#  else
+  static constexpr RangeBound min = 10;
+  static constexpr RangeBound max = 5;
 #  endif
 };
 
+// enum_reflected must reject the same enum_range as the scan.
+#  if defined(MAGIC_ENUM_TEST_REFLECTED)
+constexpr auto reflected = magic_enum::enum_reflected(RangeProbe::Value);
+#  else
 constexpr auto count = magic_enum::enum_count<RangeProbe>();
+#  endif
 
 #elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 11
 

@@ -240,6 +240,29 @@ TEST_CASE("sparse lookup across switch pages") {
   }
 }
 
+struct AnySwitchCase {
+  template <typename T>
+  constexpr int operator()(T) const { return 1; }
+};
+
+template <typename E, typename = void>
+inline constexpr bool switch_accepts_v = false;
+
+template <typename E>
+inline constexpr bool switch_accepts_v<E, std::void_t<decltype(magic_enum::enum_switch(AnySwitchCase{}, std::declval<E>()))>> = true;
+
+template <typename E, typename = void>
+inline constexpr bool switch_fallback_accepts_v = false;
+
+template <typename E>
+inline constexpr bool switch_fallback_accepts_v<E, std::void_t<decltype(magic_enum::enum_switch(AnySwitchCase{}, std::declval<E>(), 0))>> = true;
+
+// A non-enum drops out of overload resolution instead of failing inside the tables.
+static_assert(switch_accepts_v<Color>);
+static_assert(!switch_accepts_v<int>);
+static_assert(switch_fallback_accepts_v<Color>);
+static_assert(!switch_fallback_accepts_v<int>);
+
 TEST_CASE("enum_switch") {
   SUBCASE("member function pointer") {
     constexpr auto member = &enum_constant<Color::GREEN>::operator();
