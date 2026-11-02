@@ -35,6 +35,10 @@
 #include "magic_enum.hpp"
 #include "magic_enum_flags.hpp"
 
+#ifndef MAGIC_ENUM_USE_STD_MODULE
+#  include <string>
+#endif
+
 namespace magic_enum::detail {
 
 template <typename E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, int> = 0>

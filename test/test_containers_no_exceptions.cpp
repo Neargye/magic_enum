@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
 
-// Built without exceptions. Each invalid case runs in its own process and must abort.
+// Each invalid case runs without library exceptions and must abort.
 
 #include <magic_enum/magic_enum_containers.hpp>
 
@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 
 enum class Flags : unsigned { None = 0, A = 1, B = 2 };
 template <>
@@ -50,6 +51,8 @@ int main(int argc, char** argv) {
   // A debug CRT would show a dialog before raising SIGABRT.
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
+  // An uncaught exception must not pass as an expected abort.
+  std::set_terminate([] { std::_Exit(1); });
   std::signal(SIGABRT, on_abort);
 
   using namespace magic_enum::containers;
@@ -71,6 +74,8 @@ int main(int argc, char** argv) {
     static_cast<void>(bitset<Flags>(raw_access, 4ULL));
   } else if (std::strcmp(name, "bitset-raw-string") == 0) {
     static_cast<void>(bitset<Flags>(raw_access, "2"));
+  } else if (std::strcmp(name, "bitset-raw-position") == 0) {
+    static_cast<void>(bitset<Flags>(raw_access, magic_enum::string_view{"1"}, 2));
   } else if (std::strcmp(name, "array-at") == 0) {
     array<Flags, int> values{};
     static_cast<void>(values.at(both));

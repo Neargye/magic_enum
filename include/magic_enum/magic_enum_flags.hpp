@@ -57,7 +57,7 @@ template <typename E, typename String = string>
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_flags_name requires a non-empty reflected enum.");
   static_assert(std::is_same_v<typename String::value_type, char_type>, "magic_enum::enum_flags_name requires String::value_type to be magic_enum::char_type.");
 
   const auto flag_value = static_cast<U>(value);
@@ -96,7 +96,7 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::
   using D = std::decay_t<E>;
   using V = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_flags_cast requires a non-empty reflected enum.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
@@ -123,7 +123,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum requires enum implementation and valid max and min.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_flags_cast requires a non-empty reflected enum.");
 
   if constexpr (detail::count_v<D, S> == 0) {
     static_cast<void>(value);
@@ -154,20 +154,29 @@ template <typename E, typename BinaryPredicate = std::equal_to<>, typename Strin
 // Returns true if the value is a valid flag combination. Zero is valid only when it is named.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
-  return static_cast<bool>(enum_flags_cast<E>(static_cast<underlying_type_t<E>>(value)));
+  using D = std::decay_t<E>;
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+
+  return static_cast<bool>(enum_flags_cast<D>(static_cast<underlying_type_t<D>>(value)));
 }
 
 // Returns true if the integer is a valid flag combination. Zero is valid only when it is named.
 // The enum value overload handles arguments of type E.
 template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
-  return static_cast<bool>(enum_flags_cast<E>(value));
+  using D = std::decay_t<E>;
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+
+  return static_cast<bool>(enum_flags_cast<D>(value));
 }
 
 // Returns true if the names form a valid flag combination.
 template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
-  return static_cast<bool>(enum_flags_cast<E, BinaryPredicate&>(std::forward<String>(value), sep, p));
+  using D = std::decay_t<E>;
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+
+  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(std::forward<String>(value), sep, p));
 }
 
 // Returns true if flag is nonzero and all its bits are set in flags.

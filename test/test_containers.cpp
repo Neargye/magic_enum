@@ -49,6 +49,13 @@ struct magic_enum::customize::enum_range<ZeroFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class NoEqualFlags : std::uint8_t { None = 0, A = 1, B = 2 };
+template <>
+struct magic_enum::customize::enum_range<NoEqualFlags> {
+  static constexpr bool is_flags = true;
+};
+constexpr bool operator==(NoEqualFlags, NoEqualFlags) = delete;
+
 enum class OnlyZeroFlags : std::uint8_t { None = 0 };
 template <>
 struct magic_enum::customize::enum_range<OnlyZeroFlags> {
@@ -584,7 +591,7 @@ TEST_CASE("containers_bitset") {
   }
 
   NonCopyablePredicate predicate;
-  const magic_enum::containers::bitset<Color> color_bitset_names {"RED|BLUE", predicate};
+  const magic_enum::containers::bitset<Color> color_bitset_names {"RED|BLUE", '|', predicate};
   REQUIRE(color_bitset_names.test(Color::RED));
   REQUIRE_FALSE(color_bitset_names.test(Color::GREEN));
   REQUIRE(color_bitset_names.test(Color::BLUE));
@@ -600,15 +607,36 @@ TEST_CASE("containers_bitset") {
   static_assert(constexpr_empty_names.none());
   constexpr magic_enum::containers::bitset<Color> constexpr_trailing_separator {"RED|"};
   static_assert(constexpr_trailing_separator == magic_enum::containers::bitset<Color>{Color::RED});
-  constexpr magic_enum::containers::bitset<Color> constexpr_custom_separator {"GREEN,BLUE", {}, ','};
+  constexpr magic_enum::containers::bitset<Color> constexpr_custom_separator {"GREEN,BLUE", ','};
   static_assert(constexpr_custom_separator == magic_enum::containers::bitset<Color>{Color::GREEN | Color::BLUE});
   REQUIRE(magic_enum::containers::bitset<Color>{""}.none());
   REQUIRE(magic_enum::containers::bitset<Color>{"RED|"} == constexpr_trailing_separator);
-  REQUIRE(magic_enum::containers::bitset<Color>{"GREEN,BLUE", {}, ','} == constexpr_custom_separator);
+  REQUIRE(magic_enum::containers::bitset<Color>{"GREEN,BLUE", ','} == constexpr_custom_separator);
   REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"|RED"}));
   REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED||BLUE"}));
   REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED|PURPLE"}));
   REQUIRE_THROWS((magic_enum::containers::bitset<Color>{"RED,BLUE"}));
+  REQUIRE_THROWS_AS((magic_enum::containers::bitset<Color>{magic_enum::containers::raw_access, magic_enum::string_view{"1"}, 2}), std::out_of_range);
+
+  constexpr magic_enum::containers::bitset<Color> copy_list_init = {};
+  static_assert(copy_list_init.none());
+
+  magic_enum::containers::bitset<Color> streamed{Color::RED};
+  std::istringstream valid_stream{"GREEN,BLUE GREEN|BLUE"};
+  std::istringstream invalid_stream{"GREEN|PURPLE"};
+  REQUIRE_FALSE(static_cast<bool>(valid_stream >> streamed));
+  REQUIRE(streamed == magic_enum::containers::bitset<Color>{Color::RED});
+  valid_stream.clear();
+  REQUIRE(static_cast<bool>(valid_stream >> streamed));
+  REQUIRE(streamed == constexpr_custom_separator);
+  REQUIRE_FALSE(static_cast<bool>(invalid_stream >> streamed));
+  REQUIRE(streamed == constexpr_custom_separator);
+
+  std::istringstream throwing_stream{"RED|PURPLE"};
+  throwing_stream.exceptions(std::ios_base::failbit);
+  REQUIRE_THROWS_AS(throwing_stream >> streamed, std::ios_base::failure);
+  REQUIRE(throwing_stream.fail());
+  REQUIRE(streamed == constexpr_custom_separator);
 
   magic_enum::containers::bitset<Color, OutOfRangeIndex> custom_index_bitset;
   REQUIRE(custom_index_bitset.find(static_cast<Color>(8)) == custom_index_bitset.end());
@@ -898,9 +926,11 @@ TEST_CASE("containers keep a named zero as a key but not as a bit") {
   flags.flip();
   REQUIRE(flags.to_string() == "A");
   REQUIRE(bitset<ZeroFlags>().to_string() == "None");
+  REQUIRE(bitset<NoEqualFlags>().to_string() == "None");
+  REQUIRE(bitset<NoEqualFlags>{NoEqualFlags::B}.to_string() == "B");
   REQUIRE(bitset<ZeroFlags>("None|A").to_string() == "A");
   REQUIRE(bitset<ZeroFlags>("None").none());
-  constexpr bitset<ZeroFlags, ZeroInsideIndex> parsed{"None,B,A,None", {}, ','};
+  constexpr bitset<ZeroFlags, ZeroInsideIndex> parsed{"None,B,A,None", ','};
   static_assert(parsed.all());
   REQUIRE(parsed.to_string() == "A|B");
   REQUIRE(parsed.to_string(magic_enum::containers::raw_access) == "11");
@@ -982,6 +1012,7 @@ TEST_CASE("set takes keys, masks go through from_mask") {
   constexpr auto unknown = static_cast<ZeroFlags>(4);
 
   static_assert(!std::is_constructible_v<set<ZeroFlags>, ZeroFlags>);
+  static_assert(!std::is_constructible_v<set<ZeroFlags>, ZeroFlags, ZeroFlags>);
   static_assert(!std::is_constructible_v<set<Numbers>, Numbers>);
   static_assert(std::is_same_v<decltype(set{ZeroFlags::A}), set<ZeroFlags>>);
   static_assert(has_from_mask_v<set<ZeroFlags>, ZeroFlags>);

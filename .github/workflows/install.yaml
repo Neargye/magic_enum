@@ -90,6 +90,7 @@ jobs:
           DESTDIR="${RUNNER_TEMP}/stage" cmake --install build-install
           prefix="${RUNNER_TEMP}/stage${RUNNER_TEMP}/configured-install"
           test -f "${prefix}/include/magic_enum/magic_enum_all.hpp"
+          test -f "${prefix}/include/magic_enum/magic_enum_bitwise.hpp"
           test -f "${prefix}/share/magic_enum/LICENSE"
           export PKG_CONFIG_PATH="${prefix}/share/pkgconfig"
           include_dir="$(pkg-config --variable=includedir magic_enum)"
@@ -114,6 +115,7 @@ jobs:
             -DMAGIC_ENUM_OPT_BUILD_TESTS=OFF
           cmake --install build-absolute
           test -f "${prefix}/custom include/magic_enum/magic_enum_all.hpp"
+          test -f "${prefix}/custom include/magic_enum/magic_enum_bitwise.hpp"
           export PKG_CONFIG_PATH="${prefix}/custom share/pkgconfig"
           cat > absolute-consumer.cpp << 'EOF'
           #include <magic_enum/magic_enum_all.hpp>

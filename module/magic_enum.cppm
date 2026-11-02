@@ -9,11 +9,15 @@ module;
 
 #  include <compare>
 #  include <cstdlib>
+#  include <initializer_list>
 #  include <ios>
+#  include <iterator>
 #  if __has_include(<format>)
 #    include <format>
 #  endif
 #  include <stdexcept>
+#  include <string>
+#  include <string_view>
 #  if __has_include(<bit>)
 #    include <bit>
 #  endif

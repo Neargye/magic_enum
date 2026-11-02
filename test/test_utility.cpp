@@ -216,6 +216,20 @@ TEST_CASE("enum_prev_value_circular") {
   REQUIRE(enum_prev_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()) == Color::RED);
 }
 
+enum class UtilityEmpty {};
+
+TEST_CASE("empty enum next and prev") {
+  static_assert(enum_count<UtilityEmpty>() == 0);
+  static_assert(!enum_next_value(UtilityEmpty{}).has_value());
+  static_assert(!enum_prev_value(UtilityEmpty{}, -1).has_value());
+
+  // The circular functions have no valid argument here, but they must compile without a modulo by zero warning.
+  volatile bool call_circular = false;
+  if (call_circular) {
+    CHECK(enum_next_value_circular(UtilityEmpty{}) == enum_prev_value_circular(UtilityEmpty{}));
+  }
+}
+
 namespace flags_test {
 
 #if defined(MAGIC_ENUM_SUPPORTED_CONSTEXPR_FOR)

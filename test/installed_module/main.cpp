@@ -44,6 +44,19 @@ struct magic_enum::customize::enum_range<ReflectionRange> {
   static constexpr int max = 1;
 };
 
+enum class ZeroDirections : unsigned { None = 0, Left = 1, Right = 2 };
+
+template <>
+struct magic_enum::customize::enum_range<ZeroDirections> {
+  static constexpr bool is_flags = true;
+};
+
+static_assert(magic_enum::containers::set<ZeroDirections>{ZeroDirections::None}.size() == 1);
+static_assert(magic_enum::containers::set<ZeroDirections>::from_mask(static_cast<ZeroDirections>(3)).size() == 2);
+static_assert(!std::is_constructible_v<magic_enum::containers::set<ZeroDirections>, ZeroDirections>);
+static_assert(magic_enum::containers::bitset<ZeroDirections>{}.size() == 2);
+static_assert(magic_enum::containers::bitset<ZeroDirections>{ZeroDirections::None}.none());
+
 static_assert(magic_enum::enum_count<Color>() == 3);
 static_assert(magic_enum::enum_min<Color>() == Color::RED);
 static_assert(magic_enum::enum_max<Color>() == Color::BLUE);

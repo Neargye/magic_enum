@@ -273,10 +273,14 @@ if(MSVC)
 else()
   target_compile_options(test_containers_no_exceptions-cpp17 PRIVATE -fno-exceptions)
 endif()
-foreach(case_name IN ITEMS set-key set-plain-key from-mask bitset-mask bitset-name bitset-raw-number bitset-raw-string array-at bitset-zero bitset-combination)
+foreach(case_name IN ITEMS set-key set-plain-key from-mask bitset-mask bitset-name bitset-raw-number bitset-raw-string bitset-raw-position array-at bitset-zero bitset-combination)
   add_test(NAME test_containers_no_exceptions-${case_name}-cpp17 COMMAND test_containers_no_exceptions-cpp17 ${case_name})
   set_tests_properties(test_containers_no_exceptions-${case_name}-cpp17 PROPERTIES PASS_REGULAR_EXPRESSION "magic_enum::containers aborted")
 endforeach()
+magic_enum_make_test(test_nonascii.cpp test_nonascii-cpp17 c++17)
+if(MSVC)
+  target_compile_options(test_nonascii-cpp17 PRIVATE /utf-8)
+endif()
 magic_enum_make_compile_fail_test(
   configuration
   conflicting-assert
@@ -289,33 +293,61 @@ magic_enum_make_compile_fail_test(
   2
   "magic_enum::customize::enum_range requires is_flags to have bool type"
 )
+magic_enum_make_compile_fail_test(
+  configuration
+  invalid-is-flags-as-common
+  2
+  "magic_enum::customize::enum_range requires is_flags to have bool type"
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  invalid-is-flags-as-flags
+  2
+  "magic_enum::customize::enum_range requires is_flags to have bool type"
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  invalid-is-flags-switch
+  2
+  "magic_enum::customize::enum_range requires is_flags to have bool type"
+  MAGIC_ENUM_TEST_ENUM_FORM=3
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  invalid-is-flags-switch-fallback
+  2
+  "magic_enum::customize::enum_range requires is_flags to have bool type"
+  MAGIC_ENUM_TEST_ENUM_FORM=4
+)
 
 magic_enum_make_compile_fail_test(
   configuration
   name-forward-scoped
   5
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_name requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=1
 )
 magic_enum_make_compile_fail_test(
   configuration
   name-forward-scoped-underlying
   5
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_name requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
 magic_enum_make_compile_fail_test(
   configuration
   name-forward-unscoped
   5
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_name requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=3
 )
 magic_enum_make_compile_fail_test(
   configuration
   name-empty
   5
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_name requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=4
 )
 magic_enum_make_compile_fail_test(
@@ -335,14 +367,28 @@ magic_enum_make_compile_fail_test(
   configuration
   values-empty
   8
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_values requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=1
 )
 magic_enum_make_compile_fail_test(
   configuration
   values-outside-range
   8
-  "magic_enum requires enum implementation and valid max and min."
+  "magic_enum::enum_values requires a non-empty reflected enum."
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  next-circular-empty
+  19
+  "magic_enum::enum_next_value_circular requires a non-empty reflected enum."
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  prev-circular-empty
+  19
+  "magic_enum::enum_prev_value_circular requires a non-empty reflected enum."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
 magic_enum_make_compile_fail_test(
@@ -402,6 +448,13 @@ magic_enum_make_compile_fail_test(
   bitset-to-string-value-type
   17
   "magic_enum::containers::bitset::to_string requires String::value_type to be magic_enum::char_type."
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  set-empty
+  18
+  "magic_enum::containers::set requires non-empty reflected enum and valid indexing."
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 )
 magic_enum_make_compile_fail_test(
   configuration

@@ -9,7 +9,7 @@
 
 #elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 2
 
-#  include <magic_enum/magic_enum.hpp>
+#  include <magic_enum/magic_enum_switch.hpp>
 
 enum class InvalidFlagsSetting { value };
 
@@ -18,7 +18,18 @@ struct magic_enum::customize::enum_range<InvalidFlagsSetting> {
   static constexpr int is_flags = 1;
 };
 
+// An explicit subtype must not hide the check.
+#  if !defined(MAGIC_ENUM_TEST_ENUM_FORM)
 static_assert(magic_enum::enum_count<InvalidFlagsSetting>() == 1);
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 1
+static_assert(magic_enum::enum_count<InvalidFlagsSetting, magic_enum::as_common<>>() == 1);
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 2
+static_assert(magic_enum::enum_reflected<InvalidFlagsSetting, magic_enum::as_flags<>>(1));
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 3
+static_assert(magic_enum::enum_switch<int, magic_enum::as_common<>>([](auto) { return 1; }, InvalidFlagsSetting::value) == 1);
+#  else
+static_assert(magic_enum::enum_switch<int, magic_enum::as_flags<>>([](auto) { return 1; }, InvalidFlagsSetting::value, 0) == 1);
+#  endif
 
 #elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 5
 
@@ -253,6 +264,26 @@ auto wide_flags_name = magic_enum::enum_flags_name<WideNameFlags, std::wstring>(
 enum class WideNameBits { A, B };
 
 auto wide_bitset_name = magic_enum::containers::bitset<WideNameBits>{}.to_string<std::wstring>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 18
+
+#  include <magic_enum/magic_enum_containers.hpp>
+
+enum class EmptySetKeys {};
+
+magic_enum::containers::set<EmptySetKeys> empty_keys;
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 19
+
+#  include <magic_enum/magic_enum_utility.hpp>
+
+enum class EmptyCircular {};
+
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+auto circular = magic_enum::enum_next_value_circular(EmptyCircular{});
+#  else
+auto circular = magic_enum::enum_prev_value_circular(EmptyCircular{});
+#  endif
 
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
