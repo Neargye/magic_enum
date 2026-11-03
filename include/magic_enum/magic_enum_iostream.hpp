@@ -74,15 +74,13 @@ template <typename Char, typename Traits, typename E, detail::enable_if_t<E, int
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, E value) {
   using D = std::decay_t<E>;
 
-  if constexpr (detail::supported<D>::value) {
-    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-      if (const auto name = enum_flags_name<D>(value); !name.empty()) {
-        return detail::write_name(os, string_view{name.data(), name.size()});
-      }
-    } else {
-      if (const auto name = enum_name<D>(value); !name.empty()) {
-        return detail::write_name(os, name);
-      }
+  if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+    if (const auto name = enum_flags_name<D>(value); !name.empty()) {
+      return detail::write_name(os, string_view{name.data(), name.size()});
+    }
+  } else {
+    if (const auto name = enum_name<D>(value); !name.empty()) {
+      return detail::write_name(os, name);
     }
   }
   return os.operator<<(static_cast<underlying_type_t<D>>(value));
@@ -106,9 +104,7 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
     return is;
   }
   const auto v = [&] {
-    if constexpr (!detail::supported<D>::value) {
-      return optional<D>{};
-    } else if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
       return enum_flags_cast<D>(string_view{s.data(), s.size()});
     } else {
       return enum_cast<D>(string_view{s.data(), s.size()});

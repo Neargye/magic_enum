@@ -144,6 +144,45 @@ struct RefQualifiedPredicate {
   constexpr bool operator()(char lhs, char rhs) && noexcept { return lhs == rhs; }
 };
 
+TEST_CASE("unqualified names stay within their view") {
+  static constexpr char name[] = {'E', ':', ':', 'A'};
+  constexpr auto result = magic_enum::detail::unqualified({name, sizeof(name)});
+  static_assert(result.str_ == name + 3 && result.size_ == 1);
+  CHECK(std::string_view{result.str_, result.size_} == "A");
+  static_assert(magic_enum::detail::unqualified(magic_enum::detail::cname_ref{}).size_ == 0);
+}
+
+TEST_CASE("customization descriptors expose tag and name") {
+  using customize::customize_t;
+  constexpr customize_t named{"label"};
+  constexpr customize_t viewed{string_view{"label-extra", 5}};
+  static_assert(named.name == "label");
+  static_assert(viewed.name == named.name);
+  static_assert(viewed.tag == named.tag);
+  static_assert(named.tag != customize::default_tag.tag);
+  static_assert(named.tag != customize::invalid_tag.tag);
+  static_assert(customize::default_tag.tag != customize::invalid_tag.tag);
+  static_assert(customize::default_tag.name.empty());
+  static_assert(customize::invalid_tag.name.empty());
+  constexpr customize_t copied{named};
+  static_assert(copied.tag == named.tag && copied.name == named.name);
+  auto assigned = customize::default_tag;
+  assigned = named;
+  CHECK(assigned.tag == named.tag);
+  CHECK(assigned.name == named.name);
+}
+
+TEST_CASE("bool enum indices use the reflected minimum") {
+  enum class BoolIndexBoth : bool { False, True };
+  enum class BoolIndexTrue : bool { True = true };
+  static_assert(enum_index(BoolIndexBoth::False).value() == 0);
+  static_assert(enum_index(BoolIndexBoth::True).value() == 1);
+  static_assert(enum_index(BoolIndexTrue::True).value() == 0);
+  static_assert(!enum_index(static_cast<BoolIndexTrue>(false)).has_value());
+  static_assert(enum_name(BoolIndexTrue::True) == "True");
+  static_assert(!enum_cast<BoolIndexTrue>(false).has_value());
+}
+
 TEST_CASE("bool enum text lookup does not convert pointers to true") {
   static_assert(enum_cast<BoolTest>("Yay") == BoolTest::Yay);
   static_assert(enum_cast<const BoolTest&>("Nay") == BoolTest::Nay);
@@ -302,6 +341,13 @@ TEST_CASE("enum_cast") {
     REQUIRE(dr.value() == Directions::Right);
     REQUIRE(enum_cast<Directions>("Left").value() == Directions::Left);
     REQUIRE_FALSE(enum_cast<Directions>("None").has_value());
+    // The default predicate skips names of other lengths.
+    static_assert(enum_cast<Directions>("Up") == Directions::Up);
+    static_assert(enum_cast<Directions>("Right") == Directions::Right);
+    static_assert(!enum_cast<Directions>("").has_value());
+    static_assert(!enum_cast<Directions>("U").has_value());
+    static_assert(!enum_cast<Directions>("Rights").has_value());
+    REQUIRE(enum_cast<Directions>("RIGHT", case_insensitive) == Directions::Right);
 
     constexpr auto dr2 = enum_cast<Directions>("RIGHT", case_insensitive);
     REQUIRE(dr2.value() == Directions::Right);

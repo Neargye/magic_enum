@@ -31,6 +31,52 @@ static_assert(magic_enum::enum_switch<int, magic_enum::as_common<>>([](auto) { r
 static_assert(magic_enum::enum_switch<int, magic_enum::as_flags<>>([](auto) { return 1; }, InvalidFlagsSetting::value, 0) == 1);
 #  endif
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 3
+
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
+#  if !defined(MAGIC_ENUM_TEST_RANGE_BOUNDARY)
+#    define MAGIC_ENUM_TEST_RANGE_BOUNDARY 0
+#  endif
+
+#  if defined(MAGIC_ENUM_TEST_RANGE_UNFIXED)
+// Clang before 20 probes an enum without a fixed underlying type with n() per value.
+enum RangeProbe {
+  InRange = MAGIC_ENUM_TEST_RANGE_BOUNDARY,
+  Outside = MAGIC_ENUM_TEST_RANGE_BOUNDARY + MAGIC_ENUM_TEST_RANGE_OFFSET,
+};
+#  else
+enum class RangeProbe : std::int64_t {
+  InRange = MAGIC_ENUM_TEST_RANGE_BOUNDARY,
+  Outside = static_cast<std::int64_t>(MAGIC_ENUM_TEST_RANGE_BOUNDARY) + MAGIC_ENUM_TEST_RANGE_OFFSET,
+};
+#  endif
+
+template <>
+struct magic_enum::customize::enum_range<RangeProbe> {
+  static constexpr int min = MAGIC_ENUM_TEST_RANGE_BOUNDARY;
+  static constexpr int max = MAGIC_ENUM_TEST_RANGE_BOUNDARY;
+};
+
+#  if defined(MAGIC_ENUM_TEST_RANGE_RENAMED)
+// A renamed declared value is still named outside the range.
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<RangeProbe>(RangeProbe value) noexcept {
+  return value == RangeProbe::Outside ? customize_t{"Renamed"} : customize_t{default_tag};
+}
+#  endif
+
+static_assert(magic_enum::enum_count<RangeProbe>() == 1);
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 4
+
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
+enum class DefaultRangeProbe { InRange = 5, Outside = 129 };
+static_assert(magic_enum::enum_count<DefaultRangeProbe>() == 1);
+
 #elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 5
 
 #  include <magic_enum/magic_enum.hpp>
@@ -159,6 +205,13 @@ template <>
 constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<EmptyCustomName>(EmptyCustomName value) noexcept {
   return value == EmptyCustomName::Second ? customize_t{""} : default_tag;
 }
+
+#  if defined(MAGIC_ENUM_TEST_FORCE_FALLBACK)
+template <>
+constexpr bool magic_enum::detail::batch_supported<EmptyCustomName>() noexcept {
+  return false;
+}
+#  endif
 
 // The empty name must be rejected even when no name is built.
 constexpr auto count = magic_enum::enum_count<EmptyCustomName>();
@@ -309,6 +362,42 @@ const Config& magic_enum_define_range_adl(InvalidHook);
 FinalConfig magic_enum_define_range_adl(InvalidHook);
 #  endif
 static_assert(magic_enum::enum_count<InvalidHook>() == 1);
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 21
+
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
+enum class SyntheticName { Declared = 1 };
+
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<SyntheticName>(SyntheticName value) noexcept {
+  return value == SyntheticName{2} ? customize_t{"Synthetic"} : customize_t{default_tag};
+}
+
+constexpr auto synthetic_name = magic_enum::enum_name<SyntheticName{2}>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 22
+
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
+enum class UndeclaredZero : unsigned { A = 1, B = 2 };
+
+#  if defined(MAGIC_ENUM_TEST_FLAGS)
+template <>
+struct magic_enum::customize::enum_range<UndeclaredZero> {
+  static constexpr bool is_flags = true;
+};
+#  endif
+
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<UndeclaredZero>(UndeclaredZero value) noexcept {
+  return value == UndeclaredZero{} ? customize_t{"None"} : customize_t{default_tag};
+}
+
+// Without the check the name is dropped and the count stays 2.
+constexpr auto count = magic_enum::enum_count<UndeclaredZero>();
 
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.

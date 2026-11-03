@@ -203,7 +203,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   magic_enum::is_flags_v<Directions>; // -> true
   ```
 
-  Bitwise operators found through ADL enable flag reflection automatically. Set `enum_range<E>::is_flags = false` to keep ordinary enum reflection, or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build. See [flag reflection](doc/limitations.md#enum-flags).
+  **Note:** bitwise operators found through ADL enable flag reflection automatically. Named combinations such as `All = Left | Down` are then not reflected. `enum_name` returns `""` for them, `enum_cast` and `enum_contains` reject them, and `enum_flags_name` formats them as `"Left|Down"`. Set `enum_range<E>::is_flags = false` to keep ordinary enum reflection, or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build. See [flag reflection](doc/limitations.md#enum-flags).
 
 * Enum type name
 

@@ -90,6 +90,14 @@ TEST_CASE("enum_for_each") {
     REQUIRE(colorValues == std::array<int, 3>{{-12, 7, 15}});
   }
 
+  SUBCASE("same reference return type") {
+    int value = 7;
+    const auto results = enum_for_each<Color>([&](auto) -> const int& { return value; });
+    static_assert(std::is_same_v<std::remove_const_t<decltype(results)>, std::array<int, 3>>);
+    value = 9;
+    REQUIRE(results == std::array<int, 3>{{7, 7, 7}});
+  }
+
   SUBCASE("reference and value return types") {
     int value = 7;
     const auto results = enum_for_each<Color>([&](auto color) -> decltype(auto) {
@@ -214,6 +222,17 @@ TEST_CASE("enum_prev_value_circular") {
   REQUIRE(enum_prev_value_circular(Color::RED, -4) == Color::GREEN);
   REQUIRE(enum_prev_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::max)()) == Color::RED);
   REQUIRE(enum_prev_value_circular(Color::GREEN, (std::numeric_limits<std::ptrdiff_t>::min)()) == Color::RED);
+}
+
+TEST_CASE("circular navigation stays constexpr at ptrdiff limits") {
+  constexpr auto min = (std::numeric_limits<std::ptrdiff_t>::min)();
+  constexpr auto max = (std::numeric_limits<std::ptrdiff_t>::max)();
+  static_assert(enum_next_value_circular(Color::GREEN, min) == Color::BLUE);
+  static_assert(enum_prev_value_circular(Color::GREEN, min) == Color::RED);
+  static_assert(enum_next_value_circular(Color::GREEN, max) == Color::BLUE);
+  static_assert(enum_prev_value_circular(Color::GREEN, max) == Color::RED);
+  static_assert(enum_prev_value_circular(enum_next_value_circular(Color::RED, min), min) == Color::RED);
+  static_assert(enum_next_value_circular(enum_prev_value_circular(Color::BLUE, max), max) == Color::BLUE);
 }
 
 enum class UtilityEmpty {};

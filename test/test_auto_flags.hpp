@@ -13,7 +13,7 @@ inline constexpr bool enabled = false;
 inline constexpr bool enabled = true;
 #endif
 
-enum class Bits : unsigned { None = 0, A = 1, B = 2, All = 3, High = 128, ForceDword = 0xffffffff };
+enum class Bits : unsigned { None = 0, A = 1, B = 2, All = 3, High = 1024, ForceDword = 0xffffffff };
 constexpr Bits operator|(Bits a, Bits b) { return static_cast<Bits>(static_cast<unsigned>(a) | static_cast<unsigned>(b)); }
 constexpr Bits operator&(Bits a, Bits b) { return static_cast<Bits>(static_cast<unsigned>(a) & static_cast<unsigned>(b)); }
 

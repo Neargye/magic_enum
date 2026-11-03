@@ -64,6 +64,12 @@ struct magic_enum::customize::enum_range<OnlyZeroFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class SignedHighFlags : std::int8_t { High = -128, None = 0, Low = 1 };
+template <>
+struct magic_enum::customize::enum_range<SignedHighFlags> {
+  static constexpr bool is_flags = true;
+};
+
 enum class ZeroFlags8 : std::uint8_t {
   None = 0,
   B0 = std::uint8_t{1} << 0, B1 = std::uint8_t{1} << 1, B2 = std::uint8_t{1} << 2, B3 = std::uint8_t{1} << 3,
@@ -142,8 +148,8 @@ constexpr bool operator<(ReverseOrder lhs, ReverseOrder rhs) noexcept {
 }
 
 // Enums used by containers_bitset_iterator tests.
-enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, not_interested=4
-enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, not_interested=0 (edge case)
+enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, unused_bits=4
+enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, unused_bits=0 (edge case)
 enum class Flags9  { A, B, C, D, E, F, G, H, I };      // 9 values, uint16_t base_type
 enum class Bits32 { B00, B01, B02, B03, B04, B05, B06, B07, B08, B09, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24, B25, B26, B27, B28, B29, B30, B31 };
 enum class Bits65 {
@@ -160,6 +166,33 @@ enum class Bits65 {
 
 static_assert(magic_enum::enum_count<Bits32>() == 32);
 static_assert(magic_enum::enum_count<Bits65>() == 65);
+
+enum class Wide256 : std::uint8_t {
+  W000, W001, W002, W003, W004, W005, W006, W007, W008, W009, W010, W011, W012, W013, W014, W015,
+  W016, W017, W018, W019, W020, W021, W022, W023, W024, W025, W026, W027, W028, W029, W030, W031,
+  W032, W033, W034, W035, W036, W037, W038, W039, W040, W041, W042, W043, W044, W045, W046, W047,
+  W048, W049, W050, W051, W052, W053, W054, W055, W056, W057, W058, W059, W060, W061, W062, W063,
+  W064, W065, W066, W067, W068, W069, W070, W071, W072, W073, W074, W075, W076, W077, W078, W079,
+  W080, W081, W082, W083, W084, W085, W086, W087, W088, W089, W090, W091, W092, W093, W094, W095,
+  W096, W097, W098, W099, W100, W101, W102, W103, W104, W105, W106, W107, W108, W109, W110, W111,
+  W112, W113, W114, W115, W116, W117, W118, W119, W120, W121, W122, W123, W124, W125, W126, W127,
+  W128, W129, W130, W131, W132, W133, W134, W135, W136, W137, W138, W139, W140, W141, W142, W143,
+  W144, W145, W146, W147, W148, W149, W150, W151, W152, W153, W154, W155, W156, W157, W158, W159,
+  W160, W161, W162, W163, W164, W165, W166, W167, W168, W169, W170, W171, W172, W173, W174, W175,
+  W176, W177, W178, W179, W180, W181, W182, W183, W184, W185, W186, W187, W188, W189, W190, W191,
+  W192, W193, W194, W195, W196, W197, W198, W199, W200, W201, W202, W203, W204, W205, W206, W207,
+  W208, W209, W210, W211, W212, W213, W214, W215, W216, W217, W218, W219, W220, W221, W222, W223,
+  W224, W225, W226, W227, W228, W229, W230, W231, W232, W233, W234, W235, W236, W237, W238, W239,
+  W240, W241, W242, W243, W244, W245, W246, W247, W248, W249, W250, W251, W252, W253, W254, W255,
+};
+
+template <>
+struct magic_enum::customize::enum_range<Wide256> {
+  static constexpr int min = 0;
+  static constexpr int max = 255;
+};
+
+static_assert(magic_enum::enum_count<Wide256>() == 256);
 
 struct StaticIndex : magic_enum::containers::default_indexing<Color> {
   StaticIndex() = delete;
@@ -206,6 +239,13 @@ template <auto I, typename T>
 inline constexpr bool has_array_get<I, T, std::void_t<decltype(magic_enum::containers::get<I>(std::declval<T>()))>> = true;
 
 using ColorArray = magic_enum::containers::array<Color, int>;
+static_assert(std::is_aggregate_v<ColorArray>);
+static_assert([] {
+  ColorArray values{{1, 2, 3}};
+  values.at(Color::GREEN) = 7;
+  const auto& const_values = values;
+  return &values.at(Color::GREEN) == &values.a[1] && &const_values.at(Color::GREEN) == &values.a[1] && const_values.at(Color::GREEN) == 7;
+}());
 static_assert(!has_array_get<-1LL, ColorArray&>);
 static_assert(!has_array_get<-1LL, const ColorArray&>);
 static_assert(!has_array_get<-1LL, ColorArray&&>);
@@ -320,6 +360,14 @@ static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, max};
   return value.count() == 64 && value.test(Bits65::B00) && value.test(Bits65::B63) && !value.test(Bits65::B64) && value.to_ullong(magic_enum::containers::raw_access) == max;
 }());
+static_assert([] {
+  magic_enum::containers::bitset<Bits65> values;
+  values[Bits65::B63] = true;
+  values[Bits65::B64] = values[Bits65::B63];
+  values[Bits65::B63].flip();
+  const auto& const_values = values;
+  return !const_values[Bits65::B63] && const_values[Bits65::B64] && values.count() == 1;
+}());
 // Bitset iteration must stay constexpr on MSVC in C++17, where _BitScan* intrinsics are not.
 static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, (1ULL << 5) | (1ULL << 40)};
@@ -382,10 +430,12 @@ TEST_CASE_TEMPLATE("bit counts preserve width in constant and runtime evaluation
   static_assert(countl_zero(T{0}) == digits);
   static_assert(countr_zero((std::numeric_limits<T>::max)()) == 0);
   static_assert(countl_zero((std::numeric_limits<T>::max)()) == 0);
+  // MSVC 19.29 rejects the implicit use of a constexpr local in this lambda (C3493).
   static_assert([] {
-    for (int i = 0; i < digits; ++i) {
+    constexpr int width = std::numeric_limits<T>::digits;
+    for (int i = 0; i < width; ++i) {
       const auto bit = static_cast<T>(T{1} << i);
-      if (countr_zero(bit) != i || countl_zero(bit) != digits - i - 1) {
+      if (countr_zero(bit) != i || countl_zero(bit) != width - i - 1) {
         return false;
       }
     }
@@ -534,8 +584,12 @@ TEST_CASE("containers_array") {
   const magic_enum::containers::array<Color, ThrowingLess> throwing_rhs{};
   REQUIRE_THROWS(static_cast<void>(throwing_lhs < throwing_rhs));
 
-  const magic_enum::containers::array<Color, int, OutOfRangeIndex> custom_index_array{};
-  REQUIRE_THROWS(custom_index_array.at(static_cast<Color>(8)));
+  ColorArray checked_array{{1, 2, 3}};
+  REQUIRE_THROWS_WITH_AS(checked_array.at(static_cast<Color>(8)), "magic_enum::containers::array::at: Unrecognized position", std::out_of_range);
+  REQUIRE_THROWS_WITH_AS(std::as_const(checked_array).at(static_cast<Color>(8)), "magic_enum::containers::array::at: Unrecognized position", std::out_of_range);
+  magic_enum::containers::array<Color, int, OutOfRangeIndex> custom_index_array{};
+  REQUIRE_THROWS_WITH_AS(custom_index_array.at(static_cast<Color>(8)), "magic_enum::containers::array::at: Unrecognized position", std::out_of_range);
+  REQUIRE_THROWS_WITH_AS(std::as_const(custom_index_array).at(static_cast<Color>(8)), "magic_enum::containers::array::at: Unrecognized position", std::out_of_range);
 }
 
 TEST_CASE("containers_bitset") {
@@ -917,6 +971,73 @@ TEST_CASE("container indexing preserves the requested order") {
   REQUIRE(*throwing_bits.begin() == ThrowingEnum::A);
 }
 
+struct HalfGreater {
+  template <typename E>
+  constexpr bool operator()(E lhs, E rhs) const noexcept {
+    return magic_enum::enum_underlying(lhs) / 2 > magic_enum::enum_underlying(rhs) / 2;
+  }
+};
+
+enum class StableKey { A, B, C };
+
+struct GroupLess {
+  constexpr bool operator()(StableKey lhs, StableKey rhs) const noexcept {
+    return (lhs == StableKey::C ? 0 : 1) < (rhs == StableKey::C ? 0 : 1);
+  }
+};
+
+TEST_CASE("equivalent comparator keys keep enum_values order") {
+  using namespace magic_enum::containers;
+  using Index = comparator_indexing<GroupLess>;
+  // C moves first, A and B keep their relative order.
+  static_assert(Index::at(StableKey::C) == 0);
+  static_assert(Index::at(StableKey::A) == 1);
+  static_assert(Index::at(StableKey::B) == 2);
+  constexpr array<StableKey, int, Index> values{{10, 20, 30}};
+  static_assert(values[StableKey::C] == 10);
+  static_assert(values[StableKey::A] == 20);
+  static_assert(values[StableKey::B] == 30);
+  constexpr bitset<StableKey, Index> bits{StableKey::A};
+  static_assert(bits.to_ullong(raw_access) == 2);
+  constexpr bitset<StableKey, Index> restored{raw_access, 2};
+  static_assert(restored.test(StableKey::A));
+  static_assert(!restored.test(StableKey::B));
+  constexpr set<StableKey, GroupLess> keys{StableKey::B, StableKey::A, StableKey::C};
+  static_assert(*keys.begin() == StableKey::C);
+  static_assert(*std::next(keys.begin()) == StableKey::A);
+  static_assert(*std::next(keys.begin(), 2) == StableKey::B);
+  CHECK(*keys.rbegin() == StableKey::B);
+  CHECK(*std::next(keys.rbegin()) == StableKey::A);
+  CHECK(*keys.find(StableKey::B) == StableKey::B);
+  const auto range = keys.equal_range(StableKey::A);
+  CHECK(std::distance(range.first, range.second) == 2);
+  CHECK(*range.first == StableKey::A);
+}
+
+TEST_CASE("comparator indexing sorts wide enums and keeps the order of equivalent keys") {
+  using namespace magic_enum::containers;
+  // The index table is sorted in constant evaluation, so a quadratic sort exceeded Clang's step limit here.
+  constexpr set<Wide256, std::greater<>> reversed{Wide256::W000, Wide256::W128, Wide256::W255};
+  static_assert(*reversed.begin() == Wide256::W255);
+  static_assert(*std::next(reversed.begin()) == Wide256::W128);
+  static_assert(comparator_indexing<std::greater<>>::at(Wide256::W000) == 255);
+  static_assert(comparator_indexing<std::greater<>>::at(Wide256::W200) == 55);
+
+  constexpr set<Wide256, HalfGreater> grouped{Wide256::W000, Wide256::W001, Wide256::W254, Wide256::W255};
+  static_assert(*grouped.begin() == Wide256::W254);
+  static_assert(*std::next(grouped.begin()) == Wide256::W255);
+  static_assert(*std::next(grouped.begin(), 2) == Wide256::W000);
+  static_assert(*std::next(grouped.begin(), 3) == Wide256::W001);
+
+  using HalfIndex = comparator_indexing<HalfGreater>;
+  static_assert(HalfIndex::at(Nibble::B0) == 6);
+  static_assert(HalfIndex::at(Nibble::B1) == 7);
+  static_assert(HalfIndex::at(Nibble::B2) == 4);
+  static_assert(HalfIndex::at(Nibble::B3) == 5);
+  static_assert(HalfIndex::at(Nibble::B6) == 0);
+  static_assert(HalfIndex::at(Nibble::B7) == 1);
+}
+
 TEST_CASE("containers bool flags") {
   constexpr auto enabled = magic_enum::containers::set<BoolFlags>::from_mask(BoolFlags::Enabled);
   static_assert(enabled.size() == 1);
@@ -1221,7 +1342,7 @@ TEST_CASE_TEMPLATE("named zero preserves full-width flag storage boundaries", E,
   std::size_t index = 1;
   for (const auto value : bits) {
     REQUIRE(index < values.size());
-    REQUIRE(value == values[index++]);
+    REQUIRE(value == values.at(index++));
   }
   REQUIRE(index == values.size());
   auto it = bits.end();
@@ -1478,6 +1599,120 @@ TEST_CASE("containers_set_reverse_iterator") {
   REQUIRE(*by_name.rbegin() == Color::RED);
   REQUIRE(*std::next(by_name.rbegin()) == Color::BLUE);
   REQUIRE(std::distance(by_name.rbegin(), by_name.rend()) == 2);
+}
+
+template <typename E, typename Cmp = std::less<>>
+void check_set_bounds(std::initializer_list<E> keys) {
+  const magic_enum::containers::set<E, Cmp> actual{keys};
+  const std::set<E, Cmp> expected{keys};
+  for (const E key : magic_enum::enum_values<E>()) {
+    const auto lower = actual.lower_bound(key);
+    const auto expected_lower = expected.lower_bound(key);
+    REQUIRE((lower == actual.end()) == (expected_lower == expected.end()));
+    if (expected_lower != expected.end()) {
+      CHECK(*lower == *expected_lower);
+    }
+    const auto upper = actual.upper_bound(key);
+    const auto expected_upper = expected.upper_bound(key);
+    REQUIRE((upper == actual.end()) == (expected_upper == expected.end()));
+    if (expected_upper != expected.end()) {
+      CHECK(*upper == *expected_upper);
+    }
+  }
+}
+
+TEST_CASE("containers_set bounds skip empty words and stop at the end") {
+  check_set_bounds<Bits65>({});
+  check_set_bounds<Bits65>({Bits65::B64});
+  check_set_bounds<Bits65>({Bits65::B00, Bits65::B63});
+  check_set_bounds<Wide256>({Wide256::W000, Wide256::W127, Wide256::W128, Wide256::W255});
+  check_set_bounds<Wide256, std::greater<>>({Wide256::W000, Wide256::W127, Wide256::W128, Wide256::W255});
+  check_set_bounds<Wide256, std::greater<>>({});
+
+  constexpr magic_enum::containers::set<Bits65> last{Bits65::B64};
+  static_assert(*last.lower_bound(Bits65::B00) == Bits65::B64);
+  static_assert(*last.lower_bound(Bits65::B64) == Bits65::B64);
+  static_assert(last.upper_bound(Bits65::B64) == last.end());
+  static_assert(last.lower_bound(static_cast<Bits65>(65)) == last.end());
+  constexpr magic_enum::containers::set<Bits65> empty;
+  static_assert(empty.lower_bound(Bits65::B00) == empty.end());
+  static_assert(empty.upper_bound(Bits65::B64) == empty.end());
+}
+
+TEST_CASE("containers_set iterator preserves references and postfix results") {
+  using Set = magic_enum::containers::set<Bits65>;
+  static_assert(std::is_same_v<typename std::iterator_traits<Set::iterator>::reference, const Bits65&>);
+  static_assert(std::is_same_v<typename std::iterator_traits<Set::iterator>::pointer, const Bits65*>);
+  const Set values{Bits65::B01, Bits65::B64};
+  auto it = values.begin();
+  REQUIRE(it.operator->() == std::addressof(*it));
+  const auto first = it++;
+  REQUIRE(*first == Bits65::B01);
+  REQUIRE(*it == Bits65::B64);
+  const auto last = it++;
+  REQUIRE(*last == Bits65::B64);
+  REQUIRE(it == values.end());
+  REQUIRE(*--it == Bits65::B64);
+  const auto previous = it--;
+  REQUIRE(*previous == Bits65::B64);
+  REQUIRE(it == values.begin());
+  REQUIRE(*it == Bits65::B01);
+  REQUIRE(std::vector<Bits65>(values.rbegin(), values.rend()) == std::vector<Bits65>{Bits65::B64, Bits65::B01});
+}
+
+TEST_CASE("containers_set iterates across storage words") {
+  using namespace magic_enum::containers;
+  // Keys across word boundaries and empty words keep the order.
+  const std::vector<Bits65> keys{Bits65::B00, Bits65::B07, Bits65::B08, Bits65::B63, Bits65::B64};
+  const set<Bits65> wide(keys.begin(), keys.end());
+  REQUIRE(std::vector<Bits65>(wide.begin(), wide.end()) == keys);
+  REQUIRE(std::vector<Bits65>(wide.rbegin(), wide.rend()) == std::vector<Bits65>(keys.rbegin(), keys.rend()));
+
+  const set<Bits65> last{Bits65::B64};
+  REQUIRE(*last.begin() == Bits65::B64);
+  REQUIRE(std::next(last.begin()) == last.end());
+
+  set<Flags9> nine{Flags9::A, Flags9::H, Flags9::I};
+  nine.erase(Flags9::H);
+  REQUIRE(std::vector<Flags9>(nine.begin(), nine.end()) == std::vector<Flags9>{Flags9::A, Flags9::I});
+  REQUIRE(*nine.lower_bound(Flags9::B) == Flags9::I);
+
+  const set<Wide256, std::greater<>> reversed{Wide256::W000, Wide256::W127, Wide256::W128, Wide256::W255};
+  REQUIRE(std::vector<Wide256>(reversed.begin(), reversed.end()) == std::vector<Wide256>{Wide256::W255, Wide256::W128, Wide256::W127, Wide256::W000});
+  REQUIRE(std::vector<Wide256>(reversed.rbegin(), reversed.rend()) == std::vector<Wide256>{Wide256::W000, Wide256::W127, Wide256::W128, Wide256::W255});
+
+  constexpr set<Wide256> separated{Wide256::W127, Wide256::W255};
+  static_assert(*std::prev(separated.end()) == Wide256::W255);
+  static_assert(std::prev(separated.end(), 2) == separated.begin());
+  static_assert(*std::prev(separated.end(), 2) == Wide256::W127);
+
+
+  constexpr set<Bits65> sparse{Bits65::B01, Bits65::B64};
+  static_assert(*std::next(sparse.begin()) == Bits65::B64);
+  static_assert(std::next(sparse.begin(), 2) == sparse.end());
+
+  const set<Bits65> empty;
+  REQUIRE(empty.begin() == empty.end());
+  REQUIRE(empty.lower_bound(Bits65::B00) == empty.end());
+  REQUIRE(empty.find(Bits65::B64) == empty.end());
+
+  set<Bits65> erased{Bits65::B00, Bits65::B64};
+  REQUIRE(*std::prev(erased.end()) == Bits65::B64);
+  erased.erase(Bits65::B64);
+  REQUIRE(*std::prev(erased.end()) == Bits65::B00);
+  REQUIRE(std::next(erased.begin()) == erased.end());
+  erased.erase(Bits65::B00);
+  REQUIRE(erased.begin() == erased.end());
+
+  // A named zero and a signed high bit keep the order of enum_values.
+  const set<ZeroFlags> zero{ZeroFlags::B, ZeroFlags::None};
+  REQUIRE(std::vector<ZeroFlags>(zero.begin(), zero.end()) == std::vector<ZeroFlags>{ZeroFlags::None, ZeroFlags::B});
+  REQUIRE(*std::prev(zero.end()) == ZeroFlags::B);
+  const set<SignedHighFlags> high{SignedHighFlags::Low, SignedHighFlags::High, SignedHighFlags::None};
+  REQUIRE(std::vector<SignedHighFlags>(high.begin(), high.end()) == std::vector<SignedHighFlags>{SignedHighFlags::High, SignedHighFlags::None, SignedHighFlags::Low});
+  REQUIRE(std::vector<SignedHighFlags>(high.rbegin(), high.rend()) == std::vector<SignedHighFlags>{SignedHighFlags::Low, SignedHighFlags::None, SignedHighFlags::High});
+  const set<SignedHighFlags, std::greater<>> greater{SignedHighFlags::High, SignedHighFlags::Low, SignedHighFlags::None};
+  REQUIRE(std::vector<SignedHighFlags>(greater.begin(), greater.end()) == std::vector<SignedHighFlags>{SignedHighFlags::Low, SignedHighFlags::None, SignedHighFlags::High});
 }
 
 template <typename E>

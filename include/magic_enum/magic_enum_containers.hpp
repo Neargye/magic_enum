@@ -37,7 +37,7 @@
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <initializer_list>
-#  include <ios>
+#  include <iosfwd>
 #  include <iterator>
 #  include <string_view>
 #endif
@@ -66,6 +66,11 @@
 #    include <cstdlib>
 #  endif
 #  define MAGIC_ENUM_CONTAINERS_THROW(...) std::abort()
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 28020) // MSVC analyzer loses bounds of constexpr sorting buffers.
 #endif
 
 namespace magic_enum::containers {
@@ -104,7 +109,7 @@ constexpr bool lexicographical_compare(T1&& t1, T2&& t2, Cmp&& cmp = {}) {
   auto first2 = t2.begin();
   auto last2 = t2.end();
 
-  // copied from std::lexicographical_compare
+  // Same as std::lexicographical_compare, which is constexpr only since C++20.
   for (; (first1 != last1) && (first2 != last2); ++first1, (void)++first2) {
     if (cmp(*first1, *first2)) {
       return true;
@@ -130,17 +135,14 @@ constexpr std::size_t popcount(T x) noexcept {
 #endif
 }
 
-namespace impl {
-
-template <typename Cmp = std::less<>, typename ForwardIt, typename E>
-constexpr ForwardIt lower_bound(ForwardIt first, ForwardIt last, E&& e, Cmp&& comp = {}) {
-  auto count = std::distance(first, last);
+// Same as std::partition_point, which is constexpr only since C++20.
+template <typename T, typename Pred>
+constexpr const T* partition_point(const T* first, const T* last, Pred pred) {
+  auto count = last - first;
   while (count > 0) {
-    auto it = first;
-    auto step = count / 2;
-    std::advance(it, step);
-    if (comp(*it, e)) {
-      first = ++it;
+    const auto step = count / 2;
+    if (pred(first[step])) {
+      first += step + 1;
       count -= step + 1;
     } else {
       count = step;
@@ -149,17 +151,20 @@ constexpr ForwardIt lower_bound(ForwardIt first, ForwardIt last, E&& e, Cmp&& co
   return first;
 }
 
-} // namespace impl
-
-template <typename Cmp = std::less<>, typename BidirIt, typename E>
-constexpr BidirIt upper_bound(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
-  return impl::lower_bound(std::make_reverse_iterator(end), std::make_reverse_iterator(begin), e, [&comp](auto&& lhs, auto&& rhs) { return comp(rhs, lhs); }).base();
+template <typename T, typename K, typename Cmp>
+constexpr const T* lower_bound(const T* first, const T* last, const K& key, Cmp&& comp) {
+  return detail::partition_point(first, last, [&](const T& value) { return comp(value, key); });
 }
 
-template <typename Cmp = std::less<>, typename BidirIt, typename E>
-constexpr auto equal_range(BidirIt begin, BidirIt end, E&& e, Cmp&& comp = {}) {
-  const auto first = impl::lower_bound(begin, end, e, comp);
-  return std::pair{first, detail::upper_bound(first, end, e, comp)};
+template <typename T, typename K, typename Cmp>
+constexpr const T* upper_bound(const T* first, const T* last, const K& key, Cmp&& comp) {
+  return detail::partition_point(first, last, [&](const T& value) { return !comp(key, value); });
+}
+
+template <typename T, typename K, typename Cmp>
+constexpr auto equal_range(const T* first, const T* last, const K& key, Cmp&& comp) {
+  const auto lower = detail::lower_bound(first, last, key, comp);
+  return std::pair{lower, detail::upper_bound(lower, last, key, comp)};
 }
 
 template <typename E, typename Cmp>
@@ -181,37 +186,52 @@ class indexing {
   [[nodiscard]] static constexpr auto get_indices() noexcept {
     constexpr auto& values = enum_values<E>();
     constexpr auto count = values.size();
+    const auto* const values_data = values.data();
 
-    // reverse result index mapping
-    std::array<std::size_t, count> rev_res{};
+    // Sorted position to enum_values index.
+    std::array<std::size_t, count> order{};
+    auto* const order_data = order.data();
 
-    // std::iota
     for (std::size_t i = 0; i < count; ++i) {
-      rev_res[i] = i;
+      order_data[i] = i;
     }
 
     constexpr Cmp cmp{};
 
-    // ~std::sort
-    for (std::size_t i = 0; i < count; ++i) {
-      for (std::size_t j = i + 1; j < count; ++j) {
-        if (cmp(values[rev_res[j]], values[rev_res[i]])) {
-          auto tmp = rev_res[i];
-          rev_res[i] = rev_res[j];
-          rev_res[j] = tmp;
+    // Stable merge sort preserves enum_values order for equivalent keys.
+    std::array<std::size_t, count> buffer{};
+    auto* const buffer_data = buffer.data();
+    for (std::size_t width = 1; width < count; width *= 2) {
+      for (std::size_t lo = 0; lo < count; lo += 2 * width) {
+        const std::size_t mid = lo + width < count ? lo + width : count;
+        const std::size_t hi = mid + width < count ? mid + width : count;
+        std::size_t a = lo;
+        std::size_t b = mid;
+        std::size_t k = lo;
+        while (a < mid && b < hi) {
+          buffer_data[k++] = cmp(values_data[order_data[b]], values_data[order_data[a]]) ? order_data[b++] : order_data[a++];
+        }
+        while (a < mid) {
+          buffer_data[k++] = order_data[a++];
+        }
+        while (b < hi) {
+          buffer_data[k++] = order_data[b++];
         }
       }
+      order = buffer;
     }
 
     std::array<E, count> sorted_values{};
-    // reverse the sorted indices
-    std::array<std::size_t, count> res{};
+    // enum_values index to sorted position.
+    std::array<std::size_t, count> positions{};
+    auto* const positions_data = positions.data();
+    auto* const sorted_data = sorted_values.data();
     for (std::size_t i = 0; i < count; ++i) {
-      res[rev_res[i]] = i;
-      sorted_values[i] = values[rev_res[i]];
+      positions_data[order_data[i]] = i;
+      sorted_data[i] = values_data[order_data[i]];
     }
 
-    return std::pair{sorted_values, res};
+    return std::pair{sorted_values, positions};
   }
 
   static constexpr auto indices = get_indices();
@@ -255,7 +275,7 @@ struct indexing<void, Cmp, void> {
   }
 };
 
-template <typename E = void, typename Cmp = std::less<>, typename = void>
+template <typename E = void, typename Cmp = std::less<>>
 struct name_sort_impl {
   [[nodiscard]] constexpr bool operator()(E e1, E e2) const { return Cmp{}(enum_name(e1), enum_name(e2)); }
 };
@@ -300,38 +320,34 @@ struct name_sort_impl<void, Cmp> {
 
 struct raw_access_t {};
 
-template <typename Parent, typename Iterator, typename Getter, typename Predicate>
+template <typename Parent, typename Iterator, typename Predicate>
 struct FilteredIterator {
   Parent parent;
   Iterator first;
-  Iterator last;
   Iterator current;
-  Getter getter;
   Predicate predicate;
 
   using iterator_category = std::bidirectional_iterator_tag;
-  using reference = std::invoke_result_t<Getter, Parent, Iterator>;
+  using reference = typename std::iterator_traits<Iterator>::reference;
   using value_type = std::remove_cv_t<std::remove_reference_t<reference>>;
   using difference_type = std::ptrdiff_t;
   using pointer = std::add_pointer_t<std::remove_reference_t<reference>>;
 
   constexpr FilteredIterator() noexcept = default;
 
-  constexpr FilteredIterator(Parent p, Iterator begin, Iterator end, Iterator curr, Getter get = {}, Predicate pred = {})
-      : parent(p), first(std::move(begin)), last(std::move(end)), current(std::move(curr)), getter{std::move(get)}, predicate{std::move(pred)} {
+  constexpr FilteredIterator(Parent p, Iterator begin, Iterator curr, Predicate pred = {})
+      : parent(p), first(std::move(begin)), current(std::move(curr)), predicate{std::move(pred)} {
     if (current == first && !predicate(parent, current)) {
       ++*this;
     }
   }
 
-  [[nodiscard]] constexpr reference operator*() const { return getter(parent, current); }
+  [[nodiscard]] constexpr reference operator*() const { return *current; }
 
   [[nodiscard]] constexpr pointer operator->() const { return std::addressof(**this); }
 
   constexpr FilteredIterator& operator++() {
-    do {
-      ++current;
-    } while (current != last && !predicate(parent, current));
+    current = predicate.next(parent, first, current);
     return *this;
   }
 
@@ -555,19 +571,9 @@ struct array {
   using reverse_iterator = typename container_type::reverse_iterator;
   using const_reverse_iterator = typename container_type::const_reverse_iterator;
 
-  constexpr reference at(E pos) {
-    if (auto index = index_type::at(pos); index && *index < a.size()) {
-      return a[*index];
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::array::at: Unrecognized position"));
-  }
+  constexpr reference at(E pos) { return a[checked_index(pos)]; }
 
-  constexpr const_reference at(E pos) const {
-    if (auto index = index_type::at(pos); index && *index < a.size()) {
-      return a[*index];
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::array::at: Unrecognized position"));
-  }
+  constexpr const_reference at(E pos) const { return a[checked_index(pos)]; }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
     auto i = index_type::at(pos);
@@ -637,17 +643,25 @@ struct array {
 
   [[nodiscard]] friend constexpr bool operator==(const array& a1, const array& a2) { return detail::equal(a1, a2); }
 
-  [[nodiscard]] friend constexpr bool operator!=(const array& a1, const array& a2) { return !detail::equal(a1, a2); }
+  [[nodiscard]] friend constexpr bool operator!=(const array& a1, const array& a2) { return !(a1 == a2); }
 
   [[nodiscard]] friend constexpr bool operator<(const array& a1, const array& a2) { return detail::lexicographical_compare(a1, a2); }
 
-  [[nodiscard]] friend constexpr bool operator<=(const array& a1, const array& a2) { return !detail::lexicographical_compare(a2, a1); }
+  [[nodiscard]] friend constexpr bool operator<=(const array& a1, const array& a2) { return !(a2 < a1); }
 
-  [[nodiscard]] friend constexpr bool operator>(const array& a1, const array& a2) { return detail::lexicographical_compare(a2, a1); }
+  [[nodiscard]] friend constexpr bool operator>(const array& a1, const array& a2) { return a2 < a1; }
 
-  [[nodiscard]] friend constexpr bool operator>=(const array& a1, const array& a2) { return !detail::lexicographical_compare(a1, a2); }
+  [[nodiscard]] friend constexpr bool operator>=(const array& a1, const array& a2) { return !(a1 < a2); }
 
   container_type a;
+
+ private:
+  constexpr std::size_t checked_index(E pos) const {
+    if (auto index = index_type::at(pos); index && *index < a.size()) {
+      return *index;
+    }
+    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::array::at: Unrecognized position"));
+  }
 };
 
 namespace detail {
@@ -696,12 +710,12 @@ class bitset {
 
   static constexpr std::size_t bits_per_base = sizeof(base_type) * 8;
   static constexpr std::size_t base_type_count = (domain::count > 0 ? (domain::count - 1) / bits_per_base + 1 : 0);
-  static constexpr std::size_t not_interested = base_type_count * bits_per_base - domain::count;
-  static constexpr base_type last_value_max = [] {
-    if constexpr (not_interested == 0) {
+  static constexpr std::size_t unused_bits = base_type_count * bits_per_base - domain::count;
+  static constexpr base_type last_word_mask = [] {
+    if constexpr (unused_bits == 0) {
       return (std::numeric_limits<base_type>::max)();
     } else {
-      return static_cast<base_type>((base_type{1} << (bits_per_base - not_interested)) - 1);
+      return static_cast<base_type>((base_type{1} << (bits_per_base - unused_bits)) - 1);
     }
   }();
 
@@ -719,28 +733,26 @@ class bitset {
     friend class bitset;
 
     parent_t parent;
-    std::size_t num_index;
-    base_type bit_index;
+    std::size_t word_index;
+    base_type mask;
 
-    constexpr reference_impl(parent_t p, std::size_t i) noexcept : reference_impl(p, i / bits_per_base, bit_mask(i)) {}
-
-    constexpr reference_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), num_index(num), bit_index(bit) {}
+    constexpr reference_impl(parent_t p, std::size_t i) noexcept : parent(p), word_index(i / bits_per_base), mask(bit_mask(i)) {}
 
    public:
     constexpr reference_impl(const reference_impl&) noexcept = default;
 
     constexpr reference_impl& operator=(bool v) noexcept {
       if (v) {
-        parent->a[num_index] |= bit_index;
+        parent->a[word_index] |= mask;
       } else {
-        parent->a[num_index] &= ~bit_index;
+        parent->a[word_index] &= ~mask;
       }
       return *this;
     }
 
     constexpr reference_impl& operator=(const reference_impl& v) noexcept { return *this = static_cast<bool>(v); }
 
-    [[nodiscard]] constexpr operator bool() const noexcept { return (parent->a[num_index] & bit_index) > 0; }
+    [[nodiscard]] constexpr operator bool() const noexcept { return (parent->a[word_index] & mask) > 0; }
 
     [[nodiscard]] constexpr bool operator~() const noexcept { return !static_cast<bool>(*this); }
 
@@ -770,8 +782,8 @@ class bitset {
     friend class bitset;
 
     parent_t parent = nullptr;
-    std::size_t num_index = 0;
-    base_type bit_index = 0;
+    std::size_t word_index = 0;
+    base_type mask = 0;
 
    public:
     using iterator_category = std::bidirectional_iterator_tag;
@@ -784,7 +796,7 @@ class bitset {
 
     template <typename OtherParent, typename = std::enable_if_t<std::is_convertible_v<OtherParent, parent_t>>>
     constexpr iterator_impl(const iterator_impl<OtherParent>& other) noexcept
-        : parent(other.parent), num_index(other.num_index), bit_index(other.bit_index) {}
+        : parent(other.parent), word_index(other.word_index), mask(other.mask) {}
 
    private:
     template <typename OtherParent>
@@ -792,13 +804,13 @@ class bitset {
 
     constexpr iterator_impl(parent_t p, std::size_t i) noexcept : iterator_impl(p, i / bits_per_base, bit_mask(i)) {}
 
-    constexpr iterator_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), num_index(num), bit_index(bit) {}
+    constexpr iterator_impl(parent_t p, std::size_t num, base_type bit) noexcept : parent(p), word_index(num), mask(bit) {}
 
     [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept {
-      for (std::size_t num_index = 0; num_index < base_type_count; ++num_index) {
-        if (p->a[num_index] > 0) {
-          const auto bit_index = least_significant_bit(p->a[num_index]);
-          return iterator_impl(p, num_index, bit_index);
+      for (std::size_t word_index = 0; word_index < base_type_count; ++word_index) {
+        if (p->a[word_index] > 0) {
+          const auto mask = least_significant_bit(p->a[word_index]);
+          return iterator_impl(p, word_index, mask);
         }
       }
       return end(p);
@@ -807,20 +819,20 @@ class bitset {
     [[nodiscard]] static constexpr iterator_impl end(parent_t p) noexcept { return iterator_impl(p, domain::count); }
 
    public:
-    [[nodiscard]] constexpr reference operator*() const noexcept { return *domain::it(num_index * bits_per_base + static_cast<std::size_t>(detail::countr_zero(bit_index))); }
+    [[nodiscard]] constexpr reference operator*() const noexcept { return *domain::it(word_index * bits_per_base + static_cast<std::size_t>(detail::countr_zero(mask))); }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return std::addressof(**this); }
 
     constexpr iterator_impl& operator++() noexcept {
-      const auto lower_bits = static_cast<base_type>((bit_index << 1) - 1);
-      auto remaining_bits = static_cast<base_type>(parent->a[num_index] & static_cast<base_type>(~lower_bits));
-      while (remaining_bits == 0 && ++num_index < base_type_count) {
-        remaining_bits = parent->a[num_index];
+      const auto lower_bits = static_cast<base_type>((mask << 1) - 1);
+      auto remaining_bits = static_cast<base_type>(parent->a[word_index] & static_cast<base_type>(~lower_bits));
+      while (remaining_bits == 0 && ++word_index < base_type_count) {
+        remaining_bits = parent->a[word_index];
       }
-      if (num_index >= base_type_count) {
+      if (word_index >= base_type_count) {
         return *this = end(parent);
       }
-      bit_index = least_significant_bit(remaining_bits);
+      mask = least_significant_bit(remaining_bits);
       return *this;
     }
 
@@ -832,25 +844,25 @@ class bitset {
 
     constexpr iterator_impl& operator--() noexcept {
       base_type search_mask = 0;
-      if (num_index >= base_type_count) {
-        num_index = base_type_count - 1;
-        search_mask = last_value_max;
-      } else if (num_index == base_type_count - 1 && bit_index > last_value_max) {
-        search_mask = last_value_max;
+      if (word_index >= base_type_count) {
+        word_index = base_type_count - 1;
+        search_mask = last_word_mask;
+      } else if (word_index == base_type_count - 1 && mask > last_word_mask) {
+        search_mask = last_word_mask;
       } else {
-        search_mask = static_cast<base_type>(bit_index - 1);
+        search_mask = static_cast<base_type>(mask - 1);
       }
 
-      auto remaining_bits = static_cast<base_type>(parent->a[num_index] & search_mask);
-      while (remaining_bits == 0 && num_index != 0) {
-        remaining_bits = parent->a[--num_index];
+      auto remaining_bits = static_cast<base_type>(parent->a[word_index] & search_mask);
+      while (remaining_bits == 0 && word_index != 0) {
+        remaining_bits = parent->a[--word_index];
       }
       if (remaining_bits == 0) {
-        num_index = (std::numeric_limits<std::size_t>::max)();
-        bit_index = static_cast<base_type>(base_type{1} << (bits_per_base - 1));
+        word_index = (std::numeric_limits<std::size_t>::max)();
+        mask = static_cast<base_type>(base_type{1} << (bits_per_base - 1));
         return *this;
       }
-      bit_index = static_cast<base_type>(base_type{1} << (detail::bit_width(remaining_bits) - 1));
+      mask = static_cast<base_type>(base_type{1} << (detail::bit_width(remaining_bits) - 1));
       return *this;
     }
 
@@ -860,7 +872,7 @@ class bitset {
       return cp;
     }
 
-    [[nodiscard]] friend constexpr bool operator==(const iterator_impl& lhs, const iterator_impl& rhs) { return lhs.parent == rhs.parent && lhs.num_index == rhs.num_index && lhs.bit_index == rhs.bit_index; }
+    [[nodiscard]] friend constexpr bool operator==(const iterator_impl& lhs, const iterator_impl& rhs) { return lhs.parent == rhs.parent && lhs.word_index == rhs.word_index && lhs.mask == rhs.mask; }
 
     [[nodiscard]] friend constexpr bool operator!=(const iterator_impl& lhs, const iterator_impl& rhs) { return !(lhs == rhs); }
   };
@@ -949,7 +961,7 @@ class bitset {
   [[nodiscard]] constexpr bool operator[](E pos) const {
     auto i = domain::at(pos);
     MAGIC_ENUM_ASSERT(i && *i < size());
-    return static_cast<bool>(const_reference(this, *i));
+    return test_at(*i);
   }
 
   [[nodiscard]] constexpr reference operator[](E pos) {
@@ -971,14 +983,14 @@ class bitset {
   [[nodiscard]] constexpr const_iterator cend() const noexcept { return const_iterator::end(this); }
 
   [[nodiscard]] constexpr const_iterator find(E pos) const noexcept {
-    if (auto i = domain::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
+    if (auto i = domain::at(pos); i && *i < size() && test_at(*i)) {
       return const_iterator(this, *i);
     }
     return end();
   }
 
   [[nodiscard]] constexpr iterator find(E pos) noexcept {
-    if (auto i = domain::at(pos); i && *i < size() && static_cast<bool>(const_reference(this, *i))) {
+    if (auto i = domain::at(pos); i && *i < size() && test_at(*i)) {
       return iterator(this, *i);
     }
     return end();
@@ -986,7 +998,7 @@ class bitset {
 
   [[nodiscard]] constexpr bool test(E pos) const {
     if (auto i = domain::at(pos); i && *i < size()) {
-      return static_cast<bool>(const_reference(this, *i));
+      return test_at(*i);
     }
     MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::test: Unrecognized position"));
   }
@@ -997,7 +1009,7 @@ class bitset {
         return false;
       }
     }
-    return a[base_type_count - 1] == last_value_max;
+    return a[base_type_count - 1] == last_word_mask;
   }
 
   [[nodiscard]] constexpr bool any() const noexcept {
@@ -1050,7 +1062,7 @@ class bitset {
     for (std::size_t i = 0; i + 1 < base_type_count; ++i) {
       a[i] = (std::numeric_limits<base_type>::max)();
     }
-    a[base_type_count - 1] = last_value_max;
+    a[base_type_count - 1] = last_word_mask;
     return *this;
   }
 
@@ -1070,7 +1082,7 @@ class bitset {
     for (auto& value : a) {
       value = static_cast<base_type>(~value);
     }
-    a[base_type_count - 1] &= last_value_max;
+    a[base_type_count - 1] &= last_word_mask;
     return *this;
   }
 
@@ -1149,7 +1161,7 @@ class bitset {
       if (result.set_names(string_view{s.data(), s.size()})) {
         bs = result;
       } else {
-        i.setstate(std::ios_base::failbit);
+        i.setstate(std::basic_istream<char_type, Traits>::failbit);
       }
     }
     return i;
@@ -1166,11 +1178,8 @@ class bitset {
       }
       if (const auto v = enum_cast<E, detail::subtype_v<E>, Cmp&>(sv.substr(first, last - first), cmp)) {
         // A zero flag is neutral, not a position.
-        if constexpr (is_flags_v<E>) {
-          if (enum_underlying(*v) != 0) {
-            set(*v);
-          }
-        } else {
+        const bool zero_flag = is_flags_v<E> && enum_underlying(*v) == 0;
+        if (!zero_flag) {
           set(*v);
         }
       } else {
@@ -1180,6 +1189,26 @@ class bitset {
     }
     return true;
   }
+
+  template <typename, typename>
+  friend class set;
+
+  // Index of the first set bit at or after i, or the bit count.
+  [[nodiscard]] constexpr std::size_t next_set_bit(std::size_t i) const noexcept {
+    for (std::size_t n = i / bits_per_base; n < base_type_count; ++n) {
+      auto word = a[n];
+      if (n == i / bits_per_base) {
+        word = static_cast<base_type>(word & static_cast<base_type>(static_cast<base_type>(~base_type{0}) << (i % bits_per_base)));
+      }
+      if (word != 0) {
+        return n * bits_per_base + static_cast<std::size_t>(detail::countr_zero(word));
+      }
+    }
+    return domain::count;
+  }
+
+  // A set position is its bit, so iteration skips the index lookup.
+  [[nodiscard]] constexpr bool test_at(std::size_t i) const noexcept { return (a[i / bits_per_base] & bit_mask(i)) != 0; }
 
   container_type a;
 };
@@ -1194,12 +1223,12 @@ class set {
 
   using index_type = detail::indexing<E, Cmp>;
 
-  struct Getter {
-    constexpr const E& operator()(const set*, const E* p) const noexcept { return *p; }
-  };
-
   struct Predicate {
-    constexpr bool operator()(const set* h, const E* e) const noexcept { return h->a[*e]; }
+    constexpr bool operator()(const set* h, const E* e) const noexcept { return h->a.test_at(static_cast<std::size_t>(e - index_type::begin())); }
+
+    constexpr const E* next(const set* h, const E* first, const E* e) const noexcept {
+      return first + h->a.next_set_bit(static_cast<std::size_t>(e - first) + 1);
+    }
   };
 
  public:
@@ -1214,8 +1243,8 @@ class set {
   using const_reference = const value_type&;
   using pointer = value_type*;
   using const_pointer = const value_type*;
-  using iterator = detail::FilteredIterator<const set*, const E*, Getter, Predicate>;
-  using const_iterator = detail::FilteredIterator<const set*, const E*, Getter, Predicate>;
+  using iterator = detail::FilteredIterator<const set*, const E*, Predicate>;
+  using const_iterator = iterator;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -1361,7 +1390,7 @@ class set {
   }
 
   [[nodiscard]] constexpr const_iterator find(const key_type& key) const noexcept {
-    if (auto i = index_type::at(key); i && a.test(key)) {
+    if (auto i = index_type::at(key); i && a.test_at(*i)) {
       return make_iterator(index_type::it(*i));
     }
     return end();
@@ -1386,14 +1415,12 @@ class set {
 
  private:
   [[nodiscard]] constexpr const_iterator make_iterator(const E* pos) const noexcept {
-    return const_iterator{this, index_type::begin(), index_type::end(), pos};
+    return const_iterator{this, index_type::begin(), pos};
   }
 
   [[nodiscard]] constexpr const_iterator iterator_at_or_after(const E* it) const noexcept {
-    while (it != index_type::end() && !a.test(*it)) {
-      ++it;
-    }
-    return make_iterator(it);
+    const auto i = a.next_set_bit(static_cast<std::size_t>(it - index_type::begin()));
+    return make_iterator(index_type::begin() + i);
   }
 
  public:
@@ -1407,12 +1434,12 @@ class set {
   }
 
   [[nodiscard]] constexpr const_iterator lower_bound(const key_type& key) const {
-    return iterator_at_or_after(detail::impl::lower_bound(index_type::begin(), index_type::end(), key, key_compare{}));
+    return iterator_at_or_after(detail::lower_bound(index_type::begin(), index_type::end(), key, key_compare{}));
   }
 
   template <typename K, typename KC = key_compare>
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> lower_bound(const K& x) const {
-    return iterator_at_or_after(detail::impl::lower_bound(index_type::begin(), index_type::end(), x, key_compare{}));
+    return iterator_at_or_after(detail::lower_bound(index_type::begin(), index_type::end(), x, key_compare{}));
   }
 
   [[nodiscard]] constexpr const_iterator upper_bound(const key_type& key) const {
@@ -1528,6 +1555,10 @@ struct std::hash<magic_enum::containers::bitset<E, Index>> {
     }
   }
 };
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #undef MAGIC_ENUM_CONTAINERS_THROW
 

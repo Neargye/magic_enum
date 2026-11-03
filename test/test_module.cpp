@@ -110,6 +110,11 @@ static_assert(magic_enum::enum_reflected<ReflectionRange>(5000));
 // library operators in a consumer that imports only magic_enum.
 namespace module_api {
 
+constexpr magic_enum::customize::customize_t custom_name{"module"};
+static_assert(custom_name.name == "module");
+static_assert(custom_name.tag != magic_enum::customize::default_tag.tag);
+
+
 using magic_enum::Enum;
 using magic_enum::char_type;
 using magic_enum::as_common;

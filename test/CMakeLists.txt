@@ -58,34 +58,26 @@ if(MAGIC_ENUM_HAS_CPP26_FLAG)
     static constexpr auto name = std::define_static_string("value");
     static_assert(enumerators.size() == 1);
     static_assert(name[5] == char{});
-    consteval int enumerator_count() {
-      int count = 0;
-      template for (constexpr auto enumerator : enumerators) {
-        static_assert(std::meta::identifier_of(enumerator).size() == 5);
-        ++count;
-      }
-      return count;
-    }
-    static_assert(enumerator_count() == 1);
+    static_assert(std::meta::identifier_of(enumerators[0]).size() == 5);
     int main() {}
   ]])
   set(MAGIC_ENUM_SAVED_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
   set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${MAGIC_ENUM_TEST_FLAG_PREFIX}${MAGIC_ENUM_CPP26_STANDARD_FLAG}")
   check_cxx_source_compiles(
     "${MAGIC_ENUM_STD_REFLECTION_PROBE}"
-    MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_EXPANSION_BY_DEFAULT
+    MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT
   )
 
-  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_EXPANSION_BY_DEFAULT)
+  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT)
     set(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION TRUE)
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # Prefer reflection provided by the active C++26 mode. Use GNU's temporary opt-in only when the default probe fails.
     set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -freflection")
     check_cxx_source_compiles(
       "${MAGIC_ENUM_STD_REFLECTION_PROBE}"
-      MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_EXPANSION_GNU_OPTION
+      MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_GNU_OPTION
     )
-    if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_EXPANSION_GNU_OPTION)
+    if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_GNU_OPTION)
       set(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION TRUE)
       list(APPEND MAGIC_ENUM_TEST_STD_REFLECTION_COMPILE_OPTIONS -freflection)
     endif()
@@ -300,6 +292,92 @@ magic_enum_make_compile_fail_test(
   2
   "magic_enum::customize::enum_range requires is_flags to have bool type"
 )
+foreach(range_offset IN ITEMS 1 2 4 8)
+  foreach(range_side IN ITEMS below above)
+    if(range_side STREQUAL "below")
+      set(signed_range_offset -${range_offset})
+    else()
+      set(signed_range_offset ${range_offset})
+    endif()
+    magic_enum_make_compile_fail_test(
+      configuration
+      range-${range_side}-${range_offset}
+      3
+      "magic_enum::enum_range found a named value outside the range"
+      MAGIC_ENUM_TEST_RANGE_OFFSET=${signed_range_offset}
+    )
+  endforeach()
+endforeach()
+magic_enum_make_compile_fail_test(
+  configuration
+  range-renamed-above-4
+  3
+  "magic_enum::enum_range found a named value outside the range"
+  MAGIC_ENUM_TEST_RANGE_OFFSET=4
+  MAGIC_ENUM_TEST_RANGE_RENAMED
+)
+foreach(range_case IN ITEMS below-1:-1 above-8:8)
+  string(REPLACE ":" ";" range_case "${range_case}")
+  list(GET range_case 0 range_name)
+  list(GET range_case 1 range_offset)
+  magic_enum_make_compile_fail_test(
+    configuration
+    range-unfixed-${range_name}
+    3
+    "magic_enum::enum_range found a named value outside the range"
+    MAGIC_ENUM_TEST_RANGE_OFFSET=${range_offset}
+    MAGIC_ENUM_TEST_RANGE_UNFIXED
+  )
+endforeach()
+magic_enum_make_compile_fail_test(
+  configuration
+  synthetic-value
+  21
+  "magic_enum::customize::enum_name cannot add an undeclared enum value"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  custom-zero-undeclared
+  22
+  "magic_enum::customize::enum_name cannot add an undeclared enum value"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  custom-zero-undeclared-flags
+  22
+  "magic_enum::customize::enum_name cannot add an undeclared enum value"
+  MAGIC_ENUM_TEST_FLAGS
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  range-no-check-reflected-enum
+  3
+  "magic_enum::enum_range found a named value outside the range"
+  MAGIC_ENUM_TEST_RANGE_OFFSET=2
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  range-default
+  4
+  "magic_enum::enum_range found a named value outside the range"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  range-below-int-min
+  3
+  "magic_enum::enum_range found a named value outside the range"
+  "MAGIC_ENUM_TEST_RANGE_BOUNDARY=(std::numeric_limits<int>::min)()"
+  MAGIC_ENUM_TEST_RANGE_OFFSET=-1
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  range-above-int-max
+  3
+  "magic_enum::enum_range found a named value outside the range"
+  "MAGIC_ENUM_TEST_RANGE_BOUNDARY=(std::numeric_limits<int>::max)()"
+  MAGIC_ENUM_TEST_RANGE_OFFSET=1
+)
 magic_enum_make_compile_fail_test(
   configuration
   invalid-is-flags-as-common
@@ -406,6 +484,13 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  custom-name-empty-fallback
+  9
+  "magic_enum::customize requires not empty string."
+  MAGIC_ENUM_TEST_FORCE_FALLBACK
+)
+magic_enum_make_compile_fail_test(
+  configuration
   range-int-span
   10
   "magic_enum::enum_range requires valid size."
@@ -500,6 +585,11 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     "magic_enum requires the builtin __PRETTY_FUNCTION__, not a macro."
   )
 endif()
+magic_enum_make_test(test_resharper.cpp test_resharper-cpp17 c++17)
+if(MAGIC_ENUM_HAS_CPP20_FLAG)
+  magic_enum_make_test(test_resharper.cpp test_resharper-cpp20 c++20)
+endif()
+
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-cpp17 c++17)
 target_compile_definitions(test_enum_count-cpp17 PRIVATE MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE=6)
 magic_enum_make_test(test_configuration_compile_fail.cpp test_enum_count-no-check-cpp17 c++17)
@@ -548,7 +638,7 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   magic_enum_get_standard_flag(${MAGIC_ENUM_TEST_STANDARD} MAGIC_ENUM_TEST_STANDARD_FLAG)
   set(MAGIC_ENUM_TEST_SUFFIX cpp${MAGIC_ENUM_TEST_STANDARD})
   magic_enum_add_tests(${MAGIC_ENUM_TEST_SUFFIX} ${MAGIC_ENUM_TEST_STANDARD_FLAG})
-  if(MAGIC_ENUM_TEST_STANDARD EQUAL 26 AND MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_WITH_EXPANSION_BY_DEFAULT)
+  if(MAGIC_ENUM_TEST_STANDARD EQUAL 26 AND MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT)
     foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
       target_compile_definitions(${test_name}-${MAGIC_ENUM_TEST_SUFFIX} PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
     endforeach()
@@ -644,6 +734,26 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     "magic_enum::customize requires valid prefix length"
     MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
   )
+  foreach(backend IN ITEMS standard compiler-specific)
+    set(customization_definitions)
+    if(backend STREQUAL "compiler-specific")
+      list(APPEND customization_definitions MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1)
+    endif()
+    magic_enum_make_compile_fail_test(
+      reflection
+      custom-name-empty-${backend}
+      6
+      "magic_enum::customize requires not empty string"
+      ${customization_definitions}
+    )
+    magic_enum_make_compile_fail_test(
+      reflection
+      custom-zero-undeclared-${backend}
+      8
+      "magic_enum::customize::enum_name cannot add an undeclared enum value"
+      ${customization_definitions}
+    )
+  endforeach()
   magic_enum_make_compile_fail_test(
     reflection
     nonstandard-character-type

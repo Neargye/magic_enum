@@ -12,6 +12,7 @@
 
 enum class Dense { A = -2, B = -1, C = 0, D = 1, E = 2 };
 enum class Empty {};
+enum class Deprecated { Old [[deprecated]] = 1, Current = 2 };
 enum class Opaque : std::uint8_t;
 enum class OpaqueFlags : std::int8_t;
 enum class NoNameScan { A = 1 };
@@ -19,6 +20,8 @@ enum class Sparse : long long { FarLow = -1'000'000, InRange = 17, FarHigh = 900
 enum class Unordered { C = 30, A = 10, B = 20 };
 enum class Aliased { First = 1, AliasFirst = 1, Second = 2, AliasSecond = 2 };
 enum class AliasBeforeCanonical { Alias = 1, Canonical = 1 };
+enum class UnorderedAliases { High = 30, First = 10, Middle = 20, Alias = 10 };
+enum class FilteredAliases { High = 30, Hidden = 5, First = 10, Renamed = 20, Alias = 10 };
 enum class Gapped { A = 1, B = 3 };
 enum Unfixed { UnfixedZero = 0, UnfixedOne = 1 };
 enum class Customized { Declared = 1 };
@@ -76,6 +79,17 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<In
 }
 
 template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<FilteredAliases>(FilteredAliases value) noexcept {
+  if (value == FilteredAliases::Hidden) {
+    return invalid_tag;
+  }
+  if (value == FilteredAliases::Renamed) {
+    return "Custom";
+  }
+  return default_tag;
+}
+
+template <>
 struct magic_enum::customize::enum_range<Prefixed> {
   static constexpr int min = 0;
   static constexpr int max = 3;
@@ -121,6 +135,21 @@ TEST_CASE("reflection domain does not require enum names") {
   static_assert(!magic_enum::enum_reflected<NoNameScan, magic_enum::as_flags<>>(3));
 }
 
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+template <const char* Name>
+struct ReflectedName {
+  static constexpr auto value = Name;
+};
+
+static_assert(ReflectedName<magic_enum::enum_name(Dense::A).data()>::value[0] == 'A');
+#endif
+
+TEST_CASE("deprecated enumerators remain reflected") {
+  static_assert(magic_enum::enum_values<Deprecated>() == std::array{Deprecated{1}, Deprecated::Current});
+  static_assert(magic_enum::enum_names<Deprecated>() == std::array<magic_enum::string_view, 2>{"Old", "Current"});
+  static_assert(magic_enum::enum_cast<Deprecated>("Old") == Deprecated{1});
+}
+
 TEST_CASE("canonical common-enum behavior") {
   constexpr auto dense_values = magic_enum::enum_values<Dense>();
   static_assert(dense_values == std::array{Dense::A, Dense::B, Dense::C, Dense::D, Dense::E});
@@ -139,6 +168,8 @@ TEST_CASE("canonical common-enum behavior") {
   using UnfixedUnderlying = magic_enum::underlying_type_t<Unfixed>;
 
 #if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  static_assert(magic_enum::enum_values<UnorderedAliases>() == std::array{UnorderedAliases::First, UnorderedAliases::Middle, UnorderedAliases::High});
+  static_assert(magic_enum::enum_names<UnorderedAliases>() == std::array<magic_enum::string_view, 3>{"First", "Middle", "High"});
   static_assert(magic_enum::enum_reflected<Unfixed>((std::numeric_limits<UnfixedUnderlying>::max)()));
   static_assert(magic_enum::enum_values<Sparse>() == std::array{Sparse::FarLow, Sparse::InRange, Sparse::FarHigh});
   static_assert(magic_enum::enum_name(Sparse::FarLow) == "FarLow");
@@ -164,6 +195,16 @@ TEST_CASE("canonical common-enum behavior") {
   using Nested = Holder<void>::Nested;
   static_assert(magic_enum::enum_values<Nested>() == std::array{Nested::A, Nested::B});
   static_assert(magic_enum::enum_type_name<Nested>() == "Nested");
+}
+
+TEST_CASE("unordered aliases with hidden and customized names") {
+  static_assert(magic_enum::enum_count<FilteredAliases>() == 3);
+  static_assert(magic_enum::enum_value<FilteredAliases, 0>() == FilteredAliases::First);
+  static_assert(magic_enum::enum_value<FilteredAliases, 1>() == FilteredAliases::Renamed);
+  static_assert(magic_enum::enum_value<FilteredAliases, 2>() == FilteredAliases::High);
+  static_assert(magic_enum::enum_name(FilteredAliases::Alias) == "First");
+  static_assert(magic_enum::enum_name(FilteredAliases::Renamed) == "Custom");
+  static_assert(!magic_enum::enum_contains(FilteredAliases::Hidden));
 }
 
 TEST_CASE("aliases remain one-name-per-value") {
@@ -193,19 +234,16 @@ TEST_CASE("aliases remain one-name-per-value") {
 TEST_CASE("customization and range semantics") {
   static_assert(magic_enum::enum_name(Customized::Declared) == "Renamed");
   static_assert(magic_enum::enum_name(Customized::Declared).data()[magic_enum::enum_name(Customized::Declared).size()] == '\0');
-#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  // Customization renames or hides declared values, but cannot add one.
   static_assert(magic_enum::enum_values<Customized>() == std::array{Customized::Declared});
-  static_assert(!magic_enum::detail::reflection::contains(Customized{2}));
   static_assert(magic_enum::enum_name(Customized{2}).empty());
   static_assert(!magic_enum::enum_cast<Customized>("Synthetic").has_value());
+  static_assert(magic_enum::detail::n<Customized{2}>().size_ == 0);
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
   static_assert(magic_enum::enum_values<HugeRange>() == std::array{HugeRange::Low, HugeRange::High});
   static_assert(magic_enum::enum_reflected(HugeRange::Low));
   static_assert(magic_enum::enum_reflected(HugeRange::High));
 #else
-  static_assert(magic_enum::enum_values<Customized>() == std::array{Customized::Declared, Customized{2}});
-  static_assert(magic_enum::enum_name(Customized{2}) == "Synthetic");
-  static_assert(magic_enum::enum_name<Customized{2}>() == "Synthetic");
-  static_assert(magic_enum::enum_cast<Customized>("Synthetic") == Customized{2});
   static_assert(!magic_enum::enum_reflected(HugeRange::Low));
   static_assert(!magic_enum::enum_reflected(HugeRange::High));
 #endif

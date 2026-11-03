@@ -58,6 +58,33 @@ constexpr auto incomplete_values = magic_enum::enum_values<ForwardDeclared>();
 
 // Including the header selects standard reflection and diagnoses the unsupported character type.
 
+#elif MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE == 6
+
+enum class Customized { Value = 1 };
+
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Customized>(Customized) noexcept {
+  return string_view{};
+}
+
+constexpr auto customized_names = magic_enum::enum_names<Customized>();
+
+#elif MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE == 8
+
+enum class UndeclaredZero : unsigned { A = 1, B = 2 };
+
+template <>
+struct magic_enum::customize::enum_range<UndeclaredZero> {
+  static constexpr bool is_flags = true;
+};
+
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<UndeclaredZero>(UndeclaredZero value) noexcept {
+  return value == UndeclaredZero{} ? customize_t{"None"} : customize_t{default_tag};
+}
+
+constexpr auto count = magic_enum::enum_count<UndeclaredZero>();
+
 #else
 
 #  error Unknown MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE.

@@ -2,13 +2,15 @@
 
 Without standard reflection, magic_enum reads compiler signatures to discover enum names.
 
+With both backends, customization can rename or hide declared values, but cannot add new ones. A custom name for an undeclared zero fails to compile. A custom name for another undeclared value is ignored, and `enum_name<V>()` for such a value fails to compile.
+
 ## C++26 Standard Reflection
 
 Standard reflection is selected automatically when available. Otherwise magic_enum uses compiler-specific reflection.
 
 * Standard reflection ignores scan ranges and finds every declared value. Counts, indices and names can differ from compiler-specific reflection.
 
-* Each value has one name, taken from its first declaration. Customization can rename or hide declared values, but cannot add new ones.
+* Each value has one name, taken from its first declaration.
 
 * Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including magic_enum to keep compiler-specific reflection.
 
@@ -21,6 +23,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 ## Enum Flags
 
 * Flags are selected automatically when ADL finds both `E | E` and `E & E` for rvalues returning exactly `E`. Operator macros placed next to the enum satisfy this rule. `using namespace`, built-in integer operators and operators returning a wrapper do not.
+
+* Detection changes results without a compile error for enums that already have operators. Counts and indices can change, and named combinations are no longer values. See the migration note below.
 
 * Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for ordinary reflection. `enum_flags_*` APIs always use flags.
   ```cpp
@@ -36,6 +40,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 * Declare operators and customization before the first reflection use, consistently across translation units. Operators whose constraints depend on reflection need an explicit mode.
 
 * Detection checks `E | E` only when `E & E` returns `E`. An unconstrained `operator&` or `operator|` template with a deduced return type that is selected for `E` is instantiated and can fail with a hard error. Constrain such templates, for example pipe operators, to non-enum types or set an explicit mode.
+
+* An operator template constrained only by `std::is_enum` selects flags for every enum in its namespace. Constrain it to flag enums or set `is_flags = false` for the others.
 
 * Detection follows the operators, not the meaning of the values. Enums containing codes or multibit fields may need `is_flags = false`. Named single bits, including implementation-specific values, are reflected unless excluded through name customization.
 
@@ -74,6 +80,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 * The scan range applies only to non-flag enums with compiler-specific reflection. Flags and standard reflection ignore it.
 
 * The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`.
+
+* A named value at some points just outside the range is a compilation error, since it usually means that the range is too small. Only a few values near the bounds are checked, other values outside the range are silently not reflected. To exclude a value on purpose, return `invalid_tag` for it from `customize::enum_name`. The check is skipped for `as_common<>` with a flags enum.
 
 * To change the default range for all enums, define these macros before including magic_enum:
 

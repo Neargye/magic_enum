@@ -59,7 +59,9 @@
 
 * `MAGIC_ENUM_VERSION_MAJOR`, `MAGIC_ENUM_VERSION_MINOR` and `MAGIC_ENUM_VERSION_PATCH` give the library version. The module does not export them.
 
-* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
+* `customize::customize_t` stores the customization `tag` and `name`. Construct it from a name, `default_tag`, or `invalid_tag`.
+
+* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. Only declared values can be renamed, a custom name for any other value is ignored. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
 
   ```cpp
   template <>
@@ -979,6 +981,8 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Defines `~`, `|`, `&`, `^`, `|=`, `&=`, `^=` for `E` only. No `using` is needed. `~` inverts the underlying value, or applies logical not for a `bool` underlying type.
 
+* `~` also sets bits without a name, so `enum_flags_name(~E::A)` returns `""`. Use it to clear bits, for example `mask & ~E::A`.
+
 * Placement follows the [iostream macro rules](#magic_enum_define_iostream_operators). These operators take precedence over the operator namespace.
 
 * These operators enable automatic flag reflection unless `is_flags = false` or `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables it. The macro itself does not depend on reflection.
@@ -1084,7 +1088,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * `name_less<>`, `name_greater<>`, `name_less_case_insensitive` and `name_greater_case_insensitive` order values by name and allow lookup by name.
 
-* `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` orders `containers::array` by a comparator.
+* `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` orders `containers::array` by a comparator. Comparator-based container indexing preserves `enum_values<E>()` order for equivalent keys.
 
 * A custom `Index` needs a `static constexpr` non-throwing `at(E)` that returns `optional<std::size_t>`. It maps each reflected value to a unique index in `[0, enum_count<E>())` and returns an empty optional for any other value, including an unnamed zero and combinations for flags.
 

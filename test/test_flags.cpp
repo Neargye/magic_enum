@@ -40,6 +40,12 @@ struct magic_enum::customize::enum_range<OnlyZeroFlags> {
   static constexpr bool is_flags = true;
 };
 
+enum class HighBitFlags : unsigned { A = 1, Both = 3, High = 128 };
+template <>
+struct magic_enum::customize::enum_range<HighBitFlags> {
+  static constexpr bool is_flags = true;
+};
+
 enum class SignedZeroFlags : std::int8_t { High = -128, None = 0, Low = 1 };
 template <>
 struct magic_enum::customize::enum_range<SignedZeroFlags> {
@@ -56,14 +62,14 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Hi
   return value == HiddenZeroFlags::None ? customize_t{invalid_tag} : customize_t{default_tag};
 }
 
-enum class CustomZeroFlags : std::uint8_t { A = 1, B = 2 };
+enum class RenamedZeroFlags : std::uint8_t { None = 0, A = 1, B = 2 };
 template <>
-struct magic_enum::customize::enum_range<CustomZeroFlags> {
+struct magic_enum::customize::enum_range<RenamedZeroFlags> {
   static constexpr bool is_flags = true;
 };
 template <>
-constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<CustomZeroFlags>(CustomZeroFlags value) noexcept {
-  return static_cast<std::uint8_t>(value) == 0 ? customize_t{"Nothing"} : customize_t{default_tag};
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<RenamedZeroFlags>(RenamedZeroFlags value) noexcept {
+  return value == RenamedZeroFlags::None ? customize_t{"Nothing"} : customize_t{default_tag};
 }
 
 using namespace magic_enum;
@@ -96,6 +102,16 @@ TEST_CASE("enum_reflected") {
   REQUIRE_FALSE(enum_reflected<Directions, as_common<>>(Directions::Left));
 #endif
   REQUIRE_FALSE(enum_contains<Directions>(std::uint64_t{1} << 62));
+}
+
+TEST_CASE("as_common<> on flags allows bits outside the common range") {
+  using namespace magic_enum;
+  static_assert(enum_name<as_common<>>(HighBitFlags::Both) == "Both");
+#if defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  static_assert(enum_count<HighBitFlags, as_common<>>() == 3);
+#else
+  static_assert(enum_count<HighBitFlags, as_common<>>() == 2);
+#endif
 }
 
 TEST_CASE("enum_reflected separates the flags domain from membership and masks") {
@@ -324,15 +340,10 @@ TEST_CASE("customization decides whether zero is a flag value") {
   CHECK(enum_flags_name(HiddenZeroFlags::None).empty());
   CHECK(enum_name<as_common<>>(HiddenZeroFlags::None).empty());
 
-#if !defined(MAGIC_ENUM_TEST_STD_REFLECTION)
-  // A custom name adds an undeclared zero, as it adds other values with compiler-specific reflection.
-  static_assert(enum_count<CustomZeroFlags>() == 3);
-  static_assert(enum_flags_cast<CustomZeroFlags>("Nothing") == static_cast<CustomZeroFlags>(0));
-  CHECK(enum_flags_name(static_cast<CustomZeroFlags>(0)) == "Nothing");
-#else
-  static_assert(enum_count<CustomZeroFlags>() == 2);
-  static_assert(!enum_flags_cast<CustomZeroFlags>(0).has_value());
-#endif
+  // A custom name renames a declared zero. An undeclared one is a compile-fail test.
+  static_assert(enum_count<RenamedZeroFlags>() == 3);
+  static_assert(enum_flags_cast<RenamedZeroFlags>("Nothing") == RenamedZeroFlags::None);
+  CHECK(enum_flags_name(RenamedZeroFlags::None) == "Nothing");
 }
 
 TEST_CASE("integer flags cast checks the value before narrowing") {

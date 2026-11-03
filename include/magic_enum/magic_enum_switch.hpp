@@ -94,8 +94,6 @@ constexpr auto common_invocable(std::index_sequence<J...>) noexcept {
 
 template <typename E, enum_subtype S, typename Result, typename F, bool HasResult>
 constexpr auto result_type() noexcept {
-  static_assert(std::is_enum_v<E>, "magic_enum::detail::result_type requires enum type.");
-
   constexpr auto seq = std::make_index_sequence<count_v<E, S>>{};
   using R = std::decay_t<typename decltype(common_invocable<E, S, F>(seq))::type>;
   using D = std::decay_t<Result>;
@@ -120,7 +118,7 @@ constexpr auto result_type() noexcept {
 }
 
 template <typename E, enum_subtype S, typename Result, typename F, bool HasResult = false, typename D = enable_if_t<E, std::decay_t<E>>, typename R = typename decltype(result_type<D, S, Result, F, HasResult>())::type>
-using result_t = enable_if_t<D, std::enable_if_t<!std::is_same_v<R, nonesuch>, R>>;
+using result_t = std::enable_if_t<!std::is_same_v<R, nonesuch>, R>;
 
 template <typename E, enum_subtype S, typename Result, typename F>
 using result_with_fallback_t = result_t<E, S, Result, F, true>;

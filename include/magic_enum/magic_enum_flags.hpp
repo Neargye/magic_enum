@@ -86,15 +86,12 @@ template <typename E, typename String = string>
   auto check_value = U{0};
   for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
     if (const auto v = static_cast<U>(detail::values_v<D, S>[i]); (flag_value & v) != U{0}) {
-      if (const auto n = detail::names_v<D, S>[i]; !n.empty()) {
-        check_value |= v;
-        if (!name.empty()) {
-          name.append(1, sep);
-        }
-        name.append(n.data(), n.size());
-      } else {
-        return {}; // Value out of range.
+      check_value |= v;
+      if (!name.empty()) {
+        name.append(1, sep);
       }
+      const auto n = detail::names_v<D, S>[i];
+      name.append(n.data(), n.size());
     }
   }
 
@@ -105,7 +102,7 @@ template <typename E, typename String = string>
 }
 
 // Returns the flag combination matching the integer, or an empty optional.
-template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value, int> = 0>
+template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using V = detail::make_unsigned_t<underlying_type_t<D>>;
@@ -123,7 +120,8 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::
     const auto flag_value = static_cast<V>(u);
     constexpr auto mask = detail::values_ors<D>();
     // Zero is valid only when it is named.
-    if ((flag_value & static_cast<V>(~mask)) == V{0} && (flag_value != V{0} || detail::index_of<D, S>(u))) {
+    constexpr bool named_zero = detail::zero_index<D>() < detail::count_v<D, S>;
+    if ((flag_value & static_cast<V>(~mask)) == V{0} && (flag_value != V{0} || named_zero)) {
       return static_cast<D>(u);
     }
     return {}; // Invalid value or out of range.
@@ -176,7 +174,7 @@ template <typename E>
 
 // Returns true if the integer is a valid flag combination. Zero is valid only when it is named.
 // The enum value overload handles arguments of type E.
-template <typename E, typename I, std::enable_if_t<detail::is_integer_input<I>::value && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
+template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I> && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
