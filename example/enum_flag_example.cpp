@@ -30,13 +30,7 @@
 #include <magic_enum/magic_enum_iostream.hpp>
 
 enum class AnimalFlags : std::uint64_t { HasClaws = 1 << 10, CanFly = 1 << 20, EatsFish = 1 << 30, Endangered = std::uint64_t{1} << 40 };
-// Add specialization `is_flags` to define that enum are flags.
-template <>
-struct magic_enum::customize::enum_range<AnimalFlags> {
-  static constexpr bool is_flags = true;
-};
-
-// Operators only for AnimalFlags, found by ADL without a using directive.
+// ADL operators enable flag reflection.
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(AnimalFlags);
 MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(AnimalFlags);
 

@@ -200,24 +200,58 @@ static_assert([] {
 
 namespace customize {
 
-template <bool IsFlags = false, int Min = MAGIC_ENUM_RANGE_MIN, int Max = MAGIC_ENUM_RANGE_MAX, std::size_t PrefixLength = 0>
-struct adl_info_holder {
-  static constexpr int min = Min;
-  static constexpr int max = Max;
+namespace detail {
+
+template <typename Flags>
+struct flag_setting {};
+
+template <bool IsFlags>
+struct flag_setting<std::bool_constant<IsFlags>> {
   static constexpr bool is_flags = IsFlags;
-  static constexpr std::size_t prefix_length = PrefixLength;
-
-  template <int NewMin, int NewMax>
-  static constexpr adl_info_holder<IsFlags, NewMin, NewMax, PrefixLength> minmax() { return {}; }
-
-  template <bool NewIsFlags>
-  static constexpr adl_info_holder<NewIsFlags, Min, Max, PrefixLength> flag() { return {}; }
-
-  template <std::size_t NewPrefixLength>
-  static constexpr adl_info_holder<IsFlags, Min, Max, NewPrefixLength> prefix() { return {}; }
 };
 
-constexpr adl_info_holder<> adl_info() { return {}; }
+template <typename Flags = void, int Min = MAGIC_ENUM_RANGE_MIN, int Max = MAGIC_ENUM_RANGE_MAX, std::size_t PrefixLength = 0>
+struct adl_info : flag_setting<Flags> {
+  static constexpr int min = Min;
+  static constexpr int max = Max;
+  static constexpr std::size_t prefix_length = PrefixLength;
+
+  constexpr adl_info() noexcept = default;
+
+  // v0.9.* hooks may spell `adl_info_holder<false, ...>` as the return type of an `adl_info()` chain.
+  template <typename F, std::enable_if_t<std::is_void_v<F> && std::is_same_v<Flags, std::false_type>, int> = 0>
+  constexpr adl_info(adl_info<F, Min, Max, PrefixLength>) noexcept {}
+
+  template <int NewMin, int NewMax>
+  static constexpr adl_info<Flags, NewMin, NewMax, PrefixLength> minmax() { return {}; }
+
+  template <bool IsFlags>
+  static constexpr adl_info<std::bool_constant<IsFlags>, Min, Max, PrefixLength> flag() { return {}; }
+
+  template <std::size_t NewPrefixLength>
+  static constexpr adl_info<Flags, Min, Max, NewPrefixLength> prefix() { return {}; }
+};
+
+// Block ordinary lookup, including declarations preceding this header.
+void magic_enum_define_range_adl();
+
+template <typename E>
+using adl_range_t = decltype(magic_enum_define_range_adl(E{}));
+
+template <typename T, bool = std::is_class_v<T> && !std::is_final_v<T>>
+struct adl_range : T {};
+
+template <typename T>
+struct adl_range<T, false> {
+  static_assert(!std::is_same_v<T, T>, "magic_enum customization hook must return a non-final class by value.");
+};
+
+} // namespace magic_enum::customize::detail
+
+template <bool IsFlags = false, int Min = MAGIC_ENUM_RANGE_MIN, int Max = MAGIC_ENUM_RANGE_MAX, std::size_t PrefixLength = 0>
+using adl_info_holder = detail::adl_info<std::bool_constant<IsFlags>, Min, Max, PrefixLength>;
+
+constexpr detail::adl_info<> adl_info() { return {}; }
 
 // Compiler-specific reflection scans common enum values in [min, max]. Redefine MAGIC_ENUM_RANGE_MIN/MAX globally or specialize enum_range for a specific enum.
 template <typename E, typename = void>
@@ -227,7 +261,7 @@ struct enum_range {
 };
 
 template <typename E>
-struct enum_range<E, decltype(void(magic_enum_define_range_adl(E{})))> : decltype(magic_enum_define_range_adl(E{})) {};
+struct enum_range<E, std::void_t<detail::adl_range_t<E>>> : detail::adl_range<detail::adl_range_t<E>> {};
 
 namespace detail {
 
@@ -927,12 +961,41 @@ MAGIC_ENUM_CONSTEVAL auto values() noexcept {
 #endif
 }
 
+namespace adl_flags {
+
+struct lookup_blocker {};
+void operator|(lookup_blocker, lookup_blocker);
+void operator&(lookup_blocker, lookup_blocker);
+
+// Direct calls avoid MSVC's deleted-operator expression bug and exclude built-in operators.
+template <typename E, typename = void>
+struct has_and : std::false_type {};
+
+template <typename E>
+struct has_and<E, std::enable_if_t<std::is_same_v<decltype(operator&(E{}, E{})), E>>> : std::true_type {};
+
+template <typename E, typename = void>
+struct has_or : std::false_type {};
+
+template <typename E>
+struct has_or<E, std::enable_if_t<std::is_same_v<decltype(operator|(E{}, E{})), E>>> : std::true_type {};
+
+// `|` is checked only after `&`, so generic pipe operators with deduced return types are not instantiated for enums without `&`.
+template <typename E>
+struct supported : std::conjunction<has_and<E>, has_or<E>> {};
+
+} // namespace magic_enum::detail::adl_flags
+
 template <typename E>
 MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
   if constexpr (std::is_enum_v<E>) {
     static_assert(valid_is_flags_v<E>, "magic_enum::customize::enum_range requires is_flags to have bool type.");
     if constexpr (has_is_flags<E>::value) {
       return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
+#if !defined(MAGIC_ENUM_NO_AUTO_IS_FLAGS)
+    } else if constexpr (adl_flags::supported<E>::value) {
+      return enum_subtype::flags;
+#endif
     }
   }
   return enum_subtype::common;
@@ -1439,7 +1502,7 @@ struct is_scoped_enum : detail::is_scoped_enum<T> {};
 template <typename T>
 inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
 
-// Identifies flag enum types (i.e., enum_range<T>::is_flags == true).
+// Identifies enums whose default reflection mode is flags.
 template <typename T>
 struct is_flags_enum : detail::is_flags_enum<T> {};
 

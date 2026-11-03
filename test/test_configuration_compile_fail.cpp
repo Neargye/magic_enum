@@ -293,6 +293,23 @@ auto circular = magic_enum::enum_next_value_circular(EmptyCircular{});
 auto circular = magic_enum::enum_prev_value_circular(EmptyCircular{});
 #  endif
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 20
+
+#  include <magic_enum/magic_enum.hpp>
+enum class InvalidHook { A = 1 };
+struct Config {};
+struct FinalConfig final {};
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+void magic_enum_define_range_adl(InvalidHook);
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 2
+int magic_enum_define_range_adl(InvalidHook);
+#  elif MAGIC_ENUM_TEST_ENUM_FORM == 3
+const Config& magic_enum_define_range_adl(InvalidHook);
+#  else
+FinalConfig magic_enum_define_range_adl(InvalidHook);
+#  endif
+static_assert(magic_enum::enum_count<InvalidHook>() == 1);
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

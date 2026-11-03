@@ -20,8 +20,16 @@ import std;
 #endif
 
 import magic_enum;
+#ifdef MAGIC_ENUM_TEST_EXPORTED_ENUM
+import magic_enum_test_types;
+#endif
 
 #include "test_fixed_string.hpp"
+#include "test_auto_flags.hpp"
+#ifdef MAGIC_ENUM_TEST_EXPORTED_ENUM
+static_assert(magic_enum::is_flags_v<exported_flags::Bits> == auto_flags_test::enabled);
+static_assert(magic_enum::enum_contains<exported_flags::Bits>(exported_flags::Bits::All) == !auto_flags_test::enabled);
+#endif
 
 enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };

@@ -381,13 +381,15 @@ struct enum_range {
 
 * Sets reflection options for an enum.
 
-* `is_flags` must be `bool` and defaults to `false`. Set it to `true` for flag semantics.
+* An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, flags are selected when ADL finds both `E | E` and `E & E` for rvalues with result exactly `E`. Otherwise reflection is common.
+
+* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work. Use the same definition across translation units and when building the module.
 
 * `prefix_length` strips a prefix from reflected names and defaults to `0`. It must leave at least one character. Custom names are not affected.
 
 * `min` and `max` set the scan range for compiler-specific reflection. Flags and standard reflection ignore them. See [range limits](limitations.md#enum-range).
 
-* `as_flags<>` and `as_common<>` override `is_flags` for one call.
+* `as_flags<>` and `as_common<>` override the default mode for one call. Invalid customization still produces an error.
 
 * Examples
 
@@ -422,7 +424,7 @@ struct enum_range {
     namespace Deeply::Nested::Namespace {
       enum class my_enum_type { my_enum_value1 = 10, my_enum_value2 = 11 };
 
-      auto magic_enum_define_range_adl(my_enum_type) {
+      inline constexpr auto magic_enum_define_range_adl(my_enum_type) {
         return magic_enum::customize::adl_info()
             .minmax<10, 11>()
             .prefix<sizeof("my_enum_") - 1>();
@@ -430,9 +432,11 @@ struct enum_range {
     }
     ```
 
-    A `customize::enum_range<E>` specialization takes precedence over it.
+    A `customize::enum_range<E>` specialization replaces the hook settings entirely. The hook must return a non-final class by value. Declare it and any ADL operators before the first reflection use, consistently across translation units.
 
-    For flag enums, add `.flag<true>()`. `.minmax<...>()` is ignored for them.
+    `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
+
+    Use `is_flags_v<E>` to check the enum's selected mode. The builder has no `is_flags` member until `.flag<...>()` is called. Prefer `adl_info()` for hooks. The compatibility alias `adl_info_holder<bool, ...>` keeps its explicit setting.
 
 ## `enum_index`
 
@@ -717,7 +721,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * `enum_flags_test_any` checks whether `lhs` and `rhs` share any bit. It returns `false` if either is zero.
 
-* Set `enum_range<E>::is_flags` to `true` to use flag semantics for `E` everywhere. `enum_flags_*` functions always use them.
+* ADL bitwise operators enable flags automatically. For enums without matching operators, set `enum_range<E>::is_flags` to `true`. `enum_flags_*` functions always use flags, even with an explicit opt-out.
   ```cpp
   enum class Directions { Up = 1 << 1, Down = 1 << 2, Right = 1 << 3, Left = 1 << 4 };
   template <>
@@ -757,10 +761,6 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
     Right = 8,
     LeftAndDown = 3
   };
-  template <>
-  struct magic_enum::customize::enum_range<Directions> {
-    static constexpr bool is_flags = true;
-  };
   MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Directions); // From <magic_enum/magic_enum_bitwise.hpp>.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
@@ -796,7 +796,7 @@ inline constexpr bool is_flags_v = is_flags_enum<T>::value;
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
-* Checks whether `T` uses flag semantics by default.
+* Checks whether `T` uses flag semantics by default, including automatic detection and explicit settings.
 
 ## `is_unscoped_enum`
 
@@ -981,7 +981,7 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Placement follows the [iostream macro rules](#magic_enum_define_iostream_operators). These operators take precedence over the operator namespace.
 
-* The macro does not set `is_flags`.
+* These operators enable automatic flag reflection unless `is_flags = false` or `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables it. The macro itself does not depend on reflection.
 
 * Without a fixed underlying type, `~` is undefined behavior if the result is outside the enum's value range. Use `enum class` or an explicit underlying type.
 
@@ -1027,7 +1027,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_bitwise.hpp>`. `<magic_enum/magic_enum.hpp>` does not provide it.
 
-* Provides bitwise operators for all enums. Use it for function-local enums or with the module.
+* Provides bitwise operators for all enums. Use it for function-local enums or with the module. A `using namespace` directive does not enable automatic flag reflection.
 
 * The same `~` rule applies as for [`MAGIC_ENUM_DEFINE_BITWISE_OPERATORS`](#magic_enum_define_bitwise_operators).
 

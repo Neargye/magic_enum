@@ -20,7 +20,9 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 ## Enum Flags
 
-* Set `enum_range<E>::is_flags` to `true` to use flag semantics for `E` by default. `enum_flags_*` APIs always use flag semantics.
+* Flags are selected automatically when ADL finds both `E | E` and `E & E` for rvalues returning exactly `E`. Operator macros placed next to the enum satisfy this rule. `using namespace`, built-in integer operators and operators returning a wrapper do not.
+
+* Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for ordinary reflection. `enum_flags_*` APIs always use flags.
   ```cpp
   enum class Directions { Up = 1 << 0, Down = 1 << 1, Right = 1 << 2, Left = 1 << 3 };
   template <>
@@ -28,6 +30,14 @@ Standard reflection is selected automatically when available. Otherwise magic_en
     static constexpr bool is_flags = true;
   };
   ```
+
+* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build to disable automatic detection. Explicit `is_flags = true`, `.flag<true>()` and `as_flags<>` still work. For modules, configure the module build, defining the macro after `import` has no effect.
+
+* Declare operators and customization before the first reflection use, consistently across translation units. Operators whose constraints depend on reflection need an explicit mode.
+
+* Detection checks `E | E` only when `E & E` returns `E`. An unconstrained `operator&` or `operator|` template with a deduced return type that is selected for `E` is instantiated and can fail with a hard error. Constrain such templates, for example pipe operators, to non-enum types or set an explicit mode.
+
+* Detection follows the operators, not the meaning of the values. Enums containing codes or multibit fields may need `is_flags = false`. Named single bits, including implementation-specific values, are reflected unless excluded through name customization.
 
 * `MAGIC_ENUM_RANGE_MIN` / `MAGIC_ENUM_RANGE_MAX` do not control flag reflection.
 
@@ -38,6 +48,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 * Combinations such as `Both = A | B` are not flag values. They are formatted as `"A|B"`, and `enum_flags_cast` rejects `"Both"`. To look up a combination by name, use `as_common<>` with `enum_name` or `enum_cast`. With compiler-specific reflection, the combination must be within the common range.
 
 * Names round-trip only if they are unique and do not contain the separator. Otherwise parsing takes the first match in value order.
+
+* When migrating, check names, counts, indices and container sizes for enums that now select flags. For example, `std::chars_format::general` has a common name but no single-bit flag name. `enum_name` returns empty in flags mode, while `enum_flags_name` returns `"scientific|fixed"`. Use `as_common<>` for an individual lookup or disable automatic detection.
 
 ## Containers
 
@@ -92,7 +104,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
   namespace Deeply::Nested::Namespace {
     enum class my_enum_type { my_enum_value1 = 10, my_enum_value2 = 11 };
 
-    auto magic_enum_define_range_adl(my_enum_type) {
+    inline constexpr auto magic_enum_define_range_adl(my_enum_type) {
       return magic_enum::customize::adl_info()
           .minmax<10, 11>()
           .prefix<sizeof("my_enum_") - 1>();
@@ -100,7 +112,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
   }
   ```
 
-  For flag enums, add `.flag<true>()`. `.minmax<...>()` is ignored for them.
+  `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
 
 ## Empty Enums
 

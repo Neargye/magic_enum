@@ -1356,7 +1356,7 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::customize::enum_range<Dimension>::min == 1000);
     REQUIRE(magic_enum::customize::enum_range<Dimension>::max == 1000 + 128);
-    REQUIRE_FALSE(magic_enum::customize::enum_range<Dimension>::is_flags);
+    REQUIRE_FALSE(magic_enum::is_flags_v<Dimension>);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<Color, as_common<>>() == MAGIC_ENUM_RANGE_MIN);

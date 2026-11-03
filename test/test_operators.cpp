@@ -4,6 +4,7 @@
 
 #include <doctest/doctest.h>
 
+#include "test_adl.hpp"
 #include "test_enums.hpp"
 #include "test_flags_enums.hpp"
 
@@ -30,6 +31,10 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+
+#include "test_auto_flags.hpp"
+#include <charconv>
+#include <filesystem>
 
 using operators_test::Bits;
 
@@ -81,6 +86,10 @@ class Private {
   int value = 0;
   int os = 0;
   int is = 0;
+
+  static constexpr bool reflected_flags() noexcept {
+    return magic_enum::is_flags_v<Hidden>;
+  }
 
   static constexpr unsigned combined() noexcept {
     return static_cast<unsigned>(Hidden::A | Hidden::B);
@@ -735,3 +744,31 @@ TEST_CASE("flags bitwise_operators") {
 }
 
 } // namespace flags_test
+
+TEST_CASE("automatic flag reflection") {
+  using namespace auto_flags_test;
+  REQUIRE(adl_lookup_in_other_tu());
+  REQUIRE(magic_enum::is_flags_v<ops::UnscopedMacro> == enabled);
+  REQUIRE(magic_enum::is_flags_v<ops::Signed> == enabled);
+  REQUIRE(magic_enum::is_flags_v<ops::BoolEnum> == enabled);
+  REQUIRE(magic_enum::is_flags_v<ops::HolderFlags> == enabled);
+  REQUIRE(ops::Private::reflected_flags() == enabled);
+  REQUIRE(magic_enum::is_flags_v<std::chars_format> == enabled);
+  REQUIRE(magic_enum::is_flags_v<std::filesystem::perms> == enabled);
+  REQUIRE(magic_enum::enum_name(std::chars_format::general) == (enabled ? "" : "general"));
+  REQUIRE(magic_enum::enum_flags_name(std::chars_format::general) == "scientific|fixed");
+  REQUIRE(magic_enum::enum_flags_name(std::filesystem::perms::unknown).empty());
+  REQUIRE(magic_enum::enum_flags_name(auto_flags_test::Bits::All) == "A|B");
+  REQUIRE_FALSE(magic_enum::enum_flags_contains(auto_flags_test::Bits::ForceDword));
+  using namespace magic_enum::iostream_operators;
+  std::stringstream stream;
+  stream << auto_flags_test::Bits::All;
+  REQUIRE(stream.str() == (enabled ? "A|B" : "All"));
+  auto parsed = auto_flags_test::Bits::None;
+  stream >> parsed;
+  REQUIRE(parsed == auto_flags_test::Bits::All);
+  REQUIRE_FALSE(stream.fail());
+  std::size_t calls = 0;
+  magic_enum::enum_for_each<Range>([&](auto) { ++calls; });
+  REQUIRE(calls == (enabled ? 3 : 4));
+}

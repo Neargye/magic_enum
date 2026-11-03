@@ -191,10 +191,6 @@ A header-only C++17 library for enum reflection, without registration macros or 
     Up = 4,
     Right = 8,
   };
-  template <>
-  struct magic_enum::customize::enum_range<Directions> {
-    static constexpr bool is_flags = true;
-  };
   MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Directions); // From <magic_enum/magic_enum_bitwise.hpp>.
 
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
@@ -206,6 +202,8 @@ A header-only C++17 library for enum reflection, without registration macros or 
   magic_enum::enum_flags_test_any(Directions::Left | Directions::Down, Directions::Down | Directions::Right); // -> true
   magic_enum::is_flags_v<Directions>; // -> true
   ```
+
+  Bitwise operators found through ADL enable flag reflection automatically. Set `enum_range<E>::is_flags = false` to keep ordinary enum reflection, or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build. See [flag reflection](doc/limitations.md#enum-flags).
 
 * Enum type name
 

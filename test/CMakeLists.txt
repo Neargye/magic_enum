@@ -255,7 +255,14 @@ endfunction()
 
 
 magic_enum_add_tests(cpp17 c++17)
+magic_enum_make_test("test_operators.cpp;${MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators}" test_operators-no-auto-cpp17 c++17)
+target_compile_definitions(test_operators-no-auto-cpp17 PRIVATE MAGIC_ENUM_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS)
 magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
+foreach(hook_form RANGE 1 4)
+  magic_enum_make_compile_fail_test(configuration invalid-hook-${hook_form} 20
+    "magic_enum customization hook must return a non-final class by value"
+    MAGIC_ENUM_TEST_ENUM_FORM=${hook_form})
+endforeach()
 foreach(test_name IN LISTS MAGIC_ENUM_TEST_HASH_SOURCES)
   set(test_sources ${test_name}.cpp ${MAGIC_ENUM_TEST_EXTRA_SOURCES_${test_name}})
   magic_enum_make_test("${test_sources}" ${test_name}-hash-cpp17 c++17)
@@ -549,6 +556,10 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
 endforeach()
 
 if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
+  magic_enum_make_test("test_operators.cpp;${MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators}" test_operators-no-auto-cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+  magic_enum_add_std_reflection_options(test_operators-no-auto-cpp26-reflection)
+  target_compile_definitions(test_operators-no-auto-cpp26-reflection PRIVATE
+    MAGIC_ENUM_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_STD_REFLECTION=1)
   magic_enum_add_tests(cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
     magic_enum_add_std_reflection_options(${test_name}-cpp26-reflection)
@@ -650,6 +661,19 @@ if(MAGIC_ENUM_USE_MODULES)
 
   # Installed packages expose one module with the configuration fixed at build time.
   if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+    magic_enum_make_module_library(magic_enum_module_test_no_auto-${module_suffix} MAGIC_ENUM_NO_AUTO_IS_FLAGS)
+    magic_enum_make_module_test(test_module.cpp test_module-no-auto-${module_suffix} magic_enum_module_test_no_auto-${module_suffix})
+    target_compile_definitions(test_module-no-auto-${module_suffix} PRIVATE MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS)
+    if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
+      magic_enum_add_std_reflection_options(magic_enum_module_test_no_auto-${module_suffix})
+    endif()
+    add_library(magic_enum_test_types)
+    target_sources(magic_enum_test_types PUBLIC FILE_SET CXX_MODULES FILES test_module_types.cppm)
+    target_compile_features(magic_enum_test_types PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
+    foreach(consumer IN ITEMS test_module-${module_suffix} test_module-no-auto-${module_suffix})
+      target_link_libraries(${consumer} PRIVATE magic_enum_test_types)
+      target_compile_definitions(${consumer} PRIVATE MAGIC_ENUM_TEST_EXPORTED_ENUM)
+    endforeach()
     foreach(test_variant IN ITEMS _aliases _wchar_t)
       magic_enum_make_module_test(
         test_module${test_variant}.cpp

@@ -18,7 +18,15 @@ static_assert((Mask::A | Mask::B) == static_cast<Mask>(3));
 
 } // namespace standalone
 
+using namespace magic_enum::bitwise_operators;
+
+#define MAGIC_ENUM_TEST_ADL_BEFORE_INCLUDE
+#include "test_adl.hpp"
 #include "test_operators.hpp"
+
+bool adl_lookup_in_other_tu() {
+  return !magic_enum::is_flags_v<adl_lookup_test::Wrong> && magic_enum::is_flags_v<adl_lookup_test::Right>;
+}
 
 #include <sstream>
 
