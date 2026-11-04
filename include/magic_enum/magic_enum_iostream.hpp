@@ -41,6 +41,11 @@
 #  include <string_view>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 namespace detail {
@@ -149,5 +154,9 @@ using magic_enum::istream_operators::operator>>;
     return ::magic_enum::istream_operators::operator>>(magic_enum_is, magic_enum_value);                                                                             \
   }                                                                                                                                                                  \
   static_assert(true, "")
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_IOSTREAM_HPP

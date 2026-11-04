@@ -34,6 +34,11 @@
 
 #include "magic_enum.hpp"
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 namespace detail {
@@ -94,5 +99,9 @@ template <typename... Es>
 }
 
 } // namespace magic_enum
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_FUSE_HPP

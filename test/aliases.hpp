@@ -40,8 +40,6 @@ struct MyString {
   std::string str;
 };
 
-struct DirectNameInput;
-
 struct MyStringView {
   using value_type = char; // required
   static constexpr auto npos = std::string_view::npos; // required
@@ -62,7 +60,6 @@ struct MyStringView {
   friend constexpr bool operator==(MyStringView lhs, MyStringView rhs); // required
 
   constexpr MyStringView(const char* cstr) : str{ cstr } {}
-  explicit constexpr MyStringView(const DirectNameInput&) noexcept : str{"RED"} {}
   constexpr int compare(const char* s) const { return str.compare(s); }
 
  private:

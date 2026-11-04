@@ -39,7 +39,7 @@
 
 * Read the [limitations](limitations.md) before use.
 
-* Signatures are simplified. They omit template constraints, `[[nodiscard]]` and optional subtype parameters. Name arguments accept any type convertible to `string_view`.
+* Signatures are simplified. Name arguments take `string_view` by value and accept implicit conversions.
 
 * A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after the result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_flags_*` functions always use flags.
 
@@ -61,7 +61,7 @@
 
 * `customize::customize_t` stores the customization `tag` and `name`. Construct it from a name, `default_tag`, or `invalid_tag`.
 
-* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. Only declared values can be renamed, a custom name for any other value is ignored. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
+* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. Only declared values can be renamed. A custom name for an undeclared zero fails to compile. Other undeclared values have no reflected name. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
 
   ```cpp
   template <>
@@ -311,7 +311,7 @@ constexpr string_view enum_name() noexcept;
 
 * `enum_name(value)` returns an empty string for an unnamed or [out-of-range](limitations.md#enum-range) value. `enum_name<value>()` fails to compile for an unnamed value.
 
-* `enum_name<value>()` compiles faster and ignores the [scan range](limitations.md#enum-range).
+* `enum_name<value>()` ignores the [scan range](limitations.md#enum-range) and flags filtering, so it can name declared flag combinations. Name customization still applies.
 
 * Examples
 
@@ -438,7 +438,7 @@ struct enum_range {
 
     `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
 
-    Use `is_flags_v<E>` to check the enum's selected mode. The builder has no `is_flags` member until `.flag<...>()` is called. Prefer `adl_info()` for hooks. The compatibility alias `adl_info_holder<bool, ...>` keeps its explicit setting.
+    Use `is_flags_v<E>` to check the selected mode. Prefer `adl_info()` when defining hooks.
 
 ## `enum_index`
 

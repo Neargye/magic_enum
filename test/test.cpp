@@ -646,6 +646,22 @@ TEST_CASE("enum_reflected checks the value before narrowing") {
   REQUIRE(from_enum(ReflU8::Max));
 }
 
+TEST_CASE("string lookup keeps function pointer types") {
+  using Pred = std::equal_to<>;
+  constexpr optional<Color> (*cast)(string_view, Pred) noexcept = &enum_cast<Color>;
+  constexpr bool (*contains)(string_view, Pred) noexcept = &enum_contains<Color>;
+  REQUIRE(cast("red", Pred{}) == Color::RED);
+  REQUIRE(contains("red", Pred{}));
+  REQUIRE_FALSE(contains("None", Pred{}));
+}
+
+TEST_CASE("braced integer arguments select the integer overload") {
+  enum class BracedCastEnum { Zero, One };
+  constexpr auto zero = enum_cast<BracedCastEnum>({});
+  REQUIRE(zero == BracedCastEnum::Zero);
+  REQUIRE(enum_contains<BracedCastEnum>({}));
+}
+
 TEST_CASE("enum_contains") {
   SUBCASE("value") {
     Color cm[3] = {Color::RED, Color::GREEN, Color::BLUE};

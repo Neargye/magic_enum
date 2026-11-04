@@ -38,6 +38,11 @@
 #  include <tuple>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 namespace detail {
@@ -134,5 +139,9 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 }
 
 } // namespace magic_enum
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_UTILITY_HPP

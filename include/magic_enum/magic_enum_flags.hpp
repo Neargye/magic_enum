@@ -34,6 +34,11 @@
 
 #include "magic_enum.hpp"
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 namespace detail {
@@ -102,7 +107,7 @@ template <typename E, typename String = string>
 }
 
 // Returns the flag combination matching the integer, or an empty optional.
-template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
+template <typename E, typename I = underlying_type_t<std::decay_t<E>>, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   using V = detail::make_unsigned_t<underlying_type_t<D>>;
@@ -129,9 +134,8 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I>
 }
 
 // Returns the flag combination matching the separated names, or an empty optional.
-template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_flags_cast(String&& name, [[maybe_unused]] char_type sep = char_type{'|'}, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
-  string_view value(std::forward<String>(name));
+template <typename E, typename BinaryPredicate = std::equal_to<>>
+[[nodiscard]] constexpr auto enum_flags_cast(string_view value, [[maybe_unused]] char_type sep = char_type{'|'}, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
@@ -183,12 +187,12 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I>
 }
 
 // Returns true if the names form a valid flag combination.
-template <typename E, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_flags_contains(String&& value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+template <typename E, typename BinaryPredicate = std::equal_to<>>
+[[nodiscard]] constexpr auto enum_flags_contains(string_view value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
 
-  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(std::forward<String>(value), sep, p));
+  return static_cast<bool>(enum_flags_cast<D, BinaryPredicate&>(value, sep, p));
 }
 
 // Returns true if flag is nonzero and all its bits are set in flags.
@@ -209,5 +213,9 @@ template <typename E>
 }
 
 } // namespace magic_enum
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_FLAGS_HPP

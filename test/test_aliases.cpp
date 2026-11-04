@@ -37,34 +37,28 @@ TEST_CASE("bool enum lookup with custom string_view and optional") {
   CHECK(enum_contains<Binary>(name));
 }
 
-struct DirectNameInput {
-  bool should_throw = true;
-  // Keep both conversion paths opaque to MSVC's unreachable-code analysis.
-  DOCTEST_NOINLINE operator MyStringView() const {
-    if (should_throw) {
-      throw 42;
+TEST_CASE("name lookup propagates conversion errors with custom string_view") {
+  struct NameInput {
+    bool fail;
+    DOCTEST_NOINLINE operator string_view() const {
+      if (fail) {
+        throw 42;
+      }
+      return "RED";
     }
-    return "RED";
-  }
-};
-
-TEST_CASE("name lookup construction matches noexcept with custom string_view") {
-  DirectNameInput name;
-  static_assert(detail::is_name_input_v<DirectNameInput&>);
-  static_assert(std::is_nothrow_constructible_v<string_view, DirectNameInput&>);
-  static_assert(noexcept(enum_cast<Color>(name)));
-  static_assert(noexcept(enum_contains<Color>(name)));
-  static_assert(noexcept(enum_flags_cast<Color>(name)));
-  static_assert(noexcept(enum_flags_contains<Color>(name)));
-
-  CHECK(enum_cast<Color>(name).value() == Color::RED);
-  CHECK(enum_contains<Color>(name));
-  CHECK(enum_flags_cast<Color>(name).value() == Color::RED);
-  CHECK(enum_flags_contains<Color>(name));
-
-  const auto copy_initialize = [](string_view) noexcept {};
-  CHECK_THROWS_AS(copy_initialize(name), int);
-  CHECK_NOTHROW(copy_initialize(DirectNameInput{false}));
+  };
+  static_assert(!noexcept(enum_cast<Color>(NameInput{true})));
+  static_assert(!noexcept(enum_contains<Color>(NameInput{true})));
+  static_assert(!noexcept(enum_flags_cast<Color>(NameInput{true})));
+  static_assert(!noexcept(enum_flags_contains<Color>(NameInput{true})));
+  CHECK_THROWS_AS(static_cast<void>(enum_cast<Color>(NameInput{true})), int);
+  CHECK_THROWS_AS(static_cast<void>(enum_contains<Color>(NameInput{true})), int);
+  CHECK_THROWS_AS(static_cast<void>(enum_flags_cast<Color>(NameInput{true})), int);
+  CHECK_THROWS_AS(static_cast<void>(enum_flags_contains<Color>(NameInput{true})), int);
+  CHECK(enum_cast<Color>(NameInput{false}).value() == Color::RED);
+  CHECK(enum_contains<Color>(NameInput{false}));
+  CHECK(enum_flags_cast<Color>(NameInput{false}).value() == Color::RED);
+  CHECK(enum_flags_contains<Color>(NameInput{false}));
 }
 
 TEST_CASE("optional") {

@@ -209,6 +209,9 @@ TEST_CASE("named composite flags require every constituent bit") {
   static_assert(!enum_flags_cast<CompleteBits>("Autoincrement").has_value());
   CHECK(enum_flags_name(MissingBit::Autoincrement).empty());
   CHECK(enum_flags_name(CompleteBits::Autoincrement) == "Binary|Empty");
+  // The compile-time form names any declared value regardless of the flags mode.
+  static_assert(enum_name<CompleteBits::Autoincrement>() == "Autoincrement");
+  CHECK(enum_name<as_flags<true>>(CompleteBits::Autoincrement).empty());
 }
 
 TEST_CASE("signed flags include the sign bit") {
@@ -279,6 +282,7 @@ TEST_CASE("named zero is a flag value") {
   CHECK(enum_flags_name(ZeroFlags::A) == "A");
   CHECK(enum_flags_name(static_cast<ZeroFlags>(4)).empty());
   static_assert(enum_flags_cast<ZeroFlags>(0) == ZeroFlags::None);
+  static_assert(enum_flags_cast<ZeroFlags>({}) == ZeroFlags::None);
   static_assert(enum_flags_cast<ZeroFlags>(3) == ZeroFlags::Both);
   static_assert(enum_flags_contains<ZeroFlags>(0));
   static_assert(enum_flags_contains(ZeroFlags::None));
@@ -344,6 +348,20 @@ TEST_CASE("customization decides whether zero is a flag value") {
   static_assert(enum_count<RenamedZeroFlags>() == 3);
   static_assert(enum_flags_cast<RenamedZeroFlags>("Nothing") == RenamedZeroFlags::None);
   CHECK(enum_flags_name(RenamedZeroFlags::None) == "Nothing");
+}
+
+TEST_CASE("flags string lookup keeps function pointer types") {
+  using Pred = std::equal_to<>;
+  constexpr optional<Color> (*cast)(string_view, char_type, Pred) noexcept = &enum_flags_cast<Color>;
+  constexpr bool (*contains)(string_view, char_type, Pred) noexcept = &enum_flags_contains<Color>;
+  REQUIRE(cast("RED|GREEN", '|', Pred{}) == (Color::RED | Color::GREEN));
+  REQUIRE(contains("RED", '|', Pred{}));
+  REQUIRE_FALSE(contains("None", '|', Pred{}));
+}
+
+TEST_CASE("braced integer flags arguments select the integer overload") {
+  constexpr auto none = enum_flags_cast<Numbers>({});
+  REQUIRE(none == Numbers::none);
 }
 
 TEST_CASE("integer flags cast checks the value before narrowing") {

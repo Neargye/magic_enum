@@ -126,10 +126,14 @@ A header-only C++17 library for enum reflection, without registration macros or 
   ```cpp
   switch (magic_enum::enum_fuse(color, direction).value()) {
     case magic_enum::enum_fuse(Color::RED, Directions::Up).value(): // ...
+      break;
     case magic_enum::enum_fuse(Color::BLUE, Directions::Down).value(): // ...
+      break;
   // ...
   }
   ```
+
+  On MSVC, this switch triggers warning C4064. See [enum_fuse](doc/reference.md#enum_fuse).
 
 * Runtime enum value as constexpr constant
 

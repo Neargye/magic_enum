@@ -132,6 +132,19 @@ constexpr int operator|(Own, Own) noexcept {
 
 namespace {
 
+// Clang warns about unused functions with internal linkage.
+enum class InternalBits : unsigned { A = 1, B = 2 };
+MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(InternalBits);
+
+struct InternalHolder {
+  enum class Flags : unsigned { A = 1, B = 2 };
+  MAGIC_ENUM_DEFINE_FRIEND_BITWISE_OPERATORS(Flags);
+};
+
+} // namespace
+
+namespace {
+
 template <typename E, typename = void>
 struct has_or : std::false_type {};
 
@@ -771,4 +784,9 @@ TEST_CASE("automatic flag reflection") {
   std::size_t calls = 0;
   magic_enum::enum_for_each<Range>([&](auto) { ++calls; });
   REQUIRE(calls == (enabled ? 3 : 4));
+}
+
+TEST_CASE("bitwise macros allow unused operators with internal linkage") {
+  static_assert((InternalBits::A | InternalBits::B) == static_cast<InternalBits>(3));
+  static_assert((InternalHolder::Flags::A | InternalHolder::Flags::B) == static_cast<InternalHolder::Flags>(3));
 }

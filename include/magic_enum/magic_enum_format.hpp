@@ -39,6 +39,11 @@
 #  include <string>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum::detail {
 
 template <typename E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, int> = 0>
@@ -89,6 +94,10 @@ struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
   }
 };
 
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
 #endif
 
 #endif // NEARGYE_MAGIC_ENUM_FORMAT_HPP

@@ -97,6 +97,7 @@
 #  pragma warning(push)
 #  pragma warning(disable : 28020) // MSVC analyzer loses constexpr array bounds in template instantiations.
 #  pragma warning(disable : 4514) // Unreferenced inline function has been removed.
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
 #  pragma warning(disable : 6262) // Large scan buffers are only used during constant evaluation.
 #  pragma warning(disable : 6326) // Compile-time metadata intentionally compares constants.
 #endif
@@ -268,9 +269,9 @@ class customize_t {
   detail::customize_tag tag;
   string_view name;
 
-  constexpr customize_t(string_view value) : tag{detail::customize_tag::custom_tag}, name{value} {}
-  constexpr customize_t(const char_type* value) : customize_t{string_view{value}} {}
-  constexpr customize_t(detail::customize_tag value) : tag{value}, name{} {}
+  constexpr customize_t(string_view custom_name) : tag{detail::customize_tag::custom_tag}, name{custom_name} {}
+  constexpr customize_t(const char_type* custom_name) : customize_t{string_view{custom_name}} {}
+  constexpr customize_t(detail::customize_tag tag_value) : tag{tag_value}, name{} {}
 };
 
 inline constexpr auto default_tag = customize_t{detail::customize_tag::default_tag};
@@ -438,13 +439,6 @@ class case_insensitive {
     return Op{}(to_lower(lhs), to_lower(rhs));
   }
 };
-
-template <typename T>
-inline constexpr bool is_name_input_v = std::is_convertible_v<T, string_view>;
-
-// MSVC 19.29 reports std::is_nothrow_constructible_v as true for a throwing conversion operator.
-template <typename T>
-inline constexpr bool is_nothrow_name_input_v = noexcept(static_cast<string_view>(std::declval<T>()));
 
 template <typename BinaryPredicate>
 inline constexpr bool is_default_predicate_v = std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<string_view::value_type>> || std::is_same_v<std::decay_t<BinaryPredicate>, std::equal_to<>>;
@@ -1338,7 +1332,7 @@ MAGIC_ENUM_CONSTEVAL bool check_range() noexcept {
   } else if constexpr (!valid_bounds) {
     static_assert(valid_bounds, "magic_enum::enum_range requires min and max to fit in int.");
   } else {
-    static_assert(valid_size, "magic_enum::enum_range requires valid size.");
+    static_assert(valid_size, "magic_enum::enum_range requires max - min to be less than UINT16_MAX.");
   }
   return valid_range && valid_bounds && valid_size;
 }
@@ -1475,13 +1469,11 @@ MAGIC_ENUM_CONSTEVAL bool is_sparse() noexcept {
   } else if constexpr (S == enum_subtype::flags) {
     constexpr auto max = log2(static_cast<V>(max_v<E, S>));
     constexpr auto min = log2(static_cast<V>(min_v<E, S>));
-
     // A named zero has no bit position. A negative sign bit flag goes first, so min can exceed max.
     return static_cast<V>(min_v<E, S>) == V{0} || max < min || static_cast<std::size_t>(max - min) + 1 != count_v<E, S>;
   } else {
     // Dense lookup passes min to value() as an int. The unsigned span does not overflow on wide ranges.
     constexpr auto span = static_cast<V>(static_cast<V>(max_v<E, S>) - static_cast<V>(min_v<E, S>));
-
     return cmp_less(min_v<E, S>, (std::numeric_limits<int>::min)()) || cmp_less((std::numeric_limits<int>::max)(), max_v<E, S>) || static_cast<std::size_t>(span) != count_v<E, S> - 1;
   }
 }
@@ -1991,7 +1983,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 }
 
 // Returns enum value at specified index.
-// No bounds checking is performed: the behavior is undefined if index >= number of enum values.
+// Asserts index < count. An out-of-range index is undefined behavior when assertions are disabled.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
@@ -2122,7 +2114,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
 // Returns the enum value matching the integer, or an empty optional.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I = underlying_type_t<std::decay_t<E>>, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
 [[nodiscard]] constexpr auto enum_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum.");
@@ -2136,11 +2128,10 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I,
 }
 
 // Returns the enum value matching the name, or an empty optional.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_cast(String&& name, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
+[[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum.");
-  string_view value(std::forward<String>(name));
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
   if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, detail::constexpr_hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {
@@ -2196,12 +2187,12 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I,
 }
 
 // Returns true if enum contains enumerator with specified name.
-template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>, typename String = string_view, std::enable_if_t<detail::is_name_input_v<String>, int> = 0>
-[[nodiscard]] constexpr auto enum_contains(String&& value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate> && detail::is_nothrow_name_input_v<String>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
+template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
+[[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
 
-  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(std::forward<String>(value), p));
+  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
 }
 
 // Checks the reflection domain, not enumerator membership.

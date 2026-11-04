@@ -71,6 +71,7 @@
 #if defined(_MSC_VER) && !defined(__clang__)
 #  pragma warning(push)
 #  pragma warning(disable : 28020) // MSVC analyzer loses bounds of constexpr sorting buffers.
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
 #endif
 
 namespace magic_enum::containers {
@@ -1537,8 +1538,8 @@ struct std::hash<magic_enum::containers::bitset<E, Index>> {
       unsigned long long low_bits = 0;
       std::size_t seed = 0;
       bool has_high_bits = false;
-      for (const auto value : bs) {
-        const auto index = domain::at(value);
+      for (const auto member : bs) {
+        const auto index = domain::at(member);
         MAGIC_ENUM_ASSERT(index);
         if (*index < sizeof(low_bits) * 8) {
           low_bits |= 1ULL << *index;

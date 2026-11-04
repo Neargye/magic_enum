@@ -34,6 +34,11 @@
 
 #include "magic_enum.hpp"
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 namespace detail {
@@ -233,5 +238,9 @@ struct std::common_type<T, magic_enum::detail::nonesuch> : magic_enum::detail::i
 
 template <typename T>
 struct std::common_type<magic_enum::detail::nonesuch, T> : magic_enum::detail::identity<T> {};
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_SWITCH_HPP

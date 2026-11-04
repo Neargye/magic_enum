@@ -233,6 +233,7 @@ set(MAGIC_ENUM_TEST_SOURCES
   test test_flags test_switch test_utility test_operators test_format
   test_aliases test_containers test_wchar_t
 )
+set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test test_global_names.cpp)
 set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators test_operators_other.cpp)
 # Suites with name lookup or switch paths that MAGIC_ENUM_ENABLE_HASH changes.
 set(MAGIC_ENUM_TEST_HASH_SOURCES test test_flags test_switch test_operators)
@@ -493,7 +494,7 @@ magic_enum_make_compile_fail_test(
   configuration
   range-int-span
   10
-  "magic_enum::enum_range requires valid size."
+  "magic_enum::enum_range requires max - min to be less than UINT16_MAX."
   MAGIC_ENUM_TEST_ENUM_FORM=1
 )
 magic_enum_make_compile_fail_test(
@@ -778,6 +779,7 @@ if(MAGIC_ENUM_USE_MODULES)
       magic_enum_add_std_reflection_options(magic_enum_module_test_no_auto-${module_suffix})
     endif()
     add_library(magic_enum_test_types)
+    set_target_properties(magic_enum_test_types PROPERTIES CXX_EXTENSIONS OFF)
     target_sources(magic_enum_test_types PUBLIC FILE_SET CXX_MODULES FILES test_module_types.cppm)
     target_compile_features(magic_enum_test_types PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
     foreach(consumer IN ITEMS test_module-${module_suffix} test_module-no-auto-${module_suffix})

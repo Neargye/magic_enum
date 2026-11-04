@@ -38,6 +38,11 @@
 #  include <type_traits>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(push)
+#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#endif
+
 namespace magic_enum {
 
 // Warning: a using directive enables these operators for every enum in scope, including enums from other libraries.
@@ -110,27 +115,31 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 // Prefixed parameter names avoid -Wshadow with members of the enclosing class.
 #define MAGIC_ENUM_DETAIL_DEFINE_BITWISE_OPERATORS(SPEC, E)                                             \
   static_assert(::std::is_enum_v<E>, "magic_enum bitwise operators require an enum type.");             \
-  SPEC constexpr E operator~(E magic_enum_rhs) noexcept {                                               \
+  [[maybe_unused]] SPEC constexpr E operator~(E magic_enum_rhs) noexcept {                              \
     return ::magic_enum::bitwise_operators::operator~(magic_enum_rhs);                                  \
   }                                                                                                     \
-  SPEC constexpr E operator|(E magic_enum_lhs, E magic_enum_rhs) noexcept {                             \
+  [[maybe_unused]] SPEC constexpr E operator|(E magic_enum_lhs, E magic_enum_rhs) noexcept {            \
     return ::magic_enum::bitwise_operators::operator|(magic_enum_lhs, magic_enum_rhs);                  \
   }                                                                                                     \
-  SPEC constexpr E operator&(E magic_enum_lhs, E magic_enum_rhs) noexcept {                             \
+  [[maybe_unused]] SPEC constexpr E operator&(E magic_enum_lhs, E magic_enum_rhs) noexcept {            \
     return ::magic_enum::bitwise_operators::operator&(magic_enum_lhs, magic_enum_rhs);                  \
   }                                                                                                     \
-  SPEC constexpr E operator^(E magic_enum_lhs, E magic_enum_rhs) noexcept {                             \
+  [[maybe_unused]] SPEC constexpr E operator^(E magic_enum_lhs, E magic_enum_rhs) noexcept {            \
     return ::magic_enum::bitwise_operators::operator^(magic_enum_lhs, magic_enum_rhs);                  \
   }                                                                                                     \
-  SPEC constexpr E& operator|=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {                          \
+  [[maybe_unused]] SPEC constexpr E& operator|=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {         \
     return magic_enum_lhs = ::magic_enum::bitwise_operators::operator|(magic_enum_lhs, magic_enum_rhs); \
   }                                                                                                     \
-  SPEC constexpr E& operator&=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {                          \
+  [[maybe_unused]] SPEC constexpr E& operator&=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {         \
     return magic_enum_lhs = ::magic_enum::bitwise_operators::operator&(magic_enum_lhs, magic_enum_rhs); \
   }                                                                                                     \
-  SPEC constexpr E& operator^=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {                          \
+  [[maybe_unused]] SPEC constexpr E& operator^=(E& magic_enum_lhs, E magic_enum_rhs) noexcept {         \
     return magic_enum_lhs = ::magic_enum::bitwise_operators::operator^(magic_enum_lhs, magic_enum_rhs); \
   }                                                                                                     \
   static_assert(true, "")
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  pragma warning(pop)
+#endif
 
 #endif // NEARGYE_MAGIC_ENUM_BITWISE_HPP
