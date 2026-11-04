@@ -10,11 +10,12 @@ inputs:
 runs:
   using: composite
   steps:
-  - name: Build and test
+  - uses: ./.github/actions/build-summary
+    with:
+      build-dir: ${{ inputs.build-dir }}
+  - name: Choose parallelism
+    id: parallel
     shell: bash
-    env:
-      BUILD_DIR: ${{ inputs.build-dir }}
-      BUILD_TYPE: ${{ inputs.build-type }}
     run: |
       case "$RUNNER_OS" in
         Windows) parallel_jobs="$NUMBER_OF_PROCESSORS" ;;
@@ -22,5 +23,26 @@ runs:
         Linux) parallel_jobs="$(nproc)" ;;
         *) echo "Unsupported runner: $RUNNER_OS" >&2; exit 1 ;;
       esac
-      cmake --build "$BUILD_DIR" --parallel "$parallel_jobs" --config "$BUILD_TYPE"
-      ctest --test-dir "$BUILD_DIR" --parallel "$parallel_jobs" --output-on-failure --no-tests=error -C "$BUILD_TYPE"
+      echo "Parallel jobs: $parallel_jobs"
+      echo "jobs=$parallel_jobs" >> "$GITHUB_OUTPUT"
+      echo "Parallel build/test jobs: **$parallel_jobs**" >> "$GITHUB_STEP_SUMMARY" || echo "Cannot write parallelism summary." >&2
+  - name: Build
+    uses: ./.github/actions/timed-run
+    env:
+      BUILD_DIR: ${{ inputs.build-dir }}
+      BUILD_TYPE: ${{ inputs.build-type }}
+      PARALLEL_JOBS: ${{ steps.parallel.outputs.jobs }}
+    with:
+      name: Build
+      macos-diagnostics: 'true'
+      run: cmake --build "$BUILD_DIR" --parallel "$PARALLEL_JOBS" --config "$BUILD_TYPE"
+  - name: Test
+    uses: ./.github/actions/timed-run
+    env:
+      BUILD_DIR: ${{ inputs.build-dir }}
+      BUILD_TYPE: ${{ inputs.build-type }}
+      PARALLEL_JOBS: ${{ steps.parallel.outputs.jobs }}
+    with:
+      name: Test
+      macos-diagnostics: 'true'
+      run: ctest --test-dir "$BUILD_DIR" --parallel "$PARALLEL_JOBS" --output-on-failure --no-tests=error -C "$BUILD_TYPE"

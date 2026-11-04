@@ -38,29 +38,56 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Configure compiler
-      run: |
-        if [[ "${{ matrix.config.compiler }}" == "GCC" ]]; then
-          brew install gcc
-          gcc_bin="$(brew --prefix gcc)/bin"
-          gcc_version="$(brew list --versions gcc | awk '{print $2}')"
-          gcc_major="${gcc_version%%.*}"
-          echo "CC=${gcc_bin}/gcc-${gcc_major}" >> "${GITHUB_ENV}"
-          echo "CXX=${gcc_bin}/g++-${gcc_major}" >> "${GITHUB_ENV}"
-        else
-          echo "CC=clang" >> "${GITHUB_ENV}"
-          echo "CXX=clang++" >> "${GITHUB_ENV}"
-        fi
+      uses: ./.github/actions/timed-run
+      with:
+        name: Configure compiler
+        run: |
+          if [[ "${{ matrix.config.compiler }}" == "GCC" ]]; then
+            brew install gcc
+            gcc_bin="$(brew --prefix gcc)/bin"
+            gcc_version="$(brew list --versions gcc | awk '{print $2}')"
+            gcc_major="${gcc_version%%.*}"
+            echo "CC=${gcc_bin}/gcc-${gcc_major}" >> "${GITHUB_ENV}"
+            echo "CXX=${gcc_bin}/g++-${gcc_major}" >> "${GITHUB_ENV}"
+          else
+            echo "CC=clang" >> "${GITHUB_ENV}"
+            echo "CXX=clang++" >> "${GITHUB_ENV}"
+          fi
 
-    - name: Compiler version
-      run: |
-        compiler="$("$CXX" --version | head -n 1), $(xcodebuild -version | head -n 1)"
-        echo "$compiler"
-        echo "::notice title=Compiler::$compiler"
-        echo "**Compiler:** $compiler" >> "$GITHUB_STEP_SUMMARY"
+    - name: Set up Ninja
+      uses: ./.github/actions/timed-run
+      with:
+        name: Set up Ninja
+        run: |
+          if ! command -v ninja > /dev/null 2>&1; then
+            brew install ninja
+          fi
+          ninja --version
 
     - name: Configure
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+      uses: ./.github/actions/timed-run
+      with:
+        name: Configure
+        macos-diagnostics: 'true'
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - uses: ./.github/actions/cmake-test
       with:
         build-type: ${{ matrix.config.build_type }}
+
+    - name: Upload build diagnostics
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: diagnostics-${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.build_type }}
+        path: |
+          ${{ runner.temp }}/magic-enum-diagnostics/
+          build/.ninja_log
+          build/compile_commands.json
+          build/Testing/Temporary/LastTest.log
+        include-hidden-files: true
+        if-no-files-found: ignore
+        retention-days: 5

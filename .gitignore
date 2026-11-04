@@ -1,9 +1,10 @@
-build*/
-cmake_build*/
-install_dir/
+/build*/
+/cmake_build*/
+/install_dir/
 .vscode/
 .vs/
 copilot-instructions.md
+__pycache__/
 
 ### C++ gitignore ###
 # Prerequisites
@@ -42,15 +43,15 @@ copilot-instructions.md
 ### CMake gitignore ###
 CMakeLists.txt.user
 CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
+CMakeFiles/
+CMakeScripts/
+Testing/
 Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
-_deps
+_deps/
 
 ### Bazel build artifacts ###
 /bazel-*

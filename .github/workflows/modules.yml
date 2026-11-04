@@ -22,130 +22,129 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
-        - { compiler: "clang-19", cc: "clang-19", cxx: "clang++-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  custom_configs: "TRUE",  build_types: "Debug",         cmake: "4.4.0" }
-        - { compiler: "clang-22", cc: "clang",    cxx: "clang++",    os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
-        - { compiler: "gcc-16",   cc: "gcc-16",   cxx: "g++-16",     os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  custom_configs: "FALSE", build_types: "Release",       cmake: "4.4.0" }
+        - { compiler: "clang-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "clang-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  custom_configs: "TRUE",  build_types: "Debug",         cmake: "4.4.0" }
+        - { compiler: "clang-22", os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", custom_configs: "TRUE",  build_types: "Release Debug", cmake: "4.3.4" }
+        - { compiler: "gcc-16",   os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  custom_configs: "FALSE", build_types: "Release",       cmake: "4.4.0" }
 
     name: "${{ format('{0} / {1} / C++{2} / {3} / IMPORT_STD={4}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std) }}"
     runs-on: ${{ matrix.config.os }}
-    env:
-      CC: ${{ matrix.config.cc }}
-      CXX: ${{ matrix.config.cxx }}
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Install Clang
-      if: ${{ startsWith(matrix.config.os, 'ubuntu') && startsWith(matrix.config.compiler, 'clang') }}
-      run: |
-        wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
-
-        clang_version="${{ matrix.config.cc }}"
-        clang_version="${clang_version#clang-}"
-        ubuntu_codename="$(lsb_release -cs)"
-        llvm_repository="http://apt.llvm.org/${ubuntu_codename}/"
-        llvm_suite="llvm-toolchain-${ubuntu_codename}-${clang_version}"
-
-        echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] ${llvm_repository} ${llvm_suite} main" \
-          | sudo tee /etc/apt/sources.list.d/llvm.list
-        sudo apt update
-        sudo apt install -y ${{ matrix.config.cc }}
-
-        if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
-          sudo apt install -y \
-            "libclang-rt-${clang_version}-dev" \
-            "libc++-${clang_version}-dev" \
-            "libc++abi-${clang_version}-dev" \
-            "clang-tools-${clang_version}"
-        fi
+    - name: Set up Linux compiler
+      if: ${{ runner.os == 'Linux' }}
+      uses: ./.github/actions/setup-linux-compiler
+      with:
+        compiler: ${{ matrix.config.compiler }}
+        stdlib: ${{ matrix.config.stdlib }}
 
     - name: Install Clang on macOS
       if: ${{ startsWith(matrix.config.os, 'macos') }}
-      run: |
-        brew install llvm@22 ninja
-        llvm_prefix="$(brew --prefix llvm@22)"
-        echo "${llvm_prefix}/bin" >> "${GITHUB_PATH}"
-        echo "CC=${llvm_prefix}/bin/clang" >> "${GITHUB_ENV}"
-        echo "CXX=${llvm_prefix}/bin/clang++" >> "${GITHUB_ENV}"
-
-    - name: Install GCC
-      if: ${{ startsWith(matrix.config.cc, 'gcc') }}
-      run: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-        sudo apt update
-        sudo apt install -y ${{ matrix.config.cxx }}
+      uses: ./.github/actions/timed-run
+      with:
+        name: Install Clang on macOS
+        run: |
+          compiler="${{ matrix.config.compiler }}"
+          llvm_formula="llvm@${compiler#clang-}"
+          if ! brew list --versions "$llvm_formula" > /dev/null 2>&1; then
+            brew install --skip-link "$llvm_formula"
+          fi
+          if ! command -v ninja > /dev/null 2>&1; then
+            brew install ninja
+          fi
+          llvm_prefix="$(brew --prefix "$llvm_formula")"
+          echo "${llvm_prefix}/bin" >> "${GITHUB_PATH}"
+          echo "CC=${llvm_prefix}/bin/clang" >> "${GITHUB_ENV}"
+          echo "CXX=${llvm_prefix}/bin/clang++" >> "${GITHUB_ENV}"
 
     - name: Install pinned CMake
-      run: python3 -m pip install cmake==${{ matrix.config.cmake }} --break-system-packages
+      uses: ./.github/actions/timed-run
+      with:
+        name: Install pinned CMake
+        run: python3 -m pip install cmake==${{ matrix.config.cmake }} --break-system-packages
 
     - name: Configure
-      run: |
-        stdlib_options=()
-        if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
-          stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
-        elif [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
-          stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
-        fi
+      uses: ./.github/actions/timed-run
+      with:
+        name: Configure
+        run: |
+          stdlib_options=()
+          if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
+            stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
+          elif [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
+            stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
+          fi
 
-        import_std_options=()
-        if [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
-          import_std_options=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
-        fi
+          import_std_options=()
+          if [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
+            import_std_options=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
+          fi
 
-        for build_type in ${{ matrix.config.build_types }}; do
-          build_dir="build-${build_type}"
-          cmake -S . -B "${build_dir}" -G Ninja \
-            -DCMAKE_BUILD_TYPE="${build_type}" \
-            -DCMAKE_CXX_STANDARD=${{ matrix.config.standard }} \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DCMAKE_CXX_EXTENSIONS=OFF \
-            -DMAGIC_ENUM_USE_MODULES=ON \
-            -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.config.import_std }} \
-            -DMAGIC_ENUM_MODULE_WITH_FMT=OFF \
-            "${stdlib_options[@]}" \
-            "${import_std_options[@]}"
-        done
+          for build_type in ${{ matrix.config.build_types }}; do
+            build_dir="build-${build_type}"
+            cmake -S . -B "${build_dir}" -G Ninja \
+              -DCMAKE_BUILD_TYPE="${build_type}" \
+              -DCMAKE_CXX_STANDARD=${{ matrix.config.standard }} \
+              -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+              -DCMAKE_CXX_EXTENSIONS=OFF \
+              -DMAGIC_ENUM_USE_MODULES=ON \
+              -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.config.import_std }} \
+              -DMAGIC_ENUM_MODULE_WITH_FMT=OFF \
+              "${stdlib_options[@]}" \
+              "${import_std_options[@]}"
+          done
+
+    - uses: ./.github/actions/build-summary
+      with:
+        build-dir: build-${{ endsWith(matrix.config.build_types, 'Debug') && 'Debug' || 'Release' }}
 
     - name: Build
-      run: |
-        if [[ "${RUNNER_OS}" == "macOS" ]]; then
-          parallel_jobs="$(sysctl -n hw.logicalcpu)"
-        else
-          parallel_jobs="$(nproc)"
-        fi
-        for build_type in ${{ matrix.config.build_types }}; do
-          module_suffix="cpp${{ matrix.config.standard }}"
-          module_targets=(
-            magic_enum_module
-            example_module_usage
-            "test_module-${module_suffix}"
-          )
-          if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
-            module_targets+=(
-              "test_module_aliases-${module_suffix}"
-              "test_module_wchar_t-${module_suffix}"
-            )
+      uses: ./.github/actions/timed-run
+      with:
+        name: Build
+        run: |
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            parallel_jobs="$(sysctl -n hw.logicalcpu)"
+          else
+            parallel_jobs="$(nproc)"
           fi
-          cmake --build "build-${build_type}" \
-            --parallel "${parallel_jobs}" \
-            --config "${build_type}" \
-            --target "${module_targets[@]}"
-        done
+          for build_type in ${{ matrix.config.build_types }}; do
+            module_suffix="cpp${{ matrix.config.standard }}"
+            module_targets=(
+              magic_enum_module
+              example_module_usage
+              "test_module-${module_suffix}"
+            )
+            if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
+              module_targets+=(
+                "test_module_aliases-${module_suffix}"
+                "test_module_wchar_t-${module_suffix}"
+              )
+            fi
+            cmake --build "build-${build_type}" \
+              --parallel "${parallel_jobs}" \
+              --config "${build_type}" \
+              --target "${module_targets[@]}"
+          done
 
     - name: Test
-      run: |
-        for build_type in ${{ matrix.config.build_types }}; do
-          module_suffix="cpp${{ matrix.config.standard }}"
-          module_test_pattern="test_module-${module_suffix}"
-          if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
-            module_test_pattern="test_module(_aliases|_wchar_t)?-${module_suffix}"
-          fi
-          module_tests="^(${module_test_pattern}|install-module-to-stagedir|installed-module-consumer)$"
-          ctest \
-            --test-dir "build-${build_type}" \
-            --output-on-failure \
-            --no-tests=error \
-            -C "${build_type}" \
-            -R "${module_tests}"
-        done
+      uses: ./.github/actions/timed-run
+      with:
+        name: Test
+        run: |
+          for build_type in ${{ matrix.config.build_types }}; do
+            module_suffix="cpp${{ matrix.config.standard }}"
+            module_test_pattern="test_module-${module_suffix}"
+            if [[ "${{ matrix.config.custom_configs }}" == "TRUE" ]]; then
+              module_test_pattern="test_module(_aliases|_wchar_t)?-${module_suffix}"
+            fi
+            module_tests="^(${module_test_pattern}|install-module-to-stagedir|installed-module-consumer)$"
+            ctest \
+              --test-dir "build-${build_type}" \
+              --output-on-failure \
+              --no-tests=error \
+              -C "${build_type}" \
+              -R "${module_tests}"
+          done
