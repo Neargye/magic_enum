@@ -40,7 +40,7 @@
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #  pragma warning(push)
-#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#  pragma warning(disable : 4459 6244) // Local names can match global names in user code.
 #endif
 
 namespace magic_enum {

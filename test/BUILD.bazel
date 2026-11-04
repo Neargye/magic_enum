@@ -17,7 +17,7 @@ _COPTS = select({
 })
 [cc_test(
     name = test,
-    srcs = ["{}.cpp".format(test), "aliases.hpp", "test_enums.hpp", "test_fixed_string.hpp", "test_flags_enums.hpp", "test_helpers.hpp"],
+    srcs = ["{}.cpp".format(test), "aliases.hpp", "test_enums.hpp", "magic_enum_test_config.hpp", "test_fixed_string.hpp", "test_flags_enums.hpp", "test_helpers.hpp"],
     deps = ["@magic_enum", ":doctest"],
     copts = _COPTS,
 ) for test in _TESTS]

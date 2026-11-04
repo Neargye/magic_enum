@@ -13,6 +13,7 @@ int size = 0;
 int first = 0;
 int last = 0;
 
+#include "magic_enum_test_config.hpp"
 #include <magic_enum/magic_enum_all.hpp>
 
 #include <sstream>

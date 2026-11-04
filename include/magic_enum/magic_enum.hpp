@@ -97,7 +97,7 @@
 #  pragma warning(push)
 #  pragma warning(disable : 28020) // MSVC analyzer loses constexpr array bounds in template instantiations.
 #  pragma warning(disable : 4514) // Unreferenced inline function has been removed.
-#  pragma warning(disable : 4459) // Local names can match global names in user code.
+#  pragma warning(disable : 4459 6244) // Local names can match global names in user code.
 #  pragma warning(disable : 6262) // Large scan buffers are only used during constant evaluation.
 #  pragma warning(disable : 6326) // Compile-time metadata intentionally compares constants.
 #endif

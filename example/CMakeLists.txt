@@ -12,7 +12,7 @@ endif()
 
 function(magic_enum_add_example target library standard)
   add_executable(${target} ${target}.cpp)
-  set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
+  set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF CXX_SCAN_FOR_MODULES OFF)
   target_compile_features(${target} PRIVATE cxx_std_${standard})
   target_compile_options(${target} PRIVATE ${MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS})
   target_link_libraries(${target} PRIVATE ${library})

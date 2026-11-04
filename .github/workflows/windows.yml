@@ -26,37 +26,52 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: windows-2022,   compiler: "msvc",      toolset: "",      platforms: [x64, Win32], build_types: [Release, Debug], clr: true }
-        - { os: windows-2025,   compiler: "msvc",      toolset: "",      platforms: [x64, Win32], build_types: [Release, Debug], analyze: true }
-        - { os: windows-2022,   compiler: "msvc-v142", toolset: v142,    platforms: [x64, Win32], build_types: [Release] }
-        - { os: windows-2025,   compiler: "clang-cl",  toolset: ClangCL, platforms: [x64, Win32], build_types: [Release] }
-        - { os: windows-11-arm, compiler: "msvc",      toolset: "",      platforms: [ARM64],      build_types: [Release, Debug], clr: true }
+        - { os: windows-2022, compiler: "", platform: x64, build_type: Release, clr: true }
+        - { os: windows-2022, compiler: "", platform: x64, build_type: Debug }
+        - { os: windows-2022, compiler: "", platform: Win32, build_type: Release }
+        - { os: windows-2022, compiler: "", platform: Win32, build_type: Debug }
+        - { os: windows-2025, compiler: "", platform: x64, build_type: Release }
+        - { os: windows-2025, compiler: "", platform: x64, build_type: Debug }
+        - { os: windows-2025, compiler: "", platform: Win32, build_type: Release }
+        - { os: windows-2025, compiler: "", platform: Win32, build_type: Debug }
+        - { os: windows-2022, compiler: "v142", platform: x64, build_type: Release }
+        - { os: windows-2022, compiler: "v142", platform: Win32, build_type: Release }
+        - { os: windows-2025, compiler: "ClangCL", platform: x64, build_type: Release }
+        - { os: windows-2025, compiler: "ClangCL", platform: Win32, build_type: Release }
+        - { os: windows-11-arm, compiler: "", platform: ARM64, build_type: Release, clr: true }
+        - { os: windows-11-arm, compiler: "", platform: ARM64, build_type: Debug }
 
-    name: "${{ matrix.config.compiler }} (${{ matrix.config.os }})"
+    name: "${{ matrix.config.os }} / ${{ matrix.config.platform }} / ${{ matrix.config.build_type }}${{ matrix.config.compiler && format(' / {0}', matrix.config.compiler) || '' }}"
     steps:
     - uses: actions/checkout@v7
 
-    - name: Build and test
-      run: |
-        $PSNativeCommandUseErrorActionPreference = $true # Stop on the first failing command.
-        foreach ($platform in "${{ join(matrix.config.platforms, ' ') }}" -split ' ') {
-          cmake -S . -B "build-$platform" -A $platform -T "${{ matrix.config.toolset }}"
-          foreach ($buildType in "${{ join(matrix.config.build_types, ' ') }}" -split ' ') {
-            Write-Output "::group::$platform / $buildType"
-            cmake --build "build-$platform" --parallel --config $buildType
-            ctest --test-dir "build-$platform" --parallel $env:NUMBER_OF_PROCESSORS --output-on-failure --no-tests=error -C $buildType
-            Write-Output "::endgroup::"
-          }
-        }
+    - name: Configure
+      run: cmake -S . -B build -A ${{ matrix.config.platform }} -T "${{ matrix.config.compiler }}"
+
+    - uses: ./.github/actions/cmake-test
+      with:
+        build-type: ${{ matrix.config.build_type }}
 
     - name: Build C++/CLI smoke test
       if: ${{ matrix.config.clr }}
-      run: cmake --build build-${{ matrix.config.platforms[0] }} --parallel --target test_clr --config Release
+      run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS --target test_clr --config Release
+
+  analyze:
+    name: MSVC code analysis
+    timeout-minutes: 30
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+    - uses: actions/checkout@v7
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
 
     - name: Code analysis
-      if: ${{ matrix.config.analyze }}
       run: |
         $PSNativeCommandUseErrorActionPreference = $true
-        # Setting CMAKE_CXX_FLAGS replaces the default flags, so repeat them.
-        cmake -S . -B build-analyze -A ${{ matrix.config.platforms[0] }} "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /analyze"
-        cmake --build build-analyze --parallel --config Release
+        # Analyze our code, not the STL and Windows SDK from INCLUDE.
+        cmake -S . -B build-analyze -A x64 "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /analyze /external:env:INCLUDE /external:W0 /analyze:external-"
+        cmake --build build-analyze --parallel $env:NUMBER_OF_PROCESSORS --config Release

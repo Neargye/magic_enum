@@ -9,9 +9,7 @@
 #  error test_enums.hpp must be included before magic_enum.hpp.
 #endif
 
-#define MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
-#define MAGIC_ENUM_RANGE_MIN -120
-#define MAGIC_ENUM_RANGE_MAX 120
+#include "magic_enum_test_config.hpp"
 #include <magic_enum/magic_enum.hpp>
 
 #include <cstdint>

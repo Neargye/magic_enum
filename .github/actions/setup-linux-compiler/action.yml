@@ -1,0 +1,41 @@
+name: Set up Linux compiler
+description: Install the requested GCC or Clang and set CC and CXX.
+inputs:
+  compiler:
+    description: Versioned compiler, for example gcc-16 or clang-23
+    required: true
+runs:
+  using: composite
+  steps:
+  - name: Set up compiler
+    shell: bash
+    env:
+      CC: ${{ inputs.compiler }}
+    run: |
+      case "$CC" in
+        gcc-*) CXX="g++-${CC#gcc-}" ;;
+        clang-*) CXX="clang++-${CC#clang-}" ;;
+        *) echo "Unsupported compiler: $CC" >&2; exit 1 ;;
+      esac
+      if ! command -v "$CXX" > /dev/null 2>&1; then
+        case "$CC" in
+          clang-*)
+            wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/llvm-archive-keyring.gpg > /dev/null
+            clang_version="${CC#clang-}"
+            ubuntu_codename="$(lsb_release -cs)"
+            echo "deb [signed-by=/etc/apt/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${ubuntu_codename}/ llvm-toolchain-${ubuntu_codename}-${clang_version} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+            sudo apt-get update
+            sudo apt-get install -y "$CC"
+            ;;
+          gcc-*)
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+            sudo apt-get update
+            sudo apt-get install -y "$CXX"
+            ;;
+        esac
+      fi
+      echo "CC=$CC" >> "$GITHUB_ENV"
+      echo "CXX=$CXX" >> "$GITHUB_ENV"
+      compiler="$("$CXX" --version | head -n 1)"
+      echo "::notice title=Compiler::$compiler"
+      echo "**Compiler:** $compiler" >> "$GITHUB_STEP_SUMMARY"

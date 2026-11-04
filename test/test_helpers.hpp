@@ -39,6 +39,17 @@ struct RvalueOnlyArgument {
   int operator()(T&) const = delete;
 };
 
+template <typename String>
+void require_text(const String& value, const typename String::value_type* expected) {
+  using char_type = typename String::value_type;
+
+  const auto expected_size = std::char_traits<char_type>::length(expected);
+  REQUIRE(value.size() == expected_size);
+  for (std::size_t i = 0; i < expected_size; ++i) {
+    REQUIRE(value[i] == expected[i]);
+  }
+}
+
 template <typename View>
 void require_null_terminated(View value) {
   using char_type = typename View::value_type;
@@ -49,15 +60,8 @@ void require_null_terminated(View value) {
 
 template <typename View>
 void require_null_terminated(View value, const typename View::value_type* expected) {
-  using char_type = typename View::value_type;
-
   require_null_terminated(value);
-
-  const auto expected_size = std::char_traits<char_type>::length(expected);
-  REQUIRE(value.size() == expected_size);
-  for (std::size_t i = 0; i < expected_size; ++i) {
-    REQUIRE(value[i] == expected[i]);
-  }
+  require_text(value, expected);
 }
 
 template <typename String>
@@ -70,15 +74,8 @@ void require_c_str_null_terminated(const String& value) {
 
 template <typename String>
 void require_c_str_null_terminated(const String& value, const typename String::value_type* expected) {
-  using char_type = typename String::value_type;
-
   require_c_str_null_terminated(value);
-
-  const auto expected_size = std::char_traits<char_type>::length(expected);
-  REQUIRE(value.size() == expected_size);
-  for (std::size_t i = 0; i < expected_size; ++i) {
-    REQUIRE(value[i] == expected[i]);
-  }
+  require_text(value, expected);
 }
 
 template <typename Value, typename Char>

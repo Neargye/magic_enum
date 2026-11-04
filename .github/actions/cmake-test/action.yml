@@ -1,0 +1,26 @@
+name: Build and test with CMake
+description: Build a configured CMake tree and run its tests.
+inputs:
+  build-dir:
+    description: Configured build directory
+    default: build
+  build-type:
+    description: Build configuration
+    default: Release
+runs:
+  using: composite
+  steps:
+  - name: Build and test
+    shell: bash
+    env:
+      BUILD_DIR: ${{ inputs.build-dir }}
+      BUILD_TYPE: ${{ inputs.build-type }}
+    run: |
+      case "$RUNNER_OS" in
+        Windows) parallel_jobs="$NUMBER_OF_PROCESSORS" ;;
+        macOS) parallel_jobs="$(sysctl -n hw.logicalcpu)" ;;
+        Linux) parallel_jobs="$(nproc)" ;;
+        *) echo "Unsupported runner: $RUNNER_OS" >&2; exit 1 ;;
+      esac
+      cmake --build "$BUILD_DIR" --parallel "$parallel_jobs" --config "$BUILD_TYPE"
+      ctest --test-dir "$BUILD_DIR" --parallel "$parallel_jobs" --output-on-failure --no-tests=error -C "$BUILD_TYPE"

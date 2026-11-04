@@ -8,6 +8,9 @@ endif()
 if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(magic_enum REQUIRED IMPORTED_TARGET magic_enum)
+  set(MAGIC_ENUM_TEST_LIBRARY PkgConfig::magic_enum)
+else()
+  set(MAGIC_ENUM_TEST_LIBRARY magic_enum::magic_enum)
 endif()
 
 set(MAGIC_ENUM_TEST_STANDARDS 20 23 26)
@@ -129,11 +132,12 @@ if(MAGIC_ENUM_TEST_REQUIRE_FMT)
   target_compile_definitions(magic_enum_test_options INTERFACE MAGIC_ENUM_TEST_REQUIRE_FMT)
 endif()
 
-function(magic_enum_make_test src target standard_flag)
-  add_executable(${target} ${src})
+function(magic_enum_make_test sources target standard_flag)
+  add_executable(${target} ${sources})
   set(test_targets ${target})
 
-  get_filename_component(test_name "${src}" NAME_WE)
+  list(GET sources 0 primary_source)
+  get_filename_component(test_name "${primary_source}" NAME_WE)
   if(test_name IN_LIST MAGIC_ENUM_DOCTEST_SOURCES)
     string(REPLACE "c++" "cpp" doctest_suffix "${standard_flag}")
     set(doctest_target test_doctest-${doctest_suffix})
@@ -147,7 +151,7 @@ function(magic_enum_make_test src target standard_flag)
     target_link_libraries(${target} PRIVATE ${doctest_target})
   endif()
 
-  set_target_properties(${test_targets} PROPERTIES CXX_EXTENSIONS OFF)
+  set_target_properties(${test_targets} PROPERTIES CXX_EXTENSIONS OFF CXX_SCAN_FOR_MODULES OFF)
   if(standard_flag MATCHES "^c\\+\\+(17|20|23)$")
     set_target_properties(${test_targets} PROPERTIES CXX_STANDARD "${CMAKE_MATCH_1}" CXX_STANDARD_REQUIRED ON)
   else()
@@ -157,11 +161,7 @@ function(magic_enum_make_test src target standard_flag)
   endif()
 
   target_link_libraries(${target} PRIVATE magic_enum_test_options)
-  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
-    target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
-  else()
-    target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
-  endif()
+  target_link_libraries(${target} PRIVATE ${MAGIC_ENUM_TEST_LIBRARY})
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
@@ -184,23 +184,28 @@ function(magic_enum_make_compile_fail_test category case_name case_id expected_t
   endif()
   string(TOUPPER "${category}" case_prefix)
   target_compile_definitions(${target} PRIVATE MAGIC_ENUM_${case_prefix}_COMPILE_FAIL_CASE=${case_id} ${ARGN})
-  if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
-    target_link_libraries(${target} PRIVATE PkgConfig::magic_enum)
-  else()
-    target_link_libraries(${target} PRIVATE magic_enum::magic_enum)
-  endif()
-  set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
+  target_link_libraries(${target} PRIVATE ${MAGIC_ENUM_TEST_LIBRARY})
+  set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF CXX_SCAN_FOR_MODULES OFF)
 
+  set(compile_commands)
+  if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles" AND NOT CMAKE_CONFIGURATION_TYPES)
+    # Reuse CMake's exact compiler flags without concurrent builds of the same tree.
+    set_target_properties(${target} PROPERTIES EXPORT_COMPILE_COMMANDS ON)
+    set(compile_commands "${CMAKE_BINARY_DIR}/compile_commands.json")
+  endif()
   add_test(
     NAME ${target}
     COMMAND ${CMAKE_COMMAND}
       "-DBUILD_DIR=${CMAKE_BINARY_DIR}"
+      "-DCOMPILE_COMMANDS=${compile_commands}"
       "-DTARGET_NAME=${target}"
       "-DCONFIG=$<CONFIG>"
       "-DEXPECTED_TEXT=${expected_text}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/check_compile_fail.cmake"
   )
-  set_tests_properties(${target} PROPERTIES RUN_SERIAL TRUE)
+  if(NOT compile_commands)
+    set_tests_properties(${target} PROPERTIES RUN_SERIAL TRUE)
+  endif()
 endfunction()
 
 function(magic_enum_make_module_test src target module_target)
@@ -669,32 +674,25 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     )
   endforeach()
 
-  set(reflection_test test_std_reflection-auto-cpp26)
-  magic_enum_make_test(test_reflection.cpp ${reflection_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
-  magic_enum_add_std_reflection_options(${reflection_test})
-  target_compile_definitions(${reflection_test} PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
+  foreach(backend IN ITEMS std-reflection force-compiler-specific)
+    if(backend STREQUAL "std-reflection")
+      set(backend_definition MAGIC_ENUM_TEST_STD_REFLECTION=1)
+      set(reflection_test test_std_reflection-auto-cpp26)
+    else()
+      set(backend_definition MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1)
+      set(reflection_test test_std_reflection-${backend}-cpp26)
+    endif()
+    magic_enum_make_test(test_reflection.cpp ${reflection_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+    magic_enum_add_std_reflection_options(${reflection_test})
+    target_compile_definitions(${reflection_test} PRIVATE ${backend_definition})
 
-  set(reflection_test test_std_reflection-force-compiler-specific-cpp26)
-  magic_enum_make_test(test_reflection.cpp ${reflection_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
-  magic_enum_add_std_reflection_options(${reflection_test})
-  target_compile_definitions(${reflection_test} PRIVATE MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1)
-
-  foreach(character_width IN ITEMS 8 16 32)
-    set(character_test test_character_type-char${character_width}-std-reflection-cpp26)
-    magic_enum_make_test(test_character_types.cpp ${character_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
-    magic_enum_add_std_reflection_options(${character_test})
-    target_compile_definitions(${character_test} PRIVATE
-      MAGIC_ENUM_TEST_CHARACTER_WIDTH=${character_width}
-      MAGIC_ENUM_TEST_STD_REFLECTION=1
-    )
-
-    set(character_test test_character_type-char${character_width}-force-compiler-specific-cpp26)
-    magic_enum_make_test(test_character_types.cpp ${character_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
-    magic_enum_add_std_reflection_options(${character_test})
-    target_compile_definitions(${character_test} PRIVATE
-      MAGIC_ENUM_TEST_CHARACTER_WIDTH=${character_width}
-      MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
-    )
+    foreach(character_width IN ITEMS 8 16 32)
+      set(character_test test_character_type-char${character_width}-${backend}-cpp26)
+      magic_enum_make_test(test_character_types.cpp ${character_test} ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+      magic_enum_add_std_reflection_options(${character_test})
+      target_compile_definitions(${character_test} PRIVATE
+        MAGIC_ENUM_TEST_CHARACTER_WIDTH=${character_width} ${backend_definition})
+    endforeach()
   endforeach()
 
   magic_enum_make_compile_fail_test(
@@ -709,37 +707,25 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     4
     "magic_enum requires a complete enum definition"
   )
-  magic_enum_make_compile_fail_test(
-    reflection
-    invalid-prefix-equal-standard
-    2
-    "magic_enum::customize requires valid prefix length"
-  )
-  magic_enum_make_compile_fail_test(
-    reflection
-    invalid-prefix-greater-standard
-    3
-    "magic_enum::customize requires valid prefix length"
-  )
-  magic_enum_make_compile_fail_test(
-    reflection
-    invalid-prefix-equal-compiler-specific
-    2
-    "magic_enum::customize requires valid prefix length"
-    MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
-  )
-  magic_enum_make_compile_fail_test(
-    reflection
-    invalid-prefix-greater-compiler-specific
-    3
-    "magic_enum::customize requires valid prefix length"
-    MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1
-  )
   foreach(backend IN ITEMS standard compiler-specific)
     set(customization_definitions)
     if(backend STREQUAL "compiler-specific")
       list(APPEND customization_definitions MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1)
     endif()
+    magic_enum_make_compile_fail_test(
+      reflection
+      invalid-prefix-equal-${backend}
+      2
+      "magic_enum::customize requires valid prefix length"
+      ${customization_definitions}
+    )
+    magic_enum_make_compile_fail_test(
+      reflection
+      invalid-prefix-greater-${backend}
+      3
+      "magic_enum::customize requires valid prefix length"
+      ${customization_definitions}
+    )
     magic_enum_make_compile_fail_test(
       reflection
       custom-name-empty-${backend}
