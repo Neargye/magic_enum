@@ -186,7 +186,7 @@ constexpr R switch_page(F&& f, switch_t<E> value, Def&& def) {
 #undef MAGIC_ENUM_SWITCH_CASE
 
 template <typename R, typename E, enum_subtype S, typename F, typename Def>
-constexpr decltype(auto) value_switch(F&& f, E value, Def&& def) {
+constexpr decltype(auto) value_switch(F&& f, [[maybe_unused]] E value, Def&& def) {
   if constexpr (count_v<E, S> == 0) {
     return def();
   } else {

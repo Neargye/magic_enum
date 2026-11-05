@@ -242,6 +242,20 @@ TEST_CASE("signed flags include the sign bit") {
   CHECK(enum_flags_name(static_cast<Int64Flags>(std::numeric_limits<std::int64_t>::min() + 1)) == "High|Low");
 }
 
+TEST_CASE("unfixed flags reach the top bit of their range") {
+  // The ranges are [0, 2^31 - 1] and [-2^30, 2^30 - 1], below the limits of the underlying type.
+  enum UnfixedHigh { UH_Low = 1, UH_High = 1 << 30 };
+  enum UnfixedSigned { US_Neg = -1, US_Low = 1, US_High = 1 << 29 };
+  constexpr auto flags = as_flags<true>;
+
+  static_assert(enum_count<UnfixedHigh, flags>() == 2);
+  static_assert(enum_values<UnfixedHigh, flags>()[1] == UH_High);
+  static_assert(enum_count<UnfixedSigned, flags>() == 2);
+  static_assert(enum_values<UnfixedSigned, flags>()[1] == US_High);
+  CHECK(enum_flags_name(UH_High) == "UH_High");
+  CHECK(enum_flags_name(static_cast<UnfixedSigned>(US_Low | US_High)) == "US_Low|US_High");
+}
+
 TEST_CASE("flags name with a custom String") {
   using Name = FixedString<16>;
   static_assert(std::is_same_v<decltype(enum_flags_name(Color::RED)), std::string>);

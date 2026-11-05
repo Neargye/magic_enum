@@ -34,6 +34,9 @@ enum class Extreme : long long {
   Min = (std::numeric_limits<long long>::min)(),
   Max = (std::numeric_limits<long long>::max)(),
 };
+// Switch padding reaches both limits of the type.
+enum class NearMax : std::uint32_t { A = 1, B = 2, Invalid = 0xFFFFFFFFu };
+enum class NearLimits : int { Low = (std::numeric_limits<int>::min)() + 1, High = (std::numeric_limits<int>::max)() };
 
 namespace hostile_enum_comparison {
 
@@ -182,6 +185,13 @@ TEST_CASE("canonical common-enum behavior") {
   static_assert(!magic_enum::enum_cast<Extreme>((std::numeric_limits<long long>::min)() + 1).has_value());
   static_assert(!magic_enum::enum_contains(static_cast<Extreme>(0)));
   static_assert(magic_enum::enum_switch([](auto v) { return magic_enum::enum_integer(v()); }, Extreme::Max, 0LL) == (std::numeric_limits<long long>::max)());
+  static_assert(magic_enum::enum_index(NearMax::Invalid) == 2);
+  static_assert(magic_enum::enum_name(NearMax::Invalid) == "Invalid");
+  static_assert(magic_enum::enum_cast<NearMax>(0xFFFFFFFFu) == NearMax::Invalid);
+  static_assert(!magic_enum::enum_cast<NearMax>(0u).has_value());
+  static_assert(magic_enum::enum_switch([](auto v) { return magic_enum::enum_integer(v()); }, NearMax::Invalid, 0u) == 0xFFFFFFFFu);
+  static_assert(magic_enum::enum_index(NearLimits::High) == 1);
+  static_assert(magic_enum::enum_cast<NearLimits>((std::numeric_limits<int>::max)()) == NearLimits::High);
 #else
   static_assert(!magic_enum::enum_reflected<Unfixed>((std::numeric_limits<UnfixedUnderlying>::max)()));
   static_assert(magic_enum::enum_values<Sparse>() == std::array{Sparse::InRange});

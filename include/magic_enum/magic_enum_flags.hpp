@@ -34,7 +34,10 @@
 
 #include "magic_enum.hpp"
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // False positive on `return {};` for optional.
+#elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable : 4459 6244) // Local names can match global names in user code.
 #endif
@@ -215,7 +218,9 @@ template <typename E>
 
 } // namespace magic_enum
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
 #  pragma warning(pop)
 #endif
 

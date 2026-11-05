@@ -93,6 +93,7 @@
 #elif defined(__GNUC__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion" // Scanning casts candidates outside the value range of unscoped enums without a fixed underlying type.
+#  pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // False positive on `return {};` for optional.
 #elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable : 28020) // MSVC analyzer loses constexpr array bounds in template instantiations.
@@ -774,8 +775,9 @@ MAGIC_ENUM_CONSTEVAL auto signature_names(cname_ref sig) noexcept {
       return result;
     }
     // Unnamed values are casts like `(E)1`, `(enum E)0x1` or `((anonymous namespace)::E)1`.
+    // A top-level `::` means a name. MSVC prints a value of an enum local to `operator-` as `-::E::A`.
     const char c = str[begin];
-    if ((c != '(' || name != begin) && c != '-' && (c < '0' || c > '9')) {
+    if (name != begin || (c != '(' && c != '-' && (c < '0' || c > '9'))) {
       result.names[k] = {str + name, i - name};
       ++result.count;
     }
@@ -1037,7 +1039,7 @@ MAGIC_ENUM_CONSTEVAL bool batch_supported() noexcept {
 template <typename E, int K = 1, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL U unfixed_max() noexcept {
   if constexpr (K == std::numeric_limits<U>::digits) {
-    return (std::numeric_limits<U>::max)();
+    return is_valid_custom_value_v<E, (std::numeric_limits<U>::max)()> ? (std::numeric_limits<U>::max)() : static_cast<U>((U{1} << (K - 1)) - 1);
   } else if constexpr (is_valid_custom_value_v<E, static_cast<U>((U{1} << K) - 1)>) {
     return unfixed_max<E, K + 1>();
   } else {
@@ -1648,10 +1650,10 @@ MAGIC_ENUM_CONSTEVAL void fill_cases(std::array<T, Size>& cases, std::size_t cou
   for (; i < Size && min > (std::numeric_limits<T>::min)(); ++i) {
     cases[i] = --min;
   }
-  // Only reachable when the page has values at both limits of the type.
+  // Only reachable when the labels reach both limits of the type, so skip real cases and placed labels.
   for (T v = (std::numeric_limits<T>::min)(); i < Size; ++v) {
     bool used = false;
-    for (std::size_t j = 0; j < count; ++j) {
+    for (std::size_t j = 0; j < i; ++j) {
       used = used || cases[j] == v;
     }
     if (!used) {
@@ -1751,7 +1753,7 @@ inline constexpr auto flag_indices_v = flag_indices<E>();
 
 // Returns count_v if not found.
 template <typename E, enum_subtype S>
-constexpr std::size_t index_of(std::underlying_type_t<E> value) noexcept {
+constexpr std::size_t index_of([[maybe_unused]] std::underlying_type_t<E> value) noexcept {
   using V = make_unsigned_t<std::underlying_type_t<E>>;
   if constexpr (count_v<E, S> == 0) {
     return count_v<E, S>;

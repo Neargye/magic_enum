@@ -294,9 +294,12 @@ foreach(case_name IN ITEMS set-key set-plain-key from-mask bitset-mask bitset-na
   add_test(NAME test_containers_no_exceptions-${case_name}-cpp17 COMMAND test_containers_no_exceptions-cpp17 ${case_name})
   set_tests_properties(test_containers_no_exceptions-${case_name}-cpp17 PROPERTIES PASS_REGULAR_EXPRESSION "magic_enum::containers aborted")
 endforeach()
-magic_enum_make_test(test_nonascii.cpp test_nonascii-cpp17 c++17)
-if(MSVC)
-  target_compile_options(test_nonascii-cpp17 PRIVATE /utf-8)
+# GCC supports UTF-8 identifiers since version 10.
+if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10))
+  magic_enum_make_test(test_nonascii.cpp test_nonascii-cpp17 c++17)
+  if(MSVC)
+    target_compile_options(test_nonascii-cpp17 PRIVATE /utf-8)
+  endif()
 endif()
 magic_enum_make_compile_fail_test(
   configuration

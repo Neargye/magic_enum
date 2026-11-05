@@ -1329,6 +1329,20 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_flags_v<int>);
 }
 
+struct MinusOperand {};
+
+// MSVC prints a value of an enum local to a global operator- as `-::E::A`.
+int operator-(MinusOperand, int) {
+  enum class MinusLocal { A, B, C };
+  static_assert(enum_count<MinusLocal>() == 3);
+  static_assert(enum_name(MinusLocal::B) == "B");
+  return 0;
+}
+
+TEST_CASE("enum local to a global operator-") {
+  REQUIRE((MinusOperand{} - 1) == 0);
+}
+
 TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<Color&>() == "Color");
   REQUIRE(enum_type_name<const Numbers>() == "Numbers");
