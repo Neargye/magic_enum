@@ -696,6 +696,9 @@ template <typename E, typename... Ts>
 
 inline constexpr detail::raw_access_t raw_access{};
 
+template <typename E, typename Cmp>
+class set;
+
 template <typename E, typename Index = default_indexing<E>>
 class bitset {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::bitset requires enum type.");
@@ -1191,8 +1194,9 @@ class bitset {
     return true;
   }
 
+  // Qualified, because nvcc with an MSVC host finds the set() member first.
   template <typename, typename>
-  friend class set;
+  friend class containers::set;
 
   // Index of the first set bit at or after i, or the bit count.
   [[nodiscard]] constexpr std::size_t next_set_bit(std::size_t i) const noexcept {

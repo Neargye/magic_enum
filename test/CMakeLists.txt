@@ -40,6 +40,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22.0")
     list(APPEND MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wno-c2y-extensions)
   endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
+  set(MAGIC_ENUM_TEST_FLAG_PREFIX -std=)
 endif()
 
 foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
@@ -243,6 +245,16 @@ set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators test_operators_other.cpp)
 # Suites with name lookup or switch paths that MAGIC_ENUM_ENABLE_HASH changes.
 set(MAGIC_ENUM_TEST_HASH_SOURCES test test_flags test_switch test_operators)
 set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection)
+
+# nvc++ cannot reflect enums declared inside functions, which the other suites use.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
+  list(APPEND MAGIC_ENUM_DOCTEST_SOURCES test_nvcc)
+  magic_enum_make_test(test_nvcc.cpp test_nvcc-cpp17 c++17)
+  if(MAGIC_ENUM_HAS_CPP20_FLAG)
+    magic_enum_make_test(test_nvcc.cpp test_nvcc-cpp20 c++20)
+  endif()
+  return()
+endif()
 
 function(magic_enum_add_tests suffix standard_flag)
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)

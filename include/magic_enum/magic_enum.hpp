@@ -110,6 +110,10 @@
 #  define MAGIC_ENUM_SUPPORTED 1
 #endif
 
+#if !defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION) && (defined(__NVCOMPILER) || defined(__NVCC__))
+#  define MAGIC_ENUM_DETAIL_NVCC 1
+#endif
+
 // Enum value must be greater or equals than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
 // If need another min range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN.
 #if !defined(MAGIC_ENUM_RANGE_MIN)
@@ -513,9 +517,34 @@ MAGIC_ENUM_CONSTEVAL cname_ref unqualified(cname_ref name) noexcept {
   return name;
 }
 
+#if defined(MAGIC_ENUM_DETAIL_NVCC)
+MAGIC_ENUM_CONSTEVAL cname_ref nvcc_signature_name(const char* str, std::size_t size) noexcept {
+#  if defined(_MSC_VER)
+  // The name is the only template argument, between the first '<' and `>(void)`.
+  std::size_t i = 0;
+  while (str[i++] != '<') {
+  }
+  std::size_t e = size - 1;
+  while (str[e] != '(') {
+    --e;
+  }
+  return {str + i, e - 1 - i};
+#  else
+  // The name follows the last '='.
+  std::size_t i = size - 1;
+  while (str[i - 1] != '=') {
+    --i;
+  }
+  return {str + i + 1, size - i - 2};
+#  endif
+}
+#endif
+
 // Parsed outside n() to keep each instantiation small.
 MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* str, [[maybe_unused]] std::size_t size) noexcept {
-#if defined(__clang__)
+#if defined(MAGIC_ENUM_DETAIL_NVCC) && !defined(_MSC_VER)
+  return nvcc_signature_name(str, size);
+#elif defined(__clang__)
   return {str + 34, size - 35};
 #elif defined(__GNUC__)
   return str[size - 1] == ']' ? cname_ref{str + 49, size - 50} : cname_ref{str + 37, size - 40};
@@ -528,7 +557,10 @@ MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* 
 }
 
 MAGIC_ENUM_CONSTEVAL cname_ref enum_signature_name([[maybe_unused]] const char* str, [[maybe_unused]] std::size_t size) noexcept {
-#if defined(__clang__)
+#if defined(MAGIC_ENUM_DETAIL_NVCC)
+  const auto name = nvcc_signature_name(str, size);
+  return name.str_[0] == '(' ? cname_ref{} : name;
+#elif defined(__clang__)
   cname_ref name{str + 34, size - 35};
   if (name.size_ > 22 && name.str_[0] == '(' && name.str_[1] == 'a' && name.str_[10] == ' ' && name.str_[22] == ':') {
     name.size_ -= 23;
@@ -588,6 +620,19 @@ MAGIC_ENUM_CONSTEVAL auto type_name() noexcept {
 template <typename E>
 inline constexpr auto type_name_v = type_name<E>();
 
+#if defined(MAGIC_ENUM_DETAIL_NVCC)
+// nvcc prints a value as a cast when its type is named through an alias. A deduced return type drops the alias.
+template <typename E>
+constexpr auto nvcc_unaliased() noexcept {
+  return E{};
+}
+
+template <auto V>
+MAGIC_ENUM_CONSTEVAL cname_ref nvcc_name() noexcept {
+  return enum_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1);
+}
+#endif
+
 template <auto V>
 MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
   if constexpr (supported<decltype(V)>::value) {
@@ -596,6 +641,8 @@ MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
 #elif defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS)
     constexpr auto name = __rscpp_enumerator_name(V);
     return name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+#elif defined(MAGIC_ENUM_DETAIL_NVCC)
+    return unqualified(nvcc_name<static_cast<decltype(nvcc_unaliased<decltype(V)>())>(static_cast<std::underlying_type_t<decltype(V)>>(V))>());
 #else
     return unqualified(enum_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
 #endif
@@ -969,9 +1016,10 @@ inline constexpr bool has_fixed_underlying_v<E, std::void_t<decltype(E{0})>> = t
 
 // Clang accepts a bit_cast value outside the range of an enum without a fixed underlying type as a single template argument, but rejects it in nb().
 // Clang 20+ detects it with SFINAE, older versions fail hard, so they scan such enums with n() per value.
+// nvcc crashes on long batch signatures.
 template <typename E>
 MAGIC_ENUM_CONSTEVAL bool batch_supported() noexcept {
-#if defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS)
+#if defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS) || defined(MAGIC_ENUM_DETAIL_NVCC)
   return false;
 #elif defined(__clang__) && __clang_major__ < 20
   return has_fixed_underlying_v<E>;
@@ -2251,6 +2299,7 @@ inline constexpr auto as_common = AsCommon ? detail::enum_subtype::common : deta
 #endif
 
 #undef MAGIC_ENUM_DETAIL_RESHARPER_ENUMS
+#undef MAGIC_ENUM_DETAIL_NVCC
 #undef MAGIC_ENUM_CALLING_CONVENTION
 #undef MAGIC_ENUM_SIGNATURE
 #undef MAGIC_ENUM_DETAIL_USE_STD_REFLECTION

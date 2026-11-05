@@ -81,7 +81,8 @@ template <typename E, typename String = string>
   String name;
   if (flag_value == U{0}) {
     // The zero name never joins a nonzero mask.
-    if constexpr (constexpr auto z = detail::zero_index<D>(); z < detail::count_v<D, S>) {
+    constexpr auto z = detail::zero_index<D>();
+    if constexpr (z < detail::count_v<D, S>) {
       const auto n = detail::names_v<D, S>[z];
       name.append(n.data(), n.size());
     }

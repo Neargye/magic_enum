@@ -195,6 +195,12 @@ enum ShapeKind {
 // magic_enum::enum_name(ShapeKind::ConvexBegin) -> "Box"
 ```
 
+## NVCC & NVC++
+
+* Enums declared inside a function or nested in a class template are not reflected.
+
+* With a Clang 20+ host compiler, `nvcc` does not support unscoped enums without a fixed underlying type.
+
 ## Other Compiler Issues
 
 * If compilation hits the constexpr evaluation limit:
