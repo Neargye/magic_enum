@@ -655,11 +655,12 @@ TEST_CASE("string lookup keeps function pointer types") {
   REQUIRE_FALSE(contains("None", Pred{}));
 }
 
-TEST_CASE("braced integer arguments select the integer overload") {
+TEST_CASE("braced arguments preserve zero behavior") {
   enum class BracedCastEnum { Zero, One };
   constexpr auto zero = enum_cast<BracedCastEnum>({});
   REQUIRE(zero == BracedCastEnum::Zero);
   REQUIRE(enum_contains<BracedCastEnum>({}));
+  static_assert(enum_reflected<BracedCastEnum>({}));
 }
 
 TEST_CASE("enum_contains") {
@@ -1006,6 +1007,9 @@ class a_foo2 {
   enum a_lt6 : int { s6, loooooooooooooooooooong6 };
 };
 } // namespace
+
+typedef enum { TypedefAnonFirst, TypedefAnonSecond } TypedefAnon;
+typedef enum : unsigned { TypedefAnonFixedFirst } TypedefAnonFixed;
 
 enum class LargeNumbers {
     First = -1024,
@@ -1362,6 +1366,10 @@ TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<a_foo1::a_lt5>() == "a_lt5");
   REQUIRE(enum_type_name<a_foo2::a_lt6>() == "a_lt6");
   REQUIRE(enum_type_name<decltype(a_foo2::s6)>() == "a_lt6");
+
+  REQUIRE(enum_type_name<TypedefAnon>() == "TypedefAnon");
+  REQUIRE(enum_type_name<TypedefAnonFixed>() == "TypedefAnonFixed");
+  REQUIRE(enum_name(TypedefAnonSecond) == "TypedefAnonSecond");
 }
 
 TEST_CASE("aliases") {

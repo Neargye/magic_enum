@@ -285,6 +285,7 @@ TEST_CASE("named zero is a flag value") {
   static_assert(enum_flags_cast<ZeroFlags>({}) == ZeroFlags::None);
   static_assert(enum_flags_cast<ZeroFlags>(3) == ZeroFlags::Both);
   static_assert(enum_flags_contains<ZeroFlags>(0));
+  static_assert(enum_flags_contains<ZeroFlags>({}));
   static_assert(enum_flags_contains(ZeroFlags::None));
   static_assert(enum_flags_cast<ZeroFlags>("None") == ZeroFlags::None);
   static_assert(enum_flags_cast<ZeroFlags>("None|A") == ZeroFlags::A);
@@ -359,7 +360,7 @@ TEST_CASE("flags string lookup keeps function pointer types") {
   REQUIRE_FALSE(contains("None", '|', Pred{}));
 }
 
-TEST_CASE("braced integer flags arguments select the integer overload") {
+TEST_CASE("braced flags arguments preserve zero behavior") {
   constexpr auto none = enum_flags_cast<Numbers>({});
   REQUIRE(none == Numbers::none);
 }

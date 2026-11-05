@@ -199,7 +199,7 @@ enum ShapeKind {
 
 * Enums declared inside a function or nested in a class template are not reflected.
 
-* With a Clang 20+ host compiler, `nvcc` does not support unscoped enums without a fixed underlying type.
+* String views returned by `magic_enum` refer to host storage and are not generally usable in CUDA device code, even with `--expt-relaxed-constexpr`.
 
 ## Other Compiler Issues
 
@@ -219,3 +219,5 @@ enum ShapeKind {
 * Visual Studio's IntelliSense may have problems analyzing magic_enum.
 
 * Some compilers have problems reflecting enums inside templates. See [#164](https://github.com/Neargye/magic_enum/issues/164) and [#65](https://github.com/Neargye/magic_enum/issues/65).
+
+* Clang instantiates the definition of a scoped enum nested in a class template only when one of its enumerators is used. Until then the enum is not reflected, so results can differ between translation units.

@@ -100,7 +100,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
   if (const auto i = enum_index<D, S>(value)) {
     const auto index = static_cast<std::ptrdiff_t>(*i);
-    if ((n > 0 && n >= count - index) || (n < 0 && n < -index)) {
+    if (n >= count - index || n < -index) {
       return {};
     }
     return enum_value<D, S>(static_cast<std::size_t>(index + n));
@@ -123,7 +123,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 
   if (const auto i = enum_index<D, S>(value)) {
     const auto index = static_cast<std::ptrdiff_t>(*i);
-    if ((n > 0 && n > index) || (n < 0 && n <= index - count)) {
+    if (n > index || n <= index - count) {
       return {};
     }
     return enum_value<D, S>(static_cast<std::size_t>(index - n));

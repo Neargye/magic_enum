@@ -64,7 +64,7 @@ constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, 
 
 template <typename E>
 constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
-  return fuse_one_enum(0, value);
+  return fuse_one_enum(std::uintmax_t{0}, value);
 }
 
 template <typename E, typename... Es>

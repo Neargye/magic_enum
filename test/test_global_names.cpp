@@ -13,6 +13,11 @@ int size = 0;
 int first = 0;
 int last = 0;
 
+#if defined(_MSC_VER) && !defined(__clang__)
+// C4365 is off by default, but user code can enable it.
+#  pragma warning(4 : 4365)
+#endif
+
 #include "magic_enum_test_config.hpp"
 #include <magic_enum/magic_enum_all.hpp>
 
@@ -50,6 +55,7 @@ int global_names_use() {
   sum += magic_enum::enum_fuse(Mode::Read, Bits::A).has_value() ? 1 : 0;
   sum += magic_enum::enum_next_value_circular(Mode::Write) == Mode::Read ? 1 : 0;
   sum += magic_enum::enum_flags_name(Bits::A | Bits::B) == "A|B" ? 1 : 0;
+  sum += magic_enum::enum_flags_contains<Bits>(3) ? 1 : 0;
 
   std::ostringstream os;
   using magic_enum::iostream_operators::operator<<;

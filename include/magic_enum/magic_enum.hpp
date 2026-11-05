@@ -549,8 +549,9 @@ MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* 
 #elif defined(__GNUC__)
   return str[size - 1] == ']' ? cname_ref{str + 49, size - 50} : cname_ref{str + 37, size - 40};
 #elif defined(_MSC_VER)
-  // CLI/C++ workaround, see #284.
-  return {str + 40, size - 56};
+  // CLI/C++ workaround, see #284. A typedef name of an unnamed enum has no `enum ` prefix.
+  const std::size_t i = str[35] == 'e' && str[36] == 'n' && str[37] == 'u' && str[38] == 'm' && str[39] == ' ' ? 40u : 35u;
+  return {str + i, size - 16 - i};
 #else
   return {};
 #endif
@@ -660,6 +661,8 @@ MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION nb() noexcept {
 template <std::size_t N>
 struct signature_names_t {
   cname_ref names[N] = {};
+  // Number of named values.
+  std::size_t count = 0;
   bool valid = false;
 };
 
@@ -699,8 +702,13 @@ MAGIC_ENUM_CONSTEVAL auto signature_names(cname_ref sig) noexcept {
       begin = ++i;
     }
     // An unnamed value is the cast followed by a number.
+#if defined(__clang__)
     if (cast_size != 0 && k + 1 < N && begin + cast_size < size && str[begin] == '(' && str[begin + cast_size - 1] == ')' &&
         (str[begin + cast_size] == '-' || (str[begin + cast_size] >= '0' && str[begin + cast_size] <= '9'))) {
+#else
+    // GCC and MSVC do not start a name with a parenthesis.
+    if (cast_size != 0 && k + 1 < N && begin + cast_size < size && str[begin] == '(') {
+#endif
 #if defined(__clang__) || defined(_MSC_VER)
       const char* const comma = __builtin_char_memchr(str + begin + cast_size, ',', size - begin - cast_size);
       if (comma == nullptr) {
@@ -769,6 +777,7 @@ MAGIC_ENUM_CONSTEVAL auto signature_names(cname_ref sig) noexcept {
     const char c = str[begin];
     if ((c != '(' || name != begin) && c != '-' && (c < '0' || c > '9')) {
       result.names[k] = {str + name, i - name};
+      ++result.count;
     }
   }
   result.valid = true;
@@ -920,10 +929,10 @@ consteval auto declared_data() noexcept {
           }
         }
         entries[result.size++] = entry<E>{value, name, declaration_index};
+        if (result.size > 1) {
+          result.sorted = result.sorted && static_cast<U>(entries[result.size - 2].value) <= static_cast<U>(entries[result.size - 1].value);
+        }
       }
-    }
-    if (result.size > 1) {
-      result.sorted = result.sorted && static_cast<U>(entries[result.size - 2].value) <= static_cast<U>(entries[result.size - 1].value);
     }
     ++declaration_index;
   }
@@ -977,7 +986,7 @@ consteval std::size_t table_size() noexcept {
 #endif
 
 template <typename E, int O, enum_subtype S, typename U = std::underlying_type_t<E>>
-constexpr U ualue(std::size_t i) noexcept {
+constexpr U underlying_value(std::size_t i) noexcept {
   if constexpr (S == enum_subtype::flags) {
     using V = make_unsigned_t<U>;
     // Position -1 is zero, so the scan finds a named zero like a bit.
@@ -1005,7 +1014,7 @@ constexpr E to_enum(U u) noexcept {
 
 template <typename E, int O, enum_subtype S>
 constexpr E value(std::size_t i) noexcept {
-  return to_enum<E>(ualue<E, O, S>(i));
+  return to_enum<E>(underlying_value<E, O, S>(i));
 }
 
 template <typename E, typename = void>
@@ -1014,15 +1023,11 @@ inline constexpr bool has_fixed_underlying_v = false;
 template <typename E>
 inline constexpr bool has_fixed_underlying_v<E, std::void_t<decltype(E{0})>> = true;
 
-// Clang accepts a bit_cast value outside the range of an enum without a fixed underlying type as a single template argument, but rejects it in nb().
-// Clang 20+ detects it with SFINAE, older versions fail hard, so they scan such enums with n() per value.
 // nvcc crashes on long batch signatures.
 template <typename E>
 MAGIC_ENUM_CONSTEVAL bool batch_supported() noexcept {
 #if defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS) || defined(MAGIC_ENUM_DETAIL_NVCC)
   return false;
-#elif defined(__clang__) && __clang_major__ < 20
-  return has_fixed_underlying_v<E>;
 #else
   return true;
 #endif
@@ -1041,9 +1046,11 @@ MAGIC_ENUM_CONSTEVAL U unfixed_max() noexcept {
 }
 
 // Whether nb() accepts the value.
+// Clang 20+ rejects a value outside the range of an enum without a fixed underlying type in nb(), see CWG1766.
+// Older versions report -Wenum-constexpr-conversion, which is disabled above.
 template <typename E, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL bool batch_castable([[maybe_unused]] U u) noexcept {
-#if defined(__clang__)
+#if defined(__clang__) && __clang_major__ >= 20
   if constexpr (!has_fixed_underlying_v<E>) {
     constexpr U max = unfixed_max<E>();
     if constexpr (std::is_signed_v<U> && is_valid_custom_value_v<E, static_cast<U>(-1)>) {
@@ -1059,14 +1066,14 @@ MAGIC_ENUM_CONSTEVAL bool batch_castable([[maybe_unused]] U u) noexcept {
 // Zero is in the range of every enumeration, so it replaces candidates rejected by the batch scan.
 template <typename E, int O, enum_subtype S>
 MAGIC_ENUM_CONSTEVAL E batch_value(std::size_t i) noexcept {
-  return batch_castable<E>(ualue<E, O, S>(i)) ? value<E, O, S>(i) : E{};
+  return batch_castable<E>(underlying_value<E, O, S>(i)) ? value<E, O, S>(i) : E{};
 }
 
 // Keep the type of a custom bound until values() checks that it fits in int.
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
-    // Zero before bit 0, see ualue.
+    // Zero before bit 0, see underlying_value.
     return -1;
   } else if constexpr (cmp_less((std::numeric_limits<U>::min)(), range_min<E>::value)) {
     return range_min<E>::value;
@@ -1110,13 +1117,13 @@ struct valid_offsets_t {
 
 // Customization renames or hides a named value, but cannot add one.
 template <typename E, typename N>
-MAGIC_ENUM_CONSTEVAL void append_named(N& vc, std::size_t i, E value, cname_ref name) noexcept {
+MAGIC_ENUM_CONSTEVAL void append_named(N& offsets, std::size_t i, E value, cname_ref name) noexcept {
   const auto custom = customize::enum_name<E>(value);
   if (custom.tag == customize_tag::custom_tag) {
-    vc.valid_names = vc.valid_names && !custom.name.empty();
-    vc.append(i);
+    offsets.valid_names = offsets.valid_names && !custom.name.empty();
+    offsets.append(i);
   } else if (custom.tag != customize_tag::invalid_tag) {
-    vc.append(i, name);
+    offsets.append(i, name);
   }
 }
 
@@ -1132,6 +1139,7 @@ MAGIC_ENUM_CONSTEVAL auto block_names(std::index_sequence<I...>) noexcept {
   for (std::size_t i = 0; i < sizeof...(I); ++i) {
     const auto name = __rscpp_enumerator_name(batch_value<E, Min, S>(J + i));
     result.names[i] = name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+    result.count += result.names[i].size_ != 0;
   }
   return result;
 #else
@@ -1155,20 +1163,27 @@ inline constexpr auto block_names_v = block_names<E, S, Min, J>(std::make_index_
 
 // Scans 256 values with n() per value. Hidden values skip n().
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J, std::size_t N>
-MAGIC_ENUM_CONSTEVAL void scan_fallback(valid_offsets_t<N>& vc) noexcept {
-#define MAGIC_ENUM_V(O)                                                         \
-  if constexpr ((J + O) < Size) {                                               \
-    constexpr auto v = value<E, Min, S>(J + O);                                 \
-    constexpr auto custom = customize::enum_name<E>(v);                         \
-    if constexpr (custom.tag != customize_tag::invalid_tag) {                   \
-      if constexpr (n<v>().size_ != 0) {                                        \
-        append_named(vc, J + O, v, n<v>());                                     \
-      }                                                                         \
-    }                                                                           \
+MAGIC_ENUM_CONSTEVAL void scan_fallback(valid_offsets_t<N>& offsets) noexcept {
+#if defined(MAGIC_ENUM_DETAIL_NVCC)
+  // A Clang 20+ host rejects n() for values outside the range of an enum without a fixed underlying type, see CWG1766.
+#  define MAGIC_ENUM_CASTABLE(O) && batch_castable<E>(underlying_value<E, Min, S>(J + O))
+#else
+#  define MAGIC_ENUM_CASTABLE(O)
+#endif
+#define MAGIC_ENUM_V(O)                                                              \
+  if constexpr ((J + O) < Size) {                                                    \
+    constexpr auto v = value<E, Min, S>(J + O);                                      \
+    constexpr auto custom = customize::enum_name<E>(v);                              \
+    if constexpr (custom.tag != customize_tag::invalid_tag MAGIC_ENUM_CASTABLE(O)) { \
+      if constexpr (n<v>().size_ != 0) {                                             \
+        append_named(offsets, J + O, v, n<v>());                                     \
+      }                                                                              \
+    }                                                                                \
   }
 
   MAGIC_ENUM_CASES_256(MAGIC_ENUM_V, 0)
 #undef MAGIC_ENUM_V
+#undef MAGIC_ENUM_CASTABLE
 }
 
 // Scans a block with one nb(), or with n() per value if nb() fails.
@@ -1176,21 +1191,23 @@ template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
 MAGIC_ENUM_CONSTEVAL auto block_offsets() noexcept {
   constexpr std::size_t count = (Size - J) < scan_block_size ? (Size - J) : scan_block_size;
   constexpr auto block = block_names_v<E, S, Size, Min, J>;
-  valid_offsets_t<count> vc;
+  // Sized by the named values, since a block sized copy is slow in MSVC constant evaluation.
+  constexpr std::size_t size = !block.valid ? count : block.count > 0 ? block.count : 1;
+  valid_offsets_t<size> offsets;
   if constexpr (block.valid) {
     for (std::size_t i = 0; i < count; ++i) {
       // nb() takes zero in place of a value that it cannot cast.
-      if (block.names[i].size_ != 0 && (plain_scan_v<E, S> || batch_castable<E>(ualue<E, Min, S>(J + i)))) {
-        append_named(vc, J + i, value<E, Min, S>(J + i), block.names[i]);
+      if (block.names[i].size_ != 0 && (plain_scan_v<E, S> || batch_castable<E>(underlying_value<E, Min, S>(J + i)))) {
+        append_named(offsets, J + i, value<E, Min, S>(J + i), block.names[i]);
       }
     }
   } else {
-    scan_fallback<E, S, Size, Min, J>(vc);
+    scan_fallback<E, S, Size, Min, J>(offsets);
     if constexpr (count > 256) {
-      scan_fallback<E, S, Size, Min, J + 256>(vc);
+      scan_fallback<E, S, Size, Min, J + 256>(offsets);
     }
   }
-  return vc;
+  return offsets;
 }
 
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
@@ -1207,15 +1224,15 @@ MAGIC_ENUM_CONSTEVAL std::size_t valid_count() noexcept {
 }
 
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J, std::size_t N>
-MAGIC_ENUM_CONSTEVAL void append_offsets(valid_offsets_t<N>& vc) noexcept {
+MAGIC_ENUM_CONSTEVAL void append_offsets(valid_offsets_t<N>& offsets) noexcept {
   constexpr auto block = block_offsets_v<E, S, Size, Min, J>;
   for (std::size_t i = 0; i < block.count; ++i) {
-    vc.append(block.offsets[i], block.names[i]);
+    offsets.append(block.offsets[i], block.names[i]);
   }
-  vc.valid_names = vc.valid_names && block.valid_names;
+  offsets.valid_names = offsets.valid_names && block.valid_names;
 
   if constexpr ((J + scan_block_size) < Size) {
-    append_offsets<E, S, Size, Min, J + scan_block_size>(vc);
+    append_offsets<E, S, Size, Min, J + scan_block_size>(offsets);
   }
 }
 
@@ -1223,9 +1240,9 @@ MAGIC_ENUM_CONSTEVAL void append_offsets(valid_offsets_t<N>& vc) noexcept {
 template <typename E, enum_subtype S, std::size_t Size, int Min>
 MAGIC_ENUM_CONSTEVAL auto valid_offsets() noexcept {
   constexpr std::size_t count = valid_count<E, S, Size, Min>();
-  valid_offsets_t<(count > 0 ? count : 1)> vc;
-  append_offsets<E, S, Size, Min, 0>(vc);
-  return vc;
+  valid_offsets_t<(count > 0 ? count : 1)> offsets;
+  append_offsets<E, S, Size, Min, 0>(offsets);
+  return offsets;
 }
 
 // Probe offsets 1, 2, 4, 8 outside each bound to catch a range that is too small, see https://github.com/Neargye/magic_enum/issues/117.
@@ -1291,9 +1308,9 @@ struct scan_t {
 };
 
 template <typename E, std::size_t N>
-MAGIC_ENUM_CONSTEVAL bool valid_prefixes(const valid_offsets_t<N>& vc) noexcept {
-  for (std::size_t i = 0; i < vc.count; ++i) {
-    if (vc.names[i].str_ != nullptr && !valid_prefix_length(prefix_length_v<E>, vc.names[i].size_)) {
+MAGIC_ENUM_CONSTEVAL bool valid_prefixes(const valid_offsets_t<N>& offsets) noexcept {
+  for (std::size_t i = 0; i < offsets.count; ++i) {
+    if (offsets.names[i].str_ != nullptr && !valid_prefix_length(prefix_length_v<E>, offsets.names[i].size_)) {
       return false;
     }
   }
@@ -1301,10 +1318,12 @@ MAGIC_ENUM_CONSTEVAL bool valid_prefixes(const valid_offsets_t<N>& vc) noexcept 
 }
 
 template <typename E, int Min, enum_subtype S, std::size_t N>
-MAGIC_ENUM_CONSTEVAL std::size_t chars_size(const valid_offsets_t<N>& vc) noexcept {
+MAGIC_ENUM_CONSTEVAL std::size_t chars_size(const valid_offsets_t<N>& offsets) noexcept {
   std::size_t size = 0;
-  for (std::size_t i = 0; i < vc.count; ++i) {
-    size += (vc.names[i].str_ != nullptr ? vc.names[i].size_ - prefix_length_v<E> : customize::enum_name<E>(value<E, Min, S>(vc.offsets[i])).name.size()) + 1;
+  for (std::size_t i = 0; i < offsets.count; ++i) {
+    size += (offsets.names[i].str_ != nullptr
+             ? offsets.names[i].size_ - prefix_length_v<E>
+             : customize::enum_name<E>(value<E, Min, S>(offsets.offsets[i])).name.size()) + 1;
   }
   return size;
 }
@@ -1318,35 +1337,35 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
       static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX.");
     }
   }
-  constexpr auto vc = valid_offsets<E, S, Size, Min>();
-  static_assert(vc.valid_names, "magic_enum::customize requires not empty string.");
+  constexpr auto offsets = valid_offsets<E, S, Size, Min>();
+  static_assert(offsets.valid_names, "magic_enum::customize requires not empty string.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");
-  constexpr bool valid_prefix = valid_prefixes<E>(vc);
+  constexpr bool valid_prefix = valid_prefixes<E>(offsets);
   static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
-  scan_t<E, vc.count, valid_prefix ? chars_size<E, Min, S>(vc) : 0> result;
-  if constexpr (vc.count > 0 && valid_prefix) {
+  scan_t<E, offsets.count, valid_prefix ? chars_size<E, Min, S>(offsets) : 0> result;
+  if constexpr (offsets.count > 0 && valid_prefix) {
     // A negative sign bit flag goes first, so values ascend as in the standard reflection table.
-    constexpr std::size_t first = (S == enum_subtype::flags && cmp_less(ualue<E, Min, S>(vc.offsets[vc.count - 1]), 0)) ? 1 : 0;
+    constexpr std::size_t first = (S == enum_subtype::flags && cmp_less(underlying_value<E, Min, S>(offsets.offsets[offsets.count - 1]), 0)) ? 1u : 0u;
     // Pointers avoid an operator[] call per element in constant evaluation.
     E* const values = result.values.data();
     std::size_t* const ends = result.ends.data();
     char_type* const chars = result.chars.data();
     std::size_t size = 0;
-    for (std::size_t i = 0; i < vc.count; ++i) {
-      const auto j = (i + vc.count - first) % vc.count;
-      const auto v = value<E, Min, S>(vc.offsets[j]);
+    for (std::size_t i = 0; i < offsets.count; ++i) {
+      const auto j = (i + offsets.count - first) % offsets.count;
+      const auto v = value<E, Min, S>(offsets.offsets[j]);
       values[i] = v;
-      if (vc.names[j].str_ != nullptr) {
+      if (offsets.names[j].str_ != nullptr) {
 #if defined(__clang__)
         // Faster than a loop in constant evaluation. GCC and MSVC do not allow it there.
         if constexpr (std::is_same_v<char_type, char>) {
-          const auto n = vc.names[j].size_ - prefix_length_v<E>;
-          __builtin_memcpy(chars + size, vc.names[j].str_ + prefix_length_v<E>, n);
+          const auto n = offsets.names[j].size_ - prefix_length_v<E>;
+          __builtin_memcpy(chars + size, offsets.names[j].str_ + prefix_length_v<E>, n);
           size += n;
         } else
 #endif
-        for (std::size_t k = prefix_length_v<E>; k < vc.names[j].size_; ++k) {
-          chars[size++] = static_cast<char_type>(vc.names[j].str_[k]);
+        for (std::size_t k = prefix_length_v<E>; k < offsets.names[j].size_; ++k) {
+          chars[size++] = static_cast<char_type>(offsets.names[j].str_[k]);
         }
       } else {
         const auto name = customize::enum_name<E>(v).name;
@@ -1659,7 +1678,7 @@ struct value_cases {
 };
 
 MAGIC_ENUM_CONSTEVAL std::size_t switch_page_size(std::size_t n) noexcept {
-  return n <= 8 ? 8 : n <= 16 ? 16 : n <= 32 ? 32 : n <= 64 ? 64 : n <= 128 ? 128 : 256;
+  return n <= 8 ? 8u : n <= 16 ? 16u : n <= 32 ? 32u : n <= 64 ? 64u : n <= 128 ? 128u : 256u;
 }
 
 #define MAGIC_ENUM_INDEX_CASE(J)               \

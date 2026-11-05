@@ -41,7 +41,7 @@
 
 * Signatures are simplified. Name arguments take `string_view` by value and accept implicit conversions.
 
-* A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after the result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_flags_*` functions always use flags.
+* A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after the result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_value<E, I, S>()` takes it after the index. `enum_flags_*` functions always use flags.
 
 * Color examples use:
 
@@ -49,7 +49,7 @@
   enum class Color { RED = -10, BLUE = 0, GREEN = 10 };
   ```
 
-* `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. An unsupported compiler fails to compile unless `MAGIC_ENUM_NO_CHECK_SUPPORT` is defined.
+* `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. Defining `MAGIC_ENUM_NO_CHECK_SUPPORT` makes `is_magic_enum_supported` true and skips the check. Otherwise reflection functions fail to compile on an unsupported compiler. Formatting falls back to integers, and bitwise operators do not need reflection.
 
 * C++26 reflection is selected automatically when available. See [limitations](limitations.md#c26-standard-reflection).
 
