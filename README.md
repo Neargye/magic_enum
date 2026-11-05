@@ -34,14 +34,6 @@ A header-only C++17 library for enum reflection, without registration macros or 
   }
   ```
 
-* Enum value to string
-
-  ```cpp
-  Color color = Color::RED;
-  auto color_name = magic_enum::enum_name(color);
-  // color_name -> "RED"
-  ```
-
 * String to enum value
 
   ```cpp
@@ -56,9 +48,6 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
   // enum_cast with BinaryPredicate
   auto color_with_predicate = magic_enum::enum_cast<Color>(color_name, [](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
-
-  // enum_cast with default
-  auto color_or_default = magic_enum::enum_cast<Color>(color_name).value_or(Color::RED);
   ```
 
 * Integer to enum value
@@ -100,7 +89,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
   ```cpp
   Color color = Color::RED;
-  auto color_integer = magic_enum::enum_integer(color); // or magic_enum::enum_underlying(color);
+  auto color_integer = magic_enum::enum_integer(color); // or magic_enum::enum_underlying(color)
   // color_integer -> -10
   ```
 
@@ -207,7 +196,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   magic_enum::is_flags_v<Directions>; // -> true
   ```
 
-  **Note:** bitwise operators found through ADL enable flag reflection automatically. Named combinations such as `All = Left | Down` are then not reflected. `enum_name` returns `""` for them, `enum_cast` and `enum_contains` reject them, and `enum_flags_name` formats them as `"Left|Down"`. Set `enum_range<E>::is_flags = false` to keep ordinary enum reflection, or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build. See [flag reflection](doc/limitations.md#enum-flags).
+  **Note:** bitwise operators found through ADL automatically enable [flag reflection](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. To keep ordinary reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.
 
 * Enum type name
 
@@ -255,23 +244,13 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
   For `{fmt}`, include it before `magic_enum_format.hpp`.
 
-* [Unscoped enum](https://en.cppreference.com/w/cpp/language/enum#Unscoped_enumeration) trait
+* Scoped and unscoped enum traits
 
   ```cpp
   enum color { red, green, blue };
   enum class direction { left, right };
 
   static_assert(magic_enum::is_unscoped_enum_v<color>);
-  static_assert(!magic_enum::is_unscoped_enum_v<direction>);
-  ```
-
-* [Scoped enum](https://en.cppreference.com/w/cpp/language/enum#Scoped_enumerations) trait
-
-  ```cpp
-  enum color { red, green, blue };
-  enum class direction { left, right };
-
-  static_assert(!magic_enum::is_scoped_enum_v<color>);
   static_assert(magic_enum::is_scoped_enum_v<direction>);
   ```
 
@@ -283,7 +262,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   // color_name -> "BLUE"
   ```
 
-* `containers::array` array container for enums.
+* `containers::array`
 
   ```cpp
   // In enum_values order: RED, BLUE, GREEN.
@@ -296,7 +275,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   magic_enum::containers::get<Color::BLUE>(color_rgb_array); // -> RGB{0, 0, 255}
   ```
 
-* `containers::bitset` bitset container for enums.
+* `containers::bitset`
 
   ```cpp
   constexpr magic_enum::containers::bitset<Color> color_bitset {Color::RED, Color::GREEN};
@@ -307,7 +286,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   auto raw_bitset = magic_enum::containers::bitset<Color> {magic_enum::containers::raw_access, incoming};
   ```
 
-* `containers::set` set container for enums.
+* `containers::set`
 
   ```cpp
   auto color_set = magic_enum::containers::set<Color>();
@@ -326,7 +305,6 @@ A header-only C++17 library for enum reflection, without registration macros or 
 * [Underlying type](https://en.cppreference.com/w/cpp/types/underlying_type)
 
   ```cpp
-  static_assert(std::is_same_v<magic_enum::underlying_type<Color>::type, int>);
   static_assert(std::is_same_v<magic_enum::underlying_type_t<Color>, int>);
   ```
 
@@ -368,7 +346,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
   Optional settings:
   - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` through `fmt::fmt`. The `{fmt}` module is not supported.
-  - `MAGIC_ENUM_MODULE_IMPORT_STD=ON` enables `import std`. It requires C++23+, CMake 3.31+ and a compatible toolchain.
+  - `MAGIC_ENUM_MODULE_IMPORT_STD=ON` enables `import std`. It requires `CMAKE_CXX_STANDARD` 23 or later, CMake 3.31+ and a toolchain with `import std` support.
 
 ## Compiler compatibility
 

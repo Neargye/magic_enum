@@ -41,7 +41,9 @@
 
 * Signatures are simplified. Name arguments take `string_view` by value and accept implicit conversions.
 
-* A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after the result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_value<E, I, S>()` takes it after the index. `enum_flags_*` functions always use flags.
+* For integer and name lookups, let `I` and `BinaryPredicate` be deduced from the arguments, as in `enum_cast<Color>(0)`.
+
+* A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after an explicit result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_value<E, I, S>()` takes it after the index. `enum_flags_*` functions always use flags.
 
 * Color examples use:
 
@@ -61,7 +63,7 @@
 
 * `customize::customize_t` stores the customization `tag` and `name`. Construct it from a name, `default_tag`, or `invalid_tag`.
 
-* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. Only declared values can be renamed. A custom name for an undeclared zero fails to compile. Other undeclared values have no reflected name. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
+* Specialize `customize::enum_name` or `customize::enum_type_name` to change names. Return a non-empty name, `default_tag` to keep the reflected name, or `invalid_tag` to hide it. A hidden value is not reflected. Only [declared values](limitations.md) can be renamed. A hidden type name makes `enum_type_name` fail to compile. See the [example](../example/example_custom_name.cpp).
 
   ```cpp
   template <>
@@ -149,9 +151,6 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
 
     // enum_cast with BinaryPredicate
     auto color_with_predicate = magic_enum::enum_cast<Color>(color_name, [](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
-
-    // enum_cast with default
-    auto color_or_default = magic_enum::enum_cast<Color>(color_name).value_or(Color::RED);
     ```
 
   * Integer to enum value.
@@ -268,9 +267,6 @@ constexpr E enum_max() noexcept;
 
   constexpr auto color_max = magic_enum::enum_max<Color>();
   // color_max -> Color::GREEN
-
-  constexpr auto max_integer = magic_enum::enum_underlying(color_max);
-  // max_integer -> 10
   ```
 
 ## `enum_integer` and `enum_underlying`
@@ -376,7 +372,6 @@ struct enum_range {
   static constexpr int max = MAGIC_ENUM_RANGE_MAX;
 };
 } // namespace magic_enum::customize
-
 ```
 
 * Defined in header `<magic_enum/magic_enum.hpp>`
@@ -438,7 +433,7 @@ struct enum_range {
 
     `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
 
-    Use `is_flags_v<E>` to check the selected mode. Prefer `adl_info()` when defining hooks.
+    Use `is_flags_v<E>` to check the selected mode.
 
 ## `enum_index`
 
@@ -707,51 +702,42 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_flags.hpp>`
 
-* `enum_flags_name` returns flag names joined by the separator, `'|'` by default. For zero it returns the zero name, if one is declared. Unknown bits and an unnamed zero give an empty string.
+* `enum_flags_name` returns flag names joined by the separator, `'|'` by default. For zero it returns the reflected zero name. Unknown bits or a zero without a reflected name give an empty string.
 
 * A custom `String` must be default constructible, have `char_type` as its `value_type`, and provide `empty()`, `append(count, ch)` and `append(data, size)`. For constant evaluation it must be usable in constant expressions.
 
-* `enum_flags_cast` returns the mask as `optional<E>`, or an empty optional for unknown bits, an unnamed zero or invalid names.
+* `enum_flags_cast` returns the mask as `optional<E>`, or an empty optional for unknown bits, a zero without a reflected name or invalid names.
 
 * Names are split at each separator without trimming spaces. Repeated names are allowed, and one trailing separator is ignored, so `"Left|"` parses as `Left`. An empty string, a leading separator or two separators in a row are rejected.
 
 * If several values match a name, parsing takes the first in value order. Names round-trip only if they are unique and do not contain the separator.
 
-* `enum_flags_contains` checks whether the value or names form a valid mask. Zero is valid only if it is named.
+* `enum_flags_contains` checks whether the value or names form a valid mask. Zero is valid only if its name is reflected.
 
 * `enum_flags_test` checks that `flag` is nonzero and all its bits are set in `flags`. Use `flags == E{}` to check for an empty mask.
 
-* `enum_flags_test_any` checks whether `lhs` and `rhs` share any bit. It returns `false` if either is zero.
+* `enum_flags_test_any` checks whether `lhs` and `rhs` share any set bit.
 
-* ADL bitwise operators enable flags automatically. For enums without matching operators, set `enum_range<E>::is_flags` to `true`. `enum_flags_*` functions always use flags, even with an explicit opt-out.
+* [ADL bitwise operators](limitations.md#enum-flags) enable flags automatically. To make flags the default without them, set `enum_range<E>::is_flags = true`. The `enum_flags_*` functions always use flags.
+
+* Only a named zero and named single bits are reflected. For signed enums, the sign bit comes first in value order.
+
+* A named zero is included in counts, indices and iteration, and is a key in `array` and `set`. A flag `bitset` has no position for it.
+
   ```cpp
-  enum class Directions { Up = 1 << 1, Down = 1 << 2, Right = 1 << 3, Left = 1 << 4 };
+  enum class Access : std::uint8_t { None = 0, Read = 1, Write = 2 };
   template <>
-  struct magic_enum::customize::enum_range<Directions> {
+  struct magic_enum::customize::enum_range<Access> {
     static constexpr bool is_flags = true;
   };
+  static_assert(magic_enum::enum_count<Access>() == 3);
+  static_assert(magic_enum::enum_index(Access::Read) == std::size_t{1});
+  static_assert(magic_enum::enum_flags_cast<Access>("None") == Access::None);
   ```
 
-  * Flags ignore `MAGIC_ENUM_RANGE_MIN` and `MAGIC_ENUM_RANGE_MAX`.
+* The zero name is never added to nonzero output, and `"None|Read"` parses as `Read`. Returning `invalid_tag` for zero hides it everywhere.
 
-  * A named zero, such as `None = 0`, is reflected. It is never added to nonzero output, and `"None|A"` parses as `A`. Returning `invalid_tag` for zero hides it everywhere.
-
-  * Zero is a regular value for `enum_count`, `enum_index`, `enum_switch`, `enum_for_each`, `array` and `set`. A flag `bitset` has no position for it.
-
-    ```cpp
-    enum class Access : std::uint8_t { None = 0, Read = 1, Write = 2 };
-    template <>
-    struct magic_enum::customize::enum_range<Access> {
-      static constexpr bool is_flags = true;
-    };
-    static_assert(magic_enum::enum_count<Access>() == 3);
-    static_assert(magic_enum::enum_index(Access::Read) == std::size_t{1});
-    static_assert(magic_enum::enum_flags_cast<Access>("None") == Access::None);
-    ```
-
-  * For signed enums, a named sign bit is reflected too. It comes first, since it is negative.
-
-  * Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. To look up a combination by name, use `as_common<>` with `enum_name` or `enum_cast`. With compiler-specific reflection, it must be within the common range.
+* Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. Use `as_common<>` with `enum_name` or `enum_cast` to look up a combination by name. With compiler-specific reflection, it must be within the common range.
 
 * Examples
 
@@ -820,11 +806,8 @@ inline constexpr bool is_unscoped_enum_v = is_unscoped_enum<T>::value;
   enum color { red, green, blue };
   enum class Direction { Left, Right };
 
-  static_assert(magic_enum::is_unscoped_enum<color>::value);
-  static_assert(!magic_enum::is_unscoped_enum<Direction>::value);
-
-  // Helper variable template.
   static_assert(magic_enum::is_unscoped_enum_v<color>);
+  static_assert(!magic_enum::is_unscoped_enum_v<Direction>);
   ```
 
 ## `is_scoped_enum`
@@ -847,10 +830,7 @@ inline constexpr bool is_scoped_enum_v = is_scoped_enum<T>::value;
   enum color { red, green, blue };
   enum class Direction { Left, Right };
 
-  static_assert(!magic_enum::is_scoped_enum<color>::value);
-  static_assert(magic_enum::is_scoped_enum<Direction>::value);
-
-  // Helper variable template.
+  static_assert(!magic_enum::is_scoped_enum_v<color>);
   static_assert(magic_enum::is_scoped_enum_v<Direction>);
   ```
 
@@ -874,11 +854,8 @@ using underlying_type_t = typename underlying_type<T>::type;
   enum color { red, green, blue };
   enum class Direction { Left, Right };
 
-  static_assert(std::is_same_v<magic_enum::underlying_type<Direction>::type, int>);
-  static_assert(std::is_integral_v<magic_enum::underlying_type<color>::type>); // Implementation-defined for an unscoped enum without a fixed type.
-
-  // Helper types.
   static_assert(std::is_same_v<magic_enum::underlying_type_t<Direction>, int>);
+  static_assert(std::is_integral_v<magic_enum::underlying_type_t<color>>); // Implementation-defined for an unscoped enum without a fixed type.
   ```
 
 ## `MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS`
@@ -981,7 +958,7 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Defines `~`, `|`, `&`, `^`, `|=`, `&=`, `^=` for `E` only. No `using` is needed. `~` inverts the underlying value, or applies logical not for a `bool` underlying type.
 
-* `~` also sets bits without a name, so `enum_flags_name(~E::A)` returns `""`. Use it to clear bits, for example `mask & ~E::A`.
+* `~` can set unnamed bits, in which case `enum_flags_name` returns `""`. To clear bits, use `mask & ~E::A`.
 
 * Placement follows the [iostream macro rules](#magic_enum_define_iostream_operators). These operators take precedence over the operator namespace.
 
@@ -1053,7 +1030,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * For unscoped enums, `a | b` can return the enum instead of an integer, and stream output can write a name instead of a number.
 
-* If the same inline function or template picks a different operator in different translation units, the program violates the one definition rule. This can crash, see [#434](https://github.com/Neargye/magic_enum/issues/434).
+* Different operator lookup for the same inline function or template across translation units violates the one definition rule. See [#434](https://github.com/Neargye/magic_enum/issues/434).
 
 * Prefer the per-enum macros. Keep any `using` of an operator namespace inside a function, never in a header or at namespace scope.
 
@@ -1104,79 +1081,24 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 ```cpp
 template <typename E, typename V, typename Index = default_indexing<E>>
-struct array {
+struct array;
 
-  constexpr reference at(E pos);
+template <typename E, typename... Vs>
+constexpr auto make_array(Vs&&... values);
 
-  constexpr const_reference at(E pos) const;
+template <typename E, typename V, size_t N>
+constexpr array<E, std::remove_cv_t<V>> to_array(V (&a)[N]);
 
-  constexpr reference operator[](E pos);
+template <auto Enum, typename E, typename V, typename Index>
+constexpr V& get(array<E, V, Index>& a);
 
-  constexpr const_reference operator[](E pos) const;
-
-  constexpr reference front() noexcept;
-
-  constexpr const_reference front() const noexcept;
-
-  constexpr reference back() noexcept;
-
-  constexpr const_reference back() const noexcept;
-
-  constexpr pointer data() noexcept;
-
-  constexpr const_pointer data() const noexcept;
-
-  constexpr iterator begin() noexcept;
-
-  constexpr const_iterator begin() const noexcept;
-
-  constexpr const_iterator cbegin() const noexcept;
-
-  constexpr iterator end() noexcept;
-
-  constexpr const_iterator end() const noexcept;
-
-  constexpr const_iterator cend() const noexcept;
-
-  constexpr reverse_iterator rbegin() noexcept;
-
-  constexpr const_reverse_iterator rbegin() const noexcept;
-
-  constexpr const_reverse_iterator crbegin() const noexcept;
-
-  constexpr reverse_iterator rend() noexcept;
-
-  constexpr const_reverse_iterator rend() const noexcept;
-
-  constexpr const_reverse_iterator crend() const noexcept;
-
-  constexpr bool empty() const noexcept;
-
-  constexpr size_type size() const noexcept;
-
-  constexpr size_type max_size() const noexcept;
-
-  constexpr void fill(const V& value);
-
-  constexpr void swap(array& other) noexcept(std::is_nothrow_move_constructible_v<V> && std::is_nothrow_move_assignable_v<V>);
-
-  friend constexpr bool operator==(const array& a1, const array& a2);
-
-  friend constexpr bool operator!=(const array& a1, const array& a2);
-
-  friend constexpr bool operator<(const array& a1, const array& a2);
-
-  friend constexpr bool operator<=(const array& a1, const array& a2);
-
-  friend constexpr bool operator>(const array& a1, const array& a2);
-
-  friend constexpr bool operator>=(const array& a1, const array& a2);
-};
+template <size_t I, typename E, typename V, typename Index>
+constexpr V& get(array<E, V, Index>& a) noexcept;
 ```
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* Fixed-size array indexed by reflected enum values.
+* Fixed-size array indexed by reflected enum values. It follows `std::array`, with `at` and `operator[]` taking `E`. `at` throws for an invalid key, while `operator[]` requires a valid one.
 
 * `make_array<E>(values...)` deduces the element type and assigns the arguments in `enum_values<E>()` order. It takes exactly `enum_count<E>()` arguments.
 
@@ -1205,11 +1127,6 @@ struct array {
 ```cpp
 template <typename E, typename Index = default_indexing<E>>
 class bitset {
-
-  constexpr bitset() noexcept;
-
-  constexpr explicit bitset(detail::raw_access_t) noexcept;
-
   constexpr explicit bitset(detail::raw_access_t, unsigned long long val);
 
   constexpr explicit bitset(detail::raw_access_t, string_view sv, string_view::size_type pos = 0, string_view::size_type n = string_view::npos, char_type zero = '0', char_type one = '1');
@@ -1218,76 +1135,16 @@ class bitset {
 
   constexpr bitset(std::initializer_list<E> starters);
 
-  constexpr explicit bitset(E starter);
+  constexpr explicit bitset(E starter); // Only for flag enums.
 
   template <typename Cmp = std::equal_to<>>
   constexpr explicit bitset(string_view sv, char_type sep = '|', Cmp&& cmp = {});
 
-  friend constexpr bool operator==(const bitset& lhs, const bitset& rhs) noexcept;
-
-  friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept;
-
-  constexpr bool operator[](E pos) const;
-
-  constexpr reference operator[](E pos);
-
-  constexpr iterator begin() noexcept;
-
-  constexpr const_iterator begin() const noexcept;
-
-  constexpr const_iterator cbegin() const noexcept;
-
-  constexpr iterator end() noexcept;
-
-  constexpr const_iterator end() const noexcept;
-
-  constexpr const_iterator cend() const noexcept;
+  constexpr iterator begin() noexcept; // Also end, cbegin and cend.
 
   constexpr iterator find(E pos) noexcept;
 
-  constexpr const_iterator find(E pos) const noexcept;
-
-  constexpr bool test(E pos) const;
-
-  constexpr bool all() const noexcept;
-
-  constexpr bool any() const noexcept;
-
-  constexpr bool none() const noexcept;
-
-  constexpr std::size_t count() const noexcept;
-
-  constexpr std::size_t size() const noexcept;
-
-  constexpr std::size_t max_size() const noexcept;
-
-  constexpr bitset& operator&=(const bitset& other) noexcept;
-
-  constexpr bitset& operator|=(const bitset& other) noexcept;
-
-  constexpr bitset& operator^=(const bitset& other) noexcept;
-
-  constexpr bitset operator~() const noexcept;
-
-  constexpr bitset& set() noexcept;
-
-  constexpr bitset& set(E pos, bool value = true);
-
-  constexpr bitset& reset() noexcept;
-
-  constexpr bitset& reset(E pos);
-
-  constexpr bitset& flip() noexcept;
-
-  constexpr bitset& flip(E pos);
-
-  friend constexpr bitset operator&(const bitset& lhs, const bitset& rhs) noexcept;
-
-  friend constexpr bitset operator|(const bitset& lhs, const bitset& rhs) noexcept;
-
-  friend constexpr bitset operator^(const bitset& lhs, const bitset& rhs) noexcept;
-
-  constexpr explicit operator E() const;
+  constexpr explicit operator E() const; // Only for flag enums.
 
   template <typename String = string>
   constexpr String to_string(char_type sep = '|') const;
@@ -1299,11 +1156,7 @@ class bitset {
 
   constexpr unsigned long to_ulong(detail::raw_access_t raw) const;
 
-  template <typename Traits>
-  friend std::basic_ostream<char_type, Traits>& operator<<(std::basic_ostream<char_type, Traits>& o, const bitset& bs);
-
-  template <typename Traits>
-  friend std::basic_istream<char_type, Traits>& operator>>(std::basic_istream<char_type, Traits>& i, bitset& bs);
+  // Other members follow std::bitset, with positions of type E.
 };
 
 template <typename E> // Only for flag enums.
@@ -1312,13 +1165,11 @@ explicit bitset(E starter) -> bitset<E>;
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* Fixed-size bitset indexed by reflected enum values.
-
-* Default construction creates an empty bitset.
+* Fixed-size bitset indexed by reflected enum values. It follows `std::bitset` with `E` positions and adds `max_size`, iterators and `find`. Iteration visits set positions in indexing order.
 
 * Pass `magic_enum::containers::raw_access` to use the raw constructors and conversions, which work with positions instead of names.
 
-* Raw positions follow the indexing order, `enum_values<E>()` by default. For flags, a named zero has no position.
+* Raw positions follow the indexing order, `enum_values<E>()` by default, excluding zero for flags.
 
 * In a raw string, the first character is position 0, the opposite of `std::bitset`. In a raw integer, bit 0 is position 0.
 
@@ -1327,23 +1178,23 @@ explicit bitset(E starter) -> bitset<E>;
   // bits.test(Color::RED) -> true, RED is position 0
   ```
 
-* For flags, only nonzero bits have positions. An empty bitset prints the zero name if one is declared, otherwise an empty string. A nonempty bitset never prints zero. Names follow `enum_values<E>()` order, raw output follows the indexing order.
+* Names follow `enum_values<E>()` order. For flags, an empty bitset prints the zero name if reflected, otherwise an empty string. Nonempty output never includes the zero name.
 
-* `test`, `set`, `reset` and `flip` with an `E` argument throw `std::out_of_range` for an invalid position, including zero and combinations for flags. `operator[]` requires a valid position. `find` returns `end()` if there is no such position. Use `none()` to check for emptiness. For non-flag enums, a reflected zero is a normal position.
+* `test`, `set`, `reset` and `flip` reject invalid positions with `std::out_of_range`. `operator[]` requires a valid position, and `find` returns `end()` for an invalid or unset one. Zero and combinations are not positions for flags. Use `none()` to check for emptiness.
 
 * A flag enum with only a named zero cannot be used with `bitset`.
 
 * For flags, the single-value and initializer-list constructors take masks. Unknown bits throw `std::invalid_argument`, and zero adds nothing. Convert back with `static_cast<E>(bits)`. To apply a mask, use `bits |= bitset<E>(mask)`, `&=` or `^=`.
 
-* For non-flag enums, construct from a list of values. Values that are not reflected throw `std::out_of_range`. The single-value constructor and the conversion to `E` exist only for flags.
+* For non-flag enums, construct from a list of reflected values, including zero. An invalid value throws `std::out_of_range`. The single-mask constructor and conversion to `E` exist only for flags.
 
 * String construction follows the [flags grammar](#enum_flags), but an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`. For flags, `"None|A"` sets only `A`. For non-flag enums, a zero name sets its position.
 
-* `to_string<String>()` has the same [`String` requirements](#enum_flags) as `enum_flags_name`. The raw form also needs `reserve(size())`. Streams use the default `string`.
+* `to_string<String>()` has the same [`String` requirements](#enum_flags) as `enum_flags_name`. The raw form also needs `reserve(size())`.
 
-* Stream input reads one word with `'|'` as the separator. An invalid name sets `failbit` and leaves the bitset unchanged. The stream's exception mask applies.
+* Stream input reads one word with `'|'` as the separator. An invalid name sets `failbit` and leaves the bitset unchanged.
 
-* Specializes `std::hash`, so it works in unordered containers.
+* Supports `std::hash`.
 
 * Examples
 
@@ -1380,134 +1231,18 @@ explicit bitset(E starter) -> bitset<E>;
 ```cpp
 template <typename E, typename Cmp = std::less<E>>
 class set {
-
-  constexpr set() noexcept = default;
-
-  template <typename InputIt>
-  constexpr set(InputIt first, InputIt last);
-
-  constexpr set(std::initializer_list<E> ilist);
-
   static constexpr set from_mask(E mask);
-
-  constexpr set(const set&) noexcept = default;
-
-  constexpr set(set&&) noexcept = default;
-
-  constexpr set& operator=(const set&) noexcept = default;
-
-  constexpr set& operator=(set&&) noexcept = default;
-
-  constexpr set& operator=(std::initializer_list<E> ilist);
-
-  constexpr const_iterator begin() const noexcept;
-
-  constexpr const_iterator end() const noexcept;
-
-  constexpr const_iterator cbegin() const noexcept;
-
-  constexpr const_iterator cend() const noexcept;
-
-  constexpr const_reverse_iterator rbegin() const noexcept;
-
-  constexpr const_reverse_iterator rend() const noexcept;
-
-  constexpr const_reverse_iterator crbegin() const noexcept;
-
-  constexpr const_reverse_iterator crend() const noexcept;
-
-  constexpr bool empty() const noexcept;
-
-  constexpr size_type size() const noexcept;
-
-  constexpr size_type max_size() const noexcept;
-
-  constexpr void clear() noexcept;
-
-  constexpr std::pair<iterator, bool> insert(const value_type& value);
-
-  constexpr std::pair<iterator, bool> insert(value_type&& value);
-
-  constexpr iterator insert(const_iterator, const value_type& value);
-
-  constexpr iterator insert(const_iterator hint, value_type&& value);
-
-  template <typename InputIt>
-  constexpr void insert(InputIt first, InputIt last);
-
-  constexpr void insert(std::initializer_list<value_type> ilist);
-
-  template <typename... Args>
-  constexpr std::pair<iterator, bool> emplace(Args&&... args);
-
-  template <typename... Args>
-  constexpr iterator emplace_hint(const_iterator, Args&&... args);
-
-  constexpr iterator erase(const_iterator pos) noexcept;
-
-  constexpr iterator erase(const_iterator first, const_iterator last) noexcept;
-
-  constexpr size_type erase(const key_type& key) noexcept;
-
-  template <typename K>
-  constexpr size_type erase(K&& x);
-
-  void swap(set& other) noexcept;
-
-  constexpr size_type count(const key_type& key) const noexcept;
-
-  template <typename K>
-  constexpr size_type count(const K& x) const;
-
-  constexpr const_iterator find(const key_type& key) const noexcept;
-
-  template <typename K>
-  constexpr const_iterator find(const K& x) const;
-
-  constexpr bool contains(const key_type& key) const noexcept;
-
-  template <typename K>
-  constexpr bool contains(const K& x) const;
-
-  constexpr std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const;
-
-  template <typename K>
-  constexpr std::pair<const_iterator, const_iterator> equal_range(const K& x) const;
-
-  constexpr const_iterator lower_bound(const key_type& key) const;
-
-  template <typename K>
-  constexpr const_iterator lower_bound(const K& x) const;
-
-  constexpr const_iterator upper_bound(const key_type& key) const;
-
-  template <typename K>
-  constexpr const_iterator upper_bound(const K& x) const;
-
-  constexpr key_compare key_comp() const;
-
-  constexpr value_compare value_comp() const;
-
-  constexpr friend bool operator==(const set& lhs, const set& rhs) noexcept;
-
-  constexpr friend bool operator!=(const set& lhs, const set& rhs) noexcept;
-
-  constexpr friend bool operator<(const set& lhs, const set& rhs);
-
-  constexpr friend bool operator<=(const set& lhs, const set& rhs);
-
-  constexpr friend bool operator>(const set& lhs, const set& rhs);
-
-  constexpr friend bool operator>=(const set& lhs, const set& rhs);
 
   template <typename Pred>
   size_type erase_if(Pred pred);
+
+  // Other members follow std::set.
 };
 ```
 
 * Defined in header `<magic_enum/magic_enum_containers.hpp>`
 
-* Fixed-capacity set of reflected enum values. The comparator must be default constructible and usable in constant expressions.
+* Fixed-capacity set of reflected enum values with a `std::set`-like interface. The comparator must be default constructible and usable in constant expressions.
 
 * Distinct values stay separate keys even if the comparator treats them as equal. Lookup by another key type needs a transparent comparator and can match several values.
 
@@ -1515,7 +1250,7 @@ class set {
 
 * For flags, `set<E, Cmp>::from_mask(mask)` returns the set of its nonzero bits. Unknown bits throw `std::invalid_argument`. A zero mask gives an empty set. A named zero is a key, so `set<E>{E::None}` contains it, while `from_mask(E::None)` is empty. Combinations are not keys.
 
-* Constructors, insertion and list assignment throw `std::invalid_argument` for values that are not reflected. Duplicates are ignored, and `insert(value)` returns `{iterator, false}` for an existing key. Lookup and erasure of a missing key return `end()`, `false` or `0`.
+* Constructors, insertion and list assignment throw `std::invalid_argument` for values that are not reflected. Duplicates are ignored.
 
 * `emplace` and `emplace_hint` construct `E` from their arguments, including explicit conversions. Integers are rejected. With no arguments they insert `E{}`, which must be reflected.
 
