@@ -12,6 +12,7 @@ import std;
 #else
 #  include <functional>
 #  include <sstream>
+#  include <string_view>
 #  include <type_traits>
 #  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #    include <format>
@@ -28,6 +29,11 @@ inline constexpr auto magic_enum_define_range_adl(Bits) { return magic_enum::cus
 }
 static_assert(magic_enum::is_flags_v<imported_flags::Bits>);
 static_assert(magic_enum::enum_count<imported_flags::Bits>() == 2);
+
+enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };
+static_assert(magic_enum::enum_count<Unfixed>() == 3);
+static_assert(magic_enum::enum_cast<Unfixed>(-3).value() == Negative);
+static_assert(magic_enum::enum_name(Positive) == "Positive");
 
 enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };

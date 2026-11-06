@@ -16,11 +16,28 @@
 #include <string_view>
 #include <type_traits>
 
-// nvc++ and nvcc cannot reflect enums declared inside functions, so every enum here is at namespace or class scope.
-
 static_assert(magic_enum::is_magic_enum_supported);
 
 namespace nvcc {
+
+template <int>
+struct TemplateScope {
+  enum class Value { One = 1, Four = 4 };
+  enum class Collision { magic_enum_detail_enum_definition = 1 };
+};
+
+TEST_CASE("nvcc template enums before enumerator access") {
+  // Each first lookup uses a fresh enum.
+  static_assert(magic_enum::enum_count<TemplateScope<0>::Value>() == 2);
+  static_assert(magic_enum::enum_name<static_cast<TemplateScope<1>::Value>(4)>() == "Four");
+  static_assert(magic_enum::enum_name(static_cast<TemplateScope<2>::Value>(1)) == "One");
+  static_assert(magic_enum::enum_values<TemplateScope<3>::Value>().size() == 2);
+  static_assert(magic_enum::enum_names<TemplateScope<4>::Value>()[1] == "Four");
+  static_assert(magic_enum::enum_entries<TemplateScope<5>::Value>()[0].second == "One");
+  static_assert(magic_enum::enum_cast<TemplateScope<6>::Value>("Four") == static_cast<TemplateScope<6>::Value>(4));
+  static_assert(magic_enum::enum_name(static_cast<TemplateScope<7>::Collision>(1)) == "magic_enum_detail_enum_definition");
+  REQUIRE(magic_enum::enum_flags_name(static_cast<TemplateScope<8>::Value>(5)) == "One|Four");
+}
 
 template <typename T>
 struct identity {

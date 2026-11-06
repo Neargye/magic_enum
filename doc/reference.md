@@ -114,7 +114,7 @@
 
   The header can define type aliases, range macros and options such as `MAGIC_ENUM_NO_AUTO_IS_FLAGS` and `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS`.
 
-* Use the same configuration in every translation unit and in the module build.
+* Use the same configuration in every translation unit and in the module build. See [configuration requirements](limitations.md).
 
 ## `enum_cast`
 
@@ -382,7 +382,7 @@ struct enum_range {
 
 * An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, flags are selected when ADL finds both `E | E` and `E & E` for rvalues with result exactly `E`. Otherwise reflection is common.
 
-* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work. Use the same definition across translation units and when building the module, for example through `MAGIC_ENUM_CONFIG_FILE`.
+* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work.
 
 * `prefix_length` strips a prefix from reflected names and defaults to `0`. It must leave at least one character. Custom names are not affected.
 
@@ -546,6 +546,8 @@ constexpr string_view enum_type_name() noexcept;
 * Defined in header `<magic_enum/magic_enum.hpp>`
 
 * Returns the enum type name as a null-terminated `string_view`.
+
+* An unnamed enum has no type name, and `enum_type_name` fails to compile for it. A `typedef` name such as `typedef enum { ... } Name` is used. Specialize `customize::enum_type_name` to give an unnamed enum a name.
 
 * Examples
 
@@ -739,7 +741,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * The zero name is never added to nonzero output, and `"None|Read"` parses as `Read`. Returning `invalid_tag` for zero hides it everywhere.
 
-* Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` before including magic_enum to leave a named zero out of flags for every enum. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name. Use the same definition across translation units and when building the module, for example through `MAGIC_ENUM_CONFIG_FILE`.
+* Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` before including magic_enum to leave a named zero out of flags for every enum. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name.
 
 * Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. Use `as_common<>` with `enum_name` or `enum_cast` to look up a combination by name. With compiler-specific reflection, it must be within the common range.
 

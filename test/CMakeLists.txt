@@ -333,6 +333,12 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  unnamed-type-name
+  25
+  "magic_enum::enum_type_name enum type does not have a name"
+)
+magic_enum_make_compile_fail_test(
+  configuration
   conflicting-assert
   1
   "MAGIC_ENUM_NO_ASSERT and MAGIC_ENUM_ASSERT cannot be used together"

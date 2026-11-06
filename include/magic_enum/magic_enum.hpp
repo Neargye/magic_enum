@@ -332,8 +332,8 @@ using enum_constant = std::integral_constant<E, V>;
 template <typename... T>
 inline constexpr bool always_false_v = false;
 
-#if defined(__clang__)
-// Member lookup instantiates class-template enums before Clang reflects them.
+#if defined(__clang__) || defined(__NVCOMPILER) || defined(__NVCC__)
+// These compilers define scoped enums of class templates lazily, see #164. Member lookup instantiates them before reflection.
 template <typename E, typename = void>
 struct enum_definition { using type = E; };
 
@@ -582,6 +582,14 @@ MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* 
 #endif
 }
 
+// Unnamed enums print as `(unnamed enum at ...)`, `<unnamed enum>` or `<unnamed-type-x>` and have no name.
+MAGIC_ENUM_CONSTEVAL cname_ref type_identifier(cname_ref name) noexcept {
+  if (name.size_ == 0 || name.str_[name.size_ - 1] == ')' || name.str_[name.size_ - 1] == '>') {
+    return {};
+  }
+  return unqualified(name);
+}
+
 MAGIC_ENUM_CONSTEVAL cname_ref enum_signature_name([[maybe_unused]] const char* str, [[maybe_unused]] std::size_t size) noexcept {
 #if defined(MAGIC_ENUM_DETAIL_NVCC)
   const auto name = nvcc_signature_name(str, size);
@@ -621,7 +629,7 @@ MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
     constexpr auto name = __rscpp_type_name<E>();
     return name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
 #else
-    return unqualified(type_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
+    return type_identifier(type_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
 #endif
   } else {
     return cname_ref{}; // Unsupported compiler.

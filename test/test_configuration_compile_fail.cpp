@@ -410,6 +410,14 @@ constexpr auto count = magic_enum::enum_count<UndeclaredZero>();
 #  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
 #  include <magic_enum/magic_enum.hpp>
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 25
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum { UnnamedFirst, UnnamedSecond };
+
+constexpr auto unnamed_type_name = magic_enum::enum_type_name<decltype(UnnamedFirst)>();
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

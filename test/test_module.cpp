@@ -13,6 +13,7 @@ import std;
 #else
 #  include <functional>
 #  include <sstream>
+#  include <string_view>
 #  include <type_traits>
 #  if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 #    include <format>
@@ -30,6 +31,11 @@ import magic_enum_test_types;
 static_assert(magic_enum::is_flags_v<exported_flags::Bits> == auto_flags_test::enabled);
 static_assert(magic_enum::enum_contains<exported_flags::Bits>(exported_flags::Bits::All) == !auto_flags_test::enabled);
 #endif
+
+enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };
+static_assert(magic_enum::enum_count<Unfixed>() == 3);
+static_assert(magic_enum::enum_cast<Unfixed>(-3).value() == Negative);
+static_assert(magic_enum::enum_name(Positive) == "Positive");
 
 enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };

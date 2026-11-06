@@ -1040,6 +1040,26 @@ class a_foo2 {
 typedef enum { TypedefAnonFirst, TypedefAnonSecond } TypedefAnon;
 typedef enum : unsigned { TypedefAnonFixedFirst } TypedefAnonFixed;
 
+enum { UnnamedFirst, UnnamedSecond };
+// MSVC mangles unnamed enums of one namespace to the same name, so reflecting two of them fails to link.
+namespace unnamed_fixed {
+enum : unsigned char { UnnamedFixedFirst = 1, UnnamedFixedSecond = 2 };
+} // namespace unnamed_fixed
+using namespace unnamed_fixed;
+namespace {
+enum { UnnamedHiddenFirst, UnnamedHiddenSecond };
+} // namespace
+struct UnnamedScope {
+  enum { First, Second } value;
+};
+template <typename>
+struct UnnamedTemplateScope {
+  enum { First = 1, Second = 2 } value;
+};
+
+template <typename E>
+constexpr bool has_type_name = !magic_enum::detail::type_name_v<E>.str().empty();
+
 enum class LargeNumbers {
     First = -1024,
     Second = 1024
@@ -1411,6 +1431,19 @@ TEST_CASE("enum_type_name") {
   REQUIRE(enum_type_name<TypedefAnon>() == "TypedefAnon");
   REQUIRE(enum_type_name<TypedefAnonFixed>() == "TypedefAnonFixed");
   REQUIRE(enum_name(TypedefAnonSecond) == "TypedefAnonSecond");
+
+  // Unnamed enums have no type name, but their values are reflected.
+  static_assert(has_type_name<TypedefAnon>);
+  static_assert(!has_type_name<decltype(UnnamedFirst)>);
+  static_assert(!has_type_name<decltype(UnnamedFixedFirst)>);
+  static_assert(!has_type_name<decltype(UnnamedHiddenFirst)>);
+  static_assert(!has_type_name<decltype(UnnamedScope::value)>);
+  static_assert(!has_type_name<decltype(UnnamedTemplateScope<int>::value)>);
+  REQUIRE(enum_name(UnnamedSecond) == "UnnamedSecond");
+  REQUIRE(enum_name(UnnamedFixedSecond) == "UnnamedFixedSecond");
+  REQUIRE(enum_name(UnnamedHiddenSecond) == "UnnamedHiddenSecond");
+  REQUIRE(enum_count<decltype(UnnamedScope::value)>() == 2);
+  REQUIRE(enum_name(UnnamedTemplateScope<int>::Second) == "Second");
 }
 
 TEST_CASE("aliases") {

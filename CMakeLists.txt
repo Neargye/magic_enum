@@ -129,6 +129,10 @@ function(magic_enum_make_module_library name)
   )
   target_link_libraries(${name} PUBLIC ${PROJECT_NAME})
   target_compile_features(${name} PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
+  # Clang 18 importers do not honor the header's enum conversion diagnostic pragma.
+  target_compile_options(${name} INTERFACE
+    "$<$<AND:$<COMPILE_LANG_AND_ID:CXX,Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,18>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19>>:-Wno-enum-constexpr-conversion>"
+  )
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MAGIC_ENUM_MODULE_IMPORT_STD)
     target_compile_options(${name} PRIVATE -Wno-include-angled-in-module-purview)
   endif()
