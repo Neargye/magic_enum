@@ -21,7 +21,9 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - name: Test CI scripts
       shell: bash
       run: |
@@ -71,7 +73,9 @@ jobs:
         - { os: ubuntu-24.04, compiler: "clang-23", build_type: Debug }
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - uses: ./.github/actions/setup-linux-compiler
       with:
         compiler: ${{ matrix.config.compiler }}
@@ -113,7 +117,9 @@ jobs:
         - { os: ubuntu-24.04, compiler: "clang-23", standards: "c++17 c++20 c++23" }
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - uses: ./.github/actions/setup-linux-compiler
       with:
         compiler: ${{ matrix.config.compiler }}
@@ -196,7 +202,9 @@ jobs:
         - { os: ubuntu-24.04, compiler: "clang-23" }
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - uses: ./.github/actions/setup-linux-compiler
       with:
         compiler: ${{ matrix.config.compiler }}
@@ -234,7 +242,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Install fmt
       uses: ./.github/actions/timed-run
@@ -265,7 +275,9 @@ jobs:
     name: Bazel
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Test
       uses: ./.github/actions/timed-run
@@ -283,7 +295,9 @@ jobs:
     name: Meson
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Install Meson
       uses: ./.github/actions/timed-run

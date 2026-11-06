@@ -1,0 +1,68 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'doc/**']
+  pull_request:
+    paths-ignore: ['**.md', 'doc/**']
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: C++ / GCC 13
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    # Avoid enabling C++26 reflection targets in the CodeQL build.
+    env:
+      CC: gcc-13
+      CXX: g++-13
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      with:
+        languages: c-cpp
+        build-mode: manual
+
+    - name: Configure
+      uses: ./.github/actions/timed-run
+      with:
+        name: Configure
+        run: |
+          cmake -S . -B build-codeql -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMAGIC_ENUM_OPT_BUILD_TESTS=ON \
+            -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=ON
+
+    - uses: ./.github/actions/build-summary
+      with:
+        build-dir: build-codeql
+
+    # Building consumers instantiates this header-only library's templates.
+    - name: Build
+      uses: ./.github/actions/timed-run
+      with:
+        name: Build
+        run: cmake --build build-codeql --parallel "$(nproc)"
+
+    - name: Analyze
+      uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      with:
+        category: /language:c-cpp

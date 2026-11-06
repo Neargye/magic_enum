@@ -21,7 +21,9 @@ jobs:
     timeout-minutes: 5
     runs-on: windows-2025
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - name: Test CI scripts
       shell: bash
       run: |
@@ -52,7 +54,9 @@ jobs:
 
     name: "${{ matrix.config.os }} / ${{ matrix.config.platform }} / ${{ matrix.config.build_type }}${{ matrix.config.compiler && format(' / {0}', matrix.config.compiler) || '' }}"
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Configure
       uses: ./.github/actions/timed-run
@@ -78,8 +82,10 @@ jobs:
     timeout-minutes: 30
     runs-on: windows-2025
     steps:
-    - uses: actions/checkout@v7
-    - uses: ilammy/msvc-dev-cmd@v1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
       with:
         arch: x64
 

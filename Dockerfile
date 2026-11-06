@@ -1,4 +1,4 @@
-FROM gentoo/stage3:latest
+FROM gentoo/stage3:latest@sha256:e54c014546d9015a83577160514c16d4709d0c7eb792df4da2e3fb70b16197dc
 
 RUN emerge-webrsync \
     && echo "dev-build/cmake ~amd64" > /etc/portage/package.accept_keywords/magic_enum \
