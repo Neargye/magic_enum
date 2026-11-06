@@ -66,3 +66,18 @@ jobs:
       uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
       with:
         category: /language:c-cpp
+        output: sarif-results
+        upload: failure-only
+
+    - name: Exclude third-party results
+      uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0 # v1.1
+      with:
+        patterns: '-test/3rdparty/**'
+        input: sarif-results/cpp.sarif
+        output: sarif-results/cpp.sarif
+
+    - name: Upload results
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      with:
+        sarif_file: sarif-results/cpp.sarif
+        category: /language:c-cpp
