@@ -22,15 +22,46 @@
 
 enum class DenseNegative { MinusTwo = -2, MinusOne = -1, Zero = 0 };
 
-// For enums declared in class templates, Clang prints a cast instead of the enumerator name, see #164 and #296.
-#if !defined(__clang__)
-#  define MAGIC_ENUM_TEST_TEMPLATED_ENUM
-template <typename, typename>
+template <typename, typename, int = 0>
 struct templated_scope {
-  enum class Value { ONE, TWO };
+  enum class Value { ONE = 1, TWO = 4 };
+  enum class Collision { magic_enum_detail_enum_definition = 1 };
+  enum class Empty {};
+  enum class Opaque : unsigned;
 };
 using TemplatedValue = templated_scope<int, long>::Value;
+
+template <int I>
+using NumericFirstValue = typename templated_scope<void(int, int), int(*)[2], I>::Value;
+
+struct IncompleteEnumArgument;
+template <typename T, typename = void>
+struct HasEnumName : std::false_type {};
+template <typename T>
+struct HasEnumName<T, std::void_t<decltype(magic_enum::enum_name(std::declval<T>()))>> : std::true_type {};
+
+TEST_CASE("class-template enums reflect before enumerator access") {
+  using namespace magic_enum;
+  // Each first lookup uses a fresh enum, without naming any enumerator.
+  static_assert(enum_name(static_cast<NumericFirstValue<0>>(1)) == "ONE");
+  static_assert(enum_name<static_cast<NumericFirstValue<1>>(4)>() == "TWO");
+  static_assert(enum_count<NumericFirstValue<2>>() == 2);
+  static_assert(enum_values<NumericFirstValue<3>>().size() == 2);
+  static_assert(enum_names<NumericFirstValue<4>>()[1] == "TWO");
+  static_assert(enum_entries<NumericFirstValue<5>>()[0].second == "ONE");
+  static_assert(enum_cast<NumericFirstValue<6>>(4) == static_cast<NumericFirstValue<6>>(4));
+  static_assert(enum_cast<NumericFirstValue<7>>("TWO") == static_cast<NumericFirstValue<7>>(4));
+  static_assert(enum_count<NumericFirstValue<8>, as_common<>>() == 2);
+  static_assert(enum_index(static_cast<NumericFirstValue<9>>(4)) == 1);
+  static_assert(enum_count<const NumericFirstValue<10>&>() == 2);
+  static_assert(enum_name(static_cast<templated_scope<int, void>::Collision>(1)) == "magic_enum_detail_enum_definition");
+  static_assert(enum_count<templated_scope<int, void>::Empty>() == 0);
+#if !defined(MAGIC_ENUM_TEST_STD_REFLECTION)
+  static_assert(enum_count<templated_scope<int, void>::Opaque>() == 0);
 #endif
+  static_assert(!HasEnumName<int>::value);
+  static_assert(!HasEnumName<IncompleteEnumArgument>::value);
+}
 
 enum class crc_hack {
   b5a7b602ab754d7ab30fb42c4fb28d82
@@ -925,9 +956,7 @@ TEST_CASE("enum_count") {
   REQUIRE(s6 == 2);
 #endif
 
-#if defined(MAGIC_ENUM_TEST_TEMPLATED_ENUM)
   REQUIRE(enum_count<TemplatedValue>() == 2);
-#endif
 }
 
 TEST_CASE("enum_min_max") {
@@ -1067,9 +1096,7 @@ TEST_CASE("enum_name") {
     REQUIRE(enum_name(static_cast<number>(0)).empty());
 
     REQUIRE(enum_name(MaxUsedAsInvalid::ONE) == "ONE");
-#if defined(MAGIC_ENUM_TEST_TEMPLATED_ENUM)
     REQUIRE(enum_name(TemplatedValue::ONE) == "ONE");
-#endif
 
     REQUIRE(enum_name(lt1::s1) == "s1");
     REQUIRE(enum_name(lt1::loooooooooooooooooooong1) == "loooooooooooooooooooong1");

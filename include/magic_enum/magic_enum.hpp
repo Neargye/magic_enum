@@ -332,6 +332,22 @@ using enum_constant = std::integral_constant<E, V>;
 template <typename... T>
 inline constexpr bool always_false_v = false;
 
+#if defined(__clang__)
+// Member lookup instantiates class-template enums before Clang reflects them.
+template <typename E, typename = void>
+struct enum_definition { using type = E; };
+
+// Preserve E if the lookup happens to name an enumerator.
+template <typename E>
+struct enum_definition<E, std::void_t<decltype(E::magic_enum_detail_enum_definition)>> { using type = E; };
+
+template <typename E>
+using enum_definition_t = typename enum_definition<E>::type;
+#else
+template <typename E>
+using enum_definition_t = E;
+#endif
+
 template <typename T, typename = void>
 inline constexpr bool has_is_flags_v = false;
 
@@ -819,7 +835,7 @@ MAGIC_ENUM_CONSTEVAL auto enum_name() noexcept {
 }
 
 template <typename E, E V>
-inline constexpr auto enum_name_v = enum_name<E, V>();
+inline constexpr auto enum_name_v = enum_name<enum_definition_t<E>, V>();
 
 // Tables skip undeclared values, so only a custom name for zero is checked, as the most common mistake.
 template <typename E>
@@ -1442,7 +1458,7 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
 }
 
 template <typename E, enum_subtype S>
-inline constexpr auto scan_v = scan<E, S>();
+inline constexpr auto scan_v = scan<enum_definition_t<E>, S>();
 
 #endif
 

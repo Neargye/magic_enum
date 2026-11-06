@@ -20,6 +20,19 @@
 #include <string>
 #include <string_view>
 
+template <int>
+struct templated_flags_scope {
+  enum class Value : unsigned { None = 0, A = 1, B = 4 };
+};
+
+TEST_CASE("class-template flags reflect before enumerator access") {
+  using namespace magic_enum;
+  CHECK(enum_flags_name(static_cast<templated_flags_scope<0>::Value>(5)) == "A|B");
+  static_assert(enum_flags_cast<templated_flags_scope<1>::Value>("A|B") == static_cast<templated_flags_scope<1>::Value>(5));
+  static_assert(enum_flags_contains(static_cast<templated_flags_scope<2>::Value>(5)));
+  CHECK(enum_flags_name(static_cast<templated_flags_scope<3>::Value>(0)) == "None");
+}
+
 enum class InvalidFlagsSetting { Value };
 template <>
 struct magic_enum::customize::enum_range<InvalidFlagsSetting> {

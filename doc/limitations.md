@@ -178,6 +178,4 @@ enum ShapeKind { Box = 0, ConvexBegin = Box, Sphere = 1 };
 
 * Some compilers have problems reflecting enums inside templates. See [#164](https://github.com/Neargye/magic_enum/issues/164) and [#65](https://github.com/Neargye/magic_enum/issues/65).
 
-* Clang instantiates the definition of a scoped enum nested in a class template only when one of its enumerators is used. Until then the enum is not reflected, so results can differ between translation units.
-
 * With Clang 18 and `import magic_enum`, an enum without a fixed underlying type fails to compile. Use a fixed type, for example `enum E : int`, or `-Wno-enum-constexpr-conversion`.
