@@ -60,6 +60,14 @@
 #  endif
 #endif
 
+#if defined(MAGIC_ENUM_REQUIRE_STD_REFLECTION)
+#  if defined(MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION)
+#    error "MAGIC_ENUM_REQUIRE_STD_REFLECTION and MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION cannot be used together."
+#  elif !defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+#    error "MAGIC_ENUM_REQUIRE_STD_REFLECTION requires C++26 standard reflection support."
+#  endif
+#endif
+
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #  if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 #    include <algorithm>
@@ -905,6 +913,16 @@ struct table {
   bool sorted = true;
 };
 
+// Values that flag tables hold. MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS leaves zero out, but it stays a valid mask.
+template <typename T>
+consteval bool is_flag_value(T value) noexcept {
+#if defined(MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS)
+  return value != T{0} && is_flag_candidate(value);
+#else
+  return is_flag_candidate(value);
+#endif
+}
+
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 consteval auto declared_data() noexcept {
   table<E, enumerators_v<E>.size()> result{};
@@ -915,7 +933,7 @@ consteval auto declared_data() noexcept {
   // A regular loop avoids one template instantiation per enumerator.
   for (const auto enumerator : enumerators_v<E>) {
     const auto value = std::meta::extract<E>(enumerator);
-    if (S == enum_subtype::common || is_flag_candidate(static_cast<U>(value))) {
+    if (S == enum_subtype::common || is_flag_value(static_cast<U>(value))) {
       const auto custom = customize::enum_name<E>(value);
       if (custom.tag != customize_tag::invalid_tag) {
         name_ref name{};
@@ -1075,8 +1093,12 @@ MAGIC_ENUM_CONSTEVAL E batch_value(std::size_t i) noexcept {
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
+#if defined(MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS)
+    return 0;
+#else
     // Zero before bit 0, see underlying_value.
     return -1;
+#endif
   } else if constexpr (cmp_less((std::numeric_limits<U>::min)(), range_min<E>::value)) {
     return range_min<E>::value;
   } else {
@@ -1333,12 +1355,14 @@ MAGIC_ENUM_CONSTEVAL std::size_t chars_size(const valid_offsets_t<N>& offsets) n
 // All names are copied into one array instead of a static_str per value.
 template <typename E, enum_subtype S, std::size_t Size, int Min>
 MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
+#if !defined(MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE)
   if constexpr (S == enum_subtype::common) {
     // Flags often have bits outside the common range, so as_common<> does not require them in it.
     if constexpr (named_near_range<E, Min, Min + static_cast<int>(Size - 1)>(std::make_index_sequence<8>{})) {
       static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX.");
     }
   }
+#endif
   constexpr auto offsets = valid_offsets<E, S, Size, Min>();
   static_assert(offsets.valid_names, "magic_enum::customize requires not empty string.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");

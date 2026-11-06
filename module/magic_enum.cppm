@@ -12,7 +12,7 @@ module;
 #  include <initializer_list>
 #  include <ios>
 #  include <iterator>
-#  if __has_include(<format>)
+#  if !defined(MAGIC_ENUM_NO_STD_FORMAT) && __has_include(<format>)
 #    include <format>
 #  endif
 #  include <stdexcept>

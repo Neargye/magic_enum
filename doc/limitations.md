@@ -12,7 +12,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * Each value has one name, taken from its first declaration.
 
-* Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` before including magic_enum to keep compiler-specific reflection.
+* Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` to keep compiler-specific reflection, or `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to fail compilation when standard reflection is unavailable. Do not define both.
 
 * Reflecting values requires the enum definition. See [empty enums](#empty-enums) for opaque declarations.
 
@@ -33,7 +33,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
   };
   ```
 
-* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build to disable automatic detection. Explicit `is_flags = true`, `.flag<true>()` and `as_flags<>` still work. For modules, set it when building the module.
+* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build to disable automatic detection. Explicit `is_flags = true`, `.flag<true>()` and `as_flags<>` still work. Set it in `MAGIC_ENUM_CONFIG_FILE` to keep it consistent. For modules, set it when building the module.
 
 * Declare operators and customization before the first reflection use, consistently across translation units. Operators whose constraints depend on reflection need an explicit mode.
 
@@ -44,6 +44,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 * Detection does not inspect the values. Enums containing codes or multibit fields may need `is_flags = false`.
 
 * Only a named zero and named single bits are reflected. For signed enums, the sign bit comes first in value order. Use name customization to hide unwanted values.
+
+* Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` for the whole build to leave a named zero out of flags. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name. Set it in `MAGIC_ENUM_CONFIG_FILE` to keep it consistent. For modules, set it when building the module.
 
 * Combinations such as `Both = A | B` are not flag values. They are formatted as `"A|B"`, and `enum_flags_cast` rejects `"Both"`. To look up a combination by name, use `as_common<>` with `enum_name` or `enum_cast`. With compiler-specific reflection, the combination must be within the common range.
 
@@ -73,7 +75,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`. After clamping to the underlying type, bounds must fit `int`, with `min <= max` and `max - min < 65535`.
 
-* Named values at a few points just outside the range cause a compile-time error. This check is not exhaustive. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum.
+* Named values at a few points just outside the range cause a compile-time error. This check is not exhaustive. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
 
 * To change the default range for all enums, define these macros before including magic_enum:
 

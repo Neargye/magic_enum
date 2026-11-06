@@ -9,6 +9,8 @@
 
 #include <magic_enum/magic_enum_bitwise.hpp>
 
+#include <type_traits>
+
 #if __has_include(<fmt/format.h>)
 #  define FMT_HEADER_ONLY
 // GCC 15+ reports a false -Warray-bounds in fmt 9 format_decimal when the header-only float path is inlined.
@@ -29,7 +31,24 @@
 
 #include <magic_enum/magic_enum_format.hpp>
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#if defined(MAGIC_ENUM_NO_STD_FORMAT) && __has_include(<format>) && ((defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L)
+#  include <format>
+#endif
+
+#include <magic_enum/magic_enum_all.hpp>
+
+TEST_CASE("format configuration preserves reflection") {
+  CHECK(magic_enum::enum_name(Color::RED) == "red");
+  CHECK(magic_enum::enum_flags_name(flags_test::Color::RED) == "RED");
+#if defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+  static_assert(!std::is_default_constructible_v<std::formatter<Color, char>>);
+#endif
+#if defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(MAGIC_ENUM_TEST_HAS_FMT)
+  static_assert(!fmt::is_formattable<Color>::value);
+#endif
+}
+
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
@@ -38,7 +57,7 @@ TEST_CASE("format-base") {
 
 #endif
 
-#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+#if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(MAGIC_ENUM_TEST_HAS_FMT)
 
 TEST_CASE("format-fmt") {
   REQUIRE(fmt::format("{}", Color::GREEN) == "GREEN");
@@ -51,7 +70,7 @@ namespace flags_test {
 
 using namespace magic_enum::bitwise_operators;
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 TEST_CASE("flags format-base") {
   REQUIRE(std::format("Test-{:~^11}.", Color::RED | Color::GREEN) == "Test-~RED|GREEN~.");
@@ -59,7 +78,7 @@ TEST_CASE("flags format-base") {
 
 #endif
 
-#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+#if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(MAGIC_ENUM_TEST_HAS_FMT)
 
 TEST_CASE("flags format-fmt") {
   REQUIRE(fmt::format("{}", Color::RED | Color::GREEN) == "RED|GREEN");
@@ -74,12 +93,12 @@ enum class Bits { A = 1, B = 2, All = 3 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Bits);
 }
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 TEST_CASE("automatic flags format") {
   REQUIRE(std::format("{}", auto_format_test::Bits::All) == "A|B");
 }
 #endif
-#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+#if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(MAGIC_ENUM_TEST_HAS_FMT)
 TEST_CASE("automatic flags fmt") {
   REQUIRE(fmt::format("{}", auto_format_test::Bits::All) == "A|B");
 }

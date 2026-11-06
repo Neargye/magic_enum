@@ -53,7 +53,7 @@
 
 * `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. Defining `MAGIC_ENUM_NO_CHECK_SUPPORT` makes `is_magic_enum_supported` true and skips the check. Otherwise reflection functions fail to compile on an unsupported compiler. Formatting falls back to integers, and bitwise operators do not need reflection.
 
-* C++26 reflection is selected automatically when available. See [limitations](limitations.md#c26-standard-reflection).
+* C++26 reflection is selected automatically when available. Define `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to require it. See [limitations](limitations.md#c26-standard-reflection).
 
 * `Enum<T>` restricts C++17 function parameters to enum types.
 
@@ -88,6 +88,8 @@
 
 * `MAGIC_ENUM_ENABLE_HASH` enables hash-based name lookup with the default predicate. Custom predicates still use linear search.
 
+* `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` disables the compile-time error for [named values just outside the range](limitations.md#enum-range). Such values are not reflected.
+
 * To customize string and optional types, define these macros before including `magic_enum.hpp`:
 
   ```cpp
@@ -110,7 +112,7 @@
   #include <magic_enum/magic_enum.hpp>
   ```
 
-  The header can define type aliases and range macros.
+  The header can define type aliases, range macros and options such as `MAGIC_ENUM_NO_AUTO_IS_FLAGS` and `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS`.
 
 * Use the same configuration in every translation unit and in the module build.
 
@@ -380,7 +382,7 @@ struct enum_range {
 
 * An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, flags are selected when ADL finds both `E | E` and `E & E` for rvalues with result exactly `E`. Otherwise reflection is common.
 
-* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work. Use the same definition across translation units and when building the module.
+* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work. Use the same definition across translation units and when building the module, for example through `MAGIC_ENUM_CONFIG_FILE`.
 
 * `prefix_length` strips a prefix from reflected names and defaults to `0`. It must leave at least one character. Custom names are not affected.
 
@@ -737,6 +739,8 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * The zero name is never added to nonzero output, and `"None|Read"` parses as `Read`. Returning `invalid_tag` for zero hides it everywhere.
 
+* Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` before including magic_enum to leave a named zero out of flags for every enum. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name. Use the same definition across translation units and when building the module, for example through `MAGIC_ENUM_CONFIG_FILE`.
+
 * Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. Use `as_common<>` with `enum_name` or `enum_cast` to look up a combination by name. With compiler-specific reflection, it must be within the common range.
 
 * Examples
@@ -1038,7 +1042,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_format.hpp>`
 
-* Provides `std::formatter` when `std::format` is available, and `fmt::formatter` when `{fmt}` is included first.
+* Provides `std::formatter` when `std::format` is available, and `fmt::formatter` when `{fmt}` is included first. Define `MAGIC_ENUM_NO_STD_FORMAT` or `MAGIC_ENUM_NO_FMT_FORMAT` to disable the corresponding integration, including through `magic_enum_all.hpp`. For modules, set these options when building the module.
 
 * Formats a value by name, flags joined by `|`, and other values as integers.
 

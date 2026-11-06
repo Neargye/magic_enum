@@ -253,7 +253,7 @@ TEST_CASE("unfixed flags reach the top bit of their range") {
   static_assert(enum_count<UnfixedSigned, flags>() == 2);
   static_assert(enum_values<UnfixedSigned, flags>()[1] == US_High);
   CHECK(enum_flags_name(UH_High) == "UH_High");
-  CHECK(enum_flags_name(static_cast<UnfixedSigned>(US_Low | US_High)) == "US_Low|US_High");
+  CHECK(enum_flags_name(US_Low | US_High) == "US_Low|US_High");
 }
 
 TEST_CASE("flags name with a custom String") {

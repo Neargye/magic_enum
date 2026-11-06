@@ -244,7 +244,7 @@ set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test test_global_names.cpp)
 set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators test_operators_other.cpp)
 # Suites with name lookup or switch paths that MAGIC_ENUM_ENABLE_HASH changes.
 set(MAGIC_ENUM_TEST_HASH_SOURCES test test_flags test_switch test_operators)
-set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection)
+set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection test_no_named_zero_in_flags test_no_check_out_of_range)
 
 # nvc++ cannot reflect enums declared inside functions, which the other suites use.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
@@ -267,6 +267,24 @@ endfunction()
 magic_enum_add_tests(cpp17 c++17)
 magic_enum_make_test("test_operators.cpp;${MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators}" test_operators-no-auto-cpp17 c++17)
 target_compile_definitions(test_operators-no-auto-cpp17 PRIVATE MAGIC_ENUM_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS)
+magic_enum_make_test(test_no_named_zero_in_flags.cpp test_no_named_zero_in_flags-cpp17 c++17)
+target_compile_definitions(test_no_named_zero_in_flags-cpp17 PRIVATE MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS)
+magic_enum_make_test(test_no_check_out_of_range.cpp test_no_check_out_of_range-cpp17 c++17)
+target_compile_definitions(test_no_check_out_of_range-cpp17 PRIVATE MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE)
+set(MAGIC_ENUM_FORMAT_TEST_STANDARD c++17)
+if(MAGIC_ENUM_HAS_CPP20_FLAG)
+  set(MAGIC_ENUM_FORMAT_TEST_STANDARD c++20)
+endif()
+foreach(format_mode IN ITEMS no-std no-fmt no-format)
+  set(format_target test_format-${format_mode})
+  magic_enum_make_test(test_format.cpp ${format_target} ${MAGIC_ENUM_FORMAT_TEST_STANDARD})
+  if(NOT format_mode STREQUAL "no-fmt")
+    target_compile_definitions(${format_target} PRIVATE MAGIC_ENUM_NO_STD_FORMAT)
+  endif()
+  if(NOT format_mode STREQUAL "no-std")
+    target_compile_definitions(${format_target} PRIVATE MAGIC_ENUM_NO_FMT_FORMAT)
+  endif()
+endforeach()
 magic_enum_make_test(test_range.cpp test_range-cpp17 c++17)
 foreach(hook_form RANGE 1 4)
   magic_enum_make_compile_fail_test(configuration invalid-hook-${hook_form} 20
@@ -301,6 +319,18 @@ if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERS
     target_compile_options(test_nonascii-cpp17 PRIVATE /utf-8)
   endif()
 endif()
+magic_enum_make_compile_fail_test(
+  configuration
+  required-std-reflection
+  23
+  "MAGIC_ENUM_REQUIRE_STD_REFLECTION requires C++26 standard reflection support"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  conflicting-reflection
+  24
+  "MAGIC_ENUM_REQUIRE_STD_REFLECTION and MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION cannot be used together"
+)
 magic_enum_make_compile_fail_test(
   configuration
   conflicting-assert
@@ -661,7 +691,7 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
   magic_enum_add_tests(${MAGIC_ENUM_TEST_SUFFIX} ${MAGIC_ENUM_TEST_STANDARD_FLAG})
   if(MAGIC_ENUM_TEST_STANDARD EQUAL 26 AND MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT)
     foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
-      target_compile_definitions(${test_name}-${MAGIC_ENUM_TEST_SUFFIX} PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
+      target_compile_definitions(${test_name}-${MAGIC_ENUM_TEST_SUFFIX} PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
     endforeach()
   endif()
 endforeach()
@@ -670,11 +700,15 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
   magic_enum_make_test("test_operators.cpp;${MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators}" test_operators-no-auto-cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   magic_enum_add_std_reflection_options(test_operators-no-auto-cpp26-reflection)
   target_compile_definitions(test_operators-no-auto-cpp26-reflection PRIVATE
-    MAGIC_ENUM_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_STD_REFLECTION=1)
+    MAGIC_ENUM_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
+  magic_enum_make_test(test_no_named_zero_in_flags.cpp test_no_named_zero_in_flags-cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+  magic_enum_add_std_reflection_options(test_no_named_zero_in_flags-cpp26-reflection)
+  target_compile_definitions(test_no_named_zero_in_flags-cpp26-reflection PRIVATE
+    MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
   magic_enum_add_tests(cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
     magic_enum_add_std_reflection_options(${test_name}-cpp26-reflection)
-    target_compile_definitions(${test_name}-cpp26-reflection PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
+    target_compile_definitions(${test_name}-cpp26-reflection PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
   endforeach()
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_HASH_SOURCES)
     target_compile_definitions(${test_name}-cpp26-reflection PRIVATE MAGIC_ENUM_ENABLE_HASH=1)
@@ -691,7 +725,7 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
 
   foreach(backend IN ITEMS std-reflection force-compiler-specific)
     if(backend STREQUAL "std-reflection")
-      set(backend_definition MAGIC_ENUM_TEST_STD_REFLECTION=1)
+      set(backend_definition MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
       set(reflection_test test_std_reflection-auto-cpp26)
     else()
       set(backend_definition MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION=1)

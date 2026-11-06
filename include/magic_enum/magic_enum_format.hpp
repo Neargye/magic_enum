@@ -44,6 +44,8 @@
 #  pragma warning(disable : 4459 6244) // Local names can match global names in user code.
 #endif
 
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) || !defined(MAGIC_ENUM_NO_FMT_FORMAT)
+
 namespace magic_enum::detail {
 
 template <typename E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, int> = 0>
@@ -66,13 +68,15 @@ std::string format_as(E e) {
 
 } // namespace magic_enum::detail
 
-#ifndef MAGIC_ENUM_USE_STD_MODULE
+#endif
+
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) && !defined(MAGIC_ENUM_USE_STD_MODULE)
 #  if __has_include(<format>) && ((defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L)
 #    include <format>
 #  endif
 #endif
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 template <typename E>
 struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : std::formatter<std::string_view, char> {
@@ -84,7 +88,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 
 #endif
 
-#if defined(FMT_VERSION)
+#if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(FMT_VERSION)
 
 template <typename E>
 struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : fmt::formatter<std::string_view, char> {

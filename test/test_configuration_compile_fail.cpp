@@ -399,6 +399,17 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Un
 // Without the check the name is dropped and the count stays 2.
 constexpr auto count = magic_enum::enum_count<UndeclaredZero>();
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 23
+
+#  define MAGIC_ENUM_REQUIRE_STD_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 24
+
+#  define MAGIC_ENUM_REQUIRE_STD_REFLECTION
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif
