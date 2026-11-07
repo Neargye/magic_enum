@@ -84,7 +84,10 @@ TEST_CASE("optional in fuse and navigation") {
   constexpr auto fused = enum_fuse(AliasStep::Second, AliasStep::First);
   static_assert(std::is_same_v<std::decay_t<decltype(fused)>, MyOpt<std::decay_t<decltype(*fused)>>>);
   REQUIRE(fused.has_value());
+#if defined(NDEBUG)
+  // An invalid value fails the assertion, or gives an empty optional when asserts are disabled.
   REQUIRE_FALSE(enum_fuse(AliasStep::First, static_cast<AliasStep>(5)).has_value());
+#endif
 }
 
 TEST_CASE("string") {
