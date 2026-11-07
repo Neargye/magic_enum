@@ -170,6 +170,10 @@ function(magic_enum_make_module_library name)
 endfunction()
 
 if(MAGIC_ENUM_USE_MODULES)
+  # Module consumers crash MSVC 19.44 with an internal compiler error.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "19.50")
+    message(FATAL_ERROR "MAGIC_ENUM_USE_MODULES requires Visual Studio 2026 (MSVC 19.50) or newer")
+  endif()
   magic_enum_make_module_library(${PROJECT_NAME}_module)
   add_library(${MAGIC_ENUM_EXPORT_NAMESPACE}${PROJECT_NAME}_module ALIAS ${PROJECT_NAME}_module)
 endif()

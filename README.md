@@ -319,7 +319,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
 * **CMake targets**:
   - `magic_enum::magic_enum` is the header-only target.
-  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required.
+  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required. On MSVC, Visual Studio 2026 or newer is required.
 
   Build the module target:
   ```sh

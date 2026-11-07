@@ -30,6 +30,7 @@ module;
 #  include <magic_enum/magic_enum_flags.hpp>
 #  include <magic_enum/magic_enum_fuse.hpp>
 #  include <magic_enum/magic_enum_iostream.hpp>
+#  include <magic_enum/magic_enum_switch.hpp>
 #  include <magic_enum/magic_enum_utility.hpp>
 
 #else // MAGIC_ENUM_USE_STD_MODULE
@@ -66,13 +67,13 @@ extern "C++" {
 #    include <magic_enum/magic_enum_flags.hpp>
 #    include <magic_enum/magic_enum_fuse.hpp>
 #    include <magic_enum/magic_enum_iostream.hpp>
+#    include <magic_enum/magic_enum_switch.hpp>
 #    include <magic_enum/magic_enum_utility.hpp>
 #  endif
 
 // Keep standard-library specializations attached to the named module. Exporting the primary template does not make specializations from the global module fragment reachable to importers.
 #  include <magic_enum/magic_enum_containers.hpp>
 #  include <magic_enum/magic_enum_format.hpp>
-#  include <magic_enum/magic_enum_switch.hpp>
 
 #  if defined(__clang__)
 #    pragma clang diagnostic pop
