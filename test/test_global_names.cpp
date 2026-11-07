@@ -18,10 +18,51 @@ int last = 0;
 #  pragma warning(4 : 4365)
 #endif
 
+// Standard headers may use min and max, so they are included before the macros.
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <initializer_list>
+#include <iosfwd>
+#include <iterator>
+#include <limits>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L
+#  if __has_include(<bit>)
+#    include <bit>
+#  endif
+#  if __has_include(<format>)
+#    include <format>
+#  endif
+#endif
+#if defined(__cpp_impl_reflection) && __has_include(<meta>)
+#  include <meta>
+#endif
+#if defined(_MSC_VER) && !defined(__clang__)
+#  include <intrin.h>
+#endif
+
+// Windows headers define function-like min and max macros unless NOMINMAX is defined.
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 #include "magic_enum_test_config.hpp"
 #include <magic_enum/magic_enum_all.hpp>
 
-#include <sstream>
+#undef min
+#undef max
 
 namespace global_names {
 

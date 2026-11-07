@@ -70,6 +70,23 @@ TEST_CASE("optional") {
   REQUIRE_FALSE(cn.has_value());
 }
 
+enum class AliasStep { First, Second };
+
+// Utilities return the custom optional, see #147.
+TEST_CASE("optional in fuse and navigation") {
+  static_assert(std::is_same_v<decltype(enum_next_value(AliasStep::First)), MyOpt<AliasStep>>);
+  static_assert(std::is_same_v<decltype(enum_prev_value(AliasStep::First)), MyOpt<AliasStep>>);
+  REQUIRE(enum_next_value(AliasStep::First).value() == AliasStep::Second);
+  REQUIRE_FALSE(enum_next_value(AliasStep::Second).has_value());
+  REQUIRE(enum_prev_value(AliasStep::Second).value() == AliasStep::First);
+  REQUIRE_FALSE(enum_prev_value(AliasStep::First).has_value());
+
+  constexpr auto fused = enum_fuse(AliasStep::Second, AliasStep::First);
+  static_assert(std::is_same_v<std::decay_t<decltype(fused)>, MyOpt<std::decay_t<decltype(*fused)>>>);
+  REQUIRE(fused.has_value());
+  REQUIRE_FALSE(enum_fuse(AliasStep::First, static_cast<AliasStep>(5)).has_value());
+}
+
 TEST_CASE("string") {
   auto cr = enum_flags_name(Color::RED);
   REQUIRE_FALSE(cr.empty());

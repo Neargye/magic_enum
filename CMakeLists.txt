@@ -338,5 +338,8 @@ if(MAGIC_ENUM_OPT_INSTALL)
     )
   endif()
 
-  include(CPack)
+  # CPack writes its configuration to the top-level build directory, so a subproject must not replace the parent's packaging, see #418.
+  if(PROJECT_IS_TOP_LEVEL)
+    include(CPack)
+  endif()
 endif()

@@ -418,6 +418,51 @@ enum { UnnamedFirst, UnnamedSecond };
 
 constexpr auto unnamed_type_name = magic_enum::enum_type_name<decltype(UnnamedFirst)>();
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 26
+
+// An older magic_enum.hpp found first on the include path.
+#  define NEARGYE_MAGIC_ENUM_HPP
+#  define MAGIC_ENUM_VERSION_MAJOR 0
+#  define MAGIC_ENUM_VERSION_MINOR 9
+#  define MAGIC_ENUM_VERSION_PATCH 7
+#  include <magic_enum/magic_enum_flags.hpp>
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 27
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum class IndexProbe { First, Second };
+
+constexpr auto index = magic_enum::enum_index<static_cast<IndexProbe>(5)>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 28
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum class NameProbe { First, Second };
+
+constexpr auto name = magic_enum::enum_name<static_cast<NameProbe>(5)>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 29
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum class ValueProbe { First, Second };
+
+constexpr auto value = magic_enum::enum_value<ValueProbe, 2>();
+
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 30
+
+#  include <magic_enum/magic_enum.hpp>
+
+enum class MinMaxProbe {};
+
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 1
+constexpr auto min = magic_enum::enum_min<MinMaxProbe>();
+#  else
+constexpr auto max = magic_enum::enum_max<MinMaxProbe>();
+#  endif
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

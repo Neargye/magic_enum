@@ -34,6 +34,9 @@
 #define NEARGYE_MAGIC_ENUM_CONTAINERS_HPP
 
 #include "magic_enum.hpp"
+#if MAGIC_ENUM_VERSION_MAJOR != 0 || MAGIC_ENUM_VERSION_MINOR != 9 || MAGIC_ENUM_VERSION_PATCH != 8
+#  error "magic_enum headers of different versions are mixed. Check the include paths."
+#endif
 
 #ifndef MAGIC_ENUM_USE_STD_MODULE
 #  include <initializer_list>

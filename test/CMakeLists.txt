@@ -339,6 +339,46 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  mixed-header-versions
+  26
+  "magic_enum headers of different versions are mixed"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  index-no-index
+  27
+  "magic_enum::enum_index enum value has no index"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  name-no-name
+  28
+  "magic_enum::enum_name enum value does not have a name"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  value-out-of-range
+  29
+  "magic_enum::enum_value out of range"
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  min-empty
+  30
+  "magic_enum::enum_min requires at least one reflected enum value"
+  MAGIC_ENUM_TEST_ENUM_FORM=1
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+)
+magic_enum_make_compile_fail_test(
+  configuration
+  max-empty
+  30
+  "magic_enum::enum_max requires at least one reflected enum value"
+  MAGIC_ENUM_TEST_ENUM_FORM=2
+  MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
+)
+magic_enum_make_compile_fail_test(
+  configuration
   conflicting-assert
   1
   "MAGIC_ENUM_NO_ASSERT and MAGIC_ENUM_ASSERT cannot be used together"

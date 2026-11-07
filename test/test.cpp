@@ -142,6 +142,23 @@ namespace We::Need::To::Go::Deeper {
 using We::Need::To::Go::Deeper::Dimension;
 using We::Need::To::Go::Deeper::Flaggy;
 
+struct FriendRangeHolder {
+  enum class Level { Level_Low = 500, Level_High = 501 };
+
+  friend constexpr auto magic_enum_define_range_adl(Level) {
+    return magic_enum::customize::adl_info().minmax<500, 501>().prefix<sizeof("Level_") - 1>();
+  }
+};
+
+template <typename T>
+struct FriendRangeTemplate {
+  enum class Level { Level_Low = 500, Level_High = 501 };
+
+  friend constexpr auto magic_enum_define_range_adl(Level) {
+    return magic_enum::customize::adl_info().minmax<500, 501>().prefix<sizeof("Level_") - 1>();
+  }
+};
+
 enum CStyleEnum {
     CStyleEnum_A = -36,
     CStyleEnum_B,
@@ -925,6 +942,16 @@ TEST_CASE("enum_values") {
 
 }
 
+TEST_CASE("friend range hook") {
+  using Holder = FriendRangeHolder::Level;
+  using Templated = FriendRangeTemplate<int>::Level;
+  static_assert(enum_count<Holder>() == 2);
+  static_assert(enum_count<Templated>() == 2);
+  REQUIRE(enum_name(Holder::Level_High) == "High");
+  REQUIRE(enum_name(Templated::Level_Low) == "Low");
+  REQUIRE(enum_cast<Templated>("High") == Templated::Level_High);
+}
+
 TEST_CASE("enum_count") {
   constexpr auto s1 = enum_count<Color&>();
   REQUIRE(s1 == 3);
@@ -1388,6 +1415,36 @@ int operator-(MinusOperand, int) {
 
 TEST_CASE("enum local to a global operator-") {
   REQUIRE((MinusOperand{} - 1) == 0);
+}
+
+// Local enum type names, see #281.
+string_view local_function_type_name() {
+  enum class LocalInFunction { A };
+  return enum_type_name<LocalInFunction>();
+}
+
+struct LocalTypeNameHolder {
+  string_view member() const {
+    enum class LocalInMember { A };
+    return enum_type_name<LocalInMember>();
+  }
+};
+
+template <typename T>
+string_view local_template_type_name() {
+  enum class LocalInTemplate { A };
+  return enum_type_name<LocalInTemplate>();
+}
+
+TEST_CASE("enum_type_name of local enums") {
+  REQUIRE(local_function_type_name() == "LocalInFunction");
+  REQUIRE(LocalTypeNameHolder{}.member() == "LocalInMember");
+  REQUIRE(local_template_type_name<int>() == "LocalInTemplate");
+  const auto in_lambda = [] {
+    enum class LocalInLambda { A };
+    return enum_type_name<LocalInLambda>();
+  };
+  REQUIRE(in_lambda() == "LocalInLambda");
 }
 
 TEST_CASE("enum_type_name") {

@@ -33,6 +33,9 @@
 #define NEARGYE_MAGIC_ENUM_SWITCH_HPP
 
 #include "magic_enum.hpp"
+#if MAGIC_ENUM_VERSION_MAJOR != 0 || MAGIC_ENUM_VERSION_MINOR != 9 || MAGIC_ENUM_VERSION_PATCH != 8
+#  error "magic_enum headers of different versions are mixed. Check the include paths."
+#endif
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #  pragma warning(push)
