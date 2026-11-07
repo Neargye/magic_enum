@@ -53,7 +53,9 @@ std::string format_as(E e) {
   using D = std::decay_t<E>;
   static_assert(std::is_same_v<char, magic_enum::string_view::value_type>, "magic_enum::formatter requires string_view::value_type type same as char.");
   if constexpr (magic_enum::detail::supported<D>::value) {
-    if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags) {
+    // Enums without reflected values, such as std::byte, are formatted as integers.
+    if constexpr (magic_enum::detail::count_v<D, magic_enum::detail::subtype_v<D>> == 0) {
+    } else if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags) {
       if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
         return {name.data(), name.size()};
       }

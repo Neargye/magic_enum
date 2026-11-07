@@ -22,6 +22,7 @@
 
 #include "test_helpers.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <iomanip>
 #include <limits>
@@ -465,6 +466,31 @@ TEST_CASE("ostream_operators") {
 #endif
   require_ostream(static_cast<number>(0), "0");
   require_ostream(std::make_optional(static_cast<number>(0)), "0");
+}
+
+enum class StreamNoValues {};
+
+TEST_CASE("iostream_operators without reflected values") {
+  static_assert(magic_enum::enum_count<StreamNoValues>() == 0);
+  static_assert(magic_enum::enum_count<std::byte>() == 0);
+
+  require_ostream(static_cast<StreamNoValues>(7), "7");
+  require_ostream(std::make_optional(static_cast<StreamNoValues>(7)), "7");
+  require_ostream(std::byte{5}, "5");
+  require_ostream(std::byte{5}, L"5");
+
+  using namespace magic_enum::istream_operators;
+  std::istringstream empty{"7"};
+  auto value = static_cast<StreamNoValues>(3);
+  empty >> value;
+  REQUIRE((empty.rdstate() & std::ios::failbit) != 0);
+  REQUIRE(value == static_cast<StreamNoValues>(3));
+
+  std::istringstream bytes{"5"};
+  auto byte = std::byte{3};
+  bytes >> byte;
+  REQUIRE((bytes.rdstate() & std::ios::failbit) != 0);
+  REQUIRE(byte == std::byte{3});
 }
 
 TEST_CASE("istream_operators") {

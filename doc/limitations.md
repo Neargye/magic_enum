@@ -117,6 +117,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
   Standard reflection requires the full enum definition, even for `enum_count`. An opaque declaration is a compile-time error.
 
+* Formatting and stream output write values of such enums as integers, and stream input sets `failbit`.
+
 * `enum_count` returns 0 when no values are reflected. This does not prove that the enum is empty. Use it as a guard:
 
   ```cpp

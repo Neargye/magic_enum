@@ -9,6 +9,7 @@
 
 #include <magic_enum/magic_enum_bitwise.hpp>
 
+#include <cstddef>
 #include <type_traits>
 
 #if __has_include(<fmt/format.h>)
@@ -37,6 +38,8 @@
 
 #include <magic_enum/magic_enum_all.hpp>
 
+enum class FormatNoValues {};
+
 TEST_CASE("format configuration preserves reflection") {
   CHECK(magic_enum::enum_name(Color::RED) == "red");
   CHECK(magic_enum::enum_flags_name(flags_test::Color::RED) == "RED");
@@ -53,6 +56,8 @@ TEST_CASE("format configuration preserves reflection") {
 TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
   REQUIRE(std::format("{}", Color{0}) == "0");
+  REQUIRE(std::format("{}", static_cast<FormatNoValues>(7)) == "7");
+  REQUIRE(std::format("{}", std::byte{5}) == "5");
 }
 
 #endif
@@ -62,6 +67,7 @@ TEST_CASE("format-base") {
 TEST_CASE("format-fmt") {
   REQUIRE(fmt::format("{}", Color::GREEN) == "GREEN");
   REQUIRE(fmt::format("{}", Color{0}) == "0");
+  REQUIRE(fmt::format("{}", static_cast<FormatNoValues>(7)) == "7");
 }
 
 #endif
