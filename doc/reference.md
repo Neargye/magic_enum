@@ -88,7 +88,7 @@
 
 * `MAGIC_ENUM_ENABLE_HASH` enables hash-based name lookup with the default predicate. Custom predicates still use linear search.
 
-* `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` disables the compile-time error for [named values just outside the range](limitations.md#enum-range). Such values are not reflected.
+* `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` disables the compile-time error for [named values just outside the scan range](limitations.md#enum-range). It does not change which values are reflected.
 
 * To customize string and optional types, define these macros before including `magic_enum.hpp`:
 
@@ -1047,6 +1047,8 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 * Provides `std::formatter` when `std::format` is available, and `fmt::formatter` when `{fmt}` is included first. Define `MAGIC_ENUM_NO_STD_FORMAT` or `MAGIC_ENUM_NO_FMT_FORMAT` to disable the corresponding integration, including through `magic_enum_all.hpp`. For modules, set these options when building the module.
 
 * Formats a value by name, flags joined by `|`, and other values as integers.
+
+* `std::byte` uses fmt's own formatter. For `std::format`, convert it with `std::to_integer<unsigned>(value)`.
 
 * Requires `magic_enum::char_type` to be `char`.
 

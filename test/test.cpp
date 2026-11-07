@@ -1314,6 +1314,16 @@ TEST_CASE("enum_entries") {
 #endif
 }
 
+TEST_CASE("customization excludes Count with either reflection backend") {
+  static_assert(enum_count<WithCount>() == 2);
+  static_assert(enum_name(WithCount::First) == "First");
+  static_assert(enum_name(WithCount::Second) == "Second");
+  static_assert(enum_name(WithCount::Count).empty());
+  static_assert(!enum_contains(WithCount::Count));
+  static_assert(!enum_cast<WithCount>("Count").has_value());
+  static_assert(!enum_index(WithCount::Count).has_value());
+}
+
 TEST_CASE("string_view lifetime and null termination") {
   std::string_view static_name{};
   static_name = enum_name<Color::BLUE>();

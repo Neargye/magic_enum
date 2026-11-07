@@ -71,6 +71,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * Named values at a few points just outside the range cause a compile-time error. This check is not exhaustive. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
 
+* To exclude sentinels such as `Count`, return `invalid_tag` from [name customization](reference.md#synopsis). Narrowing the scan range can trigger the range check and has no effect with standard reflection.
+
 * To change the default range for all enums, define these macros before including magic_enum:
 
   ```cpp

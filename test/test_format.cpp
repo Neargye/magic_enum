@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <vector>
 
 #if __has_include(<fmt/format.h>)
 #  define FMT_HEADER_ONLY
@@ -20,6 +21,7 @@
 #    pragma GCC diagnostic ignored "-Warray-bounds"
 #  endif
 #  include <fmt/format.h>
+#  include <fmt/ranges.h>
 #  if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic pop
 #  endif
@@ -57,7 +59,17 @@ TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
   REQUIRE(std::format("{}", Color{0}) == "0");
   REQUIRE(std::format("{}", static_cast<FormatNoValues>(7)) == "7");
-  REQUIRE(std::format("{}", std::byte{5}) == "5");
+  static_assert(!std::is_default_constructible_v<std::formatter<std::byte, char>>);
+  REQUIRE(std::format("{}", std::to_integer<unsigned>(std::byte{5})) == "5");
+}
+
+#endif
+
+#if defined(MAGIC_ENUM_TEST_HAS_FMT)
+
+TEST_CASE("fmt byte formatting") {
+  REQUIRE(fmt::format("{}", std::byte{5}) == "5");
+  REQUIRE(fmt::format("{}", std::vector<std::byte>{std::byte{5}, std::byte{255}}) == "[5, 255]");
 }
 
 #endif
@@ -66,6 +78,7 @@ TEST_CASE("format-base") {
 
 TEST_CASE("format-fmt") {
   REQUIRE(fmt::format("{}", Color::GREEN) == "GREEN");
+  REQUIRE(fmt::format("{}", std::vector<Color>{Color::GREEN}) == "[\"GREEN\"]");
   REQUIRE(fmt::format("{}", Color{0}) == "0");
   REQUIRE(fmt::format("{}", static_cast<FormatNoValues>(7)) == "7");
 }

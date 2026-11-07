@@ -56,7 +56,7 @@ std::string format_as(E e) {
   using D = std::decay_t<E>;
   static_assert(std::is_same_v<char, magic_enum::string_view::value_type>, "magic_enum::formatter requires string_view::value_type type same as char.");
   if constexpr (magic_enum::detail::supported<D>::value) {
-    // Enums without reflected values, such as std::byte, are formatted as integers.
+    // Enums without reflected values fall back to integers.
     if constexpr (magic_enum::detail::count_v<D, magic_enum::detail::subtype_v<D>> == 0) {
     } else if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags) {
       if (const auto name = magic_enum::enum_flags_name<D>(e); !name.empty()) {
@@ -84,7 +84,7 @@ std::string format_as(E e) {
 #if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 template <typename E>
-struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : std::formatter<std::string_view, char> {
+struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && !std::is_same_v<std::decay_t<E>, std::byte>, char>> : std::formatter<std::string_view, char> {
   template <typename FormatContext>
   auto format(E e, FormatContext& ctx) const {
     return std::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
@@ -96,7 +96,7 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>
 #if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(FMT_VERSION)
 
 template <typename E>
-struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, char>> : fmt::formatter<std::string_view, char> {
+struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && !std::is_same_v<std::decay_t<E>, std::byte>, char>> : fmt::formatter<std::string_view, char> {
   template <typename FormatContext>
   auto format(E e, FormatContext& ctx) const {
     return fmt::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);

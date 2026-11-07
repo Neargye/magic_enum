@@ -38,6 +38,17 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Co
 
 enum class Numbers : int { one = 1, two, three, many = 127 };
 
+enum class WithCount { First, Second, Count };
+template <>
+struct magic_enum::customize::enum_range<WithCount> {
+  static constexpr int min = 0;
+  static constexpr int max = static_cast<int>(WithCount::Count) - 1;
+};
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<WithCount>(WithCount value) noexcept {
+  return value == WithCount::Count ? invalid_tag : default_tag;
+}
+
 enum Directions { Up = 85, Down = -42, Right = 120, Left = -120 };
 
 enum number : unsigned long {
