@@ -89,7 +89,7 @@ class Private {
   int is = 0;
 
   static constexpr bool reflected_flags() noexcept {
-    return magic_enum::is_flags_v<Hidden>;
+    return magic_enum::is_flags_enum_v<Hidden>;
   }
 
   static constexpr unsigned combined() noexcept {
@@ -787,17 +787,17 @@ TEST_CASE("flags bitwise_operators") {
 TEST_CASE("automatic flag reflection") {
   using namespace auto_flags_test;
   REQUIRE(adl_lookup_in_other_tu());
-  REQUIRE(magic_enum::is_flags_v<ops::UnscopedMacro> == enabled);
-  REQUIRE(magic_enum::is_flags_v<ops::Signed> == enabled);
-  REQUIRE(magic_enum::is_flags_v<ops::BoolEnum> == enabled);
-  REQUIRE(magic_enum::is_flags_v<ops::HolderFlags> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<ops::UnscopedMacro> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<ops::Signed> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<ops::BoolEnum> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<ops::HolderFlags> == enabled);
   REQUIRE(ops::Private::reflected_flags() == enabled);
 #if !defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 11 // libstdc++ declares chars_format since GCC 11.
-  REQUIRE(magic_enum::is_flags_v<std::chars_format> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<std::chars_format> == enabled);
   REQUIRE(magic_enum::enum_name(std::chars_format::general) == (enabled ? "" : "general"));
   REQUIRE(magic_enum::enum_flags_name(std::chars_format::general) == "scientific|fixed");
 #endif
-  REQUIRE(magic_enum::is_flags_v<std::filesystem::perms> == enabled);
+  REQUIRE(magic_enum::is_flags_enum_v<std::filesystem::perms> == enabled);
   REQUIRE(magic_enum::enum_flags_name(std::filesystem::perms::unknown).empty());
   REQUIRE(magic_enum::enum_flags_name(auto_flags_test::Bits::All) == "A|B");
   REQUIRE_FALSE(magic_enum::enum_flags_contains(auto_flags_test::Bits::ForceDword));

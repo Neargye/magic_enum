@@ -66,7 +66,7 @@ constexpr auto for_each(F&& f, std::index_sequence<J...>) {
       return std::tuple<std::decay_t<enum_for_each_result_t<E, S, F, J>>...>{detail::invoke_constant(f, enum_constant<values_v<E, S>[J]>{})...};
     }
   } else {
-    static_assert(always_false_v<E>, "magic_enum::enum_for_each requires invocable of all enum value.");
+    static_assert(always_false_v<E>, "magic_enum::enum_for_each requires the callable to be invocable with every enum value.");
   }
 }
 

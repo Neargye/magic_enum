@@ -51,7 +51,7 @@ using no_zero::OnlyZero;
 using no_zero::SignedFlags;
 
 TEST_CASE("MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS leaves zero out of flag tables") {
-  static_assert(is_flags_v<Flags>);
+  static_assert(is_flags_enum_v<Flags>);
   static_assert(enum_count<Flags>() == 2);
   static_assert(enum_values<Flags>()[0] == Flags::A);
   static_assert(enum_index(Flags::B) == std::size_t{1});
@@ -67,7 +67,7 @@ TEST_CASE("MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS leaves zero out of flag tables") {
   CHECK(enum_flags_name(Flags::None).empty());
   CHECK(enum_flags_name(Flags::All) == "A|B");
 
-  static_assert(is_flags_v<AutoFlags>);
+  static_assert(is_flags_enum_v<AutoFlags>);
   static_assert(enum_count<AutoFlags>() == 2);
   CHECK(enum_flags_name(AutoFlags::None).empty());
 }

@@ -184,7 +184,7 @@ using std::string;
 #endif
 
 using char_type = string_view::value_type;
-static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum::customize requires same string_view::value_type and string::value_type");
+static_assert(std::is_same_v<string_view::value_type, string::value_type>, "magic_enum requires MAGIC_ENUM_USING_ALIAS_STRING and MAGIC_ENUM_USING_ALIAS_STRING_VIEW to use the same character type.");
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 static_assert(std::is_same_v<char_type, char> || std::is_same_v<char_type, wchar_t> || std::is_same_v<char_type, char8_t> || std::is_same_v<char_type, char16_t> || std::is_same_v<char_type, char32_t>,
               "magic_enum standard reflection requires string_view::value_type to be a standard character type; define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION before including magic_enum.hpp for other character types.");
@@ -542,6 +542,12 @@ MAGIC_ENUM_CONSTEVAL cname_ref unqualified(cname_ref name) noexcept {
   return name;
 }
 
+#if defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS)
+MAGIC_ENUM_CONSTEVAL cname_ref resharper_name(const char* name) noexcept {
+  return name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+}
+#endif
+
 #if defined(MAGIC_ENUM_DETAIL_NVCC)
 MAGIC_ENUM_CONSTEVAL cname_ref nvcc_signature_name(const char* str, std::size_t size) noexcept {
 #  if defined(_MSC_VER)
@@ -627,7 +633,7 @@ MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
     return reflection::type_name<E>();
 #elif defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS)
     constexpr auto name = __rscpp_type_name<E>();
-    return name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+    return resharper_name(name);
 #else
     return type_identifier(type_signature_name(MAGIC_ENUM_SIGNATURE, sizeof(MAGIC_ENUM_SIGNATURE) - 1));
 #endif
@@ -641,7 +647,7 @@ MAGIC_ENUM_CONSTEVAL auto type_name() noexcept {
   [[maybe_unused]] constexpr auto custom = customize::enum_type_name<E>();
   if constexpr (custom.tag == customize_tag::custom_tag) {
     constexpr auto name = custom.name;
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    static_assert(!name.empty(), "magic_enum::customize::enum_type_name requires a non-empty name.");
     return static_str<name.size()>{name};
   } else if constexpr (custom.tag == customize_tag::invalid_tag) {
     return static_str<0>{};
@@ -674,7 +680,7 @@ MAGIC_ENUM_CONSTEVAL auto MAGIC_ENUM_CALLING_CONVENTION n() noexcept {
     return reflection::enum_name<V>();
 #elif defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS)
     constexpr auto name = __rscpp_enumerator_name(V);
-    return name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+    return resharper_name(name);
 #elif defined(MAGIC_ENUM_DETAIL_NVCC)
     return unqualified(nvcc_name<static_cast<decltype(nvcc_unaliased<decltype(V)>())>(static_cast<std::underlying_type_t<decltype(V)>>(V))>());
 #else
@@ -824,7 +830,7 @@ MAGIC_ENUM_CONSTEVAL auto enum_name() noexcept {
   if constexpr (custom.tag == customize_tag::custom_tag) {
     static_assert(n<V>().size_ != 0, "magic_enum::customize::enum_name cannot add an undeclared enum value.");
     constexpr auto name = custom.name;
-    static_assert(!name.empty(), "magic_enum::customize requires not empty string.");
+    static_assert(!name.empty(), "magic_enum::customize::enum_name requires a non-empty name. Return invalid_tag to exclude a value.");
     return static_str<name.size()>{name};
   } else if constexpr (custom.tag == customize_tag::invalid_tag) {
     return static_str<0>{};
@@ -888,7 +894,7 @@ struct has_or<E, std::enable_if_t<std::is_same_v<decltype(operator|(E{}, E{})), 
 
 // `|` is checked only after `&`, so generic pipe operators with deduced return types are not instantiated for enums without `&`.
 template <typename E>
-struct supported : std::conjunction<has_and<E>, has_or<E>> {};
+struct has_operators : std::conjunction<has_and<E>, has_or<E>> {};
 
 } // namespace magic_enum::detail::adl_flags
 
@@ -899,7 +905,7 @@ MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
     if constexpr (has_is_flags_v<E>) {
       return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
 #if !defined(MAGIC_ENUM_NO_AUTO_IS_FLAGS)
-    } else if constexpr (adl_flags::supported<E>::value) {
+    } else if constexpr (adl_flags::has_operators<E>::value) {
       return enum_subtype::flags;
 #endif
     }
@@ -1019,7 +1025,7 @@ inline constexpr auto table_v = canonical_data<E, S>();
 
 template <typename E, enum_subtype S>
 consteval std::size_t table_size() noexcept {
-  static_assert(table_v<E, S>.names_valid, "magic_enum::customize requires not empty string.");
+  static_assert(table_v<E, S>.names_valid, "magic_enum::customize::enum_name requires a non-empty name. Return invalid_tag to exclude a value.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");
   static_assert(table_v<E, S>.prefixes_valid, "magic_enum::customize requires valid prefix length.");
   return table_v<E, S>.size;
@@ -1155,7 +1161,7 @@ struct valid_offsets_t {
   std::uint16_t offsets[N] = {};
   // Null for a custom name.
   cname_ref names[N] = {};
-  bool valid_names = true;
+  bool names_valid = true;
 
   constexpr void append(std::size_t i, cname_ref name = {}) noexcept {
     names[count] = name;
@@ -1168,7 +1174,7 @@ template <typename E, typename N>
 MAGIC_ENUM_CONSTEVAL void append_named(N& offsets, std::size_t i, E value, cname_ref name) noexcept {
   const auto custom = customize::enum_name<E>(value);
   if (custom.tag == customize_tag::custom_tag) {
-    offsets.valid_names = offsets.valid_names && !custom.name.empty();
+    offsets.names_valid = offsets.names_valid && !custom.name.empty();
     offsets.append(i);
   } else if (custom.tag != customize_tag::invalid_tag) {
     offsets.append(i, name);
@@ -1185,8 +1191,7 @@ MAGIC_ENUM_CONSTEVAL auto block_names(std::index_sequence<I...>) noexcept {
   signature_names_t<sizeof...(I)> result{};
   result.valid = true;
   for (std::size_t i = 0; i < sizeof...(I); ++i) {
-    const auto name = __rscpp_enumerator_name(batch_value<E, Min, S>(J + i));
-    result.names[i] = name != nullptr ? unqualified({name, std::char_traits<char>::length(name)}) : cname_ref{};
+    result.names[i] = resharper_name(__rscpp_enumerator_name(batch_value<E, Min, S>(J + i)));
     result.count += result.names[i].size_ != 0;
   }
   return result;
@@ -1204,10 +1209,14 @@ MAGIC_ENUM_CONSTEVAL auto block_names(std::index_sequence<I...>) noexcept {
 
 inline constexpr std::size_t scan_block_size = 512;
 
+MAGIC_ENUM_CONSTEVAL std::size_t block_size(std::size_t size, std::size_t j) noexcept {
+  return (size - j) < scan_block_size ? (size - j) : scan_block_size;
+}
+
 // Separate constants avoid repeated evaluation and constexpr step limits on Clang/MSVC.
 // Copy blocks when reading them, references make MSVC emit blocks and signatures into the object file.
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
-inline constexpr auto block_names_v = block_names<E, S, Min, J>(std::make_index_sequence<((Size - J) < scan_block_size ? (Size - J) : scan_block_size)>{});
+inline constexpr auto block_names_v = block_names<E, S, Min, J>(std::make_index_sequence<block_size(Size, J)>{});
 
 // Scans 256 values with n() per value. Hidden values skip n().
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J, std::size_t N>
@@ -1237,7 +1246,7 @@ MAGIC_ENUM_CONSTEVAL void scan_fallback(valid_offsets_t<N>& offsets) noexcept {
 // Scans a block with one nb(), or with n() per value if nb() fails.
 template <typename E, enum_subtype S, std::size_t Size, int Min, std::size_t J>
 MAGIC_ENUM_CONSTEVAL auto block_offsets() noexcept {
-  constexpr std::size_t count = (Size - J) < scan_block_size ? (Size - J) : scan_block_size;
+  constexpr std::size_t count = block_size(Size, J);
   constexpr auto block = block_names_v<E, S, Size, Min, J>;
   // Sized by the named values, since a block sized copy is slow in MSVC constant evaluation.
   constexpr std::size_t size = !block.valid ? count : block.count > 0 ? block.count : 1;
@@ -1277,7 +1286,7 @@ MAGIC_ENUM_CONSTEVAL void append_offsets(valid_offsets_t<N>& offsets) noexcept {
   for (std::size_t i = 0; i < block.count; ++i) {
     offsets.append(block.offsets[i], block.names[i]);
   }
-  offsets.valid_names = offsets.valid_names && block.valid_names;
+  offsets.names_valid = offsets.names_valid && block.names_valid;
 
   if constexpr ((J + scan_block_size) < Size) {
     append_offsets<E, S, Size, Min, J + scan_block_size>(offsets);
@@ -1388,7 +1397,7 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
   }
 #endif
   constexpr auto offsets = valid_offsets<E, S, Size, Min>();
-  static_assert(offsets.valid_names, "magic_enum::customize requires not empty string.");
+  static_assert(offsets.names_valid, "magic_enum::customize::enum_name requires a non-empty name. Return invalid_tag to exclude a value.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");
   constexpr bool valid_prefix = valid_prefixes<E>(offsets);
   static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
@@ -2053,7 +2062,7 @@ template <typename T>
 struct is_flags_enum : detail::is_flags_enum<T> {};
 
 template <typename T>
-inline constexpr bool is_flags_v = is_flags_enum<T>::value;
+inline constexpr bool is_flags_enum_v = is_flags_enum<T>::value;
 
 // If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
 // Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.

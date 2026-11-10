@@ -39,7 +39,7 @@ struct magic_enum::customize::enum_range<InvalidFlagsSetting> {
   static constexpr int is_flags = 1;
 };
 
-static_assert(!magic_enum::is_flags_v<InvalidFlagsSetting&>);
+static_assert(!magic_enum::is_flags_enum_v<InvalidFlagsSetting&>);
 
 enum class ZeroFlags : std::uint8_t { None = 0, A = 1, B = 2, Both = 3 };
 template <>
@@ -1012,11 +1012,11 @@ TEST_CASE("type_traits") {
   static_assert(detail::subtype_v<const Color&> == detail::enum_subtype::flags);
   static_assert(detail::subtype_v<Numbers> == detail::enum_subtype::flags);
   REQUIRE(is_flags_enum<Color>::value);
-  REQUIRE(is_flags_v<const Color>);
-  REQUIRE_FALSE(is_flags_v<Color&>);
-  REQUIRE(is_flags_v<Numbers>);
-  REQUIRE(is_flags_v<Directions>);
-  REQUIRE(is_flags_v<number>);
+  REQUIRE(is_flags_enum_v<const Color>);
+  REQUIRE_FALSE(is_flags_enum_v<Color&>);
+  REQUIRE(is_flags_enum_v<Numbers>);
+  REQUIRE(is_flags_enum_v<Directions>);
+  REQUIRE(is_flags_enum_v<number>);
 }
 
 TEST_CASE("enum_flags_test") {

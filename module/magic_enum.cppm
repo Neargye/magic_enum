@@ -175,7 +175,7 @@ using magic_enum::is_unscoped_enum_v;
 using magic_enum::is_scoped_enum;
 using magic_enum::is_scoped_enum_v;
 using magic_enum::is_flags_enum;
-using magic_enum::is_flags_v;
+using magic_enum::is_flags_enum_v;
 using magic_enum::underlying_type;
 using magic_enum::underlying_type_t;
 

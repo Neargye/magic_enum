@@ -30,9 +30,9 @@ adl_lookup_test::Config magic_enum_define_range_adl(GlobalAdl);
 namespace adl_lookup_test { Config magic_enum_define_range_adl(Right); }
 #endif
 
-static_assert(!magic_enum::is_flags_v<adl_lookup_test::Wrong>);
-static_assert(magic_enum::is_flags_v<adl_lookup_test::Right>);
-static_assert(magic_enum::is_flags_v<GlobalAdl>);
+static_assert(!magic_enum::is_flags_enum_v<adl_lookup_test::Wrong>);
+static_assert(magic_enum::is_flags_enum_v<adl_lookup_test::Right>);
+static_assert(magic_enum::is_flags_enum_v<GlobalAdl>);
 bool adl_lookup_in_other_tu();
 
 #endif

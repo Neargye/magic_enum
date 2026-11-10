@@ -25,7 +25,7 @@ using namespace magic_enum::bitwise_operators;
 #include "test_operators.hpp"
 
 bool adl_lookup_in_other_tu() {
-  return !magic_enum::is_flags_v<adl_lookup_test::Wrong> && magic_enum::is_flags_v<adl_lookup_test::Right>;
+  return !magic_enum::is_flags_enum_v<adl_lookup_test::Wrong> && magic_enum::is_flags_enum_v<adl_lookup_test::Right>;
 }
 
 #include <sstream>

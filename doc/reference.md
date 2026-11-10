@@ -435,7 +435,7 @@ struct enum_range {
 
     `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
 
-    Use `is_flags_v<E>` to check the selected mode.
+    Use `is_flags_enum_v<E>` to check the selected mode.
 
 ## `enum_index`
 
@@ -570,7 +570,7 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 
 * `enum_fuse_t` is a distinct type for each ordered list of enum types, so mixing orders fails to compile.
 
-* Requires at least two values. All combinations of the enums must fit in `std::uintmax_t`.
+* Requires at least two values. Each enum takes `ceil(log2(enum_count<E>()))` bits, and their sum must fit in `std::uintmax_t`.
 
 * On MSVC, suppress warning C4064 with `/wd4064`, or define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to use `uintmax_t`.
 
@@ -785,7 +785,7 @@ template <typename T>
 struct is_flags_enum;
 
 template <typename T>
-inline constexpr bool is_flags_v = is_flags_enum<T>::value;
+inline constexpr bool is_flags_enum_v = is_flags_enum<T>::value;
 ```
 
 * Defined in header `<magic_enum/magic_enum.hpp>`

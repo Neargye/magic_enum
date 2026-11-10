@@ -27,7 +27,7 @@ constexpr Bits operator|(Bits a, Bits b) { return static_cast<Bits>(static_cast<
 constexpr Bits operator&(Bits a, Bits b) { return static_cast<Bits>(static_cast<int>(a) & static_cast<int>(b)); }
 inline constexpr auto magic_enum_define_range_adl(Bits) { return magic_enum::customize::adl_info().minmax<0, 3>(); }
 }
-static_assert(magic_enum::is_flags_v<imported_flags::Bits>);
+static_assert(magic_enum::is_flags_enum_v<imported_flags::Bits>);
 static_assert(magic_enum::enum_count<imported_flags::Bits>() == 2);
 
 enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };

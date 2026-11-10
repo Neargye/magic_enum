@@ -28,7 +28,7 @@ import magic_enum_test_types;
 #include "test_fixed_string.hpp"
 #include "test_auto_flags.hpp"
 #ifdef MAGIC_ENUM_TEST_EXPORTED_ENUM
-static_assert(magic_enum::is_flags_v<exported_flags::Bits> == auto_flags_test::enabled);
+static_assert(magic_enum::is_flags_enum_v<exported_flags::Bits> == auto_flags_test::enabled);
 static_assert(magic_enum::enum_contains<exported_flags::Bits>(exported_flags::Bits::All) == !auto_flags_test::enabled);
 #endif
 
@@ -86,9 +86,9 @@ static_assert(magic_enum::containers::bitset<ZeroDirections>{}.size() == 2);
 static_assert(magic_enum::containers::bitset<ZeroDirections>{ZeroDirections::None}.none());
 
 static_assert(!magic_enum::is_flags_enum<Color>::value);
-static_assert(!magic_enum::is_flags_v<Color>);
+static_assert(!magic_enum::is_flags_enum_v<Color>);
 static_assert(magic_enum::is_flags_enum<Directions>::value);
-static_assert(magic_enum::is_flags_v<Directions>);
+static_assert(magic_enum::is_flags_enum_v<Directions>);
 static_assert(magic_enum::enum_min<Color&>() == Color::RED);
 static_assert(magic_enum::enum_max<const Color>() == Color::BLUE);
 static_assert(magic_enum::enum_min<Directions>() == Directions::LEFT);
@@ -155,7 +155,7 @@ using magic_enum::enum_underlying;
 using magic_enum::enum_value;
 using magic_enum::enum_values;
 using magic_enum::is_flags_enum;
-using magic_enum::is_flags_v;
+using magic_enum::is_flags_enum_v;
 using magic_enum::is_magic_enum_supported;
 using magic_enum::is_scoped_enum;
 using magic_enum::is_scoped_enum_v;

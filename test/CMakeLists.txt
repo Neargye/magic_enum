@@ -577,13 +577,13 @@ magic_enum_make_compile_fail_test(
   configuration
   custom-name-empty
   9
-  "magic_enum::customize requires not empty string."
+  "magic_enum::customize::enum_name requires a non-empty name."
 )
 magic_enum_make_compile_fail_test(
   configuration
   custom-name-empty-fallback
   9
-  "magic_enum::customize requires not empty string."
+  "magic_enum::customize::enum_name requires a non-empty name."
   MAGIC_ENUM_TEST_FORCE_FALLBACK
 )
 magic_enum_make_compile_fail_test(
@@ -627,14 +627,14 @@ magic_enum_make_compile_fail_test(
   configuration
   for-each-rvalue-only
   11
-  "magic_enum::enum_for_each requires invocable of all enum value."
+  "magic_enum::enum_for_each requires the callable to be invocable with every enum value."
   MAGIC_ENUM_TEST_ENUM_FORM=1
 )
 magic_enum_make_compile_fail_test(
   configuration
   for-each-partial
   11
-  "magic_enum::enum_for_each requires invocable of all enum value."
+  "magic_enum::enum_for_each requires the callable to be invocable with every enum value."
   MAGIC_ENUM_TEST_ENUM_FORM=2
 )
 magic_enum_make_compile_fail_test(
@@ -825,7 +825,7 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
       reflection
       custom-name-empty-${backend}
       6
-      "magic_enum::customize requires not empty string"
+      "magic_enum::customize::enum_name requires a non-empty name"
       ${customization_definitions}
     )
     magic_enum_make_compile_fail_test(

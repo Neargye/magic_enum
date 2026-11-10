@@ -193,7 +193,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
   magic_enum::enum_flags_cast<Directions>("Left,Down", ',').value(); // -> Directions::Left|Directions::Down
   magic_enum::enum_flags_test(Directions::Up | Directions::Right, Directions::Up); // -> true
   magic_enum::enum_flags_test_any(Directions::Left | Directions::Down, Directions::Down | Directions::Right); // -> true
-  magic_enum::is_flags_v<Directions>; // -> true
+  magic_enum::is_flags_enum_v<Directions>; // -> true
   ```
 
   **Note:** bitwise operators found through ADL automatically enable [flag reflection](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. To keep ordinary reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.

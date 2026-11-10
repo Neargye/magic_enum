@@ -506,7 +506,7 @@ struct key_indexing : Index {};
 // Positions of a bitset. A flags bitset holds only bits and skips a named zero, array and set keep it as a key.
 template <typename E, typename Index, bool Keys = false>
 struct bit_domain {
-  static constexpr bool skip_zero = !Keys && is_flags_v<E> && static_cast<bool>(enum_index(static_cast<E>(0)));
+  static constexpr bool skip_zero = !Keys && is_flags_enum_v<E> && static_cast<bool>(enum_index(static_cast<E>(0)));
 
   static constexpr std::size_t zero = skip_zero ? *Index::at(static_cast<E>(0)) : 0;
 
@@ -929,7 +929,7 @@ class bitset {
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
     for (const auto f : starters) {
-      if constexpr (is_flags_v<E>) {
+      if constexpr (is_flags_enum_v<E>) {
         *this |= bitset(f);
       } else {
         set(f);
@@ -937,7 +937,7 @@ class bitset {
     }
   }
 
-  template <typename V, std::enable_if_t<std::is_same_v<V, E> && is_flags_v<V>, int> = 0>
+  template <typename V, std::enable_if_t<std::is_same_v<V, E> && is_flags_enum_v<V>, int> = 0>
   constexpr explicit bitset(V starter) : a{{}} {
     auto u = enum_underlying(starter);
     for (E v : enum_values<E>()) {
@@ -1108,7 +1108,7 @@ class bitset {
   [[nodiscard]] friend constexpr bitset operator^(const bitset& lhs, const bitset& rhs) noexcept { return bitset(lhs) ^= rhs; }
 
   template <typename V = E>
-  [[nodiscard]] constexpr explicit operator std::enable_if_t<is_flags_v<V>, E>() const {
+  [[nodiscard]] constexpr explicit operator std::enable_if_t<is_flags_enum_v<V>, E>() const {
     underlying_type_t<E> res = 0;
     for (const auto value : *this) {
       res |= enum_underlying(value);
@@ -1185,7 +1185,7 @@ class bitset {
       }
       if (const auto v = enum_cast<E, detail::subtype_v<E>, Cmp&>(sv.substr(first, last - first), cmp)) {
         // A zero flag is neutral, not a position.
-        const bool zero_flag = is_flags_v<E> && enum_underlying(*v) == 0;
+        const bool zero_flag = is_flags_enum_v<E> && enum_underlying(*v) == 0;
         if (!zero_flag) {
           set(*v);
         }
@@ -1221,7 +1221,7 @@ class bitset {
   container_type a;
 };
 
-template <typename V, std::enable_if_t<is_flags_v<V>, int> = 0>
+template <typename V, std::enable_if_t<is_flags_enum_v<V>, int> = 0>
 explicit bitset(V starter) -> bitset<V>;
 
 template <typename E, typename Cmp = std::less<E>>
@@ -1273,7 +1273,7 @@ class set {
   constexpr set& operator=(std::initializer_list<E> ilist) { return *this = set(ilist); }
 
   // A zero mask yields an empty set, even when zero is named.
-  template <typename V = E, std::enable_if_t<std::is_same_v<V, E> && is_flags_v<V>, int> = 0>
+  template <typename V = E, std::enable_if_t<std::is_same_v<V, E> && is_flags_enum_v<V>, int> = 0>
   [[nodiscard]] static constexpr set from_mask(E mask) {
     set r;
     r.a = container_type(mask);

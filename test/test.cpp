@@ -1408,9 +1408,9 @@ TEST_CASE("type_traits") {
   REQUIRE_FALSE(is_scoped_enum_v<int>);
 
   REQUIRE_FALSE(is_flags_enum<Color>::value);
-  REQUIRE_FALSE(is_flags_v<Numbers>);
-  REQUIRE_FALSE(is_flags_v<Directions>);
-  REQUIRE_FALSE(is_flags_v<int>);
+  REQUIRE_FALSE(is_flags_enum_v<Numbers>);
+  REQUIRE_FALSE(is_flags_enum_v<Directions>);
+  REQUIRE_FALSE(is_flags_enum_v<int>);
 }
 
 struct MinusOperand {};
@@ -1567,7 +1567,7 @@ TEST_CASE("extrema") {
 
     REQUIRE(magic_enum::customize::enum_range<Dimension>::min == 1000);
     REQUIRE(magic_enum::customize::enum_range<Dimension>::max == 1000 + 128);
-    REQUIRE_FALSE(magic_enum::is_flags_v<Dimension>);
+    REQUIRE_FALSE(magic_enum::is_flags_enum_v<Dimension>);
 
     REQUIRE(magic_enum::customize::enum_range<Color>::min == MAGIC_ENUM_RANGE_MIN);
     REQUIRE(magic_enum::detail::reflected_min<Color, as_common<>>() == MAGIC_ENUM_RANGE_MIN);

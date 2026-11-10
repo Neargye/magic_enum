@@ -92,7 +92,7 @@ template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
   static_assert(sizeof...(Es) >= 2, "magic_enum::enum_fuse requires at least 2 values.");
-  static_assert((detail::fuse_bit_width<std::decay_t<Es>>() + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse does not work for large enums");
+  static_assert((detail::fuse_bit_width<std::decay_t<Es>>() + ...) <= (sizeof(std::uintmax_t) * 8), "magic_enum::enum_fuse requires the summed index bit widths of all enums to fit in std::uintmax_t.");
 #if defined(MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE)
   const auto fuse = detail::fuse_enum<std::decay_t<Es>...>(values...);
 #else

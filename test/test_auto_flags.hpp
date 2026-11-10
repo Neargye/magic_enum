@@ -129,35 +129,35 @@ struct magic_enum::customize::enum_range<auto_flags_test::Override> {
 
 namespace auto_flags_test {
 
-static_assert(magic_enum::is_flags_v<Bits> == enabled);
-static_assert(magic_enum::is_flags_v<const Bits> == enabled);
-static_assert(!magic_enum::is_flags_v<Common>);
-static_assert(magic_enum::is_flags_v<Explicit>);
-static_assert(magic_enum::is_flags_v<Range> == enabled);
+static_assert(magic_enum::is_flags_enum_v<Bits> == enabled);
+static_assert(magic_enum::is_flags_enum_v<const Bits> == enabled);
+static_assert(!magic_enum::is_flags_enum_v<Common>);
+static_assert(magic_enum::is_flags_enum_v<Explicit>);
+static_assert(magic_enum::is_flags_enum_v<Range> == enabled);
 static_assert(magic_enum::enum_name(Range::rA) == "A");
-static_assert(magic_enum::is_flags_v<Specialized> == enabled);
+static_assert(magic_enum::is_flags_enum_v<Specialized> == enabled);
 static_assert(magic_enum::enum_name(Specialized::A) == "A");
-static_assert(!magic_enum::is_flags_v<Override>);
-static_assert(!magic_enum::is_flags_v<OrOnly> && !magic_enum::is_flags_v<AndOnly>);
-static_assert(!magic_enum::is_flags_v<BoolAnd> && !magic_enum::is_flags_v<Ref>);
-static_assert(!magic_enum::is_flags_v<Lvalue> && !magic_enum::is_flags_v<Deleted>);
-static_assert(!magic_enum::is_flags_v<Ambiguous> && !magic_enum::is_flags_v<Wrapped>);
-static_assert(!magic_enum::is_flags_v<Integer> && !magic_enum::is_flags_v<Unscoped>);
-static_assert(!magic_enum::is_flags_v<StreamOnly>);
-static_assert(!magic_enum::is_flags_v<piped::Color> && magic_enum::enum_name(piped::Color::Green) == "Green");
-static_assert(!magic_enum::is_flags_v<Legacy> && magic_enum::enum_count<Legacy>() == 2);
-static_assert(magic_enum::is_flags_v<imported::Bits> == enabled);
+static_assert(!magic_enum::is_flags_enum_v<Override>);
+static_assert(!magic_enum::is_flags_enum_v<OrOnly> && !magic_enum::is_flags_enum_v<AndOnly>);
+static_assert(!magic_enum::is_flags_enum_v<BoolAnd> && !magic_enum::is_flags_enum_v<Ref>);
+static_assert(!magic_enum::is_flags_enum_v<Lvalue> && !magic_enum::is_flags_enum_v<Deleted>);
+static_assert(!magic_enum::is_flags_enum_v<Ambiguous> && !magic_enum::is_flags_enum_v<Wrapped>);
+static_assert(!magic_enum::is_flags_enum_v<Integer> && !magic_enum::is_flags_enum_v<Unscoped>);
+static_assert(!magic_enum::is_flags_enum_v<StreamOnly>);
+static_assert(!magic_enum::is_flags_enum_v<piped::Color> && magic_enum::enum_name(piped::Color::Green) == "Green");
+static_assert(!magic_enum::is_flags_enum_v<Legacy> && magic_enum::enum_count<Legacy>() == 2);
+static_assert(magic_enum::is_flags_enum_v<imported::Bits> == enabled);
 static_assert(magic_enum::enum_count<imported::Bits>() == 2);
 static_assert(magic_enum::enum_cast<imported::Bits>(magic_enum::enum_name(imported::Bits::B)).value() == imported::Bits::B);
 #ifdef MAGIC_ENUM_TEST_STD_REFLECTION
 static_assert(magic_enum::enum_name(imported::Bits::B) == "B");
 #endif
-static_assert(!magic_enum::is_flags_v<LazyExplicit>);
-static_assert(magic_enum::is_flags_v<lazy::LazyFlags>);
+static_assert(!magic_enum::is_flags_enum_v<LazyExplicit>);
+static_assert(magic_enum::is_flags_enum_v<lazy::LazyFlags>);
 static_assert(magic_enum::enum_count<Lazy, magic_enum::as_common<>>() == 3);
 static_assert(magic_enum::enum_count<Lazy, magic_enum::as_flags<>>() == 2);
 #ifdef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
-static_assert(!magic_enum::is_flags_v<Lazy>);
+static_assert(!magic_enum::is_flags_enum_v<Lazy>);
 #endif
 
 static_assert(magic_enum::enum_contains<Bits>(Bits::All) == !enabled);
