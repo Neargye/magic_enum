@@ -53,33 +53,37 @@ MAGIC_ENUM_CONSTEVAL std::size_t fuse_bit_width() noexcept {
   return log2((count << 1) - 1);
 }
 
+// The first value takes the lowest bits.
 template <typename E>
-constexpr optional<std::uintmax_t> fuse_one_enum(optional<std::uintmax_t> hash, E value) noexcept {
+constexpr bool fuse_one_enum(std::uintmax_t& hash, std::size_t& shift, E value) noexcept {
   // MSVC may otherwise calculate the width at runtime in C++17.
   constexpr auto width = fuse_bit_width<E>();
-  if (hash) {
-    if (const auto index = enum_index(value)) {
-      return (*hash << width) | *index;
-    }
+  const auto index = index_of<E, subtype_v<E>>(static_cast<std::underlying_type_t<E>>(value));
+  if (index >= count_v<E, subtype_v<E>>) {
+    return false;
+  }
+  // A single-value enum takes no bits, and the shift can already equal the hash width.
+  if constexpr (width > 0) {
+    hash |= static_cast<std::uintmax_t>(index) << shift;
+    shift += width;
+  }
+  return true;
+}
+
+template <typename... Es>
+constexpr optional<std::uintmax_t> fuse_enum(Es... values) noexcept {
+  auto hash = std::uintmax_t{0};
+  auto shift = std::size_t{0};
+  if ((fuse_one_enum(hash, shift, values) && ...)) {
+    return hash;
   }
   return {};
-}
-
-template <typename E>
-constexpr optional<std::uintmax_t> fuse_enum(E value) noexcept {
-  return fuse_one_enum(std::uintmax_t{0}, value);
-}
-
-template <typename E, typename... Es>
-constexpr optional<std::uintmax_t> fuse_enum(E head, Es... tail) noexcept {
-  return fuse_one_enum(fuse_enum(tail...), head);
 }
 
 template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
-  const auto fuse = fuse_enum(values...);
-  if (fuse) {
+  if (const auto fuse = fuse_enum(values...)) {
     return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
   return optional<enum_fuse_t>{};

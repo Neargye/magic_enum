@@ -83,14 +83,15 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
   using D = std::decay_t<E>;
 
   // Enums without reflected values, such as std::byte, are written as integers.
-  if constexpr (detail::count_v<D, detail::subtype_v<D>> == 0) {
-  } else if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
-    if (const auto name = enum_flags_name<D>(value); !name.empty()) {
-      return detail::write_name(os, string_view{name.data(), name.size()});
-    }
-  } else {
-    if (const auto name = enum_name<D>(value); !name.empty()) {
-      return detail::write_name(os, name);
+  if constexpr (detail::count_v<D, detail::subtype_v<D>> > 0) {
+    if constexpr (detail::subtype_v<D> == detail::enum_subtype::flags) {
+      if (const auto name = enum_flags_name<D>(value); !name.empty()) {
+        return detail::write_name(os, string_view{name.data(), name.size()});
+      }
+    } else {
+      if (const auto name = enum_name<D>(value); !name.empty()) {
+        return detail::write_name(os, name);
+      }
     }
   }
   return os.operator<<(static_cast<underlying_type_t<D>>(value));

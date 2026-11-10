@@ -570,7 +570,7 @@ constexpr optional<enum_fuse_t> enum_fuse(Es... values) noexcept;
 
 * `enum_fuse_t` is a distinct type for each ordered list of enum types, so mixing orders fails to compile.
 
-* Requires at least two values. Each enum takes `ceil(log2(enum_count<E>()))` bits, and their sum must fit in `std::uintmax_t`.
+* Requires at least two values. Each enum takes as many bits as its largest index needs, and the total must fit in `std::uintmax_t`.
 
 * On MSVC, suppress warning C4064 with `/wd4064`, or define `MAGIC_ENUM_NO_TYPESAFE_ENUM_FUSE` to use `uintmax_t`.
 
@@ -1051,6 +1051,8 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 * `std::byte` uses fmt's own formatter. For `std::format`, convert it with `std::to_integer<unsigned>(value)`.
 
 * Requires `magic_enum::char_type` to be `char`.
+
+* The formatter is a partial specialization for every enum type. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum makes formatting it ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
 
   ```cpp
   #include <format>

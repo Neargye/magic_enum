@@ -1573,6 +1573,25 @@ MAGIC_ENUM_CONSTEVAL name_lengths_t name_lengths() noexcept {
 template <typename E, enum_subtype S>
 inline constexpr auto name_lengths_v = name_lengths<E, S>();
 
+// Returns count_v if no name matches.
+template <typename E, enum_subtype S, typename BinaryPredicate>
+constexpr std::size_t name_index([[maybe_unused]] string_view value, [[maybe_unused]] BinaryPredicate& p) {
+  // Skip the loop for empty enums, otherwise MSVC /analyze warns that it never runs.
+  if constexpr (count_v<E, S> > 0) {
+    if constexpr (is_default_predicate_v<BinaryPredicate>) {
+      if (value.size() < name_lengths_v<E, S>.min || value.size() > name_lengths_v<E, S>.max) {
+        return count_v<E, S>;
+      }
+    }
+    for (std::size_t i = 0; i < count_v<E, S>; ++i) {
+      if (cmp_equal(value, names_v<E, S>[i], p)) {
+        return i;
+      }
+    }
+  }
+  return count_v<E, S>;
+}
+
 template <typename E, enum_subtype S, typename D = std::decay_t<E>>
 using names_t = decltype((names_v<D, S>));
 
@@ -2245,10 +2264,8 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I 
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum.");
 
-  if (detail::in_underlying_range<D>(value)) {
-    if (const auto u = static_cast<underlying_type_t<D>>(value); detail::index_of<D, S>(u) < detail::count_v<D, S>) {
-      return static_cast<D>(u);
-    }
+  if (detail::in_underlying_range<D>(value) && detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>) {
+    return static_cast<D>(static_cast<underlying_type_t<D>>(value));
   }
   return {}; // Invalid value or out of range.
 }
@@ -2268,18 +2285,8 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
         [&p](string_view lhs, string_view rhs) { return detail::cmp_equal(lhs, rhs, p); });
   } else {
 #endif
-    // Skip the loop for empty enums, otherwise MSVC /analyze warns that it never runs.
-    if constexpr (detail::count_v<D, S> > 0) {
-      if constexpr (detail::is_default_predicate_v<BinaryPredicate>) {
-        if (value.size() < detail::name_lengths_v<D, S>.min || value.size() > detail::name_lengths_v<D, S>.max) {
-          return {};
-        }
-      }
-      for (std::size_t i = 0; i < detail::count_v<D, S>; ++i) {
-        if (detail::cmp_equal(value, detail::names_v<D, S>[i], p)) {
-          return detail::values_v<D, S>[i];
-        }
-      }
+    if (const auto i = detail::name_index<D, S>(value, p); i < detail::count_v<D, S>) {
+      return detail::values_v<D, S>[i];
     }
     return {}; // Invalid value or out of range.
 #if defined(MAGIC_ENUM_ENABLE_HASH)
@@ -2293,7 +2300,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
 
-  return static_cast<bool>(enum_cast<D, S>(static_cast<underlying_type_t<D>>(value)));
+  return detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>;
 }
 
 // Returns true if enum contains specified value.
@@ -2309,7 +2316,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I,
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
 
-  return static_cast<bool>(enum_cast<D, S>(value));
+  return detail::in_underlying_range<D>(value) && detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>;
 }
 
 // Returns true if enum contains enumerator with specified name.
@@ -2318,7 +2325,15 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
   using D = std::decay_t<E>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
 
-  return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
+#if defined(MAGIC_ENUM_ENABLE_HASH)
+  if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, detail::constexpr_hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {
+    return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
+  } else {
+#endif
+    return detail::name_index<D, S>(value, p) < detail::count_v<D, S>;
+#if defined(MAGIC_ENUM_ENABLE_HASH)
+  }
+#endif
 }
 
 // Checks the reflection domain, not enumerator membership.

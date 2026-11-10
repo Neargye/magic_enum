@@ -74,9 +74,9 @@ template <typename E, enum_subtype S, bool Reverse>
 constexpr E circular_value(E value, std::ptrdiff_t n) noexcept {
   constexpr std::ptrdiff_t count = count_v<E, S>;
   if constexpr (count != 0) {
-    if (const auto i = enum_index<E, S>(value)) {
+    if (const auto i = index_of<E, S>(static_cast<std::underlying_type_t<E>>(value)); i < count_v<E, S>) {
       const auto offset = n % count;
-      auto index = (static_cast<std::ptrdiff_t>(*i) + (Reverse ? -offset : offset)) % count;
+      auto index = (static_cast<std::ptrdiff_t>(i) + (Reverse ? -offset : offset)) % count;
       if (index < 0) {
         index += count;
       }
@@ -101,8 +101,8 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_next_value requires a non-empty reflected enum.");
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
-  if (const auto i = enum_index<D, S>(value)) {
-    const auto index = static_cast<std::ptrdiff_t>(*i);
+  if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
+    const auto index = static_cast<std::ptrdiff_t>(i);
     if (n >= count - index || n < -index) {
       return {};
     }
@@ -124,8 +124,8 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_prev_value requires a non-empty reflected enum.");
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
-  if (const auto i = enum_index<D, S>(value)) {
-    const auto index = static_cast<std::ptrdiff_t>(*i);
+  if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
+    const auto index = static_cast<std::ptrdiff_t>(i);
     if (n > index || n <= index - count) {
       return {};
     }
