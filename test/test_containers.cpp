@@ -1554,6 +1554,56 @@ TEST_CASE("containers_set") {
   REQUIRE(equivalent_name_set.empty());
 }
 
+TEST_CASE("set heterogeneous lookup skips absent equivalent keys") {
+  constexpr auto check = [] {
+    using namespace magic_enum::containers;
+    set<EquivalentNames, name_less_case_insensitive> keys{EquivalentNames::a};
+    if (keys.count("A") != 1 || keys.find("A") == keys.end() || *keys.find("A") != EquivalentNames::a) {
+      return false;
+    }
+    if (keys.count("missing") != 0 || keys.find("missing") != keys.end() || keys.erase("missing") != 0) {
+      return false;
+    }
+    if (keys.erase("A") != 1 || keys.erase("A") != 0 || !keys.empty() || keys.find("A") != keys.end()) {
+      return false;
+    }
+    keys.insert(EquivalentNames::A);
+    keys.insert(EquivalentNames::a);
+    const auto next = keys.erase(keys.begin());
+    return keys.size() == 1 && next != keys.end() && *next == EquivalentNames::a &&
+           keys.count("a") == 1 && keys.erase("a") == 1 && keys.empty();
+  };
+  static_assert(check());
+  CHECK(check());
+}
+
+TEST_CASE("set positional erase preserves reordered keys across words") {
+  constexpr auto check = [] {
+    using namespace magic_enum::containers;
+    set<Bits65, name_greater<>> keys{Bits65::B00, Bits65::B01, Bits65::B63, Bits65::B64};
+    auto next = keys.erase(keys.find("B64"));
+    if (keys.size() != 3 || next == keys.end() || *next != Bits65::B63 || keys.count("B64") != 0) {
+      return false;
+    }
+    if (keys.erase("B63") != 1 || keys.erase("B63") != 0 || keys.count("B00") != 1) {
+      return false;
+    }
+    next = keys.erase(keys.begin(), keys.find("B00"));
+    if (keys.size() != 1 || next == keys.end() || *next != Bits65::B00 || keys.erase(next) != keys.end() || !keys.empty()) {
+      return false;
+    }
+    set<ZeroFlags, name_greater<>> flags{ZeroFlags::None, ZeroFlags::A, ZeroFlags::B};
+    next = keys.erase(keys.begin(), keys.end());
+    if (next != keys.end() || flags.count("None") != 1 || flags.erase("None") != 1 || flags.erase(ZeroFlags::None) != 0) {
+      return false;
+    }
+    const auto last = flags.erase(flags.find("A"));
+    return last == flags.end() && flags.size() == 1 && flags.count("B") == 1 && flags.erase(flags.begin()) == flags.end() && flags.empty();
+  };
+  static_assert(check());
+  CHECK(check());
+}
+
 TEST_CASE("map_like_container") {
 
   using namespace magic_enum::ostream_operators;

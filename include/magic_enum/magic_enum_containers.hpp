@@ -235,21 +235,25 @@ class indexing {
       sorted_data[i] = values_data[order_data[i]];
     }
 
-    return std::pair{sorted_values, positions};
+    struct indices_t {
+      std::array<E, count> values;
+      std::array<std::size_t, count> positions;
+    };
+    return indices_t{sorted_values, positions};
   }
 
   static constexpr auto indices = get_indices();
 
  public:
-  [[nodiscard]] static constexpr const E* begin() noexcept { return indices.first.data(); }
+  [[nodiscard]] static constexpr const E* begin() noexcept { return indices.values.data(); }
 
-  [[nodiscard]] static constexpr const E* end() noexcept { return indices.first.data() + indices.first.size(); }
+  [[nodiscard]] static constexpr const E* end() noexcept { return indices.values.data() + indices.values.size(); }
 
-  [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return indices.first.data() + i; }
+  [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return indices.values.data() + i; }
 
   [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept {
     if (auto i = enum_index(val)) {
-      return indices.second[*i];
+      return indices.positions[*i];
     }
     return {};
   }
@@ -743,7 +747,7 @@ class bitset {
     std::size_t word_index;
     base_type mask;
 
-    constexpr reference_impl(parent_t p, std::size_t i) noexcept : parent(p), word_index(i / bits_per_base), mask(bit_mask(i)) {}
+    constexpr reference_impl(parent_t p, std::size_t i) noexcept : parent(p), word_index(base_type_count == 1 ? 0 : i / bits_per_base), mask(bit_mask(i)) {}
 
    public:
     constexpr reference_impl(const reference_impl&) noexcept = default;
@@ -816,8 +820,7 @@ class bitset {
     [[nodiscard]] static constexpr iterator_impl begin(parent_t p) noexcept {
       for (std::size_t word_index = 0; word_index < base_type_count; ++word_index) {
         if (p->a[word_index] > 0) {
-          const auto mask = least_significant_bit(p->a[word_index]);
-          return iterator_impl(p, word_index, mask);
+          return iterator_impl(p, word_index, least_significant_bit(p->a[word_index]));
         }
       }
       return end(p);
@@ -963,7 +966,7 @@ class bitset {
 
   [[nodiscard]] friend constexpr bool operator==(const bitset& lhs, const bitset& rhs) noexcept { return detail::equal(lhs.a, rhs.a); }
 
-  [[nodiscard]] friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept { return !detail::equal(lhs.a, rhs.a); }
+  [[nodiscard]] friend constexpr bool operator!=(const bitset& lhs, const bitset& rhs) noexcept { return !(lhs == rhs); }
 
   [[nodiscard]] constexpr bool operator[](E pos) const {
     auto i = domain::at(pos);
@@ -1004,10 +1007,7 @@ class bitset {
   }
 
   [[nodiscard]] constexpr bool test(E pos) const {
-    if (auto i = domain::at(pos); i && *i < size()) {
-      return test_at(*i);
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::test: Unrecognized position"));
+    return test_at(checked_index(pos, "magic_enum::containers::bitset::test: Unrecognized position"));
   }
 
   [[nodiscard]] constexpr bool all() const noexcept {
@@ -1074,11 +1074,8 @@ class bitset {
   }
 
   constexpr bitset& set(E pos, bool value = true) {
-    if (auto i = domain::at(pos); i && *i < size()) {
-      reference{this, *i} = value;
-      return *this;
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::set: Unrecognized position"));
+    reference{this, checked_index(pos, "magic_enum::containers::bitset::set: Unrecognized position")} = value;
+    return *this;
   }
 
   constexpr bitset& reset() noexcept { return *this = bitset{}; }
@@ -1094,11 +1091,8 @@ class bitset {
   }
 
   constexpr bitset& flip(E pos) {
-    if (auto i = domain::at(pos); i && *i < size()) {
-      reference{this, *i}.flip();
-      return *this;
-    }
-    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range("magic_enum::containers::bitset::flip: Unrecognized position"));
+    reference{this, checked_index(pos, "magic_enum::containers::bitset::flip: Unrecognized position")}.flip();
+    return *this;
   }
 
   [[nodiscard]] friend constexpr bitset operator&(const bitset& lhs, const bitset& rhs) noexcept { return bitset(lhs) &= rhs; }
@@ -1215,8 +1209,20 @@ class bitset {
     return domain::count;
   }
 
+  [[nodiscard]] constexpr reference reference_at(std::size_t i) noexcept {
+    MAGIC_ENUM_ASSERT(i < size());
+    return reference{this, i};
+  }
+
   // A set position is its bit, so iteration skips the index lookup.
-  [[nodiscard]] constexpr bool test_at(std::size_t i) const noexcept { return (a[i / bits_per_base] & bit_mask(i)) != 0; }
+  [[nodiscard]] constexpr bool test_at(std::size_t i) const noexcept { return (a[base_type_count == 1 ? 0 : i / bits_per_base] & bit_mask(i)) != 0; }
+
+  constexpr std::size_t checked_index(E pos, [[maybe_unused]] const char* what) const {
+    if (auto i = domain::at(pos); i && *i < size()) {
+      return *i;
+    }
+    MAGIC_ENUM_CONTAINERS_THROW(std::out_of_range(what));
+  }
 
   container_type a;
 };
@@ -1310,7 +1316,7 @@ class set {
 
   constexpr std::pair<iterator, bool> insert(const value_type& value) {
     if (auto i = index_type::at(value)) {
-      auto ref = a[value];
+      auto ref = a.reference_at(*i);
       const bool res = !ref;
       if (res) {
         ref = true;
@@ -1348,7 +1354,10 @@ class set {
   }
 
   constexpr iterator erase(const_iterator pos) noexcept {
-    erase(*pos++);
+    const auto i = static_cast<std::size_t>(std::addressof(*pos) - index_type::begin());
+    ++pos;
+    a.reference_at(i) = false;
+    --s;
     return pos;
   }
 
@@ -1360,14 +1369,8 @@ class set {
   }
 
   constexpr size_type erase(const key_type& key) noexcept {
-    if (index_type::at(key)) {
-      auto ref = a[key];
-      const bool res = ref;
-      if (res) {
-        --s;
-      }
-      ref = false;
-      return res;
+    if (const auto i = index_type::at(key)) {
+      return erase_at(*i);
     }
     return 0;
   }
@@ -1375,8 +1378,8 @@ class set {
   template <typename K, typename KC = key_compare>
   constexpr std::enable_if_t<detail::is_transparent_v<KC> && !std::is_same_v<std::decay_t<K>, key_type>, size_type> erase(K&& x) {
     size_type c = 0;
-    for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last;) {
-      c += erase(*first++);
+    for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last; ++first) {
+      c += erase_at(static_cast<std::size_t>(first - index_type::begin()));
     }
     return c;
   }
@@ -1392,7 +1395,7 @@ class set {
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, size_type> count(const K& x) const {
     size_type c = 0;
     for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last; ++first) {
-      c += a.test(*first);
+      c += a.test_at(static_cast<std::size_t>(first - index_type::begin()));
     }
     return c;
   }
@@ -1407,7 +1410,7 @@ class set {
   template <typename K, typename KC = key_compare>
   [[nodiscard]] constexpr std::enable_if_t<detail::is_transparent_v<KC>, const_iterator> find(const K& x) const {
     for (auto [first, last] = detail::equal_range(index_type::begin(), index_type::end(), x, key_compare{}); first != last; ++first) {
-      if (a.test(*first)) {
+      if (a.test_at(static_cast<std::size_t>(first - index_type::begin()))) {
         return make_iterator(first);
       }
     }
@@ -1422,6 +1425,15 @@ class set {
   }
 
  private:
+  constexpr size_type erase_at(std::size_t i) noexcept {
+    if (!a.test_at(i)) {
+      return 0;
+    }
+    a.reference_at(i) = false;
+    --s;
+    return 1;
+  }
+
   [[nodiscard]] constexpr const_iterator make_iterator(const E* pos) const noexcept {
     return const_iterator{this, index_type::begin(), pos};
   }
