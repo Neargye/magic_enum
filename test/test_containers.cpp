@@ -368,6 +368,12 @@ static_assert([] {
   const auto& const_values = values;
   return !const_values[Bits65::B63] && const_values[Bits65::B64] && values.count() == 1;
 }());
+static_assert([] {
+  magic_enum::containers::set<Color> values{Color::RED, Color::BLUE};
+  return values.erase_if([](Color value) { return value == Color::RED; }) == 1 && values.size() == 1;
+}());
+static_assert(magic_enum::containers::bitset<Color>{magic_enum::containers::raw_access, 0}.none());
+static_assert(!std::is_constructible_v<magic_enum::containers::bitset<Color>, std::nullptr_t>);
 // Bitset iteration must stay constexpr on MSVC in C++17, where _BitScan* intrinsics are not.
 static_assert([] {
   constexpr magic_enum::containers::bitset<Bits65> value{magic_enum::containers::raw_access, (1ULL << 5) | (1ULL << 40)};
@@ -487,8 +493,6 @@ TEST_CASE("containers_array") {
   /* BUG: a sort will not survive the data integration */
   magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int{{1U, 4U, 2U}};
 
-  // ENC: Direct convert to std::array
-  // std::array compare_before {1U, 4U, 2U};
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{{1U, 4U, 2U}}};
   REQUIRE(color_rgb_container_int == compare_before);
 
@@ -508,8 +512,6 @@ TEST_CASE("containers_array") {
 
   std::sort(std::begin(color_rgb_container_int), std::end(color_rgb_container_int));
 
-  // Missing: Direct convert to std::array
-  // std::array compare_after {1U, 2U, 4U};
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_after{{{1U, 2U, 4U}}};
   REQUIRE(color_rgb_container_int == compare_after);
 
@@ -837,11 +839,11 @@ TEST_CASE("containers_bitset_hash") {
 
   std::hash<bitset<Color>> hasher;
 
-  // empty bitset has a stable hash
+  // An empty bitset has a stable hash.
   bitset<Color> empty;
   REQUIRE(hasher(empty) == hasher(empty));
 
-  // equal bitsets produce the same hash
+  // Equal bitsets produce the same hash.
   bitset<Color> a;
   a.set(Color::RED);
   a.set(Color::GREEN);
@@ -850,14 +852,14 @@ TEST_CASE("containers_bitset_hash") {
   b.set(Color::GREEN);
   REQUIRE(hasher(a) == hasher(b));
 
-  // hash matches std::hash<unsigned long long> applied to the same bit pattern
+  // The hash matches std::hash<unsigned long long> of the same bit pattern.
   REQUIRE(hasher(a) == std::hash<unsigned long long>{}(a.to_ullong(raw_access)));
 
   bitset<Bits32> dense_32;
   dense_32.set();
   REQUIRE(std::hash<bitset<Bits32>>{}(dense_32) == std::hash<unsigned long long>{}(dense_32.to_ullong(raw_access)));
 
-  // usable as key in unordered_set
+  // Usable as a key in unordered_set.
   std::unordered_set<bitset<Color>> s;
   s.insert(bitset<Color>{Color::RED});
   s.insert(bitset<Color>{Color::GREEN});
@@ -964,11 +966,43 @@ TEST_CASE("container indexing preserves the requested order") {
   static_assert(sorted[ReverseOrder::Third] == 10);
   REQUIRE(default_indexing<>::at(ReverseOrder::First) == 0);
   REQUIRE(SortedIndex::at(ReverseOrder::First) == 2);
+  constexpr bitset<ReverseOrder, SortedIndex> sorted_bits{ReverseOrder::First, ReverseOrder::Third};
+  static_assert(sorted_bits.to_ullong(raw_access) == 5);
+  REQUIRE(*sorted_bits.begin() == ReverseOrder::Third);
+  REQUIRE(*std::next(sorted_bits.begin()) == ReverseOrder::First);
+  constexpr bitset<ReverseOrder, default_indexing<>> natural_bits{ReverseOrder::Third};
+  REQUIRE(*natural_bits.begin() == ReverseOrder::Third);
 
   constexpr array<ThrowingEnum, int> throwing{{10, 20}};
   static_assert(throwing[ThrowingEnum::A] == 10);
   constexpr bitset<ThrowingEnum> throwing_bits{ThrowingEnum::A};
   REQUIRE(*throwing_bits.begin() == ThrowingEnum::A);
+}
+
+TEST_CASE("comparator indexing skips a named zero in the middle") {
+  using namespace magic_enum::containers;
+  struct ZeroInsideGreater {
+    constexpr bool operator()(ZeroFlags lhs, ZeroFlags rhs) const noexcept {
+      return *ZeroInsideIndex::at(lhs) > *ZeroInsideIndex::at(rhs);
+    }
+  };
+  using Index = comparator_indexing<ZeroInsideGreater>;
+  static_assert(Index::at(ZeroFlags::None) == 1);
+  constexpr bitset<ZeroFlags, Index> bits{ZeroFlags::None, ZeroFlags::A, ZeroFlags::B};
+  static_assert(bits.size() == 2 && bits.all());
+  static_assert(*bits.begin() == ZeroFlags::B);
+  static_assert(*std::next(bits.begin()) == ZeroFlags::A);
+  static_assert(std::next(bits.begin(), 2) == bits.end());
+  static_assert(*std::prev(bits.end()) == ZeroFlags::A);
+  static_assert(std::prev(bits.end(), 2) == bits.begin());
+  static_assert(bits.find(ZeroFlags::None) == bits.end());
+  static_assert(bits.find(ZeroFlags::B) == bits.begin());
+  static_assert(bits.find(ZeroFlags::A) == std::next(bits.begin()));
+  constexpr bitset<ZeroFlags, Index> sparse{raw_access, 2};
+  static_assert(sparse.test(ZeroFlags::A) && !sparse.test(ZeroFlags::B));
+  REQUIRE(*sparse.begin() == ZeroFlags::A);
+  REQUIRE(std::next(sparse.begin()) == sparse.end());
+  REQUIRE(std::prev(sparse.end()) == sparse.begin());
 }
 
 struct HalfGreater {

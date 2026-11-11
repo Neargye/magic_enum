@@ -133,7 +133,6 @@ namespace We::Need::To::Go::Deeper {
       return magic_enum::customize::adl_info().minmax<1000,1000+128>();
     }
 
-    // not defined!
     auto magic_enum_define_range_adl(Flaggy)
     {
       return magic_enum::customize::adl_info().flag<true>();
@@ -1541,10 +1540,7 @@ TEST_CASE("extrema") {
     RED,
     GREEN,
     YELLOW,
-    // The value NONE is ignored by compiler-specific range probing.
-    // However, it affects the value of min_v. When reflected_min_v was incorrect,
-    // the presence of NONE caused miv_v to be equal to -1, which was then cast to unsigned,
-    // leading to a value of 18446744073709551615 (numeric_limit_max of uint64_t).
+    // Outside the default range, so the scanning backend must not count it in min and max.
     NONE = std::numeric_limits<std::uint64_t>::max()
   };
 
@@ -1722,7 +1718,6 @@ TEST_CASE("cmp_less") {
 }
 
 TEST_CASE("valid_enum") {
-  //enum Forward1;
   enum Forward2 : uint32_t;
   enum class Forward3;
   enum class Forward4 : uint32_t;
@@ -1731,8 +1726,6 @@ TEST_CASE("valid_enum") {
   enum class Empty3 {};
   enum class Empty4 : uint32_t {};
 
-  //REQUIRE(magic_enum::detail::is_reflected_v<Forward1, as_flags<true>>);
-  //REQUIRE(magic_enum::detail::is_reflected_v<Forward1, as_flags<false>>);
   REQUIRE(magic_enum::detail::is_reflected_v<Forward2, as_flags<true>>);
   REQUIRE(magic_enum::detail::is_reflected_v<Forward2, as_flags<false>>);
   REQUIRE(magic_enum::detail::is_reflected_v<Forward3, as_flags<true>>);

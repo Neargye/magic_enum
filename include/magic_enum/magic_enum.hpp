@@ -111,7 +111,6 @@
 #  pragma warning(disable : 6326) // Compile-time metadata intentionally compares constants.
 #endif
 
-// Checks magic_enum compiler compatibility.
 #if defined(__RESHARPER__) && __RESHARPER__ >= 20250300
 #  define MAGIC_ENUM_SUPPORTED 1
 #  define MAGIC_ENUM_DETAIL_RESHARPER_ENUMS 1
@@ -123,19 +122,17 @@
 #  define MAGIC_ENUM_DETAIL_NVCC 1
 #endif
 
-// Enum value must be greater or equals than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
-// If need another min range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN.
+// Lower bound of the default scan range, inclusive. Redefine it to change the default for all enums.
 #if !defined(MAGIC_ENUM_RANGE_MIN)
 #  define MAGIC_ENUM_RANGE_MIN -128
 #endif
 
-// Enum value must be less or equals than MAGIC_ENUM_RANGE_MAX. By default MAGIC_ENUM_RANGE_MAX = 127.
-// If need another max range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MAX.
+// Upper bound of the default scan range, inclusive. Redefine it to change the default for all enums.
 #if !defined(MAGIC_ENUM_RANGE_MAX)
 #  define MAGIC_ENUM_RANGE_MAX 127
 #endif
 
-// Specify calling convention for compilers that need it to produce reliable mangled names under different compiler flags. In particular, MSVC allows changing default calling convention on x86.
+// MSVC x86 can change the default calling convention, which would change __FUNCSIG__.
 #if defined(_MSC_VER) && !defined(__clang__)
 #  define MAGIC_ENUM_CALLING_CONVENTION __cdecl
 #else
@@ -162,21 +159,21 @@
 
 namespace magic_enum {
 
-// If need another optional type, define the macro MAGIC_ENUM_USING_ALIAS_OPTIONAL.
+// Define MAGIC_ENUM_USING_ALIAS_OPTIONAL to use another optional type.
 #if defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 MAGIC_ENUM_USING_ALIAS_OPTIONAL
 #else
 using std::optional;
 #endif
 
-// If need another string_view type, define the macro MAGIC_ENUM_USING_ALIAS_STRING_VIEW.
+// Define MAGIC_ENUM_USING_ALIAS_STRING_VIEW to use another string_view type.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING_VIEW)
 MAGIC_ENUM_USING_ALIAS_STRING_VIEW
 #else
 using std::string_view;
 #endif
 
-// If need another string type, define the macro MAGIC_ENUM_USING_ALIAS_STRING.
+// Define MAGIC_ENUM_USING_ALIAS_STRING to use another string type.
 #if defined(MAGIC_ENUM_USING_ALIAS_STRING)
 MAGIC_ENUM_USING_ALIAS_STRING
 #else
@@ -290,13 +287,13 @@ class customize_t {
 inline constexpr auto default_tag = customize_t{detail::customize_tag::default_tag};
 inline constexpr auto invalid_tag = customize_t{detail::customize_tag::invalid_tag};
 
-// If need custom names for enum, add specialization enum_name for necessary enum type.
+// Specialize enum_name to rename or hide values of an enum.
 template <typename E>
 constexpr customize_t enum_name(E) noexcept {
   return default_tag;
 }
 
-// If need custom type name for enum, add specialization enum_type_name for necessary enum type.
+// Specialize enum_type_name to rename an enum type.
 template <typename E>
 constexpr customize_t enum_type_name() noexcept {
   return default_tag;
@@ -426,7 +423,7 @@ consteval auto enum_name() noexcept {
   return cname_ref{};
 }
 
-} // namespace reflection
+} // namespace magic_enum::detail::reflection
 
 #endif
 
@@ -1031,7 +1028,7 @@ consteval std::size_t table_size() noexcept {
   return table_v<E, S>.size;
 }
 
-} // namespace reflection
+} // namespace magic_enum::detail::reflection
 
 #endif
 
@@ -1302,7 +1299,7 @@ MAGIC_ENUM_CONSTEVAL auto valid_offsets() noexcept {
   return offsets;
 }
 
-// Probe offsets 1, 2, 4, 8 outside each bound to catch a range that is too small, see https://github.com/Neargye/magic_enum/issues/117.
+// Probe offsets 1, 2, 4, 8 outside each bound to catch a range that is too small, see #117.
 template <int Min, int Max>
 MAGIC_ENUM_CONSTEVAL long long probe(std::size_t i) noexcept {
   return i < 4 ? static_cast<long long>(Min) - (1LL << i) : static_cast<long long>(Max) + (1LL << (i - 4));
@@ -2083,8 +2080,7 @@ struct is_flags_enum : detail::is_flags_enum<T> {};
 template <typename T>
 inline constexpr bool is_flags_enum_v = is_flags_enum<T>::value;
 
-// If T is a complete enumeration type, provides a member typedef type that names the underlying type of T.
-// Otherwise, if T is not an enumeration type, there is no member type. Otherwise (T is an incomplete enumeration type), the program is ill-formed.
+// Like std::underlying_type, but without a member type when T is not an enum.
 template <typename T>
 struct underlying_type : detail::underlying_type<T> {};
 
@@ -2255,7 +2251,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::entries_v<D, S>;
 }
 
-// Allows you to write magic_enum::enum_cast<foo>("bar", magic_enum::case_insensitive);
+// ASCII case-insensitive predicate for enum_cast and enum_contains.
 inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
 // Returns the enum value matching the integer, or an empty optional.

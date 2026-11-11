@@ -111,9 +111,8 @@ static_assert(magic_enum::enum_reflected(ReflectionRange{0}));
 static_assert(magic_enum::enum_reflected<ReflectionRange>(5000));
 #endif
 
-// Keep this list in sync with the public declarations exported by magic_enum.cppm.
-// Using-declarations verify reachability without relying on unrelated standard
-// library operators in a consumer that imports only magic_enum.
+// Keep this list in sync with the declarations exported by magic_enum.cppm.
+// Using-declarations check reachability without relying on standard library operators.
 namespace module_api {
 
 constexpr magic_enum::customize::customize_t custom_name{"module"};

@@ -665,7 +665,7 @@ magic_enum_make_compile_fail_test(
   configuration
   set-empty
   18
-  "magic_enum::containers::set requires non-empty reflected enum and valid indexing."
+  "magic_enum::containers::set requires a non-empty reflected enum."
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 )
 magic_enum_make_compile_fail_test(

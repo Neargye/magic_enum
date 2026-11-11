@@ -199,6 +199,7 @@ constexpr decltype(auto) value_switch(F&& f, [[maybe_unused]] E value, Def&& def
 
 } // namespace magic_enum::detail
 
+// Calls f with enum_constant<V> for the matching enum value. An unmatched value gives a default-constructed result.
 template <typename Result = detail::default_result_type, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
@@ -215,6 +216,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
   return enum_switch<Result, E, S>(std::forward<F>(f), value);
 }
 
+// Calls f with enum_constant<V> for the matching enum value. An unmatched value gives result.
 template <typename Result, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_with_fallback_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;

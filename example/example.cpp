@@ -32,7 +32,7 @@ MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Color);
 
 template <typename E>
 auto to_integer(magic_enum::Enum<E> value) {
-  // magic_enum::Enum<E> - C++17 Concept for enum type.
+  // magic_enum::Enum<E> restricts the parameter to enum types in C++17.
   return static_cast<magic_enum::underlying_type_t<E>>(value);
 }
 

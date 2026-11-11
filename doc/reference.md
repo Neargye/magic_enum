@@ -84,7 +84,7 @@
   }
   ```
 
-* `MAGIC_ENUM_ASSERT` checks preconditions, such as the index passed to `enum_value`. It defaults to `assert`. Define your own `MAGIC_ENUM_ASSERT(...)` or disable it with `MAGIC_ENUM_NO_ASSERT`, but not both.
+* `MAGIC_ENUM_ASSERT` checks preconditions, such as the index passed to `enum_value`. It defaults to `assert`. Define your own `MAGIC_ENUM_ASSERT(...)` or disable it with `MAGIC_ENUM_NO_ASSERT`, but not both. A custom macro must expand to an expression that is valid in a `constexpr` function, like `assert`.
 
 * `MAGIC_ENUM_ENABLE_HASH` enables hash-based name lookup with the default predicate. Custom predicates still use linear search.
 
@@ -603,9 +603,9 @@ constexpr decltype(auto) enum_switch(Lambda&& lambda, E value, Result&& result);
 
 * Calls the callable with `enum_constant<V>` for the matching reflected value.
 
-* The first template argument sets the result type, as in `enum_switch<int>(f, value)`. By default it is the decayed common type of the callable results.
+* The first template argument sets the result type, as in `enum_switch<int>(f, value)`. By default it is the decayed common type of the callable results. If that common type does not convert to `Result` but `Result` converts to it, the common type is returned.
 
-* If no value matches, returns the fallback or a default-constructed result.
+* If no value matches, returns the fallback or a default-constructed result. The same happens for a value the callable does not accept, so the callable is not called.
 
 * Always returns by value, even when `Result` is a reference.
 
@@ -1014,7 +1014,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_bitwise.hpp>`. `<magic_enum/magic_enum.hpp>` does not provide it.
 
-* Provides bitwise operators for all enums. Use it for function-local enums or with the module. A `using namespace` directive does not enable automatic flag reflection.
+* Provides bitwise operators for all enums. Use it for function-local enums or with the module. A `using namespace` directive does not enable automatic flag reflection. A namespace-scope using-declaration of `operator|` and `operator&` does, for every enum of that namespace.
 
 * The same `~` rule applies as for [`MAGIC_ENUM_DEFINE_BITWISE_OPERATORS`](#magic_enum_define_bitwise_operators).
 
@@ -1050,9 +1050,11 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * `std::byte` uses fmt's own formatter. For `std::format`, convert it with `std::to_integer<unsigned>(value)`.
 
-* Requires `magic_enum::char_type` to be `char`.
+* Requires `magic_enum::char_type` to be `char`. Wide format strings are not supported.
 
-* The formatter is a partial specialization for every enum type. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum makes formatting it ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
+* Accepts the format spec of a string, such as `{:>10}`. Integer specs like `{:x}` are rejected, also for values printed as integers.
+
+* The formatter is a partial specialization for every enum type. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum can make formatting ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
 
   ```cpp
   #include <format>
@@ -1075,7 +1077,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * `name_less<>`, `name_greater<>`, `name_less_case_insensitive` and `name_greater_case_insensitive` order values by name and allow lookup by name.
 
-* `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` orders `containers::array` by a comparator. Comparator-based container indexing preserves `enum_values<E>()` order for equivalent keys.
+* `default_indexing<E>` uses `enum_values<E>()` order. `comparator_indexing<Cmp>` orders `containers::array` and `containers::bitset` by a comparator. Comparator-based container indexing preserves `enum_values<E>()` order for equivalent keys.
 
 * A custom `Index` needs a `static constexpr` non-throwing `at(E)` that returns `optional<std::size_t>`. It maps each reflected value to a unique index in `[0, enum_count<E>())` and returns an empty optional for any other value, including an unnamed zero and combinations for flags.
 
@@ -1166,7 +1168,7 @@ class bitset {
 
   constexpr unsigned long to_ulong(detail::raw_access_t raw) const;
 
-  // Other members follow std::bitset, with positions of type E.
+  // Most other members follow std::bitset, with positions of type E. There are no shift operators.
 };
 
 template <typename E> // Only for flag enums.
@@ -1244,9 +1246,9 @@ class set {
   static constexpr set from_mask(E mask);
 
   template <typename Pred>
-  size_type erase_if(Pred pred);
+  constexpr size_type erase_if(Pred pred);
 
-  // Other members follow std::set.
+  // Most other members follow std::set. There is no swap, extract or merge.
 };
 ```
 

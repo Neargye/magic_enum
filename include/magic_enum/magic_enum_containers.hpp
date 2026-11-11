@@ -541,7 +541,11 @@ struct bit_domain {
 template <typename E, typename Index>
 struct bit_domain<E, key_indexing<Index>> : bit_domain<E, Index, true> {};
 
-} // namespace detail
+// Bind the enum type to provide iteration for transparent indexing.
+template <typename E, typename Cmp>
+struct bit_domain<E, indexing<void, Cmp>> : bit_domain<E, indexing<E, Cmp>> {};
+
+} // namespace magic_enum::containers::detail
 
 template <typename E = void>
 using name_less = detail::name_sort_impl<E>;
@@ -559,6 +563,7 @@ using default_indexing = detail::indexing<E>;
 template <typename Cmp = std::less<>>
 using comparator_indexing = detail::indexing<void, Cmp>;
 
+// Array of V indexed by enum values.
 template <typename E, typename V, typename Index = default_indexing<E>>
 struct array {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::array requires enum type.");
@@ -684,7 +689,7 @@ constexpr array<E, std::remove_cv_t<T>> to_array_impl(T(&&a)[N], std::index_sequ
   return {{std::move(a[J])...}};
 }
 
-} // namespace detail
+} // namespace magic_enum::containers::detail
 
 template <typename E, typename T, std::size_t N>
 [[nodiscard]] constexpr std::enable_if_t<(enum_count<E>() == N), array<E, std::remove_cv_t<T>>> to_array(T(&a)[N]) {
@@ -706,6 +711,7 @@ inline constexpr detail::raw_access_t raw_access{};
 template <typename E, typename Cmp>
 class set;
 
+// Bitset indexed by enum values.
 template <typename E, typename Index = default_indexing<E>>
 class bitset {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::bitset requires enum type.");
@@ -927,8 +933,13 @@ class bitset {
     }
   }
 
-  constexpr explicit bitset(detail::raw_access_t, const char_type* str, std::size_t n = ~std::size_t{0}, char_type zero = char_type{'0'}, char_type one = char_type{'1'})
+  // A template, so a literal 0 selects the integer constructor.
+  template <typename C, std::enable_if_t<std::is_same_v<C, char_type>, int> = 0>
+  constexpr explicit bitset(detail::raw_access_t, const C* str, std::size_t n = ~std::size_t{0}, char_type zero = char_type{'0'}, char_type one = char_type{'1'})
       : bitset(detail::raw_access_t{}, n == string_view::npos ? string_view{str} : string_view{str, n}, 0, n, zero, one) {}
+
+  // bitset(0) would otherwise read a null string.
+  bitset(std::nullptr_t) = delete;
 
   constexpr bitset(std::initializer_list<E> starters) : a{{}} {
     for (const auto f : starters) {
@@ -1230,10 +1241,11 @@ class bitset {
 template <typename V, std::enable_if_t<is_flags_enum_v<V>, int> = 0>
 explicit bitset(V starter) -> bitset<V>;
 
+// Set of enum values stored as a bitset.
 template <typename E, typename Cmp = std::less<E>>
 class set {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::set requires enum type.");
-  static_assert(detail::valid_indexing<E, detail::indexing<E, Cmp>>(), "magic_enum::containers::set requires non-empty reflected enum and valid indexing.");
+  static_assert(detail::valid_indexing<E, detail::indexing<E, Cmp>>(), "magic_enum::containers::set requires a non-empty reflected enum.");
 
   using index_type = detail::indexing<E, Cmp>;
 
@@ -1488,7 +1500,7 @@ class set {
   [[nodiscard]] friend constexpr bool operator>=(const set& lhs, const set& rhs) { return !(lhs < rhs); }
 
   template <typename Pred>
-  size_type erase_if(Pred pred) {
+  constexpr size_type erase_if(Pred pred) {
     auto old_size = size();
     for (auto i = begin(), last = end(); i != last;) {
       if (pred(*i)) {

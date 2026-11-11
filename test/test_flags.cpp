@@ -478,7 +478,7 @@ TEST_CASE("enum_cast") {
     REQUIRE(enum_flags_cast<CStyleFlags>("H|I|F|F|F").value() == (CStyleFlags_H | CStyleFlags_I | CStyleFlags_F));
     REQUIRE(enum_flags_cast<CStyleFlags>("E|B|C|A").value() == (CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_E));
 
-    // Test custom separator
+    // Custom separator.
     REQUIRE(enum_flags_cast<Color>("GREEN,RED", ',').value() == (Color::GREEN | Color::RED));
     REQUIRE(enum_flags_cast<Color>("GREEN,RED,BLUE", ',').value() == (Color::GREEN | Color::RED | Color::BLUE));
     REQUIRE(enum_flags_cast<Color>("red,green", ',', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == (Color::RED | Color::GREEN));
@@ -696,7 +696,7 @@ TEST_CASE("enum_contains") {
     REQUIRE_FALSE(enum_flags_contains<Color>("GREEN|RED|None"));
     REQUIRE_FALSE(enum_flags_contains<Color>("None"));
 
-    // Test custom separator
+    // Custom separator.
     REQUIRE(enum_flags_contains<Color>("GREEN,RED", ','));
     REQUIRE(enum_flags_contains<Color>("green,red", ',', [](char lhs, char rhs) { return std::tolower(lhs) == std::tolower(rhs); }));
     REQUIRE_FALSE(enum_flags_contains<Color>("GREEN,RED,None", ','));
@@ -908,7 +908,7 @@ TEST_CASE("enum_flags_name") {
 
   REQUIRE(enum_flags_name(CStyleFlags_A | CStyleFlags_B | CStyleFlags_C | CStyleFlags_D) == "A|B|C|D");
 
-  // Test custom separator
+  // Custom separator.
   REQUIRE(enum_flags_name(Color::RED | Color::GREEN, ',') == "RED,GREEN");
   REQUIRE(enum_flags_name(Color::RED | Color::GREEN | Color::BLUE, ',') == "RED,GREEN,BLUE");
   REQUIRE(enum_flags_name(Numbers::many | Numbers::two, ',') == "two,many");

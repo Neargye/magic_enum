@@ -236,7 +236,6 @@ static_assert(magic_enum::enum_name(WideRange::Last) == "Last");
 namespace parser {
 
 // Commas inside template arguments of the qualifier do not separate values.
-// Clang does not name enums inside class templates, see https://github.com/Neargye/magic_enum/issues/65.
 template <typename T, int N>
 struct Outer;
 

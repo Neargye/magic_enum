@@ -88,6 +88,7 @@ constexpr E circular_value(E value, std::ptrdiff_t n) noexcept {
 
 } // namespace magic_enum::detail
 
+// Calls f with enum_constant<V> for each enum value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, detail::enable_if_t<E, int> = 0>
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
@@ -95,6 +96,7 @@ constexpr auto enum_for_each(F&& f) {
   return detail::for_each<D, S>(std::forward<F>(f), std::make_index_sequence<detail::count_v<D, S>>{});
 }
 
+// Returns the value n positions after value in enum_values order, or an empty optional.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
@@ -111,6 +113,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return {};
 }
 
+// Returns the value n positions after value in enum_values order, wrapping around.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
@@ -118,6 +121,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::circular_value<D, S, false>(value, n);
 }
 
+// Returns the value n positions before value in enum_values order, or an empty optional.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
@@ -134,6 +138,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return {};
 }
 
+// Returns the value n positions before value in enum_values order, wrapping around.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;

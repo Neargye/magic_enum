@@ -19,6 +19,8 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
 ## [Features & Examples](example/)
 
+Flags, switch, fuse, utility and containers have their own headers, such as `magic_enum_switch.hpp`. `magic_enum_all.hpp` includes them all.
+
 * Basic
 
   ```cpp

@@ -41,6 +41,7 @@
 #include <magic_enum/magic_enum_all.hpp>
 
 enum class FormatNoValues {};
+enum class FormatLongName { EnumeratorWithANameLongerThanSmallStringStorage };
 
 TEST_CASE("format configuration preserves reflection") {
   CHECK(magic_enum::enum_name(Color::RED) == "red");
@@ -57,6 +58,8 @@ TEST_CASE("format configuration preserves reflection") {
 
 TEST_CASE("format-base") {
   REQUIRE(std::format("{}", Color::RED) == "red");
+  REQUIRE(std::format("{}", FormatLongName::EnumeratorWithANameLongerThanSmallStringStorage) == "EnumeratorWithANameLongerThanSmallStringStorage");
+  REQUIRE(std::format("{:>12.8}", FormatLongName::EnumeratorWithANameLongerThanSmallStringStorage) == "    Enumerat");
   REQUIRE(std::format("{}", Color{0}) == "0");
   REQUIRE(std::format("{}", static_cast<FormatNoValues>(7)) == "7");
   static_assert(!std::is_default_constructible_v<std::formatter<std::byte, char>>);
@@ -78,6 +81,8 @@ TEST_CASE("fmt byte formatting") {
 
 TEST_CASE("format-fmt") {
   REQUIRE(fmt::format("{}", Color::GREEN) == "GREEN");
+  REQUIRE(fmt::format("{}", FormatLongName::EnumeratorWithANameLongerThanSmallStringStorage) == "EnumeratorWithANameLongerThanSmallStringStorage");
+  REQUIRE(fmt::format("{:>12.8}", FormatLongName::EnumeratorWithANameLongerThanSmallStringStorage) == "    Enumerat");
   REQUIRE(fmt::format("{}", std::vector<Color>{Color::GREEN}) == "[\"GREEN\"]");
   REQUIRE(fmt::format("{}", Color{0}) == "0");
   REQUIRE(fmt::format("{}", static_cast<FormatNoValues>(7)) == "7");

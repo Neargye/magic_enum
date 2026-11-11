@@ -57,7 +57,7 @@ int main() {
 
   magic_enum::enum_switch(lambda, c); // prints "override"
 
-  // with object, explicit enum type
+  // Callable object with cases for selected values.
   auto switcher1 = overloaded{
     [] (magic_enum::enum_constant<Color::BLUE>) {
       std::cout << "Blue" << std::endl;
@@ -71,7 +71,7 @@ int main() {
   magic_enum::enum_switch(switcher1, Color::BLUE); // prints "Blue"
   magic_enum::enum_switch(switcher1, Color::RED); // prints "Red"
 
-  // explicit result type
+  // Explicit result type.
   auto switcher2 = overloaded{
     [] (magic_enum::enum_constant<Color::GREEN>) {
       return "called with green argument";
@@ -88,7 +88,7 @@ int main() {
   auto empty = magic_enum::enum_switch<std::string>(switcher2, static_cast<Color>(-3)); // returns an empty string
   assert(empty.empty());
 
-  // result with default object
+  // Fallback result for an unmatched value.
   std::cout << magic_enum::enum_switch<std::string>(switcher2, static_cast<Color>(-3), "unrecognized") << std::endl; // prints "unrecognized"
 
   auto switcher3 = overloaded{
