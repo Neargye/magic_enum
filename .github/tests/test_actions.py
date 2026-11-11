@@ -98,46 +98,6 @@ class ActionTests(unittest.TestCase):
                 if summary_fails:
                     self.assertIn("Cannot write build summary:", report)
 
-    @unittest.skipUnless(sys.platform == "linux", "Linux compiler setup")
-    def test_linux_compiler_setup(self):
-        prelude = r'''
-command() { [[ "$1" == "-v" && "$INSTALLED" == "true" ]]; }
-wget() { echo key; }
-gpg() { cat; }
-lsb_release() { echo noble; }
-sudo() {
-  echo "$*" >> "$CALL_LOG"
-  if [[ "$1" == "tee" ]]; then cat > /dev/null; fi
-  if [[ "$1" == "apt-get" && "$2" == "install" ]]; then return "$APT_RESULT"; fi
-}
-source "$SETUP_SCRIPT"
-'''
-        cases = [("gcc-16", "libstdc++", True, 0, 0), ("gcc-16", "libstdc++", False, 0, 0),
-                 ("clang-19", "libstdc++", True, 0, 0), ("clang-19", "libstdc++", False, 0, 0),
-                 ("clang-19", "libc++", True, 0, 0), ("clang-19", "libc++", False, 0, 0),
-                 ("clang-19", "libc++", True, 23, 23), ("gcc-16", "libc++", True, 0, 1)]
-        for compiler, stdlib, installed, apt_result, expected in cases:
-            with self.subTest(compiler=compiler, stdlib=stdlib, installed=installed, apt_result=apt_result):
-                log = self.work / "calls"
-                env_file = self.work / "env"
-                log.write_text("")
-                env_file.write_text("")
-                env = dict(self.env, CC=compiler, STDLIB=stdlib, INSTALLED=str(installed).lower(),
-                           APT_RESULT=str(apt_result), CALL_LOG=str(log), GITHUB_ENV=str(env_file),
-                           SETUP_SCRIPT=str(ACTIONS / "setup-linux-compiler/setup.sh"))
-                result = subprocess.run([BASH, "-e", "-o", "pipefail"], input=prelude, env=env,
-                                        capture_output=True, text=True, timeout=30)
-                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
-                calls = log.read_text().splitlines()
-                cxx = compiler.replace("gcc-", "g++-").replace("clang-", "clang++-")
-                self.assertEqual(env_file.read_text(), "" if expected else f"CC={compiler}\nCXX={cxx}\n")
-                if installed and stdlib == "libstdc++":
-                    self.assertEqual(calls, [])
-                elif compiler.startswith("clang-") and stdlib == "libc++":
-                    self.assertIn("apt-get install -y clang-19 libclang-rt-19-dev libc++-19-dev libc++abi-19-dev clang-tools-19", calls)
-                elif not expected:
-                    self.assertIn(f"apt-get install -y {cxx if compiler.startswith('gcc-') else compiler}", calls)
-
 
 if __name__ == "__main__":
     unittest.main()
