@@ -78,10 +78,10 @@ static_assert(!std::is_same_v<forward_type, three_types>);
 #endif
 
 int main() {
-  switch (static_cast<std::uintmax_t>(*magic_enum::enum_fuse(Color::BLUE, Direction::DOWN))) {
-    case static_cast<std::uintmax_t>(*red_up):
+  switch (*magic_enum::enum_fuse(Color::BLUE, Direction::DOWN)) {
+    case *red_up:
       return 1;
-    case static_cast<std::uintmax_t>(*blue_down):
+    case *blue_down:
       return 0;
     default:
       return 2;

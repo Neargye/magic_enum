@@ -3,7 +3,8 @@ set -euo pipefail
 
 case "$CC" in
   gcc-*) CXX="g++-${CC#gcc-}"; packages=("$CXX") ;;
-  clang-*) CXX="clang++-${CC#clang-}"; packages=("$CC") ;;
+  # clang-tools provides clang-scan-deps, which CMake needs for modules.
+  clang-*) CXX="clang++-${CC#clang-}"; packages=("$CC" "clang-tools-${CC#clang-}") ;;
   *) echo "Unsupported compiler: $CC" >&2; exit 1 ;;
 esac
 if [[ "$STDLIB" != "libstdc++" && ( "$STDLIB" != "libc++" || "$CC" != clang-* ) ]]; then
@@ -16,10 +17,11 @@ apt_get() {
     -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 "$@"
 }
 
-if ! command -v "$CXX" > /dev/null 2>&1 || [[ "$STDLIB" == "libc++" ]]; then
+if ! command -v "$CXX" > /dev/null 2>&1 || [[ "$STDLIB" == "libc++" ]] ||
+   { [[ "$CC" == clang-* ]] && ! command -v "clang-scan-deps-${CC#clang-}" > /dev/null 2>&1; }; then
   if [[ "$STDLIB" == "libc++" ]]; then
     clang_version="${CC#clang-}"
-    packages+=("libclang-rt-${clang_version}-dev" "libc++-${clang_version}-dev" "libc++abi-${clang_version}-dev" "clang-tools-${clang_version}")
+    packages+=("libclang-rt-${clang_version}-dev" "libc++-${clang_version}-dev" "libc++abi-${clang_version}-dev")
   fi
   apt_get update --error-on=any
   candidates="$(LC_ALL=C apt-cache policy "${packages[@]}")"
