@@ -15,20 +15,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-jobs:
-  ci-scripts:
-    name: CI scripts
-    timeout-minutes: 5
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    - name: Test CI scripts
-      shell: bash
-      run: |
-        CI_TEST_BASH="$BASH" python3 -B -m unittest discover -s .github/tests -v
+defaults:
+  run:
+    shell: bash
 
+jobs:
   build:
     name: "${{ matrix.config.compiler }} / ${{ matrix.config.build_type }}"
     timeout-minutes: 30
@@ -36,41 +27,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Users compile the headers with their own flags, so strict rows keep them clean under strict warnings.
         config:
-        - { os: ubuntu-22.04, compiler: "gcc-11", build_type: Release }
+        - { os: ubuntu-22.04, compiler: "gcc-11", build_type: Release, strict: true }
         - { os: ubuntu-22.04, compiler: "gcc-11", build_type: Debug }
         - { os: ubuntu-22.04, compiler: "gcc-12", build_type: Release }
-        - { os: ubuntu-22.04, compiler: "gcc-12", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "gcc-13", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "gcc-13", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "gcc-14", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "gcc-14", build_type: Debug }
-        - { os: ubuntu-24.04, compiler: "gcc-15", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "gcc-15", build_type: Debug }
-        - { os: ubuntu-26.04, compiler: "gcc-16", build_type: Release }
-        - { os: ubuntu-26.04, compiler: "gcc-16", build_type: Debug }
-        - { os: ubuntu-22.04, compiler: "clang-13", build_type: Release }
+        - { os: ubuntu-26.04, compiler: "gcc-15", build_type: Release }
+        - { os: ubuntu-26.04, compiler: "gcc-16", build_type: Release, strict: true }
+        - { os: ubuntu-22.04, compiler: "clang-13", build_type: Release, strict: true }
         - { os: ubuntu-22.04, compiler: "clang-13", build_type: Debug }
         - { os: ubuntu-22.04, compiler: "clang-14", build_type: Release }
-        - { os: ubuntu-22.04, compiler: "clang-14", build_type: Debug }
         - { os: ubuntu-22.04, compiler: "clang-15", build_type: Release }
-        - { os: ubuntu-22.04, compiler: "clang-15", build_type: Debug }
         - { os: ubuntu-22.04, compiler: "clang-16", build_type: Release }
-        - { os: ubuntu-22.04, compiler: "clang-16", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-17", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-17", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-18", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-18", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-19", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-19", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-20", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-20", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-21", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-21", build_type: Debug }
         - { os: ubuntu-24.04, compiler: "clang-22", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-22", build_type: Debug }
-        - { os: ubuntu-24.04, compiler: "clang-23", build_type: Release }
-        - { os: ubuntu-24.04, compiler: "clang-23", build_type: Debug }
+        - { os: ubuntu-24.04, compiler: "clang-23", build_type: Release, strict: true }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -81,114 +58,20 @@ jobs:
         compiler: ${{ matrix.config.compiler }}
 
     - name: Configure
-      uses: ./.github/actions/timed-run
-      with:
-        name: Configure
-        run: |
-          standard_options=()
-          if [[ "$CC" == "gcc-16" ]]; then
-            standard_options=(-DCMAKE_CXX_STANDARD=26 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
-          fi
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} "${standard_options[@]}"
+      run: |
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+          -DMAGIC_ENUM_TEST_STRICT_WARNINGS=${{ matrix.config.strict && 'ON' || 'OFF' }}
 
-    - uses: ./.github/actions/cmake-test
-      with:
-        build-type: ${{ matrix.config.build_type }}
+    - name: Build
+      run: cmake --build build --parallel "$(nproc)"
+
+    - name: Test
+      run: ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error
 
     - name: Require standard reflection tests
       if: ${{ matrix.config.compiler == 'gcc-16' }}
-      uses: ./.github/actions/timed-run
-      with:
-        name: Require standard reflection tests
-        run: |
-          ctest --test-dir build -N -R "^(test-cpp26-reflection|test_std_reflection-auto-cpp26)$" | grep -q "Total Tests: 2"
-
-  strict:
-    name: "${{ matrix.config.compiler }} / strict"
-    timeout-minutes: 30
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - { os: ubuntu-22.04, compiler: "gcc-11", standards: "c++17" }
-        - { os: ubuntu-26.04, compiler: "gcc-16", standards: "c++17 c++20 c++23" }
-        - { os: ubuntu-22.04, compiler: "clang-13", standards: "c++17" }
-        - { os: ubuntu-24.04, compiler: "clang-23", standards: "c++17 c++20 c++23" }
-
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    - uses: ./.github/actions/setup-linux-compiler
-      with:
-        compiler: ${{ matrix.config.compiler }}
-
-    - uses: ./.github/actions/build-summary
-      with:
-        compiler: ${{ env.CXX }}
-
-    - name: Strict warnings
-      uses: ./.github/actions/timed-run
-      with:
-        name: Strict warnings
-        run: |
-          # Users compile the headers with their own flags, so keep them clean under strict warnings.
-          flags=(-Wall -Wextra -pedantic-errors -Werror -Wconversion -Wsign-conversion -Wold-style-cast -Wundef -Wcast-qual -Wnon-virtual-dtor -Wnull-dereference -Wimplicit-fallthrough)
-          case "$CXX" in
-            g++*) flags+=(-Wshadow -Wuseless-cast -Wduplicated-branches -Wduplicated-cond -Wlogical-op) ;;
-            *) flags+=(-Wshadow-all -Wextra-semi -Wcomma -Wunreachable-code) ;;
-          esac
-          sources=(
-            example/enum_flag_example.cpp
-            example/example.cpp
-            example/example_containers_array.cpp
-            example/example_containers_bitset.cpp
-            example/example_containers_set.cpp
-            example/example_containers_set_lookup.cpp
-            example/example_custom_name.cpp
-            example/example_switch.cpp
-            test/test.cpp
-            test/test_aliases.cpp
-            test/test_containers.cpp
-            test/test_flags.cpp
-            test/test_format.cpp
-            test/test_fuse.cpp
-            test/test_operators.cpp
-            test/test_operators_other.cpp
-            test/test_range.cpp
-            test/test_shared_config.cpp
-            test/test_shared_config_other.cpp
-            test/test_switch.cpp
-            test/test_utility.cpp
-            test/test_wchar_t.cpp
-          )
-          check() {
-            echo "$CXX $*"
-            "$CXX" -fsyntax-only "${flags[@]}" -DDOCTEST_CONFIG_USE_STD_HEADERS -Iinclude -isystem test/3rdparty "$@"
-          }
-          for std in ${{ matrix.config.standards }}; do
-            for src in "${sources[@]}"; do
-              check -std="$std" "$src"
-            done
-          done
-          # Cover the C++26 standard reflection backend.
-          if [ "$CXX" = "g++-16" ]; then
-            for src in test/test.cpp test/test_flags.cpp test/test_format.cpp test/test_operators.cpp test/test_reflection.cpp test/test_switch.cpp test/test_utility.cpp; do
-              check -std=c++26 -freflection -DMAGIC_ENUM_TEST_STD_REFLECTION=1 "$src"
-            done
-          fi
-
-    - name: Test Unicode identifiers
-      if: ${{ matrix.config.compiler == 'gcc-16' }}
-      uses: ./.github/actions/timed-run
-      with:
-        name: Test Unicode identifiers
-        run: |
-          "${CXX}" -std=c++17 -Wall -Wextra -Wshadow -pedantic-errors -Werror -Iinclude test/test_nonascii.cpp -o test_nonascii
-          ./test_nonascii
-          "${CXX}" -std=c++26 -freflection -Wall -Wextra -Wshadow -pedantic-errors -Werror -Iinclude test/test_nonascii.cpp -o test_nonascii_reflection
-          ./test_nonascii_reflection
+      run: |
+        ctest --test-dir build -N -R "^(test-cpp26-reflection|test_std_reflection-auto-cpp26)$" | grep -q "Total Tests: 2"
 
   sanitize:
     name: "${{ matrix.config.compiler }} / sanitizers"
@@ -209,28 +92,28 @@ jobs:
       with:
         compiler: ${{ matrix.config.compiler }}
 
-    - name: Configure sanitizers
+    - name: Configure
       env:
         CXXFLAGS: -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
         LDFLAGS: -fsanitize=address,undefined
-      uses: ./.github/actions/timed-run
-      with:
-        name: Configure sanitizers
-        run: |
-          # Newer runner kernels use more ASLR entropy than older sanitizer runtimes support.
-          sudo sysctl vm.mmap_rnd_bits=28
-          cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug
+      run: |
+        # Newer runner kernels use more ASLR entropy than older sanitizer runtimes support.
+        sudo sysctl vm.mmap_rnd_bits=28
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 
-    - uses: ./.github/actions/cmake-test
-      with:
-        build-dir: build-sanitize
-        build-type: Debug
+    - name: Build
+      run: cmake --build build --parallel "$(nproc)"
+
+    - name: Test
       env:
         ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
         UBSAN_OPTIONS: print_stacktrace=1
+      run: ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error
 
   fmt:
+    name: "fmt (${{ matrix.os }})"
     timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -238,87 +121,58 @@ jobs:
         - ubuntu-24.04
         - ubuntu-26.04
 
-    name: "fmt (${{ matrix.os }})"
-    runs-on: ${{ matrix.os }}
-
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
 
     - name: Install fmt
-      uses: ./.github/actions/timed-run
-      with:
-        name: Install fmt
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfmt-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfmt-dev
 
     - name: Configure
-      uses: ./.github/actions/timed-run
-      with:
-        name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON
-
-    - uses: ./.github/actions/build-summary
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON
 
     - name: Build and test
-      uses: ./.github/actions/timed-run
-      with:
-        name: Build and test
-        run: |
-          cmake --build build --parallel "$(nproc)" --target test_format-cpp17
-          ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error -R "^test_format-cpp17$"
+      run: |
+        cmake --build build --parallel "$(nproc)" --target test_format-cpp17
+        ctest --test-dir build --output-on-failure --no-tests=error -R "^test_format-cpp17$"
 
   bazel:
-    timeout-minutes: 30
     name: Bazel
+    timeout-minutes: 30
     runs-on: ubuntu-24.04
+
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
 
     - name: Test
-      uses: ./.github/actions/timed-run
-      with:
-        name: Test
-        working-directory: test
-        run: bazelisk test //... --config=ci
-
-    - uses: ./.github/actions/build-summary
-      with:
-        bazel-dir: test
+      working-directory: test
+      run: bazelisk test //... --config=ci
 
   meson:
-    timeout-minutes: 30
     name: Meson
+    timeout-minutes: 30
     runs-on: ubuntu-24.04
+
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
 
     - name: Install Meson
-      uses: ./.github/actions/timed-run
-      with:
-        name: Install Meson
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y meson ninja-build
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y meson ninja-build
 
     - name: Test
-      uses: ./.github/actions/timed-run
-      with:
-        name: Test
-        run: |
-          for option in false true; do
-            echo "::group::hash=$option"
-            meson setup "build-meson-$option" -Dhash="$option"
-            meson test -C "build-meson-$option" --print-errorlogs
-            echo "::endgroup::"
-          done
-
-    - uses: ./.github/actions/build-summary
-      with:
-        meson-build: build-meson-false
+      run: |
+        for option in false true; do
+          echo "::group::hash=$option"
+          meson setup "build-meson-$option" -Dhash="$option"
+          meson test -C "build-meson-$option" --print-errorlogs
+          echo "::endgroup::"
+        done

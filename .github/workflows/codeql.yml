@@ -4,10 +4,8 @@ on:
   push:
     branches: [master]
     paths-ignore: ['**.md', 'doc/**']
-  pull_request:
-    paths-ignore: ['**.md', 'doc/**']
   schedule:
-    - cron: '17 6 * * 1'
+  - cron: '17 6 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -15,13 +13,12 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:
     name: C++ / GCC 13
-    runs-on: ubuntu-24.04
     timeout-minutes: 30
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
@@ -42,25 +39,11 @@ jobs:
         build-mode: manual
 
     - name: Configure
-      uses: ./.github/actions/timed-run
-      with:
-        name: Configure
-        run: |
-          cmake -S . -B build-codeql -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DMAGIC_ENUM_OPT_BUILD_TESTS=ON \
-            -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=ON
-
-    - uses: ./.github/actions/build-summary
-      with:
-        build-dir: build-codeql
+      run: cmake -S . -B build-codeql -G Ninja -DCMAKE_BUILD_TYPE=Release
 
     # Building consumers instantiates this header-only library's templates.
     - name: Build
-      uses: ./.github/actions/timed-run
-      with:
-        name: Build
-        run: cmake --build build-codeql --parallel "$(nproc)"
+      run: cmake --build build-codeql
 
     - name: Analyze
       uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

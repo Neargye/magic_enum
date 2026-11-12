@@ -178,6 +178,18 @@ if(MAGIC_ENUM_USE_MODULES)
   add_library(${MAGIC_ENUM_EXPORT_NAMESPACE}${PROJECT_NAME}_module ALIAS ${PROJECT_NAME}_module)
 endif()
 
+# CI sets this so the headers stay clean under the strict warnings users may enable.
+set(MAGIC_ENUM_STRICT_WARNINGS)
+if(MAGIC_ENUM_TEST_STRICT_WARNINGS)
+  set(MAGIC_ENUM_STRICT_WARNINGS
+      -Wconversion -Wsign-conversion -Wold-style-cast -Wundef -Wcast-qual -Wnon-virtual-dtor -Wimplicit-fallthrough)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    list(APPEND MAGIC_ENUM_STRICT_WARNINGS -Wuseless-cast -Wduplicated-branches -Wduplicated-cond -Wlogical-op)
+  else()
+    list(APPEND MAGIC_ENUM_STRICT_WARNINGS -Wshadow-all -Wextra-semi -Wcomma -Wunreachable-code -Wnull-dereference)
+  endif()
+endif()
+
 if(MAGIC_ENUM_OPT_BUILD_EXAMPLES)
   add_subdirectory(example)
 endif()

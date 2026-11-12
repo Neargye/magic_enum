@@ -11,11 +11,8 @@ runs:
   using: composite
   steps:
   - name: Set up compiler
+    shell: bash
     env:
       CC: ${{ inputs.compiler }}
       STDLIB: ${{ inputs.stdlib }}
-      SETUP_SCRIPT: ${{ github.action_path }}/setup.sh
-    uses: ./.github/actions/timed-run
-    with:
-      name: Set up compiler
-      run: bash "$SETUP_SCRIPT"
+    run: bash "${GITHUB_ACTION_PATH}/setup.sh"

@@ -15,16 +15,16 @@ jobs:
       contents: write
     env:
       ARCHIVE_NAME: ${{ format('{0}-{1}.tar.gz', github.event.repository.name, github.event.release.tag_name) }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-      - name: Create archive
-        run: git archive -o "${ARCHIVE_NAME}" HEAD
+    - name: Create archive
+      run: git archive -o "${ARCHIVE_NAME}" HEAD
 
-      - name: Upload archive
-        run: gh release upload "${{ github.event.release.tag_name }}" "${ARCHIVE_NAME}"
-        env:
-          GH_TOKEN: ${{ github.token }}
+    - name: Upload archive
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release upload "${{ github.event.release.tag_name }}" "${ARCHIVE_NAME}"

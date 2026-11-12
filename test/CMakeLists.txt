@@ -33,7 +33,7 @@ if(MSVC)
   set(MAGIC_ENUM_TEST_FLAG_PREFIX /std:)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(CMAKE_VERBOSE_MAKEFILE ON)
-  set(MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
+  set(MAGIC_ENUM_TEST_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror ${MAGIC_ENUM_STRICT_WARNINGS})
   set(MAGIC_ENUM_TEST_FLAG_PREFIX -std=)
 
   # Clang 22+ treats __COUNTER__ as a C2y extension, but doctest uses it.
@@ -751,6 +751,9 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
   magic_enum_add_std_reflection_options(test_no_named_zero_in_flags-cpp26-reflection)
   target_compile_definitions(test_no_named_zero_in_flags-cpp26-reflection PRIVATE
     MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS MAGIC_ENUM_TEST_STD_REFLECTION=1 MAGIC_ENUM_REQUIRE_STD_REFLECTION)
+  magic_enum_make_test(test_nonascii.cpp test_nonascii-cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
+  magic_enum_add_std_reflection_options(test_nonascii-cpp26-reflection)
+  target_compile_definitions(test_nonascii-cpp26-reflection PRIVATE MAGIC_ENUM_REQUIRE_STD_REFLECTION)
   magic_enum_add_tests(cpp26-reflection ${MAGIC_ENUM_CPP26_STANDARD_FLAG})
   foreach(test_name IN LISTS MAGIC_ENUM_TEST_SOURCES)
     magic_enum_add_std_reflection_options(${test_name}-cpp26-reflection)
@@ -875,6 +878,23 @@ if(MAGIC_ENUM_USE_MODULES)
       )
     endforeach()
   endif()
+
+  # CI builds this target and runs the tests labeled module.
+  set(module_tests test_module-${module_suffix})
+  # GCC 16 with -freflection rejects import std after a configuration file that includes standard headers.
+  if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION AND
+     NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND MAGIC_ENUM_MODULE_IMPORT_STD AND
+          MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26))
+    list(APPEND module_tests test_module_aliases-${module_suffix} test_module_wchar_t-${module_suffix})
+  endif()
+  set_tests_properties(${module_tests} PROPERTIES LABELS module)
+  add_custom_target(magic_enum_module_tests)
+  add_dependencies(magic_enum_module_tests ${module_tests})
+  foreach(module_target IN ITEMS magic_enum_module example_module_usage)
+    if(TARGET ${module_target})
+      add_dependencies(magic_enum_module_tests ${module_target})
+    endif()
+  endforeach()
 endif()
 
 if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
@@ -941,7 +961,7 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       "-DCONFIG=$<CONFIG>"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/stage_package.cmake"
   )
-  set_tests_properties(install-module-to-stagedir PROPERTIES FIXTURES_SETUP magic_enum_installed_module)
+  set_tests_properties(install-module-to-stagedir PROPERTIES FIXTURES_SETUP magic_enum_installed_module LABELS module)
 
   add_test(
     NAME installed-module-consumer
@@ -956,5 +976,5 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       --test-command
       ${CMAKE_CTEST_COMMAND} --output-on-failure --no-tests=error -C $<CONFIG>
   )
-  set_tests_properties(installed-module-consumer PROPERTIES FIXTURES_REQUIRED magic_enum_installed_module)
+  set_tests_properties(installed-module-consumer PROPERTIES FIXTURES_REQUIRED magic_enum_installed_module LABELS module)
 endif()

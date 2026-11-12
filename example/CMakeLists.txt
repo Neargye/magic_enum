@@ -7,7 +7,7 @@ if(MSVC)
     list(APPEND MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS /permissive-)
   endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  set(MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror)
+  set(MAGIC_ENUM_EXAMPLE_COMPILE_OPTIONS -Wall -Wextra -Wshadow -pedantic-errors -Werror ${MAGIC_ENUM_STRICT_WARNINGS})
 endif()
 
 function(magic_enum_add_example target library standard)
