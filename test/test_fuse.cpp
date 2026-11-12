@@ -77,11 +77,21 @@ static_assert(!std::is_same_v<forward_type, reverse_type>);
 static_assert(!std::is_same_v<forward_type, three_types>);
 #endif
 
+// MSVC warns on a switch over the fused enum (C4064), so switch on its integer.
+template <typename T>
+constexpr std::uintmax_t fused_integer(T value) {
+  if constexpr (std::is_enum_v<T>) {
+    return static_cast<std::uintmax_t>(value);
+  } else {
+    return value;
+  }
+}
+
 int main() {
-  switch (*magic_enum::enum_fuse(Color::BLUE, Direction::DOWN)) {
-    case *red_up:
+  switch (fused_integer(*magic_enum::enum_fuse(Color::BLUE, Direction::DOWN))) {
+    case fused_integer(*red_up):
       return 1;
-    case *blue_down:
+    case fused_integer(*blue_down):
       return 0;
     default:
       return 2;
