@@ -98,6 +98,9 @@
 #  if __has_warning("-Wenum-constexpr-conversion")
 #    pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
 #  endif
+#  if __has_warning("-Wnrvo")
+#    pragma clang diagnostic ignored "-Wnrvo" // Tables are built at compile time, where copy elision does not matter.
+#  endif
 #elif defined(__GNUC__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion" // Scanning casts candidates outside the value range of unscoped enums without a fixed underlying type.
@@ -1389,7 +1392,7 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
   if constexpr (S == enum_subtype::common) {
     // Flags often have bits outside the common range, so as_common<> does not require them in it.
     if constexpr (named_near_range<E, Min, Min + static_cast<int>(Size - 1)>(std::make_index_sequence<8>{})) {
-      static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX.");
+      static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX, or return invalid_tag from magic_enum::customize::enum_name to exclude the value.");
     }
   }
 #endif
@@ -2094,7 +2097,7 @@ using enum_constant = detail::enum_constant<V>;
 template <typename E>
 [[nodiscard]] constexpr auto enum_type_name() noexcept -> detail::enable_if_t<E, string_view> {
   constexpr string_view name = detail::type_name_v<std::decay_t<E>>.str();
-  static_assert(!name.empty(), "magic_enum::enum_type_name enum type does not have a name.");
+  static_assert(!name.empty(), "magic_enum::enum_type_name enum type does not have a name. Use a typedef name or return a name from magic_enum::customize::enum_type_name.");
 
   return name;
 }

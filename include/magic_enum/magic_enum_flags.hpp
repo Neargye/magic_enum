@@ -159,10 +159,10 @@ template <typename E, typename String = string>
     }
   }
 
-  if (check_value == flag_value) {
-    return name;
+  if (check_value != flag_value) {
+    name.clear(); // Invalid value or out of range.
   }
-  return {}; // Invalid value or out of range.
+  return name;
 }
 
 // Returns the flag combination matching the integer, or an empty optional.

@@ -21,6 +21,8 @@ struct FixedString {
 
   constexpr void reserve(size_type capacity) noexcept { reserved = capacity; }
 
+  constexpr void clear() noexcept { length = 0; }
+
   constexpr void append(size_type count, Char c) noexcept {
     for (size_type i = 0; i < count; ++i) {
       push(c);

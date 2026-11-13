@@ -33,6 +33,7 @@ struct MyString {
   std::size_t size() const { return str.size(); }
   const char* data() const { return str.data(); }
   void reserve(std::size_t size) { str.reserve(size); }
+  void clear() { str.clear(); }
   void append(std::size_t count, char c) { str.append(count, c); }
   void append(const char* s, std::size_t size) { str.append(s, size); }
 
