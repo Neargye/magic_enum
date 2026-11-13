@@ -321,7 +321,7 @@ Flags, switch, fuse, utility and containers have their own headers, such as `mag
 
 * **CMake targets**:
   - `magic_enum::magic_enum` is the header-only target.
-  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required. On MSVC, Visual Studio 2026 or newer is required.
+  - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required. On MSVC use Visual Studio 2026 or newer, and on GCC use GCC 16 or newer. Older versions have [module bugs](doc/limitations.md).
 
   Build the module target:
   ```sh

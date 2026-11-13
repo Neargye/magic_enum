@@ -175,6 +175,10 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
 
 * ReSharper C++ and CLion Nova are supported from version 2025.3.
 
-* The module needs Visual Studio 2026 or newer on MSVC. MSVC 19.44 crashes with `C1001` in consumers of `enum_constant`, `enum_switch` and `enum_for_each`.
+* On MSVC and GCC, use the module with Visual Studio 2026 or GCC 16 and newer. Older versions have compiler bugs:
+
+  * MSVC 19.44 (Visual Studio 2022) crashes with `C1001` in code that uses `enum_constant`, `enum_switch` or `enum_for_each`.
+  * GCC 15 does not export `containers::get`, `make_array` and `to_array`, can report unused parameters in magic_enum code and fails with `import std`.
+  * GCC 14 and older cannot read the compiled module.
 
 * Clang 18 module consumers need `-Wno-enum-constexpr-conversion` for enums without a fixed underlying type. The CMake module target sets this option automatically.

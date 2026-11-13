@@ -307,7 +307,7 @@ constexpr string_view enum_name() noexcept;
 
 * Returns the enum name as a null-terminated `string_view`.
 
-* `enum_name(value)` returns an empty string for an unnamed or [out-of-range](limitations.md#enum-range) value. `enum_name<value>()` fails to compile for an unnamed value.
+* `enum_name(value)` returns an empty string for an unnamed or [out-of-range](limitations.md#enum-range) value, and for a combination of flags. Use `enum_flags_name` for combinations. `enum_name<value>()` fails to compile for an unnamed value.
 
 * `enum_name<value>()` ignores the [scan range](limitations.md#enum-range) and flags filtering, so it can name declared flag combinations. Name customization still applies.
 
@@ -708,7 +708,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * `enum_flags_name` returns flag names joined by the separator, `'|'` by default. For zero it returns the reflected zero name. Unknown bits or a zero without a reflected name give an empty string.
 
-* A custom `String` must be default constructible, have `char_type` as its `value_type`, and provide `empty()`, `append(count, ch)` and `append(data, size)`. For constant evaluation it must be usable in constant expressions.
+* A custom `String` should behave like `std::string` with `char_type` as its `value_type`. For constant evaluation it must be usable in constant expressions.
 
 * `enum_flags_cast` returns the mask as `optional<E>`, or an empty optional for unknown bits, a zero without a reflected name or invalid names.
 
@@ -1202,7 +1202,7 @@ explicit bitset(E starter) -> bitset<E>;
 
 * String construction follows the [flags grammar](#enum_flags), but an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`. For flags, `"None|A"` sets only `A`. For non-flag enums, a zero name sets its position.
 
-* `to_string<String>()` has the same [`String` requirements](#enum_flags) as `enum_flags_name`. The raw form also needs `reserve(size())`.
+* `to_string<String>()` has the same [`String` requirements](#enum_flags) as `enum_flags_name`.
 
 * Stream input reads one word with `'|'` as the separator. An invalid name sets `failbit` and leaves the bitset unchanged.
 
@@ -1248,7 +1248,7 @@ class set {
   template <typename Pred>
   constexpr size_type erase_if(Pred pred);
 
-  // Most other members follow std::set. There is no swap, extract or merge.
+  // Most other members follow std::set. There is no extract or merge.
 };
 ```
 
