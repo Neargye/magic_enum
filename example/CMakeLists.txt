@@ -26,6 +26,7 @@ set(MAGIC_ENUM_EXAMPLES
     example_containers_set
     example_containers_set_lookup
     example_custom_name
+    example_logging
     example_switch
 )
 

@@ -114,7 +114,7 @@
 
   The header can define type aliases, range macros and options such as `MAGIC_ENUM_NO_AUTO_IS_FLAGS` and `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS`.
 
-* Use the same configuration in every translation unit and in the module build. See [configuration requirements](limitations.md).
+* Every translation unit and the module build must use the same configuration. Pass `MAGIC_ENUM_CONFIG_FILE` to the whole build as a compile definition instead of defining options before individual includes. See [configuration requirements](limitations.md).
 
 ## `enum_cast`
 
@@ -311,6 +311,8 @@ constexpr string_view enum_name() noexcept;
 
 * `enum_name<value>()` ignores the [scan range](limitations.md#enum-range) and flags filtering, so it can name declared flag combinations. Name customization still applies.
 
+* In logs and custom formatters, write the integer when the name is empty. The [formatter](#formatting) and [stream operators](#ostream_operators) already do this. See the [logging example](../example/example_logging.cpp).
+
 * Examples
 
   ```cpp
@@ -381,6 +383,8 @@ struct enum_range {
 * Sets reflection options for an enum.
 
 * An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, flags are selected when ADL finds both `E | E` and `E & E` for rvalues with result exactly `E`. Otherwise reflection is common.
+
+* Automatic detection fails to compile if a named value has more than one bit set. Set `is_flags` explicitly for such enums. See [flags](limitations.md#enum-flags).
 
 * Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work.
 
@@ -548,6 +552,8 @@ constexpr string_view enum_type_name() noexcept;
 * Returns the enum type name as a null-terminated `string_view`.
 
 * An unnamed enum has no type name, and `enum_type_name` fails to compile for it. A `typedef` name such as `typedef enum { ... } Name` is used. Specialize `customize::enum_type_name` to give an unnamed enum a name.
+
+* For enums declared inside functions or anonymous namespaces, the result depends on the compiler. Specialize `customize::enum_type_name` for a stable name.
 
 * Examples
 

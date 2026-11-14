@@ -2,7 +2,7 @@
 
 Without standard reflection, magic_enum reads compiler signatures to discover enum names.
 
-Reflect values only after the enum definition is visible. Use the same definitions and configuration across translation units and module builds. Use `MAGIC_ENUM_CONFIG_FILE` for shared options.
+Reflect values only after the enum definition is visible. Every translation unit and the module build must use the same enum definitions and the same configuration. Otherwise names, counts and indices can differ between them. Put options in one header and pass `MAGIC_ENUM_CONFIG_FILE` to the whole build as a compile definition.
 
 With both backends, customization can rename or hide declared values, but cannot add new ones. A custom name for an undeclared zero fails to compile. A custom name for another undeclared value is ignored, and `enum_name<V>()` for such a value fails to compile.
 
@@ -21,6 +21,8 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 * Flags are selected automatically when ADL finds both `E | E` and `E & E` for rvalues returning exactly `E`. Operator macros placed next to the enum satisfy this rule. `using namespace`, built-in integer operators and operators returning a wrapper do not.
 
 * Detection checks operators, not values. Existing operators can switch an enum to flags, changing its names, counts and indices. Enums containing codes or multibit fields may need `is_flags = false`.
+
+* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks: 3, 5, 6, 7, 15, 31, 63, 127, 255, 0xFFFF and all bits.
 
 * Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for ordinary reflection. `enum_flags_*` APIs always use flags.
   ```cpp
