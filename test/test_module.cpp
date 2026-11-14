@@ -29,7 +29,7 @@ import magic_enum_test_types;
 #include "test_auto_flags.hpp"
 #ifdef MAGIC_ENUM_TEST_EXPORTED_ENUM
 static_assert(magic_enum::is_flags_enum_v<exported_flags::Bits> == auto_flags_test::enabled);
-static_assert(magic_enum::enum_contains<exported_flags::Bits>(exported_flags::Bits::All) == !auto_flags_test::enabled);
+static_assert(magic_enum::enum_reflected<exported_flags::Bits>(3) == !auto_flags_test::enabled);
 #endif
 
 enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };

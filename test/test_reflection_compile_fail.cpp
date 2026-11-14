@@ -85,6 +85,15 @@ constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<Un
 
 constexpr auto count = magic_enum::enum_count<UndeclaredZero>();
 
+#elif MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE == 9
+
+// Standard reflection checks every enumerator, not only common masks.
+enum class AutoMultibit : unsigned { A = 1, B = 2, High = 0x30000 };
+constexpr AutoMultibit operator|(AutoMultibit a, AutoMultibit b) { return static_cast<AutoMultibit>(static_cast<unsigned>(a) | static_cast<unsigned>(b)); }
+constexpr AutoMultibit operator&(AutoMultibit a, AutoMultibit b) { return static_cast<AutoMultibit>(static_cast<unsigned>(a) & static_cast<unsigned>(b)); }
+
+constexpr auto count = magic_enum::enum_count<AutoMultibit>();
+
 #else
 
 #  error Unknown MAGIC_ENUM_REFLECTION_COMPILE_FAIL_CASE.

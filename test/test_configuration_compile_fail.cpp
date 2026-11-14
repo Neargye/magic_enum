@@ -463,6 +463,32 @@ constexpr auto min = magic_enum::enum_min<MinMaxProbe>();
 constexpr auto max = magic_enum::enum_max<MinMaxProbe>();
 #  endif
 
+#elif MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE == 31
+
+#  define MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION
+#  include <magic_enum/magic_enum.hpp>
+#  include <magic_enum/magic_enum_bitwise.hpp>
+
+#  if MAGIC_ENUM_TEST_ENUM_FORM == 5
+#    include <filesystem>
+// Standard library operators also select flags, and perms names masks such as unknown.
+static_assert(magic_enum::is_flags_enum_v<std::filesystem::perms>);
+#  else
+#    if MAGIC_ENUM_TEST_ENUM_FORM == 1
+enum class MultibitProbe : unsigned { Read = 1, Write = 2, ReadWrite = 3 };
+#    elif MAGIC_ENUM_TEST_ENUM_FORM == 2
+enum class MultibitProbe : unsigned { A = 1, B = 2, ForceDword = 0xffffffff };
+#    elif MAGIC_ENUM_TEST_ENUM_FORM == 3
+enum class MultibitProbe : std::int8_t { A = 1, B = 2, All = -1 };
+#    else
+// Clang before 20 probes an enum without a fixed underlying type with n() per value.
+enum MultibitProbe { A = 1, B = 2, C = 4, All = 7 };
+#    endif
+MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(MultibitProbe);
+
+static_assert(magic_enum::is_flags_enum_v<MultibitProbe>);
+#  endif
+
 #else
 #  error Unknown MAGIC_ENUM_CONFIGURATION_COMPILE_FAIL_CASE.
 #endif

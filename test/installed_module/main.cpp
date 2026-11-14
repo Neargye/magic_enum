@@ -22,13 +22,13 @@ import std;
 import magic_enum;
 
 namespace imported_flags {
-enum class Bits { A = 1, B = 2, All = 3 };
+enum class Bits { A = 1, B = 2, C = 4 };
 constexpr Bits operator|(Bits a, Bits b) { return static_cast<Bits>(static_cast<int>(a) | static_cast<int>(b)); }
 constexpr Bits operator&(Bits a, Bits b) { return static_cast<Bits>(static_cast<int>(a) & static_cast<int>(b)); }
 inline constexpr auto magic_enum_define_range_adl(Bits) { return magic_enum::customize::adl_info().minmax<0, 3>(); }
 }
 static_assert(magic_enum::is_flags_enum_v<imported_flags::Bits>);
-static_assert(magic_enum::enum_count<imported_flags::Bits>() == 2);
+static_assert(magic_enum::enum_count<imported_flags::Bits>() == 3);
 
 enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };
 static_assert(magic_enum::enum_count<Unfixed>() == 3);

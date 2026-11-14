@@ -898,6 +898,26 @@ struct has_operators : std::conjunction<has_and<E>, has_or<E>> {};
 
 } // namespace magic_enum::detail::adl_flags
 
+// Flags drop named values with more than one bit, so automatic detection rejects them.
+#if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+template <typename E, typename U = std::underlying_type_t<E>>
+consteval bool has_named_multibit() noexcept {
+  if constexpr (std::meta::is_enumerable_type(^^E)) {
+    for (const auto enumerator : reflection::enumerators_v<E>) {
+      const auto value = std::meta::extract<E>(enumerator);
+      if (!is_flag_candidate(static_cast<U>(value)) && customize::enum_name<E>(value).tag != customize_tag::invalid_tag) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+#else
+// Probes common masks, defined after the scan helpers.
+template <typename E>
+MAGIC_ENUM_CONSTEVAL bool has_named_multibit() noexcept;
+#endif
+
 template <typename E>
 MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
   if constexpr (std::is_enum_v<E>) {
@@ -906,6 +926,7 @@ MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
       return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
 #if !defined(MAGIC_ENUM_NO_AUTO_IS_FLAGS)
     } else if constexpr (adl_flags::has_operators<E>::value) {
+      static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags explicitly.");
       return enum_subtype::flags;
 #endif
     }
@@ -1303,26 +1324,48 @@ MAGIC_ENUM_CONSTEVAL auto valid_offsets() noexcept {
 }
 
 // Probe offsets 1, 2, 4, 8 outside each bound to catch a range that is too small, see #117.
-template <int Min, int Max>
-MAGIC_ENUM_CONSTEVAL long long probe(std::size_t i) noexcept {
-  return i < 4 ? static_cast<long long>(Min) - (1LL << i) : static_cast<long long>(Max) + (1LL << (i - 4));
-}
-
 template <typename E, int Min, int Max, typename U = std::underlying_type_t<E>>
-MAGIC_ENUM_CONSTEVAL bool probe_valid(std::size_t i) noexcept {
-  const auto p = probe<Min, Max>(i);
-  return !cmp_less(p, (std::numeric_limits<U>::min)()) && !cmp_less((std::numeric_limits<U>::max)(), p) && batch_castable<E>(static_cast<U>(p));
-}
+struct range_probes {
+  static constexpr std::size_t size = 8;
 
-template <typename E, int Min, int Max, typename U = std::underlying_type_t<E>>
+  static MAGIC_ENUM_CONSTEVAL long long at(std::size_t i) noexcept {
+    return i < 4 ? static_cast<long long>(Min) - (1LL << i) : static_cast<long long>(Max) + (1LL << (i - 4));
+  }
+
+  static MAGIC_ENUM_CONSTEVAL bool valid(std::size_t i) noexcept {
+    const auto p = at(i);
+    return !cmp_less(p, (std::numeric_limits<U>::min)()) && !cmp_less((std::numeric_limits<U>::max)(), p) && batch_castable<E>(static_cast<U>(p));
+  }
+
+  static MAGIC_ENUM_CONSTEVAL U value(std::size_t i) noexcept { return static_cast<U>(at(i)); }
+};
+
+// Masks that flags often name, such as `ReadWrite = 3`, `All = 0xFF` or `All = ~0`.
+inline constexpr std::uint16_t multibit_masks[] = {3, 5, 6, 7, 15, 31, 63, 127, 255, 0xFFFF};
+
+template <typename E, typename U = std::underlying_type_t<E>>
+struct multibit_probes {
+  static constexpr std::size_t size = sizeof(multibit_masks) / sizeof(multibit_masks[0]) + 1;
+
+  // The last probe sets every bit.
+  static MAGIC_ENUM_CONSTEVAL bool valid(std::size_t i) noexcept {
+    return (i + 1 == size || !cmp_less((std::numeric_limits<U>::max)(), multibit_masks[i])) && batch_castable<E>(value(i));
+  }
+
+  static MAGIC_ENUM_CONSTEVAL U value(std::size_t i) noexcept {
+    return i + 1 == size ? static_cast<U>(~make_unsigned_t<U>{0}) : static_cast<U>(multibit_masks[i]);
+  }
+};
+
+template <typename E, typename P>
 MAGIC_ENUM_CONSTEVAL E probe_value(std::size_t i) noexcept {
-  return probe_valid<E, Min, Max>(i) ? to_enum<E>(static_cast<U>(probe<Min, Max>(i))) : E{};
+  return P::valid(i) ? to_enum<E>(P::value(i)) : E{};
 }
 
-template <typename E, int Min, int Max, std::size_t... I>
+template <typename E, typename P, std::size_t... I>
 MAGIC_ENUM_CONSTEVAL auto probe_names(std::index_sequence<I...>) noexcept {
   if constexpr (batch_supported<E>()) {
-    return signature_names<sizeof...(I)>(nb<probe_value<E, Min, Max>(I)...>());
+    return signature_names<sizeof...(I)>(nb<probe_value<E, P>(I)...>());
   } else {
     // MSVC 19.29 rejects the temporary aggregate in consteval calls.
     constexpr signature_names_t<sizeof...(I)> empty{};
@@ -1331,30 +1374,41 @@ MAGIC_ENUM_CONSTEVAL auto probe_names(std::index_sequence<I...>) noexcept {
 }
 
 // A probe counts if it has a name that customization does not hide.
-template <typename E, int Min, int Max, std::size_t I>
+template <typename E, typename P, std::size_t I>
 MAGIC_ENUM_CONSTEVAL bool named_probe() noexcept {
-  constexpr auto v = probe_value<E, Min, Max>(I);
-  if constexpr (probe_valid<E, Min, Max>(I) && customize::enum_name<E>(v).tag != customize_tag::invalid_tag) {
+  constexpr auto v = probe_value<E, P>(I);
+  if constexpr (P::valid(I) && customize::enum_name<E>(v).tag != customize_tag::invalid_tag) {
     return n<v>().size_ != 0;
   } else {
     return false;
   }
 }
 
-template <typename E, int Min, int Max, std::size_t... I>
-MAGIC_ENUM_CONSTEVAL bool named_near_range(std::index_sequence<I...> seq) noexcept {
-  constexpr auto probes = probe_names<E, Min, Max>(seq);
+template <typename E, typename P, std::size_t... I>
+MAGIC_ENUM_CONSTEVAL bool named_probes(std::index_sequence<I...> seq) noexcept {
+  constexpr auto probes = probe_names<E, P>(seq);
   if constexpr (probes.valid) {
     for (std::size_t i = 0; i < sizeof...(I); ++i) {
-      if (probes.names[i].size_ != 0 && probe_valid<E, Min, Max>(i) && customize::enum_name<E>(probe_value<E, Min, Max>(i)).tag != customize_tag::invalid_tag) {
+      if (probes.names[i].size_ != 0 && P::valid(i) && customize::enum_name<E>(probe_value<E, P>(i)).tag != customize_tag::invalid_tag) {
         return true;
       }
     }
     return false;
   } else {
-    return (named_probe<E, Min, Max, I>() || ...);
+    return (named_probe<E, P, I>() || ...);
   }
 }
+
+#if !defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
+template <typename E>
+MAGIC_ENUM_CONSTEVAL bool has_named_multibit() noexcept {
+  if constexpr (std::is_same_v<std::underlying_type_t<E>, bool>) {
+    return false;
+  } else {
+    return named_probes<E, multibit_probes<E>>(std::make_index_sequence<multibit_probes<E>::size>{});
+  }
+}
+#endif
 
 template <typename E, std::size_t N, std::size_t C>
 struct scan_t {
@@ -1391,7 +1445,8 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
 #if !defined(MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE)
   if constexpr (S == enum_subtype::common) {
     // Flags often have bits outside the common range, so as_common<> does not require them in it.
-    if constexpr (named_near_range<E, Min, Min + static_cast<int>(Size - 1)>(std::make_index_sequence<8>{})) {
+    using P = range_probes<E, Min, Min + static_cast<int>(Size - 1)>;
+    if constexpr (named_probes<E, P>(std::make_index_sequence<P::size>{})) {
       static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX, or return invalid_tag from magic_enum::customize::enum_name to exclude the value.");
     }
   }

@@ -792,26 +792,34 @@ TEST_CASE("automatic flag reflection") {
   REQUIRE(magic_enum::is_flags_enum_v<ops::BoolEnum> == enabled);
   REQUIRE(magic_enum::is_flags_enum_v<ops::HolderFlags> == enabled);
   REQUIRE(ops::Private::reflected_flags() == enabled);
+  // Automatic detection rejects these standard enums, since they name combinations.
 #if !defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 11 // libstdc++ declares chars_format since GCC 11.
-  REQUIRE(magic_enum::is_flags_enum_v<std::chars_format> == enabled);
-  REQUIRE(magic_enum::enum_name(std::chars_format::general) == (enabled ? "" : "general"));
+#  ifdef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
+  REQUIRE_FALSE(magic_enum::is_flags_enum_v<std::chars_format>);
+  REQUIRE(magic_enum::enum_name(std::chars_format::general) == "general");
+#  endif
   REQUIRE(magic_enum::enum_flags_name(std::chars_format::general) == "scientific|fixed");
 #endif
-  REQUIRE(magic_enum::is_flags_enum_v<std::filesystem::perms> == enabled);
+#ifdef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
+  REQUIRE_FALSE(magic_enum::is_flags_enum_v<std::filesystem::perms>);
+#endif
   REQUIRE(magic_enum::enum_flags_name(std::filesystem::perms::unknown).empty());
-  REQUIRE(magic_enum::enum_flags_name(auto_flags_test::Bits::All) == "A|B");
-  REQUIRE_FALSE(magic_enum::enum_flags_contains(auto_flags_test::Bits::ForceDword));
+  constexpr auto ab = static_cast<auto_flags_test::Bits>(3);
+  REQUIRE(magic_enum::enum_flags_name(ab) == "A|B");
+  REQUIRE_FALSE(magic_enum::enum_flags_contains(static_cast<auto_flags_test::Bits>(0xffffffffu)));
   using namespace magic_enum::iostream_operators;
   std::stringstream stream;
-  stream << auto_flags_test::Bits::All;
-  REQUIRE(stream.str() == (enabled ? "A|B" : "All"));
-  auto parsed = auto_flags_test::Bits::None;
-  stream >> parsed;
-  REQUIRE(parsed == auto_flags_test::Bits::All);
-  REQUIRE_FALSE(stream.fail());
+  stream << ab;
+  REQUIRE(stream.str() == (enabled ? "A|B" : "3"));
+  if constexpr (enabled) {
+    auto parsed = auto_flags_test::Bits::None;
+    stream >> parsed;
+    REQUIRE(parsed == ab);
+    REQUIRE_FALSE(stream.fail());
+  }
   std::size_t calls = 0;
   magic_enum::enum_for_each<Range>([&](auto) { ++calls; });
-  REQUIRE(calls == (enabled ? 3 : 4));
+  REQUIRE(calls == 4);
 }
 
 TEST_CASE("bitwise macros allow unused operators with internal linkage") {

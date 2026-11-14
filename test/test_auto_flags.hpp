@@ -13,7 +13,7 @@ inline constexpr bool enabled = false;
 inline constexpr bool enabled = true;
 #endif
 
-enum class Bits : unsigned { None = 0, A = 1, B = 2, All = 3, High = 1024, ForceDword = 0xffffffff };
+enum class Bits : unsigned { None = 0, A = 1, B = 2, High = 1024 };
 constexpr Bits operator|(Bits a, Bits b) { return static_cast<Bits>(static_cast<unsigned>(a) | static_cast<unsigned>(b)); }
 constexpr Bits operator&(Bits a, Bits b) { return static_cast<Bits>(static_cast<unsigned>(a) & static_cast<unsigned>(b)); }
 
@@ -25,18 +25,22 @@ inline constexpr auto magic_enum_define_range_adl(Common) { return magic_enum::c
 enum class Explicit { A = 1, B = 2, All = 3 };
 inline constexpr auto magic_enum_define_range_adl(Explicit) { return magic_enum::customize::adl_info().flag<true>(); }
 
-enum class Range { rNone = 0, rA = 1, rB = 2, rAll = 3 };
+enum class Range { rNone = 0, rA = 1, rB = 2, rC = 4 };
 Range operator|(Range, Range);
 Range operator&(Range, Range);
-inline constexpr auto magic_enum_define_range_adl(Range) { return magic_enum::customize::adl_info().prefix<1>().minmax<0, 3>(); }
+inline constexpr auto magic_enum_define_range_adl(Range) { return magic_enum::customize::adl_info().prefix<1>().minmax<0, 4>(); }
 
-enum class Specialized { A = 1, B = 2, All = 3 };
+enum class Specialized { A = 1, B = 2, C = 4 };
 Specialized operator|(Specialized, Specialized);
 Specialized operator&(Specialized, Specialized);
 inline constexpr auto magic_enum_define_range_adl(Specialized) { return magic_enum::customize::adl_info().flag<false>().prefix<1>(); }
 
 enum class Override { A = 1, B = 2, All = 3 };
 inline constexpr auto magic_enum_define_range_adl(Override) { return magic_enum::customize::adl_info().flag<true>(); }
+
+enum class HiddenAll { A = 1, B = 2, All = 3 };
+HiddenAll operator|(HiddenAll, HiddenAll);
+HiddenAll operator&(HiddenAll, HiddenAll);
 
 enum class OrOnly { A = 1, B = 2 };
 OrOnly operator|(OrOnly, OrOnly);
@@ -120,12 +124,17 @@ inline constexpr magic_enum::customize::adl_info_holder<false, 10, 11> magic_enu
 template <>
 struct magic_enum::customize::enum_range<auto_flags_test::Specialized> {
   static constexpr int min = 0;
-  static constexpr int max = 3;
+  static constexpr int max = 4;
 };
 template <>
 struct magic_enum::customize::enum_range<auto_flags_test::Override> {
   static constexpr bool is_flags = false;
 };
+// A hidden value with more than one bit does not block detection.
+template <>
+constexpr magic_enum::customize::customize_t magic_enum::customize::enum_name<auto_flags_test::HiddenAll>(auto_flags_test::HiddenAll value) noexcept {
+  return value == auto_flags_test::HiddenAll::All ? invalid_tag : default_tag;
+}
 
 namespace auto_flags_test {
 
@@ -138,6 +147,7 @@ static_assert(magic_enum::enum_name(Range::rA) == "A");
 static_assert(magic_enum::is_flags_enum_v<Specialized> == enabled);
 static_assert(magic_enum::enum_name(Specialized::A) == "A");
 static_assert(!magic_enum::is_flags_enum_v<Override>);
+static_assert(magic_enum::is_flags_enum_v<HiddenAll> == enabled && magic_enum::enum_count<HiddenAll>() == 2);
 static_assert(!magic_enum::is_flags_enum_v<OrOnly> && !magic_enum::is_flags_enum_v<AndOnly>);
 static_assert(!magic_enum::is_flags_enum_v<BoolAnd> && !magic_enum::is_flags_enum_v<Ref>);
 static_assert(!magic_enum::is_flags_enum_v<Lvalue> && !magic_enum::is_flags_enum_v<Deleted>);
@@ -160,33 +170,32 @@ static_assert(magic_enum::enum_count<Lazy, magic_enum::as_flags<>>() == 2);
 static_assert(!magic_enum::is_flags_enum_v<Lazy>);
 #endif
 
-static_assert(magic_enum::enum_contains<Bits>(Bits::All) == !enabled);
 static_assert(magic_enum::enum_name(Bits::None) == "None");
 static_assert(magic_enum::enum_contains<Bits, magic_enum::as_flags<>>(Bits::High));
 #ifndef MAGIC_ENUM_TEST_STD_REFLECTION
 static_assert(magic_enum::enum_contains<Bits>(Bits::High) == enabled);
 #endif
-static_assert(magic_enum::enum_cast<Bits>("All").has_value() == !enabled);
-static_assert(magic_enum::enum_contains<Bits, magic_enum::as_common<>>(Bits::All));
-static_assert(!magic_enum::enum_contains<Bits, magic_enum::as_flags<>>(Bits::All));
-static_assert(magic_enum::enum_flags_contains(Bits::All));
-static_assert(magic_enum::enum_flags_cast<Bits>("A|B").value() == Bits::All);
-static_assert(magic_enum::enum_count<Range>() == (enabled ? 3 : 4));
+static_assert(!magic_enum::enum_contains<Explicit>(Explicit::All));
+static_assert(!magic_enum::enum_cast<Explicit>("All").has_value());
+static_assert(magic_enum::enum_contains<Explicit, magic_enum::as_common<>>(Explicit::All));
+static_assert(magic_enum::enum_flags_contains(Explicit::All));
+static_assert(magic_enum::enum_flags_cast<Explicit>("A|B").value() == Explicit::All);
+static_assert(magic_enum::enum_count<Range>() == 4);
 static_assert(magic_enum::enum_reflected<Range>(3) == !enabled);
-static_assert(magic_enum::containers::array<Range, int>{}.size() == (enabled ? 3 : 4));
-static_assert(magic_enum::containers::bitset<Range>{}.size() == (enabled ? 2 : 4));
+static_assert(magic_enum::containers::array<Range, int>{}.size() == 4);
+static_assert(magic_enum::containers::bitset<Range>{}.size() == (enabled ? 3 : 4));
 #ifndef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
-static_assert(magic_enum::containers::set<Range>::from_mask(Range::rAll).size() == 2);
+static_assert(magic_enum::containers::set<Range>::from_mask(static_cast<Range>(3)).size() == 2);
 #else
-static_assert(magic_enum::containers::set<Range>{Range::rAll}.size() == 1);
+static_assert(magic_enum::containers::set<Range>{Range::rC}.size() == 1);
 #endif
 
 struct ReturnsOne {
   template <typename T>
   constexpr int operator()(T) const { return 1; }
 };
-static_assert(magic_enum::enum_switch<int>(ReturnsOne{}, Bits::All, -1) == (enabled ? -1 : 1));
-static_assert(magic_enum::enum_next_value(Range::rB).has_value() == !enabled);
+static_assert(magic_enum::enum_switch<int>(ReturnsOne{}, Explicit::All, -1) == -1);
+static_assert(magic_enum::enum_switch<int>(ReturnsOne{}, Range::rC, -1) == 1);
 static_assert(magic_enum::enum_fuse(Range::rB, Explicit::A).has_value());
 
 template <typename T, typename = void> struct has_flag : std::false_type {};

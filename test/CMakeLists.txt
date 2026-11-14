@@ -377,6 +377,15 @@ magic_enum_make_compile_fail_test(
   MAGIC_ENUM_TEST_ENUM_FORM=2
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 )
+foreach(multibit_form RANGE 1 5)
+  magic_enum_make_compile_fail_test(
+    configuration
+    auto-flags-multibit-${multibit_form}
+    31
+    "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set"
+    MAGIC_ENUM_TEST_ENUM_FORM=${multibit_form}
+  )
+endforeach()
 magic_enum_make_compile_fail_test(
   configuration
   conflicting-assert
@@ -804,6 +813,12 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     incomplete-enum
     4
     "magic_enum requires a complete enum definition"
+  )
+  magic_enum_make_compile_fail_test(
+    reflection
+    auto-flags-multibit
+    9
+    "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set"
   )
   foreach(backend IN ITEMS standard compiler-specific)
     set(customization_definitions)

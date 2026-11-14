@@ -113,17 +113,17 @@ TEST_CASE("flags format-fmt") {
 } // namespace flags_test
 
 namespace auto_format_test {
-enum class Bits { A = 1, B = 2, All = 3 };
+enum class Bits { A = 1, B = 2 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Bits);
 }
 
 #if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 TEST_CASE("automatic flags format") {
-  REQUIRE(std::format("{}", auto_format_test::Bits::All) == "A|B");
+  REQUIRE(std::format("{}", auto_format_test::Bits::A | auto_format_test::Bits::B) == "A|B");
 }
 #endif
 #if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(MAGIC_ENUM_TEST_HAS_FMT)
 TEST_CASE("automatic flags fmt") {
-  REQUIRE(fmt::format("{}", auto_format_test::Bits::All) == "A|B");
+  REQUIRE(fmt::format("{}", auto_format_test::Bits::A | auto_format_test::Bits::B) == "A|B");
 }
 #endif
