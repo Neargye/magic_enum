@@ -43,7 +43,7 @@
 
 * For integer and name lookups, let `I` and `BinaryPredicate` be deduced from the arguments, as in `enum_cast<Color>(0)`.
 
-* A subtype goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after an explicit result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_value<E, I, S>()` takes it after the index. `enum_flags_*` functions always use flags.
+* The mode, `as_flags<>` or `as_common<>`, goes after the enum type, as in `enum_values<E, as_flags<>>()`. `enum_name`, `enum_index`, `enum_contains` and `enum_reflected` also take it first, as in `enum_name<as_common<>>(value)`. `enum_switch` takes it after an explicit result type, as in `enum_switch<R, as_flags<>>(f, value)`. `enum_value<E, I, S>()` takes it after the index. `enum_flags_*` functions always use flags.
 
 * Color examples use:
 
@@ -51,7 +51,7 @@
   enum class Color { RED = -10, BLUE = 0, GREEN = 10 };
   ```
 
-* `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. Defining `MAGIC_ENUM_NO_CHECK_SUPPORT` makes `is_magic_enum_supported` true and skips the check. Otherwise reflection functions fail to compile on an unsupported compiler. Formatting falls back to integers, and bitwise operators do not need reflection.
+* `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. Defining `MAGIC_ENUM_NO_CHECK_SUPPORT` makes `is_magic_enum_supported` true and skips the check. Otherwise reflection functions fail to compile on an unsupported compiler.
 
 * C++26 reflection is selected automatically when available. Define `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to require it. See [limitations](limitations.md#c26-standard-reflection).
 
@@ -101,7 +101,7 @@
   #include <magic_enum/magic_enum.hpp>
   ```
 
-  The types should behave like `std::string`, `std::string_view` and `std::optional`. Both string types must use the same character type.
+  The types should behave like `std::string`, `std::string_view` and `std::optional`. Both string types must use the same character type, available as `magic_enum::char_type`. Standard types such as `std::wstring` and `std::wstring_view` work too.
 
   Reflected names are not transcoded. With a wide character type, use custom names for non-ASCII text.
 
@@ -175,7 +175,7 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
   static_assert(magic_enum::enum_cast<Byte>(static_cast<std::uint8_t>(257)) == Byte::One);
   ```
 
-* Cast a `char` byte to `unsigned char` first. Where `char` is signed, bytes above `0x7F` are negative and do not match.
+* For an enum with an unsigned underlying type, cast a `char` byte to `unsigned char` first. Where `char` is signed, bytes above `0x7F` are negative and do not match.
 
 ## `enum_value`
 
@@ -384,11 +384,11 @@ struct enum_range {
 
 * Sets reflection options for an enum.
 
-* An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, flags are selected when ADL finds both `E | E` and `E & E` for rvalues with result exactly `E`. Otherwise reflection is common.
+* An explicit `is_flags` must be `bool`. `true` selects flags, `false` selects common reflection. Without it, ADL bitwise operators select flags. See [flags](limitations.md#enum-flags).
 
-* Automatic detection fails to compile if a named value has more than one bit set. Set `is_flags` explicitly for such enums. See [flags](limitations.md#enum-flags).
+* Automatic detection fails to compile if a named value has more than one bit set. Set `is_flags` explicitly for such enums.
 
-* Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` before including magic_enum to disable this automatic choice. Explicit settings and `as_flags<>` still work.
+* `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables automatic detection for the whole build.
 
 * `prefix_length` strips a prefix from reflected names and defaults to `0`. It must leave at least one character. Custom names are not affected.
 
@@ -437,7 +437,7 @@ struct enum_range {
     }
     ```
 
-    A `customize::enum_range<E>` specialization replaces the hook settings entirely. The hook must return a non-final class by value. Declare it and any ADL operators before the first reflection use, consistently across translation units.
+    A `customize::enum_range<E>` specialization replaces the hook settings entirely. A hook declared outside the enum's namespace is ignored without a diagnostic. Declare the hook and any ADL operators before the first reflection use, consistently across translation units.
 
     `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
 
@@ -526,7 +526,7 @@ constexpr bool enum_reflected(I value) noexcept;
 
 | Backend | Common enum | Flags enum |
 |---|---|---|
-| Compiler-specific | Value is within the configured `enum_range` | Zero or a single bit of the underlying type |
+| Compiler-specific | Value is within the scan range | Zero or a single bit of the underlying type |
 | Standard reflection | Any representable value | Zero or a single bit of the underlying type |
 
 * For signed types, the sign bit counts as a single bit. Names, empty or opaque enums and `MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM` do not affect the result.
@@ -749,9 +749,9 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * The zero name is never added to nonzero output, and `"None|Read"` parses as `Read`. Returning `invalid_tag` for zero hides it everywhere.
 
-* Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` before including magic_enum to leave a named zero out of flags for every enum. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name.
+* `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` leaves a named zero out of flags for the whole build. See [flags](limitations.md#enum-flags).
 
-* Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. Use `as_common<>` with `enum_name` or `enum_cast` to look up a combination by name. With compiler-specific reflection, it must be within the common range.
+* Named combinations such as `Both = 3` are formatted as their bits, and `enum_flags_cast` rejects their names. With ADL operators they need an explicit `is_flags`. Use `as_common<>` with `enum_name` or `enum_cast` to look up a combination by name. With compiler-specific reflection, it must be within the [scan range](limitations.md#enum-range).
 
 * Examples
 
@@ -765,6 +765,12 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   };
   MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Directions); // From <magic_enum/magic_enum_bitwise.hpp>.
 
+  // LeftAndDown is a named combination, so the mode is explicit.
+  template <>
+  struct magic_enum::customize::enum_range<Directions> {
+    static constexpr bool is_flags = true;
+  };
+
   magic_enum::enum_flags_name(Directions::Up | Directions::Right); // -> "Up|Right"
   magic_enum::enum_flags_name(Directions::LeftAndDown); // -> "Left|Down"
   magic_enum::enum_flags_name(Directions::Up | Directions::Right, ','); // -> "Up,Right"
@@ -776,7 +782,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
   magic_enum::enum_flags_cast<Directions>("Left|Down").value(); // -> Directions::Left|Directions::Down
   magic_enum::enum_flags_cast<Directions>("Left,Down", ',').value(); // -> Directions::Left|Directions::Down
   magic_enum::enum_flags_cast<Directions>("LeftAndDown"); // -> nullopt
-  magic_enum::enum_cast<Directions>("LeftAndDown"); // -> nullopt, default subtype is flags
+  magic_enum::enum_cast<Directions>("LeftAndDown"); // -> nullopt, default mode is flags
   magic_enum::enum_cast<Directions, magic_enum::as_common<>>("LeftAndDown").value(); // -> Directions::LeftAndDown
   magic_enum::enum_name<magic_enum::as_common<>>(Directions::LeftAndDown); // -> "LeftAndDown"
 
@@ -978,7 +984,7 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * These operators enable automatic flag reflection unless `is_flags = false` or `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables it. The macro itself does not depend on reflection.
 
-* Without a fixed underlying type, `~` is undefined behavior if the result is outside the enum's value range. Use `enum class` or an explicit underlying type.
+* Without a fixed underlying type, `~` can be [undefined behavior](limitations.md#operators).
 
 * Examples
 

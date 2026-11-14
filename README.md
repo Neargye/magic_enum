@@ -15,6 +15,7 @@ A header-only C++17 library for enum reflection, without registration macros or 
 
 * [Reference](doc/reference.md)
 * [Limitations](doc/limitations.md)
+* [Migration](doc/migration.md)
 * [Integration](#integration)
 
 ## [Features & Examples](example/)
@@ -198,7 +199,7 @@ Flags, switch, fuse, utility and containers have their own headers, such as `mag
   magic_enum::is_flags_enum_v<Directions>; // -> true
   ```
 
-  **Note:** bitwise operators found through ADL automatically enable [flag reflection](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. Automatic detection fails to compile if a named value has more than one bit set, such as `All = A | B`. Set `is_flags` explicitly for such enums. To keep ordinary reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.
+  **Note:** bitwise operators found through ADL automatically enable [flag reflection](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. Automatic detection fails to compile if a named value has more than one bit set, such as `All = A | B`. Set `is_flags` explicitly for such enums. To keep common reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.
 
 * Enum type name
 

@@ -2,13 +2,13 @@
 
 Without standard reflection, magic_enum reads compiler signatures to discover enum names.
 
-Reflect values only after the enum definition is visible. Every translation unit and the module build must use the same enum definitions and the same configuration. Otherwise names, counts and indices can differ between them. Put options in one header and pass `MAGIC_ENUM_CONFIG_FILE` to the whole build as a compile definition.
+Reflect values only after the enum definition is visible. Every translation unit and the module build must use the same enum definitions and the same configuration. Otherwise the program violates the one definition rule, and names, counts and indices can depend on link order and optimization level. Put options in one header and pass `MAGIC_ENUM_CONFIG_FILE` to the whole build as a compile definition.
 
 With both backends, customization can rename or hide declared values, but cannot add new ones. A custom name for an undeclared zero fails to compile. A custom name for another undeclared value is ignored, and `enum_name<V>()` for such a value fails to compile.
 
 ## C++26 Standard Reflection
 
-Standard reflection is selected automatically when available. Otherwise magic_enum uses compiler-specific reflection.
+Standard reflection is selected automatically when available, for example on GCC 16 with `-std=c++26 -freflection`. Otherwise magic_enum uses compiler-specific reflection.
 
 * Standard reflection finds declared values without a scan range. Customization and flags filtering still apply. Counts, indices and names can differ from compiler-specific reflection.
 
@@ -22,9 +22,9 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * Detection checks operators, not values. Existing operators can switch an enum to flags, changing its names, counts and indices. Enums containing codes or multibit fields may need `is_flags = false`.
 
-* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks.
+* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks and drops other multibit values without an error.
 
-* Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for ordinary reflection. `enum_flags_*` APIs always use flags.
+* Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for common reflection. `enum_flags_*` APIs always use flags.
   ```cpp
   enum class Directions { Up = 1 << 0, Down = 1 << 1, Right = 1 << 2, Left = 1 << 3 };
   template <>
@@ -39,19 +39,15 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * Operator templates can select flags for unrelated enums or fail during return-type deduction. Constrain them to flag enums, or set an explicit mode.
 
-* Only a named zero and named single bits are reflected. For signed enums, the sign bit comes first in value order. Use name customization to hide unwanted values.
+* Only a named zero and named single bits are reflected. Use name customization to hide unwanted values.
 
 * Define `MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS` for the whole build to leave a named zero out of flags. Zero still represents an empty mask, but `enum_flags_contains` and `enum_flags_cast` reject it. `as_common<>` still reflects its name.
 
-* Combinations such as `Both = A | B` are not flag values. They are formatted as `"A|B"`, and `enum_flags_cast` rejects `"Both"`. To look up a combination by name, use `as_common<>` with `enum_name` or `enum_cast`. With compiler-specific reflection, the combination must be within the common range.
-
-* Names round-trip only if they are unique and contain no separator. For duplicate names, parsing takes the first match in value order.
+* Combinations such as `Both = A | B` are not flag values. See [`enum_flags`](reference.md#enum_flags).
 
 ## Containers
 
-* `array` and `set` use reflected values as keys. For flags, a named zero is a key and combinations are not. Use `set<E>{value}` for a key and `set<E>::from_mask(mask)` for a mask.
-
-* A flag `bitset` has a position only for each nonzero bit. Zero and combinations work as masks, but `test`, `set`, `reset` and `flip` reject them. Use `none()` to check for emptiness. An enum with only a named zero cannot be used with `bitset`.
+* For flags, a named zero is a key in `array` and `set`, but has no position in `bitset`. Combinations are neither. See [`containers::bitset`](reference.md#containersbitset) and [`containers::set`](reference.md#containersset).
 
 * Checked operations throw on invalid input, or call `std::abort()` when exceptions are disabled. `operator[]` requires a valid key or position. See [container errors](reference.md#container-helpers).
 
@@ -71,16 +67,15 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`. After clamping to the underlying type, bounds must fit `int`, with `min <= max` and `max - min < 65535`.
 
-* Named values at a few points just outside the range cause a compile-time error. Values further out are skipped silently, so check the count, for example `static_assert(magic_enum::enum_count<E>() == 5)`. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
+* Named values at a few points just outside the range cause a compile-time error. Extend the range to fix it. Values further out are skipped silently, so check the count, for example `static_assert(magic_enum::enum_count<E>() == 5)`. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
 
 * To exclude sentinels such as `Count`, return `invalid_tag` from [name customization](reference.md#synopsis). Narrowing the scan range can trigger the range check and has no effect with standard reflection.
 
-* To change the default range for all enums, define these macros before including magic_enum:
+* To change the default range for all enums, set these macros for the whole build, as compile definitions or in the [config header](reference.md#synopsis):
 
   ```cpp
   #define MAGIC_ENUM_RANGE_MIN 0
   #define MAGIC_ENUM_RANGE_MAX 256
-  #include <magic_enum/magic_enum.hpp>
   ```
 
 * To change one enum's range, specialize `magic_enum::customize::enum_range`:
@@ -97,21 +92,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
   };
   ```
 
-* Alternatively, define `magic_enum_define_range_adl(E)` in the enum's namespace or as a friend in its class:
-
-  ```cpp
-  namespace Deeply::Nested::Namespace {
-    enum class my_enum_type { my_enum_value1 = 10, my_enum_value2 = 11 };
-
-    inline constexpr auto magic_enum_define_range_adl(my_enum_type) {
-      return magic_enum::customize::adl_info()
-          .minmax<10, 11>()
-          .prefix<sizeof("my_enum_") - 1>();
-    }
-  }
-  ```
-
-  `.flag<true>()` selects flags and `.flag<false>()` selects common reflection. Without `.flag`, the mode is automatic, including after `.minmax<...>()` or `.prefix<...>()`. Flags ignore `.minmax<...>()`.
+* Alternatively, define `magic_enum_define_range_adl(E)` in the enum's namespace or as a friend in its class. See [ADL customization](reference.md#customizeenum_range).
 
 ## Empty Enums
 
@@ -174,6 +155,8 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
   * MSVC: `/constexpr:depthN`, `/constexpr:stepsN` <https://learn.microsoft.com/en-us/cpp/build/reference/constexpr-control-constexpr-evaluation>
   * Clang: `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
   * GCC: `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html>
+
+* Non-ASCII enumerator names need GCC 10 or newer. On MSVC, compile UTF-8 sources with `/utf-8`.
 
 * ReSharper C++ and CLion Nova are supported from version 2025.3.
 
