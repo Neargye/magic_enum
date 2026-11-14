@@ -175,6 +175,8 @@ constexpr optional<E> enum_cast(string_view value, BinaryPredicate p);
   static_assert(magic_enum::enum_cast<Byte>(static_cast<std::uint8_t>(257)) == Byte::One);
   ```
 
+* Cast a `char` byte to `unsigned char` first. Where `char` is signed, bytes above `0x7F` are negative and do not match.
+
 ## `enum_value`
 
 ```cpp

@@ -377,7 +377,7 @@ magic_enum_make_compile_fail_test(
   MAGIC_ENUM_TEST_ENUM_FORM=2
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 )
-foreach(multibit_form RANGE 1 5)
+foreach(multibit_form RANGE 1 6)
   magic_enum_make_compile_fail_test(
     configuration
     auto-flags-multibit-${multibit_form}

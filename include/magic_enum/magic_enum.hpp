@@ -1340,8 +1340,8 @@ struct range_probes {
   static MAGIC_ENUM_CONSTEVAL U value(std::size_t i) noexcept { return static_cast<U>(at(i)); }
 };
 
-// Masks that flags often name, such as `ReadWrite = 3`, `All = 0xFF` or `All = ~0`.
-inline constexpr std::uint16_t multibit_masks[] = {3, 5, 6, 7, 15, 31, 63, 127, 255, 0xFFFF};
+// Masks that flags often name, such as `ReadWrite = 3`, `All = 0xFF`, `ForceDword = 0x7FFFFFFF` or `All = ~0`.
+inline constexpr std::uint32_t multibit_masks[] = {3, 5, 6, 7, 15, 31, 63, 127, 255, 0xFFFF, 0x7FFFFFFF, 0xFFFFFFFF};
 
 template <typename E, typename U = std::underlying_type_t<E>>
 struct multibit_probes {

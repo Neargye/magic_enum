@@ -477,7 +477,9 @@ static_assert(magic_enum::is_flags_enum_v<std::filesystem::perms>);
 #    if MAGIC_ENUM_TEST_ENUM_FORM == 1
 enum class MultibitProbe : unsigned { Read = 1, Write = 2, ReadWrite = 3 };
 #    elif MAGIC_ENUM_TEST_ENUM_FORM == 2
-enum class MultibitProbe : unsigned { A = 1, B = 2, ForceDword = 0xffffffff };
+enum class MultibitProbe : unsigned { A = 1, B = 2, ForceDword = 0x7fffffff };
+#    elif MAGIC_ENUM_TEST_ENUM_FORM == 6
+enum class MultibitProbe : std::uint64_t { A = 1, B = 2, Low = 0xffffffff };
 #    elif MAGIC_ENUM_TEST_ENUM_FORM == 3
 enum class MultibitProbe : std::int8_t { A = 1, B = 2, All = -1 };
 #    else

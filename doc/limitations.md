@@ -22,7 +22,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * Detection checks operators, not values. Existing operators can switch an enum to flags, changing its names, counts and indices. Enums containing codes or multibit fields may need `is_flags = false`.
 
-* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks: 3, 5, 6, 7, 15, 31, 63, 127, 255, 0xFFFF and all bits.
+* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks.
 
 * Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for ordinary reflection. `enum_flags_*` APIs always use flags.
   ```cpp
@@ -71,7 +71,7 @@ Standard reflection is selected automatically when available. Otherwise magic_en
 
 * The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`. After clamping to the underlying type, bounds must fit `int`, with `min <= max` and `max - min < 65535`.
 
-* Named values at a few points just outside the range cause a compile-time error. This check is not exhaustive. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
+* Named values at a few points just outside the range cause a compile-time error. Values further out are skipped silently, so check the count, for example `static_assert(magic_enum::enum_count<E>() == 5)`. Extend the range, or return `invalid_tag` from `customize::enum_name` to exclude a value. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
 
 * To exclude sentinels such as `Count`, return `invalid_tag` from [name customization](reference.md#synopsis). Narrowing the scan range can trigger the range check and has no effect with standard reflection.
 
