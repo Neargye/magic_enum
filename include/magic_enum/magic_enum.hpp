@@ -926,7 +926,9 @@ MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
       return customize::enum_range<E>::is_flags ? enum_subtype::flags : enum_subtype::common;
 #if !defined(MAGIC_ENUM_NO_AUTO_IS_FLAGS)
     } else if constexpr (adl_flags::has_operators<E>::value) {
-      static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags explicitly.");
+#  if !defined(MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS)
+      static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags = false to keep it, or = true to reflect single bits only.");
+#  endif
       return enum_subtype::flags;
 #endif
     }

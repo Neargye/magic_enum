@@ -244,7 +244,7 @@ set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test test_global_names.cpp)
 set(MAGIC_ENUM_TEST_EXTRA_SOURCES_test_operators test_operators_other.cpp)
 # Suites with name lookup or switch paths that MAGIC_ENUM_ENABLE_HASH changes.
 set(MAGIC_ENUM_TEST_HASH_SOURCES test test_flags test_switch test_operators)
-set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection test_no_named_zero_in_flags test_no_check_out_of_range)
+set(MAGIC_ENUM_DOCTEST_SOURCES ${MAGIC_ENUM_TEST_SOURCES} test_range test_reflection test_no_named_zero_in_flags test_no_check_out_of_range test_no_check_multibit_flags)
 
 # nvc++ cannot reflect enums declared inside functions, which the other suites use.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
@@ -271,6 +271,8 @@ magic_enum_make_test(test_no_named_zero_in_flags.cpp test_no_named_zero_in_flags
 target_compile_definitions(test_no_named_zero_in_flags-cpp17 PRIVATE MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS)
 magic_enum_make_test(test_no_check_out_of_range.cpp test_no_check_out_of_range-cpp17 c++17)
 target_compile_definitions(test_no_check_out_of_range-cpp17 PRIVATE MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE)
+magic_enum_make_test(test_no_check_multibit_flags.cpp test_no_check_multibit_flags-cpp17 c++17)
+target_compile_definitions(test_no_check_multibit_flags-cpp17 PRIVATE MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS)
 set(MAGIC_ENUM_FORMAT_TEST_STANDARD c++17)
 if(MAGIC_ENUM_HAS_CPP20_FLAG)
   set(MAGIC_ENUM_FORMAT_TEST_STANDARD c++20)
