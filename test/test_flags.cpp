@@ -362,7 +362,7 @@ TEST_CASE("named zero precedes the bits after the sign bit") {
 }
 
 TEST_CASE("customization decides whether zero is a flag value") {
-  // invalid_tag hides zero from every reflection path, not only from flags.
+  // invalid_tag hides zero in both modes, not only from flags. enum_reflected checks only the domain.
   static_assert(enum_count<HiddenZeroFlags>() == 2);
   static_assert(enum_values<HiddenZeroFlags>()[0] == HiddenZeroFlags::A);
   static_assert(!enum_flags_cast<HiddenZeroFlags>(0).has_value());

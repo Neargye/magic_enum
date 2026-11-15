@@ -119,6 +119,11 @@ enum class Color { Red, Green };
 enum class Legacy { A = 10, B = 11 };
 inline constexpr magic_enum::customize::adl_info_holder<false, 10, 11> magic_enum_define_range_adl(Legacy) { return magic_enum::customize::adl_info().minmax<10, 11>(); }
 
+// as_common<> keeps a combination while a named value is just outside the scan range.
+enum class Wide { A = 1, B = 2, Both = 3, High = 128 };
+Wide operator|(Wide, Wide);
+Wide operator&(Wide, Wide);
+
 } // namespace auto_flags_test
 
 template <>
@@ -168,6 +173,8 @@ static_assert(magic_enum::enum_count<Lazy, magic_enum::as_common<>>() == 3);
 static_assert(magic_enum::enum_count<Lazy, magic_enum::as_flags<>>() == 2);
 #ifdef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
 static_assert(!magic_enum::is_flags_enum_v<Lazy>);
+#else
+static_assert(magic_enum::enum_name<magic_enum::as_common<>>(Wide::Both) == "Both");
 #endif
 
 static_assert(magic_enum::enum_name(Bits::None) == "None");

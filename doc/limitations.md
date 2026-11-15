@@ -12,8 +12,6 @@ Standard reflection is selected automatically when available, for example on GCC
 
 * Standard reflection finds declared values without a scan range. Customization and flags filtering still apply. Counts, indices and names can differ from compiler-specific reflection.
 
-* Each value has one default name, taken from its first declaration.
-
 * Define `MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION` to keep compiler-specific reflection, or `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to fail compilation when standard reflection is unavailable. Do not define both.
 
 ## Enum Flags

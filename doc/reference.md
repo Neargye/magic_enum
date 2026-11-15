@@ -311,11 +311,11 @@ constexpr string_view enum_name() noexcept;
 
 * Returns the enum name as a null-terminated `string_view`.
 
-* `enum_name(value)` returns an empty string for an unnamed or [out-of-range](limitations.md#enum-range) value, and for a combination of flags. Use `enum_flags_name` for combinations. `enum_name<value>()` fails to compile for an unnamed value.
+* `enum_name(value)` returns an empty string for an unnamed or [out-of-range](limitations.md#enum-range) value, and, in flags mode, for a combination of flags. Use `enum_flags_name` for combinations. `enum_name<value>()` fails to compile for an unnamed value.
 
 * `enum_name<value>()` ignores the [scan range](limitations.md#enum-range) and flags filtering, so it can name declared flag combinations. Name customization still applies.
 
-* In logs and custom formatters, write the integer when the name is empty. The [formatter](#formatting) and [stream operators](#ostream_operators) already do this. See the [logging example](../example/example_logging.cpp).
+* In logs and custom formatters, guard [empty reflection](limitations.md#empty-enums) with `enum_count<E>()` and write the integer when no name is available. The [formatter](#formatting) and [stream operators](#ostream_operators) already do this. See the [logging example](../example/example_logging.cpp).
 
 * Examples
 
@@ -732,7 +732,7 @@ constexpr bool enum_flags_test_any(E lhs, E rhs) noexcept;
 
 * `enum_flags_test_any` checks whether `lhs` and `rhs` share any set bit.
 
-* [ADL bitwise operators](limitations.md#enum-flags) enable flags automatically. To make flags the default without them, set `enum_range<E>::is_flags = true`. The `enum_flags_*` functions always use flags.
+* [ADL bitwise operators](limitations.md#enum-flags) enable flags automatically. To make flags the default without them, set `enum_range<E>::is_flags = true`.
 
 * Only a named zero and named single bits are reflected. For signed enums, the sign bit comes first in value order.
 
@@ -1070,7 +1070,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Accepts the format spec of a string, such as `{:>10}`. Integer specs like `{:x}` are rejected, also for values printed as integers.
 
-* The formatter is a partial specialization for every enum type. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum can make formatting ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
+* The formatter is a partial specialization for enum types other than `std::byte`. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum can make formatting ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
 
   ```cpp
   #include <format>
@@ -1097,7 +1097,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * A custom `Index` needs a `static constexpr` non-throwing `at(E)` that returns `optional<std::size_t>`. It maps each reflected value to a unique index in `[0, enum_count<E>())` and returns an empty optional for any other value, including an unnamed zero and combinations for flags.
 
-* For `containers::bitset`, a custom `Index` also needs a `static constexpr` non-throwing `it(std::size_t)` that returns a `const E*` to the value at that index.
+* For `containers::bitset`, a custom `Index` also needs a `static constexpr` non-throwing `it(std::size_t)` that returns a pointer or iterator dereferencing to a stable `const E&` at that index.
 
 * Container errors:
   * `std::out_of_range` for an invalid position in `array::at`, `bitset::test/set/reset/flip` and raw `bitset` constructors.

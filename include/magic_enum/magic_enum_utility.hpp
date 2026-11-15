@@ -113,7 +113,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return {};
 }
 
-// Returns the value n positions after value in enum_values order, wrapping around.
+// Returns the value n positions after value in enum_values order, wrapping around. Requires a reflected value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
@@ -138,7 +138,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return {};
 }
 
-// Returns the value n positions before value in enum_values order, wrapping around.
+// Returns the value n positions before value in enum_values order, wrapping around. Requires a reflected value.
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;

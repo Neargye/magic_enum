@@ -507,7 +507,7 @@ MAGIC_ENUM_CONSTEVAL bool valid_indexing() noexcept {
 template <typename Index>
 struct key_indexing : Index {};
 
-// Positions of a bitset. A flags bitset holds only bits and skips a named zero, array and set keep it as a key.
+// Positions of a bitset. A flags bitset skips a named zero, since zero has no bit. array and set keep it as a key.
 template <typename E, typename Index, bool Keys = false>
 struct bit_domain {
   static constexpr bool skip_zero = !Keys && is_flags_enum_v<E> && static_cast<bool>(enum_index(static_cast<E>(0)));

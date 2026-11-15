@@ -22,7 +22,7 @@ enum class Plain { X, Y };
 
 namespace {
 
-// The abort cases pass by this output. A nonzero code keeps an abort in the valid case a failure.
+// The abort cases pass on this output. Exit code 3 still fails the valid run if it aborts.
 void on_abort(int) {
   std::fputs("magic_enum::containers aborted\n", stdout);
   std::fflush(stdout);

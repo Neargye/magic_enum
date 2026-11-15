@@ -54,10 +54,10 @@ struct MyStringView {
   constexpr const char& operator[](std::size_t i) const { return str[i]; } // required
   constexpr auto begin() const { return str.begin(); } // required
   constexpr auto end() const { return str.end(); } // required
-  constexpr std::size_t find(char c) const { return str.find(c); } // required
+  constexpr std::size_t find(char c) const { return str.find(c); }
   constexpr MyStringView substr(std::size_t p, std::size_t n) { return str.substr(p, n); } // required
-  constexpr void remove_prefix(std::size_t n) { str.remove_prefix(n); } // required
-  constexpr void remove_suffix(std::size_t n) { str.remove_suffix(n); } // required
+  constexpr void remove_prefix(std::size_t n) { str.remove_prefix(n); }
+  constexpr void remove_suffix(std::size_t n) { str.remove_suffix(n); }
   friend constexpr bool operator==(MyStringView lhs, MyStringView rhs); // required
 
   constexpr MyStringView(const char* cstr) : str{ cstr } {}

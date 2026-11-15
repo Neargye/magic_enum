@@ -50,7 +50,7 @@
 #  include MAGIC_ENUM_CONFIG_FILE
 #endif
 
-// MAGIC_ENUM_USE_STD_MODULE imports the standard library before this header.
+// MAGIC_ENUM_USE_STD_MODULE means the standard library is imported before this header, so <meta> is not included.
 #if !defined(MAGIC_ENUM_FORCE_COMPILER_SPECIFIC_REFLECTION) && defined(__cpp_impl_reflection) && __cpp_impl_reflection >= 202506L
 #  if !defined(MAGIC_ENUM_USE_STD_MODULE) && __has_include(<meta>)
 #    include <meta>
@@ -125,12 +125,12 @@
 #  define MAGIC_ENUM_DETAIL_NVCC 1
 #endif
 
-// Lower bound of the default scan range, inclusive. Redefine it to change the default for all enums.
+// Lower bound of the default scan range, inclusive. Define it for the whole build to change the default for all enums.
 #if !defined(MAGIC_ENUM_RANGE_MIN)
 #  define MAGIC_ENUM_RANGE_MIN -128
 #endif
 
-// Upper bound of the default scan range, inclusive. Redefine it to change the default for all enums.
+// Upper bound of the default scan range, inclusive. Define it for the whole build to change the default for all enums.
 #if !defined(MAGIC_ENUM_RANGE_MAX)
 #  define MAGIC_ENUM_RANGE_MAX 127
 #endif
@@ -257,7 +257,7 @@ using adl_info_holder = detail::adl_info<std::bool_constant<IsFlags>, Min, Max, 
 
 constexpr detail::adl_info<> adl_info() { return {}; }
 
-// Compiler-specific reflection scans common enum values in [min, max]. Redefine MAGIC_ENUM_RANGE_MIN/MAX globally or specialize enum_range for a specific enum.
+// Compiler-specific reflection scans common enum values in [min, max]. Define MAGIC_ENUM_RANGE_MIN/MAX for the whole build or specialize enum_range for a specific enum.
 template <typename E, typename = void>
 struct enum_range {
   static constexpr int min = MAGIC_ENUM_RANGE_MIN;
@@ -580,7 +580,7 @@ MAGIC_ENUM_CONSTEVAL cname_ref type_signature_name([[maybe_unused]] const char* 
 #elif defined(__GNUC__)
   return str[size - 1] == ']' ? cname_ref{str + 49, size - 50} : cname_ref{str + 37, size - 40};
 #elif defined(_MSC_VER)
-  // CLI/C++ workaround, see #284. A typedef name of an unnamed enum has no `enum ` prefix.
+  // C++/CLI workaround, see #284. A typedef name of an unnamed enum has no `enum ` prefix.
   const std::size_t i = str[35] == 'e' && str[36] == 'n' && str[37] == 'u' && str[38] == 'm' && str[39] == ' ' ? 40u : 35u;
   return {str + i, size - 16 - i};
 #else
@@ -616,7 +616,7 @@ MAGIC_ENUM_CONSTEVAL cname_ref enum_signature_name([[maybe_unused]] const char* 
   }
   return str[37] == '(' ? cname_ref{} : cname_ref{str + 37, size - 40};
 #elif defined(_MSC_VER)
-  // CLI/C++ workaround, see #284.
+  // C++/CLI workaround, see #284.
   if ((str[5] == '_' && str[35] != '(') || (str[5] == 'c' && str[41] != '(')) {
     return {str + 35, size - 51};
   }
@@ -861,7 +861,7 @@ MAGIC_ENUM_CONSTEVAL bool valid_custom_zero() noexcept {
   }
 }
 
-// Reject custom values that bit_cast accepts but constant static_cast rejects.
+// Reject values that bit_cast accepts but constant static_cast rejects.
 template <typename E, auto V, typename = void>
 inline constexpr bool is_valid_custom_value_v = false;
 
@@ -918,7 +918,8 @@ template <typename E>
 MAGIC_ENUM_CONSTEVAL bool has_named_multibit() noexcept;
 #endif
 
-template <typename E>
+// The range check reads the mode with CheckMultibit = false, so as_common<> does not trigger the multibit error.
+template <typename E, bool CheckMultibit = true>
 MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
   if constexpr (std::is_enum_v<E>) {
     static_assert(valid_is_flags_v<E>, "magic_enum::customize::enum_range requires is_flags to have bool type.");
@@ -927,7 +928,9 @@ MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
 #if !defined(MAGIC_ENUM_NO_AUTO_IS_FLAGS)
     } else if constexpr (adl_flags::has_operators<E>::value) {
 #  if !defined(MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS)
-      static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags = false to keep it, or = true to reflect single bits only.");
+      if constexpr (CheckMultibit) {
+        static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags = false to keep it, or = true to reflect single bits only.");
+      }
 #  endif
       return enum_subtype::flags;
 #endif
@@ -966,7 +969,7 @@ struct table {
   bool sorted = true;
 };
 
-// Values that flag tables hold. MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS leaves zero out, but it stays a valid mask.
+// Values that flag tables hold. MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS leaves zero out of flags.
 template <typename T>
 consteval bool is_flag_value(T value) noexcept {
 #if defined(MAGIC_ENUM_NO_NAMED_ZERO_IN_FLAGS)
@@ -1096,7 +1099,7 @@ inline constexpr bool has_fixed_underlying_v = false;
 template <typename E>
 inline constexpr bool has_fixed_underlying_v<E, std::void_t<decltype(E{0})>> = true;
 
-// nvcc crashes on long batch signatures.
+// nvcc crashes on long batch signatures. ReSharper names each value through its intrinsic.
 template <typename E>
 MAGIC_ENUM_CONSTEVAL bool batch_supported() noexcept {
 #if defined(MAGIC_ENUM_DETAIL_RESHARPER_ENUMS) || defined(MAGIC_ENUM_DETAIL_NVCC)
@@ -1142,7 +1145,7 @@ MAGIC_ENUM_CONSTEVAL E batch_value(std::size_t i) noexcept {
   return batch_castable<E>(underlying_value<E, O, S>(i)) ? value<E, O, S>(i) : E{};
 }
 
-// Keep the type of a custom bound until values() checks that it fits in int.
+// Keep the type of a custom bound until check_range() checks that it fits in int.
 template <typename E, enum_subtype S, typename U = std::underlying_type_t<E>>
 MAGIC_ENUM_CONSTEVAL auto reflected_min() noexcept {
   if constexpr (S == enum_subtype::flags) {
@@ -1449,7 +1452,7 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
     // Flags often have bits outside the common range, so as_common<> does not require them in it.
     using P = range_probes<E, Min, Min + static_cast<int>(Size - 1)>;
     if constexpr (named_probes<E, P>(std::make_index_sequence<P::size>{})) {
-      static_assert(subtype_v<E> == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX, or return invalid_tag from magic_enum::customize::enum_name to exclude the value.");
+      static_assert(subtype<E, false>() == enum_subtype::flags, "magic_enum::enum_range found a named value outside the range. Extend magic_enum::customize::enum_range<E>::min/max or MAGIC_ENUM_RANGE_MIN/MAX, or return invalid_tag from magic_enum::customize::enum_name to exclude the value.");
     }
   }
 #endif
@@ -1557,7 +1560,7 @@ inline constexpr auto values_v = values<E, S>();
 template <typename E, enum_subtype S, typename D = std::decay_t<E>>
 using values_t = decltype((values_v<D, S>));
 
-// Reflection reads the size from the table so enum_count alone does not build values_v.
+// Standard reflection reads the size from the table, so enum_count alone does not build values_v.
 #if defined(MAGIC_ENUM_DETAIL_USE_STD_REFLECTION)
 template <typename E, enum_subtype S>
 inline constexpr auto count_v = reflection::table_size<E, S>();
@@ -2266,7 +2269,7 @@ template <auto V, detail::enum_subtype S = detail::subtype_v<decltype(V)>>
 }
 
 // Returns name from compile-time enum value.
-// Compiles faster than enum_name(value) and is not restricted by enum_range.
+// Names one value without scanning the range or applying flags filtering.
 template <auto V>
 [[nodiscard]] constexpr auto enum_name() noexcept -> detail::enable_if_t<decltype(V), string_view> {
   constexpr string_view name = detail::enum_name_v<std::decay_t<decltype(V)>, V>.str();
@@ -2311,7 +2314,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
   return detail::entries_v<D, S>;
 }
 
-// ASCII case-insensitive predicate for enum_cast and enum_contains.
+// ASCII case-insensitive predicate for enum_cast, enum_contains, enum_flags_cast and enum_flags_contains.
 inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 
 // Returns the enum value matching the integer, or an empty optional.

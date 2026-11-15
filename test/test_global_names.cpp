@@ -3,7 +3,7 @@
 // Copyright (c) 2019 - 2026 Daniil Goncharov <neargye@gmail.com>.
 
 // Globals of user code can share names with locals of the library.
-// MSVC checks them when templates are instantiated, GCC and Clang when headers are parsed.
+// MSVC reports shadowing when templates are instantiated, GCC and Clang when headers are parsed.
 int result = 0;
 int count = 0;
 int prefix = 0;

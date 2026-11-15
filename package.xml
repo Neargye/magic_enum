@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 
-<!-- A package.xml in the root of a cmake projects allows it to be built using catkin or colcon (the ROS build system) -->
+<!-- A package.xml in the root of a CMake project lets catkin or colcon (the ROS build tools) build it. -->
 
 <package format="2">
   <name>magic_enum</name>

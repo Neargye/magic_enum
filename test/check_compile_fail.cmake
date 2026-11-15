@@ -25,7 +25,7 @@ if(COMPILE_COMMANDS)
     message(FATAL_ERROR "No compiler command found for '${TARGET_NAME}'.")
   endif()
 
-  # Each target has its own object and PDB paths. CMake's build tool normally creates them.
+  # Each target has its own object directory, which the build tool normally creates.
   set(object)
   set(next_is_object FALSE)
   foreach(argument IN LISTS compile_command)

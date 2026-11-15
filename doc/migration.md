@@ -1,10 +1,10 @@
 # Migration
 
-Upgrade steps per release, newest first. Find your current version and apply every section newer than it. For example, from 0.9.5 apply 0.9.7 and 0.10.0.
+Apply every section newer than your version. For example, from 0.9.5 apply 0.9.7, 0.9.8 and 0.10.0.
 
 ## Upgrading to 0.10.0
 
-From 0.9.7 or 0.9.8. Review the behavior changes, then fix the compile errors.
+From 0.9.8. Review the behavior changes, then fix the compile errors.
 
 Minimum versions: C++17, GCC 9, Clang 9, Xcode 11, MSVC 19.20 (Visual Studio 2019), CMake 3.22.
 
@@ -41,9 +41,13 @@ These compile but can change counts, indices and names. Review stored indices, l
 
 * **`enum_switch`** returns by value, even when the explicit result type is a reference.
 
+* **`enum_reflected`** accepts only zero and single bits for flags, and any representable value of a common enum with standard reflection. The result no longer depends on whether values are reflected.
+
 * **Stream output** writes unnamed values of enums with a character underlying type as numbers. `static_cast<E>(65)` prints `65` instead of `A`.
 
 * **Container comparators.** Keys that compare equivalent keep `enum_values` order, so their indices can change. `containers::set` compares lexicographically.
+
+* **`containers::bitset`.** In strings, zero and combinations are masks, not positions. `(sv, {})` now passes a null character as the separator. Use `(sv)` for the default `|` separator. `to_ulong` returns `unsigned long`. Check stream state after input.
 
 ### Compile errors
 
@@ -53,13 +57,19 @@ These compile but can change counts, indices and names. Review stored indices, l
 
 * **Bitwise operators are missing.** Include `<magic_enum/magic_enum_bitwise.hpp>`. Prefer `MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(E)` next to the enum, and keep `using namespace magic_enum::bitwise_operators` inside functions.
 
-* **`customize_t`.** Replace `first` and `second` with `tag` and `name`. It no longer inherits `std::pair`.
+* **`enum_range<E>::is_flags` is not set.** Read the mode with `is_flags_enum_v<E>`.
+
+* **Explicit `E&`** in `enum_contains`, `enum_reflected` and `enum_flags_contains`. Drop `&` or pass an lvalue.
+
+* **`MAGIC_ENUM_NO_ASSERT` together with `MAGIC_ENUM_ASSERT`.** Define only one of them.
+
+* **`customize_t`.** Replace `first` and `second` with `tag` and `name`. It no longer inherits `std::pair`, so compare the fields and build a `std::pair` explicitly if needed.
 
 * **A custom name for an undeclared zero.** Declare the value, for example `None = 0`.
 
 * **`containers::set<E>(mask)`.** Use `set<E>::from_mask(mask)`. An invalid key throws `std::invalid_argument`.
 
-* **`containers::bitset` string constructor.** The order is now `(sv, sep, cmp)`. Zero and combinations are masks, not positions.
+* **`containers::bitset` string constructor.** The order is now `(sv, sep, cmp)`.
 
 * **`enum_type_name` for an unnamed enum.** Give the enum a typedef name or specialize `customize::enum_type_name`.
 
@@ -68,6 +78,14 @@ These compile but can change counts, indices and names. Review stored indices, l
 ### Modules
 
 Link `magic_enum::magic_enum_module`. `magic_enum::magic_enum` stays header-only. Modules need C++20 and CMake 3.28, see [compiler issues](limitations.md#other-compiler-issues).
+
+## Upgrading to 0.9.8
+
+From 0.9.7.
+
+* **`MAGIC_ENUM_AUTO_IS_FLAGS`** is removed and ignored. Set `is_flags = true` for each enum that relied on it.
+* **`enum_flags_cast` and `enum_flags_contains` with a predicate** take the separator first: `(sv, '|', p)`.
+* **`MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT` and `customize::enum_format_enabled`** are removed. To skip formatting for one enum, fully specialize `std::formatter` or `fmt::formatter`. To skip it for all enums, do not include `magic_enum_format.hpp`.
 
 ## Upgrading to 0.9.7
 

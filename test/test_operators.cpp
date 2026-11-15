@@ -133,7 +133,7 @@ constexpr int operator|(Own, Own) noexcept {
 
 namespace {
 
-// Clang warns about unused functions with internal linkage.
+// The macros must not trigger Clang's unused-function warning with internal linkage.
 enum class InternalBits : unsigned { A = 1, B = 2 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(InternalBits);
 
@@ -792,7 +792,7 @@ TEST_CASE("automatic flag reflection") {
   REQUIRE(magic_enum::is_flags_enum_v<ops::BoolEnum> == enabled);
   REQUIRE(magic_enum::is_flags_enum_v<ops::HolderFlags> == enabled);
   REQUIRE(ops::Private::reflected_flags() == enabled);
-  // Automatic detection rejects these standard enums, since they name combinations.
+  // These standard enums name combinations, so automatic detection fails to compile for them.
 #if !defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 11 // libstdc++ declares chars_format since GCC 11.
 #  ifdef MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS
   REQUIRE_FALSE(magic_enum::is_flags_enum_v<std::chars_format>);

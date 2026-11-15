@@ -72,7 +72,7 @@ MAGIC_ENUM_CONSTEVAL std::size_t zero_index() noexcept {
   return values.size();
 }
 
-// Returns true if the integer is a valid flag combination. Zero is valid only when it is named.
+// Returns true if the integer is a valid flag combination. Zero is valid only when its name is reflected.
 template <typename E, typename I>
 constexpr bool is_flags_mask([[maybe_unused]] I value) noexcept {
   using U = std::underlying_type_t<E>;
@@ -126,7 +126,7 @@ constexpr bool parse_flags([[maybe_unused]] string_view value, [[maybe_unused]] 
 
 } // namespace magic_enum::detail
 
-// Returns flag names joined by sep, the name of a named zero, or an empty string for unknown bits.
+// Returns flag names joined by sep, or the reflected zero name. Unknown bits or zero without a reflected name give an empty string.
 template <typename E, typename String = string>
 [[nodiscard]] constexpr auto enum_flags_name(E value, char_type sep = char_type{'|'}) -> detail::enable_if_t<E, String> {
   using D = std::decay_t<E>;
@@ -189,7 +189,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
   return {}; // Invalid value or out of range.
 }
 
-// Returns true if the value is a valid flag combination. Zero is valid only when it is named.
+// Returns true if the value is a valid flag combination. Zero is valid only when its name is reflected.
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
@@ -198,7 +198,7 @@ template <typename E>
   return detail::is_flags_mask<D>(static_cast<underlying_type_t<D>>(value));
 }
 
-// Returns true if the integer is a valid flag combination. Zero is valid only when it is named.
+// Returns true if the integer is a valid flag combination. Zero is valid only when its name is reflected.
 // The enum value overload handles arguments of type E.
 template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I> && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {

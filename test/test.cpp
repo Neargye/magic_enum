@@ -1646,8 +1646,7 @@ TEST_CASE("cmp_less") {
   constexpr std::int32_t int32_t_max = std::numeric_limits<std::int32_t>::max();
   constexpr std::int64_t int64_t_max = std::numeric_limits<std::int64_t>::max();
 
-  // Also testing with offset to avoid corner cases.
-  // Two variables to avoid hidden casts:
+  // Offsets also check values next to the limits. One offset per width avoids hidden conversions.
   constexpr std::int64_t offset_int64_t = 17;
   constexpr std::int32_t offset_int32_t = 17;
 

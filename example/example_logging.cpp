@@ -50,11 +50,16 @@ enum class Permission : unsigned { None = 0, Read = 1, Write = 2, Execute = 4 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Permission);
 MAGIC_ENUM_DEFINE_IOSTREAM_OPERATORS(Permission);
 
+// Compiler-specific reflection skips values outside the scan range.
+enum class HttpStatus { OK = 200, NotFound = 404 };
+
 // Name for a log line. A value without a name, such as data from a file or a newer protocol version, is written as an integer.
 template <typename E>
 std::string log_name(E value) {
   std::string name;
-  if constexpr (magic_enum::is_flags_enum_v<E>) {
+  // enum_name rejects an enum without reflected values, for example codes outside the scan range.
+  if constexpr (magic_enum::enum_count<E>() == 0) {
+  } else if constexpr (magic_enum::is_flags_enum_v<E>) {
     name = magic_enum::enum_flags_name(value);
   } else {
     name = std::string{magic_enum::enum_name(value)};
@@ -93,6 +98,7 @@ int main() {
   log_printf(Level::Info, "access", access); // [Info] access: Read|Write
   log_printf(Level::Warning, "level", unknown_level); // [Warning] level: 7
   log_printf(Level::Error, "bits", unknown_bits); // [Error] bits: 8
+  log_printf(Level::Info, "status", HttpStatus::NotFound); // [Info] status: 404, or NotFound with standard reflection
 
   log_stream(Level::Info, "user", 42, "access", access); // [Info] user 42 access Read|Write
   log_stream(unknown_level, "bits", unknown_bits); // [7] bits 8

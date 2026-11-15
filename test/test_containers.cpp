@@ -147,7 +147,7 @@ constexpr bool operator<(ReverseOrder lhs, ReverseOrder rhs) noexcept {
   return static_cast<int>(lhs) > static_cast<int>(rhs);
 }
 
-// Enums used by containers_bitset_iterator tests.
+// Enums sized around the bitset storage word boundaries.
 enum class Numbers { ONE, TWO, THREE, FOUR };           // 4 values, uint8_t base_type, unused_bits=4
 enum class Nibble  { B0, B1, B2, B3, B4, B5, B6, B7 }; // 8 values, uint8_t base_type, unused_bits=0 (edge case)
 enum class Flags9  { A, B, C, D, E, F, G, H, I };      // 9 values, uint16_t base_type
@@ -490,7 +490,7 @@ TEST_CASE("containers_array") {
   REQUIRE(color_rgb_initializer.at(Color::GREEN) == RGB{0, color_max, 0});
   REQUIRE(color_rgb_initializer.at(Color::BLUE) == RGB{0, 0, color_max});
 
-  /* BUG: a sort will not survive the data integration */
+  // Sorting moves values between enum keys, the key order stays fixed.
   magic_enum::containers::array<Color, std::uint8_t> color_rgb_container_int{{1U, 4U, 2U}};
 
   constexpr magic_enum::containers::array<Color, std::uint8_t> compare_before{{{1U, 4U, 2U}}};
@@ -1050,7 +1050,7 @@ TEST_CASE("equivalent comparator keys keep enum_values order") {
 
 TEST_CASE("comparator indexing sorts wide enums and keeps the order of equivalent keys") {
   using namespace magic_enum::containers;
-  // The index table is sorted in constant evaluation, so a quadratic sort exceeded Clang's step limit here.
+  // The index table is sorted in constant evaluation, where a quadratic sort would exceed Clang's step limit.
   constexpr set<Wide256, std::greater<>> reversed{Wide256::W000, Wide256::W128, Wide256::W255};
   static_assert(*reversed.begin() == Wide256::W255);
   static_assert(*std::next(reversed.begin()) == Wide256::W128);

@@ -17,7 +17,7 @@ magic_enum_dep = declare_dependency(
     compile_args: magic_enum_args,
 )
 
-# install header and pkg-config file
+# Install the headers and the pkg-config file.
 install_subdir('include/magic_enum', install_dir: get_option('includedir'))
 pkg = import('pkgconfig')
 pkg.generate(

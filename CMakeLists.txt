@@ -239,7 +239,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
   # Distribution file names: libmagicenum-dev_<version>_all.deb and libmagicenum-devel-<version>-1.noarch.rpm.
   set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-  # Installed module BMIs are compiler and target specific.
+  # Module packages are compiler and target specific.
   if(NOT MAGIC_ENUM_USE_MODULES)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "noarch")

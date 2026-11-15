@@ -91,7 +91,7 @@ constexpr auto typesafe_fuse_enum(Es... values) noexcept {
 
 } // namespace magic_enum::detail
 
-// Returns a bijective mix of several enum values. This can be used to emulate 2D switch/case statements.
+// Returns a unique value for each combination of enum values, for nested switch/case statements. An unreflected value fails MAGIC_ENUM_ASSERT.
 template <typename... Es>
 [[nodiscard]] constexpr auto enum_fuse(Es... values) noexcept {
   static_assert((std::is_enum_v<std::decay_t<Es>> && ...), "magic_enum::enum_fuse requires enum type.");
