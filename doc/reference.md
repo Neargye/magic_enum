@@ -90,6 +90,8 @@
 
 * `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` disables the compile-time error for [named values just outside the scan range](limitations.md#enum-range). It does not change which values are reflected.
 
+* `MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS` disables the compile-time error for [named values with more than one bit set](limitations.md#enum-flags) in automatically detected flags. Such values are not reflected.
+
 * To customize string and optional types, define these macros before including `magic_enum.hpp`:
 
   ```cpp

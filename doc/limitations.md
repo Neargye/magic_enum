@@ -22,7 +22,7 @@ Standard reflection is selected automatically when available, for example on GCC
 
 * Detection checks operators, not values. Existing operators can switch an enum to flags, changing its names, counts and indices. Enums containing codes or multibit fields may need `is_flags = false`.
 
-* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags` explicitly, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks and drops other multibit values without an error.
+* Automatic detection fails to compile if a named value has more than one bit set, such as `ReadWrite = 3` or `All = ~0`, because flags would drop it. This includes standard enums such as `std::filesystem::perms` and `std::chars_format`. Set `is_flags = false` to keep the value, `is_flags = true` to reflect single bits only, or return `invalid_tag` from `customize::enum_name` to hide the value. Standard reflection checks every value. Compiler-specific reflection checks only common masks and drops other multibit values without an error. Define `MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS` for the whole build to disable the check.
 
 * Set `enum_range<E>::is_flags` explicitly to override detection. Use `true` for flags without matching operators, or `false` for common reflection. `enum_flags_*` APIs always use flags.
   ```cpp

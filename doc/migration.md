@@ -47,7 +47,7 @@ These compile but can change counts, indices and names. Review stored indices, l
 
 ### Compile errors
 
-* **A named value has more than one bit set**, for example `All = A | B` in an enum with ADL operators. Set `is_flags` explicitly. With `is_flags = true` combinations are not values, see [`enum_flags`](reference.md#enum_flags).
+* **A named value has more than one bit set**, for example `All = A | B` in an enum with ADL operators. Set `is_flags = false` to keep 0.9 behavior and names, or `is_flags = true` to reflect single bits only, see [`enum_flags`](reference.md#enum_flags). If a namespace defines operator templates for all its enums, define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build. `MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS` disables only the check.
 
 * **A named value is just outside the scan range.** Extend the [range](limitations.md#enum-range). To hide a sentinel such as `Count`, return `invalid_tag` from `customize::enum_name`. `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` disables only the check.
 
