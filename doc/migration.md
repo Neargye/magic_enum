@@ -85,7 +85,7 @@ From 0.9.7.
 
 * **`MAGIC_ENUM_AUTO_IS_FLAGS`** is removed and ignored. Set `is_flags = true` for each enum that relied on it.
 * **`enum_flags_cast` and `enum_flags_contains` with a predicate** take the separator first: `(sv, '|', p)`.
-* **`MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT` and `customize::enum_format_enabled`** are removed. To skip formatting for one enum, fully specialize `std::formatter` or `fmt::formatter`. To skip it for all enums, do not include `magic_enum_format.hpp`.
+* **`MAGIC_ENUM_DEFAULT_ENABLE_ENUM_FORMAT` and `customize::enum_format_enabled`** are removed. Fully specialize `std::formatter` or `fmt::formatter` for one enum, or define `MAGIC_ENUM_NO_STD_FORMAT` or `MAGIC_ENUM_NO_FMT_FORMAT` for the whole build.
 
 ## Upgrading to 0.9.7
 

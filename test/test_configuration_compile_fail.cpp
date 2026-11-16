@@ -482,6 +482,8 @@ enum class MultibitProbe : int { A = 1, B = 2, ForceDword = 0x7fffffff };
 enum class MultibitProbe : std::uint64_t { A = 1, B = 2, Low = 0xffffffff };
 #    elif MAGIC_ENUM_TEST_ENUM_FORM == 3
 enum class MultibitProbe : std::int8_t { A = 1, B = 2, All = -1 };
+#    elif MAGIC_ENUM_TEST_ENUM_FORM == 7
+enum class MultibitProbe : unsigned { A = 8, B = 16, AB = 24 };
 #    else
 // Clang before 20 probes an enum without a fixed underlying type with n() per value.
 enum MultibitProbe { A = 1, B = 2, C = 4, All = 7 };
