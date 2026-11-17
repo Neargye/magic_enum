@@ -32,6 +32,20 @@ static_assert(magic_enum::is_flags_enum_v<exported_flags::Bits> == auto_flags_te
 static_assert(magic_enum::enum_reflected<exported_flags::Bits>(3) == !auto_flags_test::enabled);
 #endif
 
+#ifdef MAGIC_ENUM_TEST_NO_CHECK_MULTIBIT_FLAGS
+namespace no_check_multibit {
+enum class Access : unsigned { Read = 1, Write = 2, ReadWrite = 3 };
+// The module does not export MAGIC_ENUM_DEFINE_BITWISE_OPERATORS.
+constexpr Access operator|(Access lhs, Access rhs) noexcept { return static_cast<Access>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)); }
+constexpr Access operator&(Access lhs, Access rhs) noexcept { return static_cast<Access>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs)); }
+
+static_assert(magic_enum::is_flags_enum_v<Access>);
+static_assert(magic_enum::enum_count<Access>() == 2);
+static_assert(!magic_enum::enum_contains(Access::ReadWrite));
+static_assert(magic_enum::enum_name(Access::ReadWrite).empty());
+} // namespace no_check_multibit
+#endif
+
 enum Unfixed { Negative = -3, Zero = 0, Positive = 4 };
 static_assert(magic_enum::enum_count<Unfixed>() == 3);
 static_assert(magic_enum::enum_cast<Unfixed>(-3).value() == Negative);
