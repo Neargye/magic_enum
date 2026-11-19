@@ -22,20 +22,19 @@ defaults:
 jobs:
   modules:
     env:
-      # The experimental import std UUID below belongs to this version.
-      CMAKE_VERSION: "4.4.0"
-    name: "${{ format('{0} / {1} / C++{2} / {3} / IMPORT_STD={4} / FMT={5}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std, matrix.config.fmt) }}"
+      CMAKE_VERSION: ${{ matrix.config.cmake }}
+    name: "${{ format('{0} / {1} / CMake {6} / C++{2} / {3} / IMPORT_STD={4} / FMT={5}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std, matrix.config.fmt, matrix.config.cmake) }}"
     timeout-minutes: 30
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
         config:
-        - { compiler: "clang-19", os: "ubuntu-24.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", fmt: "FALSE", build_types: "Release Debug" }
-        - { compiler: "clang-19", os: "ubuntu-24.04", standard: "23", stdlib: "libc++",    import_std: "TRUE",  fmt: "FALSE", build_types: "Debug" }
-        - { compiler: "clang-22", os: "macos-26",     standard: "23", stdlib: "libc++",    import_std: "FALSE", fmt: "FALSE", build_types: "Release Debug" }
-        - { compiler: "gcc-16",   os: "ubuntu-26.04", standard: "20", stdlib: "libstdc++", import_std: "FALSE", fmt: "TRUE",  build_types: "Release" }
-        - { compiler: "gcc-16",   os: "ubuntu-26.04", standard: "26", stdlib: "libstdc++", import_std: "TRUE",  fmt: "FALSE", build_types: "Release" }
+        - { compiler: "clang-19", os: "ubuntu-24.04", cmake: "4.4.0", standard: "20", stdlib: "libstdc++", import_std: "OFF", fmt: "FALSE", build_types: "Release Debug" }
+        - { compiler: "clang-19", os: "ubuntu-24.04", cmake: "4.4.0", standard: "23", stdlib: "libc++",    import_std: "ON",  fmt: "FALSE", build_types: "Debug" }
+        - { compiler: "clang-22", os: "macos-26",     cmake: "4.4.0", standard: "23", stdlib: "libc++",    import_std: "OFF", fmt: "FALSE", build_types: "Release Debug" }
+        - { compiler: "gcc-16",   os: "ubuntu-26.04", cmake: "4.5.1", standard: "20", stdlib: "libstdc++", import_std: "OFF", fmt: "TRUE",  build_types: "Release" }
+        - { compiler: "gcc-16",   os: "ubuntu-26.04", cmake: "4.5.1", standard: "26", stdlib: "libstdc++", import_std: "ON",  fmt: "FALSE", build_types: "Release" }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -68,20 +67,30 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libfmt-dev
 
-    - name: Install pinned CMake
+    - name: Install CMake 4.5.1 on Linux
+      if: matrix.config.cmake == '4.5.1'
+      working-directory: ${{ runner.temp }}
+      run: |
+        archive="cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+        curl --fail --location --retry 3 --output "$archive" "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${archive}"
+        echo "83b71181fb62b4fe8f26067a9321448572e7a43bd04ff6c7f54a24c33698f16d  $archive" | sha256sum --check
+        tar -xzf "$archive"
+        echo "${RUNNER_TEMP}/cmake-${CMAKE_VERSION}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+    - name: Install CMake 4.4.0
+      if: matrix.config.cmake == '4.4.0'
       run: python3 -m pip install "cmake==${CMAKE_VERSION}" --break-system-packages
 
     - name: Configure
       run: |
+        cmake --version
         stdlib_options=()
         if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
           stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
-        elif [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
-          stdlib_options=(-DCMAKE_CXX_STDLIB_MODULES_JSON="$("${CXX}" -print-file-name=libstdc++.modules.json)")
         fi
 
         import_std_options=()
-        if [[ "${{ matrix.config.import_std }}" == "TRUE" ]]; then
+        if [[ "$CMAKE_VERSION" == "4.4.0" && "${{ matrix.config.import_std }}" == "ON" ]]; then
           import_std_options=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
         fi
 
@@ -96,6 +105,16 @@ jobs:
             -DMAGIC_ENUM_MODULE_WITH_FMT=${{ matrix.config.fmt }} \
             "${stdlib_options[@]}" \
             "${import_std_options[@]}"
+        done
+
+    - name: Reconfigure and check import std selection
+      if: matrix.config.cmake == '4.5.1'
+      run: |
+        for build_type in ${{ matrix.config.build_types }}; do
+          cmake -S . -B "build-${build_type}"
+          setting=$(grep '^MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=' "build-${build_type}/CMakeCache.txt")
+          echo "$setting"
+          [[ "$setting" == 'MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=${{ matrix.config.import_std }}' ]]
         done
 
     - name: Build
