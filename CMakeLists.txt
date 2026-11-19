@@ -152,6 +152,7 @@ function(magic_enum_make_module_library name)
   endif()
 
   if(MAGIC_ENUM_MODULE_IMPORT_STD AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.5.0")
+    message(STATUS "${name}: using import std")
     target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_STD_MODULE)
   else()
     if(MAGIC_ENUM_MODULE_IMPORT_STD)
