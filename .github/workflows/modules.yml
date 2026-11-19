@@ -19,12 +19,11 @@ defaults:
   run:
     shell: bash
 
-env:
-  # The CMAKE_EXPERIMENTAL_CXX_IMPORT_STD value below belongs to this CMake version.
-  CMAKE_VERSION: "4.4.0"
-
 jobs:
   modules:
+    env:
+      # The experimental import std UUID below belongs to this version.
+      CMAKE_VERSION: "4.4.0"
     name: "${{ format('{0} / {1} / C++{2} / {3} / IMPORT_STD={4} / FMT={5}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std, matrix.config.fmt) }}"
     timeout-minutes: 30
     runs-on: ${{ matrix.config.os }}
@@ -112,7 +111,13 @@ jobs:
         done
 
   windows-msvc:
-    name: Windows / VS 2026 / C++20
+    name: Windows / VS 2026 / CMake 4.5.1 / C++${{ matrix.standard }} / IMPORT_STD=${{ matrix.import_std }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { standard: 20, import_std: "OFF" }
+        - { standard: 23, import_std: "ON" }
     timeout-minutes: 30
     runs-on: windows-2025
     defaults:
@@ -126,16 +131,40 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
     - name: Install pinned CMake
-      run: python -m pip install "cmake==$env:CMAKE_VERSION"
+      run: |
+        $archive = "$env:RUNNER_TEMP/cmake-4.5.1-windows-x86_64.zip"
+        Invoke-WebRequest "https://github.com/Kitware/CMake/releases/download/v4.5.1/cmake-4.5.1-windows-x86_64.zip" -OutFile $archive
+        if ((Get-FileHash $archive).Hash -ne 'bfe6eadb245dc8213e0d3feea316b520cb2aae92f5667ffd76059ba6b05c430c') {
+          throw 'Unexpected CMake archive checksum'
+        }
+        Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
+        "$env:RUNNER_TEMP/cmake-4.5.1-windows-x86_64/bin" >> $env:GITHUB_PATH
 
     - name: Configure
       run: |
         cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF `
-          -DMAGIC_ENUM_USE_MODULES=ON
+          -DCMAKE_CXX_STANDARD=${{ matrix.standard }} -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF `
+          -DMAGIC_ENUM_USE_MODULES=ON -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.import_std }}
+
+    - name: Reconfigure and check import std selection
+      run: |
+        cmake -S . -B build
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if (!(Select-String -Path build/CMakeCache.txt -Pattern '^MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=${{ matrix.import_std }}$' -Quiet)) {
+          throw 'Reconfiguring changed MAGIC_ENUM_MODULE_IMPORT_STD'
+        }
 
     - name: Build
       run: cmake --build build --target magic_enum_module_tests magic_enum_verify_interface_header_sets
 
     - name: Test
       run: ctest --test-dir build --output-on-failure --no-tests=error -L module
+
+    - name: Check import std requires C++23
+      if: matrix.standard == 20
+      run: |
+        $log = cmake -S . -B build -DMAGIC_ENUM_MODULE_IMPORT_STD=ON 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 0 -or !$log.Contains('MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23')) {
+          throw "Unexpected configure result for C++20 with import std enabled. `n$log"
+        }
+        exit 0
