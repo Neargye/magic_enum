@@ -164,4 +164,6 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
   * GCC 15 does not export `containers::get`, `make_array` and `to_array`, can report unused parameters in magic_enum code and fails with `import std`.
   * GCC 14 and older cannot read the compiled module.
 
+* With `MAGIC_ENUM_MODULE_IMPORT_STD=ON` on MSVC, use CMake 4.5 or newer. CMake 4.4 does not link the `import std` objects into executables, which can fail with `LNK2019`.
+
 * Clang 18 module consumers need `-Wno-enum-constexpr-conversion` for enums without a fixed underlying type. The CMake module target sets this option automatically.

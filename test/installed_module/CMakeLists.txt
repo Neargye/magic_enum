@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28...4.4)
+cmake_minimum_required(VERSION 3.28...4.5)
 
 project(magic_enum_installed_module_test LANGUAGES CXX)
 
@@ -14,7 +14,10 @@ set_target_properties(
 )
 
 if(MAGIC_ENUM_EXPECT_IMPORT_STD)
-  set_property(TARGET magic_enum_installed_module_test PROPERTY CXX_MODULE_STD ON)
+  # CMake 4.5 removed CXX_MODULE_STD.
+  if(CMAKE_VERSION VERSION_LESS "4.5")
+    set_property(TARGET magic_enum_installed_module_test PROPERTY CXX_MODULE_STD ON)
+  endif()
   target_compile_definitions(
     magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_IMPORT_STD
   )
