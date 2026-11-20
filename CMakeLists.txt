@@ -58,9 +58,44 @@ endif()
 
 set(MAGIC_ENUM_MODULE_CXX_STANDARD 20)
 if(DEFINED CMAKE_CXX_STANDARD AND
-  CMAKE_CXX_STANDARD GREATER MAGIC_ENUM_MODULE_CXX_STANDARD)
+   CMAKE_CXX_STANDARD GREATER MAGIC_ENUM_MODULE_CXX_STANDARD)
   set(MAGIC_ENUM_MODULE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
 endif()
+
+if(MAGIC_ENUM_MODULE_IMPORT_STD)
+  if(CMAKE_VERSION VERSION_LESS "3.31")
+    message(FATAL_ERROR "MAGIC_ENUM_MODULE_IMPORT_STD requires CMake >= 3.31")
+  endif()
+  if(CMAKE_CXX_STANDARD LESS 23)
+    message(FATAL_ERROR "MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23")
+  endif()
+  if(CMAKE_VERSION VERSION_LESS "4.5")
+    if(NOT CMAKE_CXX_STANDARD IN_LIST CMAKE_CXX_COMPILER_IMPORT_STD)
+      message(FATAL_ERROR
+        "MAGIC_ENUM_MODULE_IMPORT_STD is not supported for C++${CMAKE_CXX_STANDARD} by the active toolchain. "
+        "Set CMAKE_EXPERIMENTAL_CXX_IMPORT_STD before project() or use CMake 4.5+, and choose a supported standard."
+      )
+    endif()
+  # CMake 4.5 removed CMAKE_CXX_COMPILER_IMPORT_STD and finds the metadata only for toolchains that support import std.
+  elseif(NOT CMAKE_CXX_STDLIB_MODULES_JSON)
+    message(FATAL_ERROR
+      "MAGIC_ENUM_MODULE_IMPORT_STD is not supported by the active toolchain: ${CMAKE_CXX_COMPILER_IMPORT_STD_ERROR_MESSAGE}. "
+      "Use a Ninja generator and a toolchain with import std support, or set CMAKE_CXX_STDLIB_MODULES_JSON."
+    )
+  endif()
+  message(STATUS "magic_enum module: using import std")
+endif()
+
+# Selects import std for a module target and defines the given macro when it is used.
+function(magic_enum_set_module_std target definition)
+  # CMake 3.31 to 4.4 enable import std per target. CMake 4.5 removed CXX_MODULE_STD.
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.31" AND CMAKE_VERSION VERSION_LESS "4.5")
+    set_property(TARGET ${target} PROPERTY CXX_MODULE_STD ${MAGIC_ENUM_MODULE_IMPORT_STD})
+  endif()
+  if(MAGIC_ENUM_MODULE_IMPORT_STD)
+    target_compile_definitions(${target} PRIVATE ${definition})
+  endif()
+endfunction()
 
 if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION OR MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION_PKGCONFIG)
   enable_testing()
@@ -133,9 +168,6 @@ function(magic_enum_make_module_library name)
   target_compile_options(${name} INTERFACE
     "$<$<AND:$<COMPILE_LANG_AND_ID:CXX,Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,18>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19>>:-Wno-enum-constexpr-conversion>"
   )
-  if(CMAKE_CXX_STDLIB_MODULES_JSON AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.5.0")
-      set(CACHE{MAGIC_ENUM_MODULE_IMPORT_STD} TYPE BOOL FORCE VALUE ON)
-  endif()
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MAGIC_ENUM_MODULE_IMPORT_STD)
     target_compile_options(${name} PRIVATE -Wno-include-angled-in-module-purview)
   endif()
@@ -151,30 +183,7 @@ function(magic_enum_make_module_library name)
     target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_FMT_HEADER)
   endif()
 
-  if(MAGIC_ENUM_MODULE_IMPORT_STD AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.5.0")
-    message(STATUS "${name}: using import std")
-    target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_STD_MODULE)
-  else()
-    if(MAGIC_ENUM_MODULE_IMPORT_STD)
-      if(CMAKE_VERSION VERSION_LESS "3.31")
-        message(FATAL_ERROR "MAGIC_ENUM_MODULE_IMPORT_STD requires CMake >= 3.31")
-      endif()
-      if(CMAKE_CXX_STANDARD LESS 23)
-        message(FATAL_ERROR "MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23")
-      endif()
-      if(NOT CMAKE_CXX_STANDARD IN_LIST CMAKE_CXX_COMPILER_IMPORT_STD)
-        message(FATAL_ERROR
-          "MAGIC_ENUM_MODULE_IMPORT_STD is not supported for C++${CMAKE_CXX_STANDARD} by the active toolchain. "
-          "Set CMAKE_EXPERIMENTAL_CXX_IMPORT_STD before project() and choose a supported standard."
-        )
-      endif()
-      message(STATUS "${name}: using import std")
-      set_property(TARGET ${name} PROPERTY CXX_MODULE_STD ON)
-      target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_STD_MODULE)
-    elseif(CMAKE_VERSION VERSION_GREATER_EQUAL "3.31")
-      set_property(TARGET ${name} PROPERTY CXX_MODULE_STD OFF)
-    endif()
-  endif()
+  magic_enum_set_module_std(${name} MAGIC_ENUM_USE_STD_MODULE)
 endfunction()
 
 if(MAGIC_ENUM_USE_MODULES)

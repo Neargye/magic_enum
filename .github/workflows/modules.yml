@@ -31,25 +31,17 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.4.0", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
-          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
           - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
           - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
-
-          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.4.0", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "ON", build_types: "Release" }
-          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.4.0", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
           - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "ON", build_types: "Release" }
           - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
-
-          - { os: "macos-26", compiler: "clang-22", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
-          - { os: "macos-26", compiler: "clang-22", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
           - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
           - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
-
-          - { os: "windows-2025", compiler: "MSVC", cmake: "4.4.0", standard: 20, stdlib: "MSVC STL", import_std: "OFF", fmt: "OFF", build_types: "Release" }
-          - { os: "windows-2025", compiler: "MSVC", cmake: "4.4.0", standard: 23, stdlib: "MSVC STL", import_std: "ON", fmt: "OFF", build_types: "Release" }
           - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 20, stdlib: "MSVC STL", import_std: "OFF", fmt: "OFF", build_types: "Release" }
           - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 23, stdlib: "MSVC STL", import_std: "ON", fmt: "OFF", build_types: "Release" }
+          # CMake 4.4 covers the experimental import std path. With MSVC it does not link the import std objects.
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.4.0", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -79,7 +71,14 @@ jobs:
         echo "CC=${llvm_prefix}/bin/clang" >> "${GITHUB_ENV}"
         echo "CXX=${llvm_prefix}/bin/clang++" >> "${GITHUB_ENV}"
         if [[ "${{ matrix.config.import_std }}" == "ON" ]]; then
-          echo "LDFLAGS=-L${llvm_prefix}/lib/c++ -Wl,-rpath,${llvm_prefix}/lib/c++ -L${llvm_prefix}/lib/unwind -lunwind" >> "$GITHUB_ENV"
+          # Clang does not search the Homebrew libc++ directory for the module metadata.
+          modules_json="$(find "${llvm_prefix}/lib" -name libc++.modules.json -print -quit)"
+          if [[ -z "$modules_json" ]]; then
+            echo "libc++.modules.json not found in ${llvm_prefix}/lib" >&2
+            exit 1
+          fi
+          echo "STDLIB_MODULES_JSON=${modules_json}" >> "${GITHUB_ENV}"
+          echo "LDFLAGS=-L${llvm_prefix}/lib/c++ -Wl,-rpath,${llvm_prefix}/lib/c++ -L${llvm_prefix}/lib/unwind -lunwind" >> "${GITHUB_ENV}"
         fi
         "${llvm_prefix}/bin/clang++" --version
 
@@ -91,12 +90,7 @@ jobs:
 
     - name: Install CMake 4.4.0
       if: matrix.config.cmake == '4.4.0'
-      run: |
-        if [[ "$RUNNER_OS" == Windows ]]; then
-          python -m pip install "cmake==$CMAKE_VERSION"
-        else
-          python3 -m pip install "cmake==$CMAKE_VERSION" --break-system-packages
-        fi
+      run: python3 -m pip install "cmake==$CMAKE_VERSION" --break-system-packages
 
     - name: Install CMake 4.5.1
       if: matrix.config.cmake == '4.5.1'
@@ -140,10 +134,16 @@ jobs:
           toolchain_options+=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
         fi
 
-        if [[ "$CMAKE_VERSION" == "4.4.0" && "${{ matrix.config.import_std }}" == "ON" ]]; then
-          toolchain_options+=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
-          if [[ "${{ matrix.config.compiler }}" == gcc-* ]]; then
-            toolchain_options+=("-DCMAKE_CXX_STDLIB_MODULES_JSON=$("$CXX" -print-file-name=libstdc++.modules.json)")
+        if [[ "${{ matrix.config.import_std }}" == "ON" ]]; then
+          if [[ "$CMAKE_VERSION" == "4.4.0" ]]; then
+            # The gate value belongs to this CMake release. CMake 4.5 needs no gate.
+            toolchain_options+=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
+            if [[ "${{ matrix.config.compiler }}" == gcc-* ]]; then
+              STDLIB_MODULES_JSON="$("$CXX" -print-file-name=libstdc++.modules.json)"
+            fi
+          fi
+          if [[ -n "${STDLIB_MODULES_JSON:-}" ]]; then
+            toolchain_options+=("-DCMAKE_CXX_STDLIB_MODULES_JSON=${STDLIB_MODULES_JSON}")
           fi
         fi
 
@@ -185,13 +185,24 @@ jobs:
           ctest --test-dir "build-${build_type}" --output-on-failure --no-tests=error -L module
         done
 
-    - name: Check import std requires C++23
-      if: "!cancelled() && steps.configure.outcome == 'success' && matrix.config.import_std == 'OFF'"
+    - name: Check import std diagnostics
+      if: "!cancelled() && steps.configure.outcome == 'success'"
       run: |
-        if cmake -S . -B build-reject-cpp20 -G Ninja -DCMAKE_CXX_STANDARD=20 \
-            -DMAGIC_ENUM_USE_MODULES=ON -DMAGIC_ENUM_MODULE_IMPORT_STD=ON > configure-cpp20.log 2>&1; then
-          echo "C++20 unexpectedly accepted MAGIC_ENUM_MODULE_IMPORT_STD=ON"
-          exit 1
+        expect_configure_error() {
+          local name="$1" standard="$2" expected="$3"
+          local status=0
+          cmake -S . -B "build-reject-${name}" -G Ninja -DCMAKE_CXX_STANDARD="${standard}" \
+            -DMAGIC_ENUM_USE_MODULES=ON -DMAGIC_ENUM_MODULE_IMPORT_STD=ON > "configure-${name}.log" 2>&1 || status=$?
+          cat "configure-${name}.log"
+          if [[ "$status" == 0 ]]; then
+            echo "${name}: configure unexpectedly accepted MAGIC_ENUM_MODULE_IMPORT_STD=ON" >&2
+            return 1
+          fi
+          grep -F "$expected" "configure-${name}.log"
+        }
+
+        expect_configure_error cpp20 20 'MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23'
+        # libstdc++ on Ubuntu 24.04 ships no module metadata.
+        if [[ "${{ matrix.config.os }}" == ubuntu-24.04 && "${{ matrix.config.stdlib }}" == libstdc++ ]]; then
+          expect_configure_error unsupported 23 'MAGIC_ENUM_MODULE_IMPORT_STD is not supported'
         fi
-        cat configure-cpp20.log
-        grep -F 'MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23' configure-cpp20.log
