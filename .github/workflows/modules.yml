@@ -23,23 +23,42 @@ jobs:
   modules:
     env:
       CMAKE_VERSION: ${{ matrix.config.cmake }}
-    name: "${{ format('{0} / {1} / CMake {6} / C++{2} / {3} / IMPORT_STD={4} / FMT={5}', matrix.config.os, matrix.config.compiler, matrix.config.standard, matrix.config.stdlib, matrix.config.import_std, matrix.config.fmt, matrix.config.cmake) }}"
+      BUILD_TYPES: ${{ matrix.config.build_types }}
+    name: ${{ matrix.config.os }} / ${{ matrix.config.compiler }} / CMake ${{ matrix.config.cmake }} / C++${{ matrix.config.standard }} / ${{ matrix.config.stdlib }} / IMPORT_STD=${{ matrix.config.import_std }} / FMT=${{ matrix.config.fmt }}
     timeout-minutes: 30
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
         config:
-        - { compiler: "clang-19", os: "ubuntu-24.04", cmake: "4.4.0", standard: "20", stdlib: "libstdc++", import_std: "OFF", fmt: "FALSE", build_types: "Release Debug" }
-        - { compiler: "clang-19", os: "ubuntu-24.04", cmake: "4.4.0", standard: "23", stdlib: "libc++",    import_std: "ON",  fmt: "FALSE", build_types: "Debug" }
-        - { compiler: "clang-22", os: "macos-26",     cmake: "4.4.0", standard: "23", stdlib: "libc++",    import_std: "OFF", fmt: "FALSE", build_types: "Release Debug" }
-        - { compiler: "gcc-16",   os: "ubuntu-26.04", cmake: "4.5.1", standard: "20", stdlib: "libstdc++", import_std: "OFF", fmt: "TRUE",  build_types: "Release" }
-        - { compiler: "gcc-16",   os: "ubuntu-26.04", cmake: "4.5.1", standard: "26", stdlib: "libstdc++", import_std: "ON",  fmt: "FALSE", build_types: "Release" }
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.4.0", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
+
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.4.0", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "ON", build_types: "Release" }
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.4.0", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "ON", build_types: "Release" }
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
+
+          - { os: "macos-26", compiler: "clang-22", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          - { os: "macos-26", compiler: "clang-22", cmake: "4.4.0", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
+          - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
+
+          - { os: "windows-2025", compiler: "MSVC", cmake: "4.4.0", standard: 20, stdlib: "MSVC STL", import_std: "OFF", fmt: "OFF", build_types: "Release" }
+          - { os: "windows-2025", compiler: "MSVC", cmake: "4.4.0", standard: 23, stdlib: "MSVC STL", import_std: "ON", fmt: "OFF", build_types: "Release" }
+          - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 20, stdlib: "MSVC STL", import_std: "OFF", fmt: "OFF", build_types: "Release" }
+          - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 23, stdlib: "MSVC STL", import_std: "ON", fmt: "OFF", build_types: "Release" }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+
+    - name: Set up MSVC
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
     - name: Set up Linux compiler
       if: ${{ runner.os == 'Linux' }}
@@ -59,42 +78,76 @@ jobs:
         echo "${llvm_prefix}/bin" >> "${GITHUB_PATH}"
         echo "CC=${llvm_prefix}/bin/clang" >> "${GITHUB_ENV}"
         echo "CXX=${llvm_prefix}/bin/clang++" >> "${GITHUB_ENV}"
+        if [[ "${{ matrix.config.import_std }}" == "ON" ]]; then
+          echo "LDFLAGS=-L${llvm_prefix}/lib/c++ -Wl,-rpath,${llvm_prefix}/lib/c++ -L${llvm_prefix}/lib/unwind -lunwind" >> "$GITHUB_ENV"
+        fi
         "${llvm_prefix}/bin/clang++" --version
 
     - name: Install fmt
-      if: ${{ matrix.config.fmt == 'TRUE' }}
+      if: ${{ matrix.config.fmt == 'ON' }}
       run: |
         sudo apt-get update
         sudo apt-get install -y libfmt-dev
 
-    - name: Install CMake 4.5.1 on Linux
+    - name: Install CMake 4.4.0
+      if: matrix.config.cmake == '4.4.0'
+      run: |
+        if [[ "$RUNNER_OS" == Windows ]]; then
+          python -m pip install "cmake==$CMAKE_VERSION"
+        else
+          python3 -m pip install "cmake==$CMAKE_VERSION" --break-system-packages
+        fi
+
+    - name: Install CMake 4.5.1
       if: matrix.config.cmake == '4.5.1'
       working-directory: ${{ runner.temp }}
       run: |
-        archive="cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+        case "$RUNNER_OS" in
+          Linux)
+            package="cmake-${CMAKE_VERSION}-linux-x86_64"
+            archive="$package.tar.gz"
+            digest=83b71181fb62b4fe8f26067a9321448572e7a43bd04ff6c7f54a24c33698f16d
+            bin="$package/bin"
+            ;;
+          macOS)
+            package="cmake-${CMAKE_VERSION}-macos-universal"
+            archive="$package.tar.gz"
+            digest=e1fb288543e4eb2a410e385ecebc64323bda51f0205782f2b094ccd5d572ca2d
+            bin="$package/CMake.app/Contents/bin"
+            ;;
+          Windows)
+            package="cmake-${CMAKE_VERSION}-windows-x86_64"
+            archive="$package.zip"
+            digest=bfe6eadb245dc8213e0d3feea316b520cb2aae92f5667ffd76059ba6b05c430c
+            bin="$package/bin"
+            ;;
+        esac
         curl --fail --location --retry 3 --output "$archive" "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${archive}"
-        echo "83b71181fb62b4fe8f26067a9321448572e7a43bd04ff6c7f54a24c33698f16d  $archive" | sha256sum --check
-        tar -xzf "$archive"
-        echo "${RUNNER_TEMP}/cmake-${CMAKE_VERSION}-linux-x86_64/bin" >> "$GITHUB_PATH"
-
-    - name: Install CMake 4.4.0
-      if: matrix.config.cmake == '4.4.0'
-      run: python3 -m pip install "cmake==${CMAKE_VERSION}" --break-system-packages
+        checksum=$(cmake -E sha256sum "$archive")
+        if [[ "${checksum%% *}" != "$digest" ]]; then
+          echo "Unexpected SHA-256 for $archive" >&2
+          exit 1
+        fi
+        cmake -E tar xf "$archive"
+        echo "${RUNNER_TEMP}/${bin}" >> "$GITHUB_PATH"
 
     - name: Configure
+      id: configure
       run: |
-        cmake --version
-        stdlib_options=()
+        cmake --version | tr -d '\r' | grep -Fx "cmake version $CMAKE_VERSION"
+        toolchain_options=()
         if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
-          stdlib_options=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
+          toolchain_options+=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
         fi
 
-        import_std_options=()
         if [[ "$CMAKE_VERSION" == "4.4.0" && "${{ matrix.config.import_std }}" == "ON" ]]; then
-          import_std_options=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
+          toolchain_options+=(-DCMAKE_EXPERIMENTAL_CXX_IMPORT_STD=f35a9ac6-8463-4d38-8eec-5d6008153e7d)
+          if [[ "${{ matrix.config.compiler }}" == gcc-* ]]; then
+            toolchain_options+=("-DCMAKE_CXX_STDLIB_MODULES_JSON=$("$CXX" -print-file-name=libstdc++.modules.json)")
+          fi
         fi
 
-        for build_type in ${{ matrix.config.build_types }}; do
+        for build_type in $BUILD_TYPES; do
           cmake -S . -B "build-${build_type}" -G Ninja \
             -DCMAKE_BUILD_TYPE="${build_type}" \
             -DCMAKE_CXX_STANDARD=${{ matrix.config.standard }} \
@@ -103,87 +156,42 @@ jobs:
             -DMAGIC_ENUM_USE_MODULES=ON \
             -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.config.import_std }} \
             -DMAGIC_ENUM_MODULE_WITH_FMT=${{ matrix.config.fmt }} \
-            "${stdlib_options[@]}" \
-            "${import_std_options[@]}"
+            "${toolchain_options[@]}"
         done
 
     - name: Reconfigure and check import std selection
-      if: matrix.config.cmake == '4.5.1'
       run: |
-        for build_type in ${{ matrix.config.build_types }}; do
+        for build_type in $BUILD_TYPES; do
           cmake -S . -B "build-${build_type}"
           setting=$(grep '^MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=' "build-${build_type}/CMakeCache.txt")
+          setting=${setting%$'\r'}
           echo "$setting"
           [[ "$setting" == 'MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=${{ matrix.config.import_std }}' ]]
         done
 
     - name: Build
       run: |
-        for build_type in ${{ matrix.config.build_types }}; do
-          cmake --build "build-${build_type}" --target magic_enum_module_tests
+        targets=(magic_enum_module_tests)
+        if [[ "$RUNNER_OS" == Windows ]]; then
+          targets+=(magic_enum_verify_interface_header_sets)
+        fi
+        for build_type in $BUILD_TYPES; do
+          cmake --build "build-${build_type}" --target "${targets[@]}"
         done
 
     - name: Test
       run: |
-        for build_type in ${{ matrix.config.build_types }}; do
+        for build_type in $BUILD_TYPES; do
           ctest --test-dir "build-${build_type}" --output-on-failure --no-tests=error -L module
         done
 
-  windows-msvc:
-    name: Windows / VS 2026 / CMake 4.5.1 / C++${{ matrix.standard }} / IMPORT_STD=${{ matrix.import_std }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - { standard: 20, import_std: "OFF" }
-        - { standard: 23, import_std: "ON" }
-    timeout-minutes: 30
-    runs-on: windows-2025
-    defaults:
-      run:
-        shell: pwsh
-
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-
-    - name: Install pinned CMake
-      run: |
-        $archive = "$env:RUNNER_TEMP/cmake-4.5.1-windows-x86_64.zip"
-        Invoke-WebRequest "https://github.com/Kitware/CMake/releases/download/v4.5.1/cmake-4.5.1-windows-x86_64.zip" -OutFile $archive
-        if ((Get-FileHash $archive).Hash -ne 'bfe6eadb245dc8213e0d3feea316b520cb2aae92f5667ffd76059ba6b05c430c') {
-          throw 'Unexpected CMake archive checksum'
-        }
-        Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
-        "$env:RUNNER_TEMP/cmake-4.5.1-windows-x86_64/bin" >> $env:GITHUB_PATH
-
-    - name: Configure
-      run: |
-        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_CXX_STANDARD=${{ matrix.standard }} -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF `
-          -DMAGIC_ENUM_USE_MODULES=ON -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.import_std }}
-
-    - name: Reconfigure and check import std selection
-      run: |
-        cmake -S . -B build
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        if (!(Select-String -Path build/CMakeCache.txt -Pattern '^MAGIC_ENUM_MODULE_IMPORT_STD:BOOL=${{ matrix.import_std }}$' -Quiet)) {
-          throw 'Reconfiguring changed MAGIC_ENUM_MODULE_IMPORT_STD'
-        }
-
-    - name: Build
-      run: cmake --build build --target magic_enum_module_tests magic_enum_verify_interface_header_sets
-
-    - name: Test
-      run: ctest --test-dir build --output-on-failure --no-tests=error -L module
-
     - name: Check import std requires C++23
-      if: matrix.standard == 20
+      if: "!cancelled() && steps.configure.outcome == 'success' && matrix.config.import_std == 'OFF'"
       run: |
-        $log = cmake -S . -B build -DMAGIC_ENUM_MODULE_IMPORT_STD=ON 2>&1 | Out-String
-        if ($LASTEXITCODE -eq 0 -or !$log.Contains('MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23')) {
-          throw "Unexpected configure result for C++20 with import std enabled. `n$log"
-        }
-        exit 0
+        if cmake -S . -B build-reject-cpp20 -G Ninja -DCMAKE_CXX_STANDARD=20 \
+            -DMAGIC_ENUM_USE_MODULES=ON -DMAGIC_ENUM_MODULE_IMPORT_STD=ON > configure-cpp20.log 2>&1; then
+          echo "C++20 unexpectedly accepted MAGIC_ENUM_MODULE_IMPORT_STD=ON"
+          exit 1
+        fi
+        cat configure-cpp20.log
+        grep -F 'MAGIC_ENUM_MODULE_IMPORT_STD requires CMAKE_CXX_STANDARD >= 23' configure-cpp20.log
