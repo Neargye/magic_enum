@@ -21,7 +21,7 @@ defaults:
 
 jobs:
   build:
-    name: "${{ matrix.config.compiler }} / ${{ matrix.config.build_type }}"
+    name: "${{ matrix.config.compiler }}${{ matrix.config.stdlib && format(' / {0}', matrix.config.stdlib) || '' }} / ${{ matrix.config.build_type }}"
     timeout-minutes: 30
     runs-on: ${{ matrix.config.os }}
     strategy:
@@ -48,6 +48,8 @@ jobs:
         - { os: ubuntu-24.04, compiler: "clang-21", build_type: Release }
         - { os: ubuntu-24.04, compiler: "clang-22", build_type: Release }
         - { os: ubuntu-24.04, compiler: "clang-23", build_type: Release, strict: true }
+        # libc++ evaluates more std::string operations as constants, which changes Clang warnings.
+        - { os: ubuntu-24.04, compiler: "clang-23", stdlib: "libc++", build_type: Debug, strict: true }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,11 +58,13 @@ jobs:
     - uses: ./.github/actions/setup-linux-compiler
       with:
         compiler: ${{ matrix.config.compiler }}
+        stdlib: ${{ matrix.config.stdlib || 'libstdc++' }}
 
     - name: Configure
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
-          -DMAGIC_ENUM_TEST_STRICT_WARNINGS=${{ matrix.config.strict && 'ON' || 'OFF' }}
+          -DMAGIC_ENUM_TEST_STRICT_WARNINGS=${{ matrix.config.strict && 'ON' || 'OFF' }} \
+          ${{ matrix.config.stdlib == 'libc++' && '-DCMAKE_CXX_FLAGS=-stdlib=libc++' || '' }}
 
     - name: Build
       run: cmake --build build --parallel "$(nproc)"

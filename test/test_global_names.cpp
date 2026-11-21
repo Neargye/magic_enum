@@ -94,9 +94,10 @@ int global_names_use() {
   magic_enum::enum_for_each<Mode>([&](auto) { ++sum; });
   sum += magic_enum::enum_switch([](auto) { return 1; }, Mode::Write, 0);
   sum += static_cast<int>(magic_enum::enum_fuse(Mode::Read, Bits::A).has_value());
-  sum += magic_enum::enum_next_value_circular(Mode::Write) == Mode::Read ? 1 : 0;
-  sum += magic_enum::enum_flags_name(Bits::A | Bits::B) == "A|B" ? 1 : 0;
-  sum += magic_enum::enum_flags_contains<Bits>(3) ? 1 : 0;
+  // With libc++, Clang folds constexpr std::string comparisons and reports the other branch of ?: as unreachable.
+  sum += static_cast<int>(magic_enum::enum_next_value_circular(Mode::Write) == Mode::Read);
+  sum += static_cast<int>(magic_enum::enum_flags_name(Bits::A | Bits::B) == "A|B");
+  sum += static_cast<int>(magic_enum::enum_flags_contains<Bits>(3));
 
   std::ostringstream os;
   using magic_enum::iostream_operators::operator<<;
