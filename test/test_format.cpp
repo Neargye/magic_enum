@@ -22,6 +22,10 @@
 #  endif
 #  include <fmt/format.h>
 #  include <fmt/ranges.h>
+// fmt 12 declares the std::byte formatter in fmt/std.h.
+#  if __has_include(<fmt/std.h>)
+#    include <fmt/std.h>
+#  endif
 #  if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic pop
 #  endif
@@ -42,6 +46,11 @@
 
 enum class FormatNoValues {};
 enum class FormatLongName { EnumeratorWithANameLongerThanSmallStringStorage };
+
+namespace format_as_test {
+enum class Custom { First, Second };
+constexpr int format_as(Custom value) { return static_cast<int>(value) + 10; }
+} // namespace format_as_test
 
 TEST_CASE("format configuration preserves reflection") {
   CHECK(magic_enum::enum_name(Color::RED) == "red");
@@ -64,6 +73,7 @@ TEST_CASE("format-base") {
   REQUIRE(std::format("{}", static_cast<FormatNoValues>(7)) == "7");
   static_assert(!std::is_default_constructible_v<std::formatter<std::byte, char>>);
   REQUIRE(std::format("{}", std::to_integer<unsigned>(std::byte{5})) == "5");
+  REQUIRE(std::format("{}", format_as_test::Custom::Second) == "Second");
 }
 
 #endif
@@ -74,6 +84,13 @@ TEST_CASE("fmt byte formatting") {
   REQUIRE(fmt::format("{}", std::byte{5}) == "5");
   REQUIRE(fmt::format("{}", std::vector<std::byte>{std::byte{5}, std::byte{255}}) == "[5, 255]");
 }
+
+#  if FMT_VERSION >= 90000
+TEST_CASE("fmt format_as takes precedence") {
+  REQUIRE(fmt::format("{}", format_as_test::Custom::Second) == "11");
+  REQUIRE(fmt::format("{}", std::vector<format_as_test::Custom>{format_as_test::Custom::First}) == "[10]");
+}
+#  endif
 
 #endif
 

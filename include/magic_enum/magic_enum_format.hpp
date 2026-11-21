@@ -51,8 +51,13 @@
 
 namespace magic_enum::detail {
 
+// fmt formats std::byte itself (in fmt/std.h since fmt 12), and std::format does not format it.
+// Detecting fmt's formatter would depend on include order, so std::byte is always skipped.
+template <typename E>
+inline constexpr bool enable_format_v = std::is_enum_v<std::decay_t<E>> && !std::is_same_v<std::decay_t<E>, std::byte>;
+
 template <typename E, std::enable_if_t<std::is_enum_v<std::decay_t<E>>, int> = 0>
-std::string format_as(E e) {
+std::string format_enum(E e) {
   using D = std::decay_t<E>;
   static_assert(std::is_same_v<char, magic_enum::string_view::value_type>, "magic_enum::formatter requires string_view::value_type type same as char.");
   if constexpr (magic_enum::detail::supported<D>::value) {
@@ -84,10 +89,10 @@ std::string format_as(E e) {
 #if !defined(MAGIC_ENUM_NO_STD_FORMAT) && defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
 
 template <typename E>
-struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && !std::is_same_v<std::decay_t<E>, std::byte>, char>> : std::formatter<std::string_view, char> {
+struct std::formatter<E, std::enable_if_t<magic_enum::detail::enable_format_v<E>, char>> : std::formatter<std::string_view, char> {
   template <typename FormatContext>
   auto format(E e, FormatContext& ctx) const {
-    return std::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
+    return std::formatter<std::string_view, char>::format(magic_enum::detail::format_enum<E>(e), ctx);
   }
 };
 
@@ -95,11 +100,26 @@ struct std::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && !st
 
 #if !defined(MAGIC_ENUM_NO_FMT_FORMAT) && defined(FMT_VERSION)
 
+namespace magic_enum::detail {
+
+// Finds format_as only by ADL. Keep other format_as names out of the magic_enum namespaces.
+template <typename E, typename = void>
+inline constexpr bool has_format_as_v = false;
+
 template <typename E>
-struct fmt::formatter<E, std::enable_if_t<std::is_enum_v<std::decay_t<E>> && !std::is_same_v<std::decay_t<E>, std::byte>, char>> : fmt::formatter<std::string_view, char> {
+inline constexpr bool has_format_as_v<E, std::void_t<decltype(format_as(std::declval<E>()))>> = true;
+
+// fmt formats enums with an ADL format_as overload itself. fmt 9 rejects them when another formatter also matches.
+template <typename E>
+inline constexpr bool enable_fmt_format_v = enable_format_v<E> && !has_format_as_v<std::decay_t<E>>;
+
+} // namespace magic_enum::detail
+
+template <typename E>
+struct fmt::formatter<E, std::enable_if_t<magic_enum::detail::enable_fmt_format_v<E>, char>> : fmt::formatter<std::string_view, char> {
   template <typename FormatContext>
   auto format(E e, FormatContext& ctx) const {
-    return fmt::formatter<std::string_view, char>::format(magic_enum::detail::format_as<E>(e), ctx);
+    return fmt::formatter<std::string_view, char>::format(magic_enum::detail::format_enum<E>(e), ctx);
   }
 };
 

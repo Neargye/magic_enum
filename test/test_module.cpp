@@ -55,6 +55,11 @@ enum class Color { RED, GREEN, BLUE };
 enum class Directions { LEFT = 1, RIGHT = 2 };
 enum class ReflectionRange { Low = -1000, High = 1000 };
 
+#ifdef MAGIC_ENUM_TEST_FMT
+enum class FormatAs { First, Second };
+constexpr int format_as(FormatAs value) { return static_cast<int>(value) + 10; }
+#endif
+
 enum class BoolValue : bool { FALSE_VALUE = false, TRUE_VALUE = true };
 static_assert(magic_enum::enum_cast<BoolValue>("FALSE_VALUE").value() == BoolValue::FALSE_VALUE);
 static_assert(magic_enum::enum_cast<BoolValue>("TRUE_VALUE").value() == BoolValue::TRUE_VALUE);
@@ -349,6 +354,9 @@ int main() {
 #ifdef MAGIC_ENUM_TEST_FMT
   if (fmt::format("{}", Color::BLUE) != "BLUE") {
     return 7;
+  }
+  if (fmt::format("{}", FormatAs::Second) != "11") {
+    return 8;
   }
 #endif
   return 0;

@@ -1060,17 +1060,17 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_format.hpp>`
 
-* Provides `std::formatter` when `std::format` is available, and `fmt::formatter` when `{fmt}` is included first. Define `MAGIC_ENUM_NO_STD_FORMAT` or `MAGIC_ENUM_NO_FMT_FORMAT` to disable the corresponding integration, including through `magic_enum_all.hpp`. For modules, set these options when building the module.
+* Specializes `std::formatter` when `std::format` is available, and `fmt::formatter` when `{fmt}` is included first. Define `MAGIC_ENUM_NO_STD_FORMAT` or `MAGIC_ENUM_NO_FMT_FORMAT` for the whole build to disable one of them. For modules, set them when building the module.
 
-* Formats a value by name, flags joined by `|`, and other values as integers.
+* Writes the name, flags joined by `|`, or the integer for other values. Requires `magic_enum::char_type` to be `char`.
 
-* `std::byte` uses fmt's own formatter. For `std::format`, convert it with `std::to_integer<unsigned>(value)`.
+* Accepts string format specs such as `{:>10}`. Integer specs like `{:x}` are rejected, even for integer output.
 
-* Requires `magic_enum::char_type` to be `char`. Wide format strings are not supported.
+* `std::byte` is not handled. fmt formats it itself, fmt 12 and newer need `<fmt/std.h>` for that. For `std::format`, use `std::to_integer<unsigned>(value)`.
 
-* Accepts the format spec of a string, such as `{:>10}`. Integer specs like `{:x}` are rejected, also for values printed as integers.
+* With fmt, an enum with its own `format_as` overload uses it. `std::format` still writes the name.
 
-* The formatter is a partial specialization for enum types other than `std::byte`. Another partial specialization of `std::formatter` or `fmt::formatter` that matches an enum can make formatting ambiguous. A full specialization for one enum is fine. Otherwise disable the integration with the macros above.
+* A full specialization of `std::formatter` or `fmt::formatter` for one enum takes precedence. Another partial specialization for enums can be ambiguous with this one. Disable the integration in that case.
 
   ```cpp
   #include <format>

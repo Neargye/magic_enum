@@ -115,33 +115,58 @@ jobs:
       run: ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error
 
   fmt:
-    name: "fmt (${{ matrix.os }})"
+    name: "fmt ${{ matrix.config.fmt }} / ${{ matrix.config.compiler }}${{ matrix.config.stdlib && format(' / {0}', matrix.config.stdlib) || '' }}"
     timeout-minutes: 30
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-        - ubuntu-24.04
-        - ubuntu-26.04
+        # Distribution packages cover fmt 9 and 10. Newer releases are fetched by commit.
+        config:
+        - { os: ubuntu-24.04, compiler: "gcc-13", fmt: "9" }
+        - { os: ubuntu-26.04, compiler: "gcc-16", fmt: "10" }
+        - { os: ubuntu-26.04, compiler: "gcc-16", fmt: "11.2.0", commit: "40626af88bd7df9a5fb80be7b25ac85b122d6c21" }
+        - { os: ubuntu-26.04, compiler: "gcc-16", fmt: "12.2.1", commit: "208219daff58f2a7438f6931cc2ddc358acf33ef" }
+        - { os: ubuntu-24.04, compiler: "clang-23", stdlib: "libc++", fmt: "12.2.1", commit: "208219daff58f2a7438f6931cc2ddc358acf33ef" }
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+    - uses: ./.github/actions/setup-linux-compiler
+      with:
+        compiler: ${{ matrix.config.compiler }}
+        stdlib: ${{ matrix.config.stdlib || 'libstdc++' }}
 
     - name: Install fmt
+      env:
+        FMT_VERSION: ${{ matrix.config.fmt }}
+        FMT_COMMIT: ${{ matrix.config.commit }}
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libfmt-dev
+        if [[ -z "${FMT_COMMIT}" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y libfmt-dev
+          dpkg-query -W -f='${Version}\n' libfmt-dev | tee /dev/stderr | grep -q "^${FMT_VERSION}\."
+        else
+          fmt_dir="${RUNNER_TEMP}/fmt"
+          git init -q "${fmt_dir}"
+          git -C "${fmt_dir}" fetch -q --depth 1 https://github.com/fmtlib/fmt.git "${FMT_COMMIT}"
+          git -C "${fmt_dir}" checkout -q FETCH_HEAD
+          echo "CXXFLAGS=-isystem ${fmt_dir}/include" >> "${GITHUB_ENV}"
+        fi
 
     - name: Configure
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON
+      run: |
+        if [[ "${{ matrix.config.stdlib }}" == "libc++" ]]; then
+          export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+        fi
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMAGIC_ENUM_TEST_REQUIRE_FMT=ON -DMAGIC_ENUM_TEST_STRICT_WARNINGS=ON
 
     - name: Build and test
       run: |
-        cmake --build build --parallel "$(nproc)" --target test_format-cpp17
-        ctest --test-dir build --output-on-failure --no-tests=error -R "^test_format-cpp17$"
+        mapfile -t targets < <(ctest --test-dir build -N -R "^test_format" | awk '/Test +#/ { print $3 }')
+        cmake --build build --parallel "$(nproc)" --target "${targets[@]}"
+        ctest --test-dir build --parallel "$(nproc)" --output-on-failure --no-tests=error -R "^test_format"
 
   bazel:
     name: Bazel

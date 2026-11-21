@@ -28,10 +28,11 @@ jobs:
       fail-fast: false
       matrix:
         # Homebrew installs the same GCC on every image, so test it once.
+        # The strict row also uses the latest Homebrew fmt.
         config:
         - { os: macos-15, compiler: Apple Clang, build_type: Release }
         - { os: macos-26, compiler: Apple Clang, build_type: Release }
-        - { os: macos-26, compiler: Apple Clang, build_type: Debug }
+        - { os: macos-26, compiler: Apple Clang, build_type: Debug, strict: true }
         - { os: macos-26, compiler: GCC, build_type: Release }
 
     steps:
@@ -56,8 +57,18 @@ jobs:
         fi
         command -v ninja > /dev/null 2>&1 || brew install ninja
 
+    - name: Install fmt
+      if: ${{ matrix.config.strict }}
+      run: |
+        brew install fmt
+        brew list --versions fmt
+        echo "CXXFLAGS=-isystem $(brew --prefix fmt)/include" >> "${GITHUB_ENV}"
+
     - name: Configure
-      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+          -DMAGIC_ENUM_TEST_STRICT_WARNINGS=${{ matrix.config.strict && 'ON' || 'OFF' }} \
+          -DMAGIC_ENUM_TEST_REQUIRE_FMT=${{ matrix.config.strict && 'ON' || 'OFF' }}
 
     - name: Build
       run: cmake --build build --parallel "$(sysctl -n hw.logicalcpu)"
