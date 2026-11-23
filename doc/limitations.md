@@ -166,4 +166,10 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
 
 * With `MAGIC_ENUM_MODULE_IMPORT_STD=ON` on MSVC, use CMake 4.5 or newer. CMake 4.4 does not link the `import std` objects into executables, which can fail with `LNK2019`.
 
+* With `MAGIC_ENUM_MODULE_WITH_FMT=ON`:
+
+  * Build `{fmt}` with the same compiler and standard library as the module. Otherwise linking fails with undefined `fmt::vformat`.
+  * On GCC 16, use `fmt::fmt`. `fmt::fmt-header-only` fails to link with a multiple definition of `format_facet<std::locale>::id`.
+  * On MSVC, build other imported modules with `/utf-8`, which `{fmt}` adds to importers. Otherwise MSVC warns with `C5050`.
+
 * Clang 18 module consumers need `-Wno-enum-constexpr-conversion` for enums without a fixed underlying type. The CMake module target sets this option automatically.

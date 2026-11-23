@@ -33,6 +33,10 @@ if(MAGIC_ENUM_EXPECT_STD_REFLECTION)
 endif()
 
 if(MAGIC_ENUM_EXPECT_FMT)
+  get_target_property(magic_enum_module_links magic_enum::magic_enum_module INTERFACE_LINK_LIBRARIES)
+  if(NOT MAGIC_ENUM_EXPECT_FMT_TARGET IN_LIST magic_enum_module_links)
+    message(FATAL_ERROR "magic_enum::magic_enum_module links ${magic_enum_module_links}, expected ${MAGIC_ENUM_EXPECT_FMT_TARGET}")
+  endif()
   target_compile_definitions(magic_enum_installed_module_test PRIVATE MAGIC_ENUM_TEST_FMT)
 endif()
 

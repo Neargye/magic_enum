@@ -888,6 +888,10 @@ if(MAGIC_ENUM_USE_MODULES)
     set_target_properties(magic_enum_test_types PROPERTIES CXX_EXTENSIONS OFF)
     target_sources(magic_enum_test_types PUBLIC FILE_SET CXX_MODULES FILES test_module_types.cppm)
     target_compile_features(magic_enum_test_types PUBLIC cxx_std_${MAGIC_ENUM_MODULE_CXX_STANDARD})
+    if(MAGIC_ENUM_MODULE_WITH_FMT)
+      # {fmt} targets add /utf-8 on MSVC. Importers warn with C5050 if this module is built without it.
+      target_link_libraries(magic_enum_test_types PRIVATE "${MAGIC_ENUM_MODULE_FMT_TARGET}")
+    endif()
     foreach(consumer IN ITEMS test_module-${module_suffix} test_module-no-auto-${module_suffix})
       target_link_libraries(${consumer} PRIVATE magic_enum_test_types)
       target_compile_definitions(${consumer} PRIVATE MAGIC_ENUM_TEST_EXPORTED_ENUM)
@@ -937,6 +941,7 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       "-DCMAKE_PREFIX_PATH=${MAGIC_ENUM_INSTALLED_CONSUMER_PREFIX_PATH}"
       "-DMAGIC_ENUM_EXPECT_IMPORT_STD=${MAGIC_ENUM_MODULE_IMPORT_STD}"
       "-DMAGIC_ENUM_EXPECT_FMT=${MAGIC_ENUM_MODULE_WITH_FMT}"
+      "-DMAGIC_ENUM_EXPECT_FMT_TARGET=${MAGIC_ENUM_MODULE_FMT_TARGET}"
   )
   if(CMAKE_CXX_STANDARD)
     list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS

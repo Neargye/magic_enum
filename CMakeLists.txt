@@ -37,7 +37,8 @@ option(
 unset(MAGIC_ENUM_VERIFY_INTERFACE_HEADER_SETS_DEFAULT)
 option(MAGIC_ENUM_USE_MODULES "Build the magic_enum C++20 module target" OFF)
 option(MAGIC_ENUM_MODULE_IMPORT_STD "Build the module target with import std" OFF)
-option(MAGIC_ENUM_MODULE_WITH_FMT "Build the module target with fmt::fmt integration" OFF)
+option(MAGIC_ENUM_MODULE_WITH_FMT "Build the module target with {fmt} integration" OFF)
+set(MAGIC_ENUM_MODULE_FMT_TARGET "fmt::fmt" CACHE STRING "{fmt} target linked by the module target, for example fmt::fmt or fmt::fmt-header-only")
 option(MAGIC_ENUM_OPT_INSTALL_PACKAGE_XML "Include package.xml when installing" ${MAGIC_ENUM_OPT_INSTALL})
 
 if(MAGIC_ENUM_MODULE_IMPORT_STD AND NOT MAGIC_ENUM_USE_MODULES)
@@ -144,13 +145,16 @@ if(MAGIC_ENUM_OPT_VERIFY_INTERFACE_HEADER_SETS)
 endif()
 
 if(MAGIC_ENUM_MODULE_WITH_FMT)
-  if(NOT TARGET fmt::fmt)
+  if(MAGIC_ENUM_MODULE_FMT_TARGET STREQUAL "")
+    message(FATAL_ERROR "MAGIC_ENUM_MODULE_WITH_FMT requires MAGIC_ENUM_MODULE_FMT_TARGET to name a {fmt} target")
+  endif()
+  if(NOT TARGET "${MAGIC_ENUM_MODULE_FMT_TARGET}")
     find_package(fmt CONFIG REQUIRED)
   endif()
-  if(NOT TARGET fmt::fmt)
-    message(FATAL_ERROR "MAGIC_ENUM_MODULE_WITH_FMT requires fmt::fmt")
+  if(NOT TARGET "${MAGIC_ENUM_MODULE_FMT_TARGET}")
+    message(FATAL_ERROR "MAGIC_ENUM_MODULE_WITH_FMT requires target ${MAGIC_ENUM_MODULE_FMT_TARGET}. Set MAGIC_ENUM_MODULE_FMT_TARGET to an existing {fmt} target")
   endif()
-  message(STATUS "magic_enum module: using fmt::fmt")
+  message(STATUS "magic_enum module: using ${MAGIC_ENUM_MODULE_FMT_TARGET}")
 endif()
 
 function(magic_enum_make_module_library name)
@@ -178,8 +182,8 @@ function(magic_enum_make_module_library name)
 
   # Module-only definitions stay private. CMake exports them for installed module sources without propagating them to importers.
   if(MAGIC_ENUM_MODULE_WITH_FMT)
-    # Use fmt::fmt until fmt provides stable installed C++ module support.
-    target_link_libraries(${name} PUBLIC fmt::fmt)
+    # Use the {fmt} headers until fmt provides stable installed C++ module support.
+    target_link_libraries(${name} PUBLIC "${MAGIC_ENUM_MODULE_FMT_TARGET}")
     target_compile_definitions(${name} PRIVATE MAGIC_ENUM_USE_FMT_HEADER)
   endif()
 
@@ -291,7 +295,7 @@ if(MAGIC_ENUM_OPT_INSTALL)
   set(MAGIC_ENUM_FIND_DEPENDENCIES)
   if(MAGIC_ENUM_MODULE_WITH_FMT)
     string(APPEND MAGIC_ENUM_FIND_DEPENDENCIES
-           "if(NOT TARGET fmt::fmt)\n  find_dependency(fmt CONFIG)\nendif()\n"
+           "if(NOT TARGET \"${MAGIC_ENUM_MODULE_FMT_TARGET}\")\n  find_dependency(fmt CONFIG)\nendif()\n"
     )
   endif()
 

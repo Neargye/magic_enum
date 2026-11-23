@@ -31,11 +31,12 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          # fmt names the {fmt} target linked by the module. GCC 16 cannot link fmt::fmt-header-only, see doc/limitations.md.
+          - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "fmt::fmt-header-only", build_types: "Release Debug" }
           - { os: "ubuntu-24.04", compiler: "clang-19", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Debug" }
-          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "ON", build_types: "Release" }
+          - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 20, stdlib: "libstdc++", import_std: "OFF", fmt: "fmt::fmt", build_types: "Release" }
           - { os: "ubuntu-26.04", compiler: "gcc-16", cmake: "4.5.1", standard: 26, stdlib: "libstdc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
-          - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "OFF", build_types: "Release Debug" }
+          - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "OFF", fmt: "fmt::fmt", build_types: "Release Debug" }
           - { os: "macos-26", compiler: "clang-22", cmake: "4.5.1", standard: 23, stdlib: "libc++", import_std: "ON", fmt: "OFF", build_types: "Release" }
           - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 20, stdlib: "MSVC STL", import_std: "OFF", fmt: "OFF", build_types: "Release" }
           - { os: "windows-2025", compiler: "MSVC", cmake: "4.5.1", standard: 23, stdlib: "MSVC STL", import_std: "ON", fmt: "OFF", build_types: "Release" }
@@ -83,10 +84,17 @@ jobs:
         "${llvm_prefix}/bin/clang++" --version
 
     - name: Install fmt
-      if: ${{ matrix.config.fmt == 'ON' }}
+      if: ${{ matrix.config.fmt != 'OFF' }}
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libfmt-dev
+        if [[ "$RUNNER_OS" == macOS ]]; then
+          # The Homebrew bottle is built with Apple Clang and libc++.
+          brew install fmt
+          brew list --versions fmt
+          echo "FMT_PREFIX=$(brew --prefix fmt)" >> "${GITHUB_ENV}"
+        else
+          sudo apt-get update
+          sudo apt-get install -y libfmt-dev
+        fi
 
     - name: Install CMake 4.4.0
       if: matrix.config.cmake == '4.4.0'
@@ -134,6 +142,15 @@ jobs:
           toolchain_options+=(-DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++)
         fi
 
+        if [[ "${{ matrix.config.fmt }}" == "OFF" ]]; then
+          toolchain_options+=(-DMAGIC_ENUM_MODULE_WITH_FMT=OFF)
+        else
+          toolchain_options+=(-DMAGIC_ENUM_MODULE_WITH_FMT=ON "-DMAGIC_ENUM_MODULE_FMT_TARGET=${{ matrix.config.fmt }}")
+          if [[ -n "${FMT_PREFIX:-}" ]]; then
+            toolchain_options+=("-DCMAKE_PREFIX_PATH=${FMT_PREFIX}")
+          fi
+        fi
+
         if [[ "${{ matrix.config.import_std }}" == "ON" ]]; then
           if [[ "$CMAKE_VERSION" == "4.4.0" ]]; then
             # The gate value belongs to this CMake release. CMake 4.5 needs no gate.
@@ -155,7 +172,6 @@ jobs:
             -DCMAKE_CXX_EXTENSIONS=OFF \
             -DMAGIC_ENUM_USE_MODULES=ON \
             -DMAGIC_ENUM_MODULE_IMPORT_STD=${{ matrix.config.import_std }} \
-            -DMAGIC_ENUM_MODULE_WITH_FMT=${{ matrix.config.fmt }} \
             "${toolchain_options[@]}"
         done
 

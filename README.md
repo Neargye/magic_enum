@@ -348,7 +348,7 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
   Use either the headers or the module in the whole program. Build and use an installed module with the same compiler, standard library and C++ standard. pkg-config provides only the header-only target.
 
   Optional settings:
-  - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` through `fmt::fmt`. The `{fmt}` module is not supported.
+  - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` support. The `{fmt}` module is not supported. `MAGIC_ENUM_MODULE_FMT_TARGET` selects the `{fmt}` target, `fmt::fmt` by default, for example `fmt::fmt-header-only`.
   - `MAGIC_ENUM_MODULE_IMPORT_STD=ON` enables `import std`. It requires `CMAKE_CXX_STANDARD` 23 or later, CMake 3.31+, a Ninja generator and a toolchain with `import std` support. Before CMake 4.5, also set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` before `project()`.
 
 ## Compiler compatibility
