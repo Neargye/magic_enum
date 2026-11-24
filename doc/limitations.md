@@ -164,6 +164,8 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
   * GCC 15 does not export `containers::get`, `make_array` and `to_array`, can report unused parameters in magic_enum code and fails with `import std`.
   * GCC 14 and older cannot read the compiled module.
 
+* GCC 16 with `-freflection` rejects importers without `import std`, for example with conflicting `__mbstate_t` declarations ([GCC bug 125787](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=125787)). Use `MAGIC_ENUM_MODULE_IMPORT_STD=ON` and `import std` in importers, or build without `-freflection`.
+
 * With `MAGIC_ENUM_MODULE_IMPORT_STD=ON` on MSVC, use CMake 4.5 or newer. CMake 4.4 does not link the `import std` objects into executables, which can fail with `LNK2019`.
 
 * With `MAGIC_ENUM_MODULE_WITH_FMT=ON`:

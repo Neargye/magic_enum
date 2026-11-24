@@ -51,6 +51,11 @@ foreach(MAGIC_ENUM_TEST_STANDARD IN LISTS MAGIC_ENUM_TEST_STANDARDS)
     MAGIC_ENUM_HAS_CPP${MAGIC_ENUM_TEST_STANDARD}_FLAG
   )
 endforeach()
+# MSVC 19.5x accepts C++23 only as /std:c++23preview. The tests set CXX_STANDARD 23, so CMake picks the flag.
+if(MSVC AND NOT MAGIC_ENUM_HAS_CPP23_FLAG)
+  check_cxx_compiler_flag(/std:c++23preview MAGIC_ENUM_HAS_CPP23_PREVIEW_FLAG)
+  set(MAGIC_ENUM_HAS_CPP23_FLAG ${MAGIC_ENUM_HAS_CPP23_PREVIEW_FLAG})
+endif()
 
 set(MAGIC_ENUM_TEST_STD_REFLECTION_COMPILE_OPTIONS)
 set(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION FALSE)
@@ -111,19 +116,14 @@ if(MAGIC_ENUM_USE_MODULES AND NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
   )
 endif()
 
-if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_USE_MODULES AND
-   MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
-  foreach(module_target IN ITEMS
-      magic_enum_module
-      magic_enum_module_test-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
-      magic_enum_module_test_aliases-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD}
-      magic_enum_module_test_wchar_t-cpp${MAGIC_ENUM_MODULE_CXX_STANDARD})
-    if(TARGET ${module_target})
-      magic_enum_add_std_reflection_options(${module_target})
-    endif()
-  endforeach()
-  if(TARGET example_module_usage)
-    magic_enum_add_std_reflection_options(example_module_usage)
+# The public module and examples keep the flags of the build. GCC 16 with -freflection rejects importers
+# without import std (GCC bug 125787), so test modules get it only with import std.
+set(MAGIC_ENUM_TEST_MODULE_STD_REFLECTION FALSE)
+if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
+  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT OR
+     (MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_MODULE_IMPORT_STD AND
+      NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION))
+    set(MAGIC_ENUM_TEST_MODULE_STD_REFLECTION TRUE)
   endif()
 endif()
 
@@ -210,7 +210,7 @@ function(magic_enum_make_compile_fail_test category case_name case_id expected_t
   endif()
 endfunction()
 
-function(magic_enum_make_module_test src target module_target)
+function(magic_enum_make_module_test src target module_target std_reflection)
   add_executable(${target} ${src})
   target_link_libraries(${target} PRIVATE magic_enum_test_options)
   if(MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
@@ -225,9 +225,11 @@ function(magic_enum_make_module_test src target module_target)
       CXX_SCAN_FOR_MODULES ON
   )
   magic_enum_set_module_std(${target} MAGIC_ENUM_TEST_IMPORT_STD)
-  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND
-     MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
+  if(std_reflection)
     magic_enum_add_std_reflection_options(${target})
+    if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+      magic_enum_add_std_reflection_options(${module_target})
+    endif()
     target_compile_definitions(${target} PRIVATE MAGIC_ENUM_TEST_STD_REFLECTION=1)
   endif()
   add_test(NAME ${target} COMMAND ${target})
@@ -867,7 +869,9 @@ endif()
 
 if(MAGIC_ENUM_USE_MODULES)
   set(module_suffix cpp${MAGIC_ENUM_MODULE_CXX_STANDARD})
-  magic_enum_make_module_test(test_module.cpp test_module-${module_suffix} magic_enum_module_test-${module_suffix})
+  magic_enum_make_module_test(test_module.cpp test_module-${module_suffix} magic_enum_module_test-${module_suffix}
+    ${MAGIC_ENUM_TEST_MODULE_STD_REFLECTION}
+  )
   if(MAGIC_ENUM_MODULE_WITH_FMT)
     target_compile_definitions(test_module-${module_suffix} PRIVATE MAGIC_ENUM_TEST_FMT)
   endif()
@@ -875,15 +879,15 @@ if(MAGIC_ENUM_USE_MODULES)
   # Installed packages expose one module with the configuration fixed at build time.
   if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
     magic_enum_make_module_library(magic_enum_module_test_no_auto-${module_suffix} MAGIC_ENUM_NO_AUTO_IS_FLAGS)
-    magic_enum_make_module_test(test_module.cpp test_module-no-auto-${module_suffix} magic_enum_module_test_no_auto-${module_suffix})
+    magic_enum_make_module_test(test_module.cpp test_module-no-auto-${module_suffix} magic_enum_module_test_no_auto-${module_suffix}
+      ${MAGIC_ENUM_TEST_MODULE_STD_REFLECTION}
+    )
     target_compile_definitions(test_module-no-auto-${module_suffix} PRIVATE MAGIC_ENUM_TEST_NO_AUTO_IS_FLAGS)
     magic_enum_make_module_library(magic_enum_module_test_no_check_multibit-${module_suffix} MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS)
-    magic_enum_make_module_test(test_module.cpp test_module-no-check-multibit-${module_suffix} magic_enum_module_test_no_check_multibit-${module_suffix})
+    magic_enum_make_module_test(test_module.cpp test_module-no-check-multibit-${module_suffix} magic_enum_module_test_no_check_multibit-${module_suffix}
+      ${MAGIC_ENUM_TEST_MODULE_STD_REFLECTION}
+    )
     target_compile_definitions(test_module-no-check-multibit-${module_suffix} PRIVATE MAGIC_ENUM_TEST_NO_CHECK_MULTIBIT_FLAGS)
-    if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
-      magic_enum_add_std_reflection_options(magic_enum_module_test_no_auto-${module_suffix})
-      magic_enum_add_std_reflection_options(magic_enum_module_test_no_check_multibit-${module_suffix})
-    endif()
     add_library(magic_enum_test_types)
     set_target_properties(magic_enum_test_types PROPERTIES CXX_EXTENSIONS OFF)
     target_sources(magic_enum_test_types PUBLIC FILE_SET CXX_MODULES FILES test_module_types.cppm)
@@ -896,22 +900,23 @@ if(MAGIC_ENUM_USE_MODULES)
       target_link_libraries(${consumer} PRIVATE magic_enum_test_types)
       target_compile_definitions(${consumer} PRIVATE MAGIC_ENUM_TEST_EXPORTED_ENUM)
     endforeach()
+    # Their configuration files include standard headers.
     foreach(test_variant IN ITEMS _aliases _wchar_t)
       magic_enum_make_module_test(
         test_module${test_variant}.cpp
         test_module${test_variant}-${module_suffix}
         magic_enum_module_test${test_variant}-${module_suffix}
+        FALSE
       )
     endforeach()
   endif()
 
   # CI builds this target and runs the tests labeled module.
   set(module_tests test_module-${module_suffix})
-  # GCC 16 with -freflection rejects import std after a configuration file that includes standard headers.
-  if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION AND
-     NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND MAGIC_ENUM_MODULE_IMPORT_STD AND
-          MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26))
-    list(APPEND module_tests test_module_aliases-${module_suffix} test_module_wchar_t-${module_suffix})
+  if(NOT MAGIC_ENUM_OPT_TEST_INSTALLED_VERSION)
+    foreach(test_variant IN ITEMS -no-auto -no-check-multibit _aliases _wchar_t)
+      list(APPEND module_tests test_module${test_variant}-${module_suffix})
+    endforeach()
   endif()
   set_tests_properties(${module_tests} PROPERTIES LABELS module)
   add_custom_target(magic_enum_module_tests)
@@ -973,7 +978,8 @@ if(MAGIC_ENUM_USE_MODULES AND MAGIC_ENUM_OPT_INSTALL AND
       )
     endif()
   endif()
-  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION AND
+  # The installed module uses standard reflection only when the flags of the build enable it.
+  if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION_BY_DEFAULT AND
      MAGIC_ENUM_MODULE_CXX_STANDARD GREATER_EQUAL 26)
     list(APPEND MAGIC_ENUM_INSTALLED_CONSUMER_BUILD_OPTIONS
          "-DMAGIC_ENUM_EXPECT_STD_REFLECTION=ON"
