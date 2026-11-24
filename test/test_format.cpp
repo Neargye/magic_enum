@@ -10,6 +10,7 @@
 #include <magic_enum/magic_enum_bitwise.hpp>
 
 #include <cstddef>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -36,6 +37,14 @@
 #  error "MAGIC_ENUM_TEST_REQUIRE_FMT requires <fmt/format.h>."
 #endif
 
+namespace format_as_hidden {
+enum class Plain { Value };
+} // namespace format_as_hidden
+
+// Visible to ordinary lookup in magic_enum_format.hpp, but not found by ADL for format_as_hidden::Plain.
+template <typename T, std::enable_if_t<std::is_same_v<T, format_as_hidden::Plain>, int> = 0>
+constexpr int format_as(T) { return 0; }
+
 #include <magic_enum/magic_enum_format.hpp>
 
 #if defined(MAGIC_ENUM_NO_STD_FORMAT) && __has_include(<format>) && ((defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L)
@@ -50,6 +59,8 @@ enum class FormatLongName { EnumeratorWithANameLongerThanSmallStringStorage };
 namespace format_as_test {
 enum class Custom { First, Second };
 constexpr int format_as(Custom value) { return static_cast<int>(value) + 10; }
+enum class Text { First };
+constexpr std::string_view format_as(Text) { return "text"; }
 } // namespace format_as_test
 
 TEST_CASE("format configuration preserves reflection") {
@@ -74,6 +85,7 @@ TEST_CASE("format-base") {
   static_assert(!std::is_default_constructible_v<std::formatter<std::byte, char>>);
   REQUIRE(std::format("{}", std::to_integer<unsigned>(std::byte{5})) == "5");
   REQUIRE(std::format("{}", format_as_test::Custom::Second) == "Second");
+  REQUIRE(std::format("{}", format_as_test::Text::First) == "First");
 }
 
 #endif
@@ -89,6 +101,18 @@ TEST_CASE("fmt byte formatting") {
 TEST_CASE("fmt format_as takes precedence") {
   REQUIRE(fmt::format("{}", format_as_test::Custom::Second) == "11");
   REQUIRE(fmt::format("{}", std::vector<format_as_test::Custom>{format_as_test::Custom::First}) == "[10]");
+}
+#  endif
+
+#  if !defined(MAGIC_ENUM_NO_FMT_FORMAT)
+TEST_CASE("fmt format_as lookup") {
+  REQUIRE(fmt::format("{}", format_as_hidden::Plain::Value) == "Value");
+  // fmt 9 uses format_as for enums only when it returns an integer.
+#    if FMT_VERSION >= 100000
+  REQUIRE(fmt::format("{}", format_as_test::Text::First) == "text");
+#    else
+  REQUIRE(fmt::format("{}", format_as_test::Text::First) == "First");
+#    endif
 }
 #  endif
 

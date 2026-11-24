@@ -102,12 +102,24 @@ struct std::formatter<E, std::enable_if_t<magic_enum::detail::enable_format_v<E>
 
 namespace magic_enum::detail {
 
-// Finds format_as only by ADL. Keep other format_as names out of the magic_enum namespaces.
+// Hides format_as names from enclosing namespaces, so only ADL finds an overload.
+void format_as() = delete;
+
+// fmt 11 passes a const lvalue to format_as, older versions pass an rvalue.
+#  if FMT_VERSION >= 110000
+template <typename E>
+using format_as_result_t = decltype(format_as(std::declval<const E&>()));
+#  else
+template <typename E>
+using format_as_result_t = decltype(format_as(std::declval<E>()));
+#  endif
+
+// fmt 9 uses format_as for enums only when it returns an integer.
 template <typename E, typename = void>
 inline constexpr bool has_format_as_v = false;
 
 template <typename E>
-inline constexpr bool has_format_as_v<E, std::void_t<decltype(format_as(std::declval<E>()))>> = true;
+inline constexpr bool has_format_as_v<E, std::void_t<format_as_result_t<E>>> = FMT_VERSION >= 100000 || std::is_integral_v<format_as_result_t<E>>;
 
 // fmt formats enums with an ADL format_as overload itself. fmt 9 rejects them when another formatter also matches.
 template <typename E>

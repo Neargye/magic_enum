@@ -1068,7 +1068,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * `std::byte` is not handled. fmt formats it itself, fmt 12 and newer need `<fmt/std.h>` for that. For `std::format`, use `std::to_integer<unsigned>(value)`.
 
-* With fmt, an enum with its own `format_as` overload uses it. `std::format` still writes the name.
+* With fmt, an enum with its own `format_as` overload found by ADL uses it. fmt 9 uses it only when it returns an integer. `std::format` still writes the name.
 
 * A full specialization of `std::formatter` or `fmt::formatter` for one enum takes precedence. Another partial specialization for enums can be ambiguous with this one. Disable the integration in that case.
 
