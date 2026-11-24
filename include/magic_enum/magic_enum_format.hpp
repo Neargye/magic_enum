@@ -103,7 +103,8 @@ struct std::formatter<E, std::enable_if_t<magic_enum::detail::enable_format_v<E>
 namespace magic_enum::detail {
 
 // Hides format_as names from enclosing namespaces, so only ADL finds an overload.
-void format_as() = delete;
+// Not deleted because GCC 15 and older reject a deleted candidate here instead of failing substitution.
+void format_as();
 
 // fmt 11 passes a const lvalue to format_as, older versions pass an rvalue.
 #  if FMT_VERSION >= 110000
