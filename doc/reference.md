@@ -53,7 +53,7 @@
 
 * `MAGIC_ENUM_SUPPORTED` and `magic_enum::is_magic_enum_supported` report compiler support. Defining `MAGIC_ENUM_NO_CHECK_SUPPORT` makes `is_magic_enum_supported` true and skips the check. Otherwise reflection functions fail to compile on an unsupported compiler.
 
-* C++26 reflection is selected automatically when available. Define `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to require it. See [limitations](limitations.md#c26-standard-reflection).
+* C++26 standard reflection is selected automatically when available. Define `MAGIC_ENUM_REQUIRE_STD_REFLECTION` to require it. See [limitations](limitations.md#c26-standard-reflection).
 
 * `Enum<T>` restricts C++17 function parameters to enum types.
 
@@ -394,7 +394,7 @@ struct enum_range {
 
 * `prefix_length` strips a prefix from reflected names and defaults to `0`. It must leave at least one character. Custom names are not affected.
 
-* `min` and `max` set the scan range for compiler-specific reflection. Flags and standard reflection ignore them. See [range limits](limitations.md#enum-range).
+* `min` and `max` set the scan range for compiler-specific reflection. Flags and standard reflection ignore them. See [scan range](limitations.md#enum-range).
 
 * `as_flags<>` and `as_common<>` override the default mode for one call. Invalid customization still produces an error.
 
@@ -984,7 +984,7 @@ basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is, E& valu
 
 * Placement follows the [iostream macro rules](#magic_enum_define_iostream_operators). These operators take precedence over the operator namespace.
 
-* These operators enable automatic flag reflection unless `is_flags = false` or `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables it. The macro itself does not depend on reflection.
+* These operators select flags automatically unless `is_flags = false` or `MAGIC_ENUM_NO_AUTO_IS_FLAGS` disables it. The macro itself does not depend on reflection.
 
 * Without a fixed underlying type, `~` can be [undefined behavior](limitations.md#operators).
 
@@ -1030,7 +1030,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept;
 
 * Defined in header `<magic_enum/magic_enum_bitwise.hpp>`. `<magic_enum/magic_enum.hpp>` does not provide it.
 
-* Provides bitwise operators for all enums. Use it for function-local enums or with the module. A `using namespace` directive does not enable automatic flag reflection. A namespace-scope using-declaration of `operator|` and `operator&` does, for every enum of that namespace.
+* Provides bitwise operators for all enums. Use it for function-local enums or with the module. A `using namespace` directive does not select flags automatically. A namespace-scope using-declaration of `operator|` and `operator&` does, for every enum of that namespace.
 
 * The same `~` rule applies as for [`MAGIC_ENUM_DEFINE_BITWISE_OPERATORS`](#magic_enum_define_bitwise_operators).
 
@@ -1163,7 +1163,7 @@ class bitset {
 
   constexpr bitset(std::initializer_list<E> starters);
 
-  constexpr explicit bitset(E starter); // Only for flag enums.
+  constexpr explicit bitset(E starter); // Only for flags enums.
 
   template <typename Cmp = std::equal_to<>>
   constexpr explicit bitset(string_view sv, char_type sep = '|', Cmp&& cmp = {});
@@ -1172,7 +1172,7 @@ class bitset {
 
   constexpr iterator find(E pos) noexcept;
 
-  constexpr explicit operator E() const; // Only for flag enums.
+  constexpr explicit operator E() const; // Only for flags enums.
 
   template <typename String = string>
   constexpr String to_string(char_type sep = '|') const;
@@ -1187,7 +1187,7 @@ class bitset {
   // Most other members follow std::bitset, with positions of type E. There are no shift operators.
 };
 
-template <typename E> // Only for flag enums.
+template <typename E> // Only for flags enums.
 explicit bitset(E starter) -> bitset<E>;
 ```
 
@@ -1210,13 +1210,13 @@ explicit bitset(E starter) -> bitset<E>;
 
 * `test`, `set`, `reset` and `flip` reject invalid positions with `std::out_of_range`. `operator[]` requires a valid position, and `find` returns `end()` for an invalid or unset one. Zero and combinations are not positions for flags. Use `none()` to check for emptiness.
 
-* A flag enum with only a named zero cannot be used with `bitset`.
+* A flags enum with only a named zero cannot be used with `bitset`.
 
 * For flags, the single-value and initializer-list constructors take masks. Unknown bits throw `std::invalid_argument`, and zero adds nothing. Convert back with `static_cast<E>(bits)`. To apply a mask, use `bits |= bitset<E>(mask)`, `&=` or `^=`.
 
-* For non-flag enums, construct from a list of reflected values, including zero. An invalid value throws `std::out_of_range`. The single-mask constructor and conversion to `E` exist only for flags.
+* For common enums, construct from a list of reflected values, including zero. An invalid value throws `std::out_of_range`. The single-mask constructor and conversion to `E` exist only for flags.
 
-* String construction follows the [flags grammar](#enum_flags), but an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`. For flags, `"None|A"` sets only `A`. For non-flag enums, a zero name sets its position.
+* String construction follows the [flags grammar](#enum_flags), but an empty string gives an empty bitset. Unknown names throw `std::invalid_argument`. For flags, `"None|A"` sets only `A`. For common enums, a zero name sets its position.
 
 * `to_string<String>()` has the same [`String` requirements](#enum_flags) as `enum_flags_name`.
 

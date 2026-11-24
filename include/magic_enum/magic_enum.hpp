@@ -839,7 +839,7 @@ MAGIC_ENUM_CONSTEVAL auto enum_name() noexcept {
     constexpr auto prefix = prefix_length_v<E>;
     // An unnamed value has no prefix to strip.
     constexpr bool valid_prefix = name.size_ == 0 || valid_prefix_length(prefix, name.size_);
-    static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
+    static_assert(valid_prefix, "magic_enum::customize prefix_length must leave at least one character of each reflected name.");
     if constexpr (name.size_ != 0 && valid_prefix) {
       return static_str<name.size_ - prefix>{name.str_ + prefix};
     } else {
@@ -929,7 +929,7 @@ MAGIC_ENUM_CONSTEVAL enum_subtype subtype() noexcept {
     } else if constexpr (adl_flags::has_operators<E>::value) {
 #  if !defined(MAGIC_ENUM_NO_CHECK_MULTIBIT_FLAGS)
       if constexpr (CheckMultibit) {
-        static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags = false to keep it, or = true to reflect single bits only.");
+        static_assert(!has_named_multibit<enum_definition_t<E>>(), "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set. Set magic_enum::customize::enum_range<E>::is_flags = false to keep it, or = true to reflect single bits only. Define MAGIC_ENUM_NO_AUTO_IS_FLAGS to disable detection for the whole build.");
       }
 #  endif
       return enum_subtype::flags;
@@ -1053,7 +1053,7 @@ template <typename E, enum_subtype S>
 consteval std::size_t table_size() noexcept {
   static_assert(table_v<E, S>.names_valid, "magic_enum::customize::enum_name requires a non-empty name. Return invalid_tag to exclude a value.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");
-  static_assert(table_v<E, S>.prefixes_valid, "magic_enum::customize requires valid prefix length.");
+  static_assert(table_v<E, S>.prefixes_valid, "magic_enum::customize prefix_length must leave at least one character of each reflected name.");
   return table_v<E, S>.size;
 }
 
@@ -1460,7 +1460,7 @@ MAGIC_ENUM_CONSTEVAL auto scan() noexcept {
   static_assert(offsets.names_valid, "magic_enum::customize::enum_name requires a non-empty name. Return invalid_tag to exclude a value.");
   static_assert(valid_custom_zero<E>(), "magic_enum::customize::enum_name cannot add an undeclared enum value.");
   constexpr bool valid_prefix = valid_prefixes<E>(offsets);
-  static_assert(valid_prefix, "magic_enum::customize requires valid prefix length.");
+  static_assert(valid_prefix, "magic_enum::customize prefix_length must leave at least one character of each reflected name.");
   scan_t<E, offsets.count, valid_prefix ? chars_size<E, Min, S>(offsets) : 0> result;
   if constexpr (offsets.count > 0 && valid_prefix) {
     // A negative sign bit flag goes first, so values ascend as in the standard reflection table.
@@ -2172,7 +2172,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_min() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_min requires at least one reflected enum value.");
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_min requires at least one reflected enum value. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::values_v<D, S>.front();
 }
@@ -2181,7 +2181,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_max() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_max requires at least one reflected enum value.");
+  static_assert(detail::count_v<D, S> > 0, "magic_enum::enum_max requires at least one reflected enum value. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::values_v<D, S>.back();
 }
@@ -2191,7 +2191,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_value(std::size_t index) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_value requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_value requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   MAGIC_ENUM_ASSERT(index < detail::count_v<D, S>);
 
   if constexpr (detail::is_sparse_v<D, S>) {
@@ -2212,7 +2212,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, std::size_t J, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_value() noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_value requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_value requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   static_assert(J < detail::count_v<D, S>, "magic_enum::enum_value out of range.");
 
   return enum_value<D, S>(J);
@@ -2222,7 +2222,7 @@ template <typename E, std::size_t J, detail::enum_subtype S = detail::subtype_v<
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_values() noexcept -> detail::enable_if_t<E, detail::values_t<E, S>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_values requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_values requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::values_v<D, S>;
 }
@@ -2243,7 +2243,7 @@ template <typename E>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_index requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_index requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
     return i;
@@ -2261,7 +2261,7 @@ template <detail::enum_subtype S, typename E>
 template <auto V, detail::enum_subtype S = detail::subtype_v<decltype(V)>>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
   using D = std::decay_t<decltype(V)>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_index requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_index requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   constexpr auto index = enum_index<D, S>(V);
   static_assert(index, "magic_enum::enum_index enum value has no index.");
 
@@ -2282,7 +2282,7 @@ template <auto V>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_name requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_name requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
     return detail::names_v<D, S>[i];
@@ -2300,7 +2300,7 @@ template <detail::enum_subtype S, typename E>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_names() noexcept -> detail::enable_if_t<E, detail::names_t<E, S>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_names requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_names requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::names_v<D, S>;
 }
@@ -2309,7 +2309,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_entries() noexcept -> detail::enable_if_t<E, detail::entries_t<E, S>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_entries requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_entries requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::entries_v<D, S>;
 }
@@ -2321,7 +2321,7 @@ inline constexpr auto case_insensitive = detail::case_insensitive<>{};
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I = underlying_type_t<std::decay_t<E>>, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
 [[nodiscard]] constexpr auto enum_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   if (detail::in_underlying_range<D>(value) && detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>) {
     return static_cast<D>(static_cast<underlying_type_t<D>>(value));
@@ -2333,7 +2333,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I 
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_cast(string_view value, [[maybe_unused]] BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_cast requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
   if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, detail::constexpr_hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {
@@ -2357,7 +2357,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>;
 }
@@ -2373,7 +2373,7 @@ template <detail::enum_subtype S, typename E>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I, std::enable_if_t<detail::is_integer_input_v<I> && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::in_underlying_range<D>(value) && detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)) < detail::count_v<D, S>;
 }
@@ -2382,7 +2382,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename I,
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_contains(string_view value, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
   if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, detail::constexpr_hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {

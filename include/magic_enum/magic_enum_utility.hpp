@@ -92,7 +92,7 @@ constexpr E circular_value(E value, std::ptrdiff_t n) noexcept {
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, detail::enable_if_t<E, int> = 0>
 constexpr auto enum_for_each(F&& f) {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_for_each requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_for_each requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   return detail::for_each<D, S>(std::forward<F>(f), std::make_index_sequence<detail::count_v<D, S>>{});
 }
 
@@ -100,7 +100,7 @@ constexpr auto enum_for_each(F&& f) {
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_next_value requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_next_value requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
@@ -117,7 +117,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_next_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_next_value_circular requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_next_value_circular requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   return detail::circular_value<D, S, false>(value, n);
 }
 
@@ -125,7 +125,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_prev_value requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_prev_value requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   constexpr std::ptrdiff_t count = detail::count_v<D, S>;
 
   if (const auto i = detail::index_of<D, S>(static_cast<underlying_type_t<D>>(value)); i < detail::count_v<D, S>) {
@@ -142,7 +142,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 [[nodiscard]] constexpr auto enum_prev_value_circular(E value, std::ptrdiff_t n = 1) noexcept -> detail::enable_if_t<E, std::decay_t<E>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_prev_value_circular requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_prev_value_circular requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   return detail::circular_value<D, S, true>(value, n);
 }
 

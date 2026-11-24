@@ -49,7 +49,7 @@ namespace detail {
 template <typename E>
 MAGIC_ENUM_CONSTEVAL std::size_t fuse_bit_width() noexcept {
   constexpr auto count = enum_count<E>();
-  static_assert(count > 0, "magic_enum::enum_fuse requires a non-empty reflected enum.");
+  static_assert(count > 0, "magic_enum::enum_fuse requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   return log2((count << 1) - 1);
 }
 

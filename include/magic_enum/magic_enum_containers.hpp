@@ -1245,7 +1245,7 @@ explicit bitset(V starter) -> bitset<V>;
 template <typename E, typename Cmp = std::less<E>>
 class set {
   static_assert(std::is_enum_v<E>, "magic_enum::containers::set requires enum type.");
-  static_assert(detail::valid_indexing<E, detail::indexing<E, Cmp>>(), "magic_enum::containers::set requires a non-empty reflected enum.");
+  static_assert(detail::valid_indexing<E, detail::indexing<E, Cmp>>(), "magic_enum::containers::set requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   using index_type = detail::indexing<E, Cmp>;
 

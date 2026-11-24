@@ -33,9 +33,9 @@ Standard reflection is selected automatically when available, for example on GCC
 
 * Define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build to disable automatic detection. Explicit `is_flags = true`, `.flag<true>()` and `as_flags<>` still work.
 
-* Declare operators and customization before the first reflection use, consistently across translation units. Operators whose constraints depend on reflection need an explicit mode.
+* Declare operators and customization before the first reflection use, consistently across translation units.
 
-* Operator templates can select flags for unrelated enums or fail during return-type deduction. Constrain them to flag enums, or set an explicit mode.
+* Operator templates can select flags for unrelated enums or fail during return-type deduction. Constrain them with your own trait or `enum_range<E>::is_flags`, or set an explicit mode. Constraints that use reflection, such as `is_flags_enum_v<E>`, need an explicit mode.
 
 * Only a named zero and named single bits are reflected. Use name customization to hide unwanted values.
 

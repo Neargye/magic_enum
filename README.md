@@ -199,7 +199,7 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
   magic_enum::is_flags_enum_v<Directions>; // -> true
   ```
 
-  **Note:** bitwise operators found through ADL automatically enable [flag reflection](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. Automatic detection fails to compile if a named value has more than one bit set, such as `All = A | B`. Set `is_flags` explicitly for such enums. To keep common reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.
+  **Note:** bitwise operators found through ADL automatically select [flags](doc/limitations.md#enum-flags). Only named zero and single bits are reflected. For combinations, `enum_flags_name` joins their bit names. Automatic detection fails to compile if a named value has more than one bit set, such as `All = A | B`. Set `is_flags` explicitly for such enums. To keep common reflection, set `customize::enum_range<E>::is_flags = false` or define `MAGIC_ENUM_NO_AUTO_IS_FLAGS` for the whole build.
 
 * Enum type name
 
@@ -257,7 +257,7 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
   static_assert(magic_enum::is_scoped_enum_v<direction>);
   ```
 
-* Compile-time enum value to string, without the `enum_range` [limit](doc/limitations.md).
+* Compile-time enum value to string, without the [scan range](doc/limitations.md#enum-range).
 
   ```cpp
   constexpr Color color = Color::BLUE;
@@ -322,6 +322,7 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
 
 * **CMake targets**:
   - `magic_enum::magic_enum` is the header-only target.
+  - `magic_enum_verify_interface_header_sets` checks that each public header compiles on its own. It is not built by default. `MAGIC_ENUM_OPT_VERIFY_INTERFACE_HEADER_SETS` creates it, on by default for a top-level build with CMake 3.24+.
   - `magic_enum::magic_enum_module` is the C++20 module target. Enable it with `MAGIC_ENUM_USE_MODULES=ON`. CMake 3.28+ is required. On MSVC use Visual Studio 2026 or newer, and on GCC use GCC 16 or newer. Older versions have [module bugs](doc/limitations.md).
 
   Build the module target:
@@ -348,7 +349,7 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
   Use either the headers or the module in the whole program. Build and use an installed module with the same compiler, standard library and C++ standard. pkg-config provides only the header-only target.
 
   Optional settings:
-  - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` support. The `{fmt}` module is not supported. `MAGIC_ENUM_MODULE_FMT_TARGET` selects the `{fmt}` target, `fmt::fmt` by default, for example `fmt::fmt-header-only`.
+  - `MAGIC_ENUM_MODULE_WITH_FMT=ON` enables `{fmt}` support. The `{fmt}` module is not supported. `MAGIC_ENUM_MODULE_FMT_TARGET` selects the `{fmt}` target, `fmt::fmt` by default, for example `fmt::fmt-header-only`, except on [GCC 16](doc/limitations.md#other-compiler-issues).
   - `MAGIC_ENUM_MODULE_IMPORT_STD=ON` enables `import std`. It requires `CMAKE_CXX_STANDARD` 23 or later, CMake 3.31+, a Ninja generator and a toolchain with `import std` support. Before CMake 4.5, also set `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` before `project()`.
 
 ## Compiler compatibility
@@ -358,6 +359,6 @@ Flags, bitwise operators, streams, formatting, switch, fuse, utility and contain
 * Xcode >= 11
 * GCC >= 9
 
-C++26 reflection is selected automatically when available. See [limitations](doc/limitations.md#c26-standard-reflection).
+C++26 standard reflection is selected automatically when available. See [limitations](doc/limitations.md#c26-standard-reflection).
 
 ## Licensed under the [MIT License](LICENSE)

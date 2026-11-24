@@ -132,7 +132,7 @@ template <typename E, typename String = string>
   using D = std::decay_t<E>;
   using U = detail::make_unsigned_t<underlying_type_t<D>>;
   constexpr auto S = detail::enum_subtype::flags;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_flags_name requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_flags_name requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
   static_assert(std::is_same_v<typename String::value_type, char_type>, "magic_enum::enum_flags_name requires String::value_type to be magic_enum::char_type.");
 
   const auto flag_value = static_cast<U>(value);
@@ -169,7 +169,7 @@ template <typename E, typename String = string>
 template <typename E, typename I = underlying_type_t<std::decay_t<E>>, std::enable_if_t<detail::is_integer_input_v<I>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_cast(I value) noexcept -> detail::enable_if_t<E, optional<std::decay_t<E>>> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_cast requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_cast requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   if (detail::is_flags_mask<D>(value)) {
     return static_cast<D>(static_cast<underlying_type_t<D>>(value));
@@ -181,7 +181,7 @@ template <typename E, typename I = underlying_type_t<std::decay_t<E>>, std::enab
 template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_flags_cast(string_view value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, optional<std::decay_t<E>>, BinaryPredicate> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_cast requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_cast requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   if (auto result = detail::make_unsigned_t<underlying_type_t<D>>{0}; detail::parse_flags<D>(value, sep, p, result)) {
     return static_cast<D>(result);
@@ -193,7 +193,7 @@ template <typename E, typename BinaryPredicate = std::equal_to<>>
 template <typename E>
 [[nodiscard]] constexpr auto enum_flags_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::is_flags_mask<D>(static_cast<underlying_type_t<D>>(value));
 }
@@ -203,7 +203,7 @@ template <typename E>
 template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I> && !std::is_same_v<I, std::decay_t<E>>, int> = 0>
 [[nodiscard]] constexpr auto enum_flags_contains(I value) noexcept -> detail::enable_if_t<E, bool> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::is_flags_mask<D>(value);
 }
@@ -212,7 +212,7 @@ template <typename E, typename I, std::enable_if_t<detail::is_integer_input_v<I>
 template <typename E, typename BinaryPredicate = std::equal_to<>>
 [[nodiscard]] constexpr auto enum_flags_contains(string_view value, char_type sep = char_type{'|'}, BinaryPredicate p = {}) noexcept(detail::is_nothrow_invocable_v<BinaryPredicate>) -> detail::enable_if_t<E, bool, BinaryPredicate> {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, detail::enum_subtype::flags>, "magic_enum::enum_flags_contains requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   auto result = detail::make_unsigned_t<underlying_type_t<D>>{0};
   return detail::parse_flags<D>(value, sep, p, result);

@@ -366,7 +366,7 @@ magic_enum_make_compile_fail_test(
   configuration
   min-empty
   30
-  "magic_enum::enum_min requires at least one reflected enum value"
+  "magic_enum::enum_min requires at least one reflected enum value. Check the enum definition"
   MAGIC_ENUM_TEST_ENUM_FORM=1
   MAGIC_ENUM_NO_CHECK_REFLECTED_ENUM
 )
@@ -539,7 +539,7 @@ magic_enum_make_compile_fail_test(
   configuration
   name-empty
   5
-  "magic_enum::enum_name requires a non-empty reflected enum."
+  "magic_enum::enum_name requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX)."
   MAGIC_ENUM_TEST_ENUM_FORM=4
 )
 magic_enum_make_compile_fail_test(
@@ -823,7 +823,7 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
     reflection
     auto-flags-multibit
     9
-    "magic_enum detected flags from operator| and operator&, but a named value has more than one bit set"
+    "Define MAGIC_ENUM_NO_AUTO_IS_FLAGS to disable detection for the whole build."
   )
   foreach(backend IN ITEMS standard compiler-specific)
     set(customization_definitions)
@@ -834,14 +834,14 @@ if(MAGIC_ENUM_CAN_COMPILE_STD_REFLECTION)
       reflection
       invalid-prefix-equal-${backend}
       2
-      "magic_enum::customize requires valid prefix length"
+      "magic_enum::customize prefix_length must leave at least one character of each reflected name."
       ${customization_definitions}
     )
     magic_enum_make_compile_fail_test(
       reflection
       invalid-prefix-greater-${backend}
       3
-      "magic_enum::customize requires valid prefix length"
+      "magic_enum::customize prefix_length must leave at least one character of each reflected name."
       ${customization_definitions}
     )
     magic_enum_make_compile_fail_test(

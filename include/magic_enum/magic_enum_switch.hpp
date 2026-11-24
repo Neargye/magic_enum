@@ -203,7 +203,7 @@ constexpr decltype(auto) value_switch(F&& f, [[maybe_unused]] E value, Def&& def
 template <typename Result = detail::default_result_type, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_switch requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_switch requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::value_switch<R, D, S>(
       std::forward<F>(f),
@@ -220,7 +220,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
 template <typename Result, typename E, detail::enum_subtype S = detail::subtype_v<E>, typename F, typename R = detail::result_with_fallback_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
   using D = std::decay_t<E>;
-  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_switch requires a non-empty reflected enum.");
+  static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_switch requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
 
   return detail::value_switch<R, D, S>(
       std::forward<F>(f),
