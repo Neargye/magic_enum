@@ -5,7 +5,7 @@
 // | |  | | (_| | (_| | | (__  | |____| | | | |_| | | | | | | | |____|_|   |_|
 // |_|  |_|\__,_|\__, |_|\___| |______|_| |_|\__,_|_| |_| |_|  \_____|
 //                __/ | https://github.com/Neargye/magic_enum
-//               |___/  version 0.9.8
+//               |___/  version 0.10.0
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
@@ -33,7 +33,7 @@
 #define NEARGYE_MAGIC_ENUM_FLAGS_HPP
 
 #include "magic_enum.hpp"
-#if MAGIC_ENUM_VERSION_MAJOR != 0 || MAGIC_ENUM_VERSION_MINOR != 9 || MAGIC_ENUM_VERSION_PATCH != 8
+#if MAGIC_ENUM_VERSION_MAJOR != 0 || MAGIC_ENUM_VERSION_MINOR != 10 || MAGIC_ENUM_VERSION_PATCH != 0
 #  error "magic_enum headers of different versions are mixed. Check the include paths."
 #endif
 

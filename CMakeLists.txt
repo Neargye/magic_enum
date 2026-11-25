@@ -10,7 +10,7 @@ endif()
 
 project(
   magic_enum
-  VERSION "0.9.8"
+  VERSION "0.10.0"
   HOMEPAGE_URL "https://github.com/Neargye/magic_enum"
   DESCRIPTION
     "A library that provides static reflection for enums, work with any enum type without any macro or boilerplate code."
