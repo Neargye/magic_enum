@@ -25,6 +25,7 @@ _COPTS = select({
 cc_library(
     name = "doctest",
     srcs = ["test_main.cpp"],
+    defines = ["DOCTEST_CONFIG_USE_STD_HEADERS"],
     copts = _COPTS,
     includes = ["3rdparty"],
     hdrs = ["3rdparty/doctest/doctest.h"],
