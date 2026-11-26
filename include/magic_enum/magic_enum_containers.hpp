@@ -252,7 +252,7 @@ class indexing {
   [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return indices.values.data() + i; }
 
   [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept {
-    if (auto i = enum_index(val)) {
+    if (auto i = magic_enum::enum_index(val)) {
       return indices.positions[*i];
     }
     return {};
@@ -270,7 +270,7 @@ class indexing<E, Cmp, std::enable_if_t<std::is_enum_v<E> && is_default_order<E,
 
   [[nodiscard]] static constexpr const E* it(std::size_t i) noexcept { return values.data() + i; }
 
-  [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept { return enum_index(val); }
+  [[nodiscard]] static constexpr optional<std::size_t> at(E val) noexcept { return magic_enum::enum_index(val); }
 };
 
 template <typename Cmp>
@@ -285,7 +285,7 @@ struct indexing<void, Cmp, void> {
 
 template <typename E = void, typename Cmp = std::less<>>
 struct name_sort_impl {
-  [[nodiscard]] constexpr bool operator()(E e1, E e2) const { return Cmp{}(enum_name(e1), enum_name(e2)); }
+  [[nodiscard]] constexpr bool operator()(E e1, E e2) const { return Cmp{}(magic_enum::enum_name(e1), magic_enum::enum_name(e2)); }
 };
 
 template <typename Cmp>
@@ -297,13 +297,13 @@ struct name_sort_impl<void, Cmp> {
 
   template <typename C>
   struct FullCmp<C, std::enable_if_t<!std::is_invocable_v<const C&, string_view, string_view> && std::is_invocable_v<C&, const char_type&, const char_type&>>> {
-    [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const { return lexicographical_compare<C>(s1, s2); }
+    [[nodiscard]] constexpr bool operator()(string_view s1, string_view s2) const { return detail::lexicographical_compare<C>(s1, s2); }
   };
 
   template <typename T>
   [[nodiscard]] static constexpr decltype(auto) cmp_arg(T&& value) {
     if constexpr (std::is_enum_v<std::decay_t<T>>) {
-      return enum_name(value);
+      return magic_enum::enum_name(value);
     } else if constexpr (std::is_constructible_v<string_view, T>) {
       return string_view{std::forward<T>(value)};
     } else {
@@ -510,13 +510,13 @@ struct key_indexing : Index {};
 // Positions of a bitset. A flags bitset skips a named zero, since zero has no bit. array and set keep it as a key.
 template <typename E, typename Index, bool Keys = false>
 struct bit_domain {
-  static constexpr bool skip_zero = !Keys && is_flags_enum_v<E> && static_cast<bool>(enum_index(static_cast<E>(0)));
+  static constexpr bool skip_zero = !Keys && is_flags_enum_v<E> && static_cast<bool>(magic_enum::enum_index(static_cast<E>(0)));
 
   static constexpr std::size_t zero = skip_zero ? *Index::at(static_cast<E>(0)) : 0;
 
   static constexpr std::size_t count = enum_count<E>() - (skip_zero ? 1 : 0);
 
-  [[nodiscard]] static constexpr bool is_skipped(E value) noexcept { return skip_zero && enum_value_equal(value, 0); }
+  [[nodiscard]] static constexpr bool is_skipped(E value) noexcept { return skip_zero && detail::enum_value_equal(value, 0); }
 
   [[nodiscard]] static constexpr optional<std::size_t> at(E value) noexcept {
     if constexpr (skip_zero) {
@@ -953,12 +953,12 @@ class bitset {
 
   template <typename V, std::enable_if_t<std::is_same_v<V, E> && is_flags_enum_v<V>, int> = 0>
   constexpr explicit bitset(V starter) : a{{}} {
-    auto u = enum_underlying(starter);
+    auto u = magic_enum::enum_underlying(starter);
     for (E v : enum_values<E>()) {
       if (u == 0) {
         break;
       }
-      if (auto ul = enum_underlying(v); (ul & u) != 0) {
+      if (auto ul = magic_enum::enum_underlying(v); (ul & u) != 0) {
         u ^= ul;
         (*this)[v] = true;
       }
@@ -1116,7 +1116,7 @@ class bitset {
   [[nodiscard]] constexpr explicit operator std::enable_if_t<is_flags_enum_v<V>, E>() const {
     underlying_type_t<E> res = 0;
     for (const auto value : *this) {
-      res |= enum_underlying(value);
+      res |= magic_enum::enum_underlying(value);
     }
     return static_cast<E>(res);
   }
@@ -1131,13 +1131,13 @@ class bitset {
         if (!name.empty()) {
           name.append(1, sep);
         }
-        auto n = enum_name(e);
+        auto n = magic_enum::enum_name(e);
         name.append(n.data(), n.size());
       }
     }
     if constexpr (domain::skip_zero) {
       if (none()) {
-        const auto n = enum_name(static_cast<E>(0));
+        const auto n = magic_enum::enum_name(static_cast<E>(0));
         name.append(n.data(), n.size());
       }
     }
@@ -1188,9 +1188,9 @@ class bitset {
       while (last < sv.size() && sv[last] != sep) {
         ++last;
       }
-      if (const auto v = enum_cast<E, detail::subtype_v<E>, Cmp&>(sv.substr(first, last - first), cmp)) {
+      if (const auto v = magic_enum::enum_cast<E, detail::subtype_v<E>, Cmp&>(sv.substr(first, last - first), cmp)) {
         // A zero flag is neutral, not a position.
-        const bool zero_flag = is_flags_enum_v<E> && enum_underlying(*v) == 0;
+        const bool zero_flag = is_flags_enum_v<E> && magic_enum::enum_underlying(*v) == 0;
         if (!zero_flag) {
           set(*v);
         }
@@ -1538,22 +1538,22 @@ template <auto J, typename E, typename V, typename Index>
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&> get(array<E, V, Index>& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), V&> get(array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), V&&> get(array<E, V, Index>&& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), V&&> get(array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&> get(const array<E, V, Index>& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), const V&> get(const array<E, V, Index>& a) {
   return a[Enum];
 }
 
 template <auto Enum, typename E, typename V, typename Index>
-[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && enum_contains(Enum), const V&&> get(const array<E, V, Index>&& a) {
+[[nodiscard]] constexpr std::enable_if_t<std::is_same_v<decltype(Enum), E> && magic_enum::enum_contains(Enum), const V&&> get(const array<E, V, Index>&& a) {
   return std::move(a[Enum]);
 }
 

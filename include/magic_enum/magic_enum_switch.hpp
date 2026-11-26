@@ -173,7 +173,7 @@ constexpr R switch_page(F&& f, switch_t<E> value, Def&& def) {
   MAGIC_ENUM_SWITCH(128)
   MAGIC_ENUM_SWITCH(256)
   if constexpr (n > Size) {
-    return switch_page<Page + Size, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
+    return detail::switch_page<Page + Size, R, E, S>(std::forward<F>(f), value, std::forward<Def>(def));
   } else {
     return def();
   }
@@ -193,7 +193,7 @@ constexpr decltype(auto) value_switch(F&& f, [[maybe_unused]] E value, Def&& def
   if constexpr (count_v<E, S> == 0) {
     return def();
   } else {
-    return switch_page<0, R, E, S>(std::forward<F>(f), static_cast<switch_t<E>>(static_cast<std::underlying_type_t<E>>(value)), std::forward<Def>(def));
+    return detail::switch_page<0, R, E, S>(std::forward<F>(f), static_cast<switch_t<E>>(static_cast<std::underlying_type_t<E>>(value)), std::forward<Def>(def));
   }
 }
 
@@ -213,7 +213,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value) {
 
 template <typename Result = detail::default_result_type, detail::enum_subtype S, typename E, typename F, typename R = detail::result_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value) {
-  return enum_switch<Result, E, S>(std::forward<F>(f), value);
+  return magic_enum::enum_switch<Result, E, S>(std::forward<F>(f), value);
 }
 
 // Calls f with enum_constant<V> for the matching enum value. An unmatched value, or one that f does not accept, gives result.
@@ -230,7 +230,7 @@ constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
 
 template <typename Result, detail::enum_subtype S, typename E, typename F, typename R = detail::result_with_fallback_t<E, S, Result, F>>
 constexpr decltype(auto) enum_switch(F&& f, E value, Result&& result) {
-  return enum_switch<Result, E, S>(std::forward<F>(f), value, std::forward<Result>(result));
+  return magic_enum::enum_switch<Result, E, S>(std::forward<F>(f), value, std::forward<Result>(result));
 }
 
 } // namespace magic_enum

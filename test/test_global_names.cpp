@@ -71,6 +71,20 @@ enum class Mode { Read, Write };
 enum class Bits : unsigned { A = 1, B = 2 };
 MAGIC_ENUM_DEFINE_BITWISE_OPERATORS(Bits);
 
+// Functions next to an enum or predicate must not intercept internal reflection calls.
+template <typename = void, auto...>
+constexpr std::optional<std::size_t> enum_index(Mode mode) { return mode == Mode::Read ? 1u : 0u; }
+template <typename = void, auto...> void enum_name(Mode) = delete;
+bool enum_contains(Mode) = delete;
+unsigned enum_underlying(Bits) = delete;
+void fuse_enum(Mode, Bits) = delete;
+void fuse_one_enum(std::uintmax_t&, std::size_t&, Mode) = delete;
+
+struct Equal {
+  constexpr bool operator()(char a, char b) const { return a == b; }
+};
+void cmp_equal(std::string_view, std::string_view, Equal&) = delete;
+
 enum class Prefixed { Prefix_A, Prefix_B };
 
 } // namespace global_names
@@ -86,6 +100,17 @@ int global_names_use() {
   static_assert(magic_enum::enum_name<Prefixed::Prefix_A>() == "A");
   static_assert(magic_enum::enum_flags_cast<Bits>("A|B") == (Bits::A | Bits::B));
   static_assert(magic_enum::enum_cast<Mode>("Write") == Mode::Write);
+
+  constexpr magic_enum::containers::array<Mode, int> indexed{{10, 20}};
+  static_assert(indexed[Mode::Read] == 10);
+  static_assert(magic_enum::containers::get<Mode::Write>(indexed) == 20);
+  static_assert(magic_enum::containers::name_less<Mode>{}(Mode::Read, Mode::Write));
+  static_assert(magic_enum::containers::name_less<>{}(Mode::Read, Mode::Write));
+  static_assert(magic_enum::enum_index<Mode::Read>() == 0);
+  static_assert(magic_enum::enum_name<magic_enum::as_common<>>(Mode::Read) == "Read");
+  static_assert(magic_enum::enum_cast<Mode>("Read", Equal{}) == Mode::Read);
+  constexpr magic_enum::containers::bitset<Bits> mask{Bits::B};
+  static_assert(static_cast<Bits>(mask) == Bits::B);
 
   magic_enum::containers::array<Mode, int> array{};
   magic_enum::containers::bitset<Mode> bitset{};

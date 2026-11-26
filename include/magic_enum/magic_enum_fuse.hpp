@@ -74,7 +74,7 @@ template <typename... Es>
 constexpr optional<std::uintmax_t> fuse_enum(Es... values) noexcept {
   auto hash = std::uintmax_t{0};
   auto shift = std::size_t{0};
-  if ((fuse_one_enum(hash, shift, values) && ...)) {
+  if ((detail::fuse_one_enum(hash, shift, values) && ...)) {
     return hash;
   }
   return {};
@@ -83,7 +83,7 @@ constexpr optional<std::uintmax_t> fuse_enum(Es... values) noexcept {
 template <typename... Es>
 constexpr auto typesafe_fuse_enum(Es... values) noexcept {
   enum class enum_fuse_t : std::uintmax_t;
-  if (const auto fuse = fuse_enum(values...)) {
+  if (const auto fuse = detail::fuse_enum(values...)) {
     return optional<enum_fuse_t>{static_cast<enum_fuse_t>(*fuse)};
   }
   return optional<enum_fuse_t>{};

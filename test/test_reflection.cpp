@@ -44,6 +44,7 @@ enum class Aliased { First = 1, AliasFirst = 1, Second = 4 };
 
 constexpr bool operator==(Aliased, Aliased) = delete;
 constexpr bool operator!=(Aliased, Aliased) = delete;
+bool enum_value_equal(Aliased, Aliased) = delete;
 
 } // namespace hostile_enum_comparison
 

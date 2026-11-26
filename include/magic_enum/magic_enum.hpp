@@ -418,7 +418,7 @@ consteval auto type_name() noexcept {
 template <auto V, typename E = std::decay_t<decltype(V)>>
 consteval auto enum_name() noexcept {
   for (const auto enumerator : enumerators_v<E>) {
-    if (enum_value_equal(std::meta::extract<E>(enumerator), V)) {
+    if (detail::enum_value_equal(std::meta::extract<E>(enumerator), V)) {
       const auto identifier = std::meta::identifier_of(enumerator);
       return cname_ref{identifier.data(), identifier.size()}; // One name per value, the first declaration wins.
     }
@@ -1034,7 +1034,7 @@ consteval auto canonical_data() noexcept {
   // Reflected names are not empty, so an empty name marks an invalid prefix on the retained first declaration.
   std::size_t unique_size = 0;
   for (std::size_t i = 0; i < result.size; ++i) {
-    if (unique_size == 0 || !enum_value_equal(entries[unique_size - 1].value, entries[i].value)) {
+    if (unique_size == 0 || !detail::enum_value_equal(entries[unique_size - 1].value, entries[i].value)) {
       result.prefixes_valid = result.prefixes_valid && entries[i].name.size != 0;
       if (unique_size != i) {
         entries[unique_size] = entries[i];
@@ -1259,7 +1259,7 @@ MAGIC_ENUM_CONSTEVAL void scan_fallback(valid_offsets_t<N>& offsets) noexcept {
     constexpr auto custom = customize::enum_name<E>(v);                              \
     if constexpr (custom.tag != customize_tag::invalid_tag MAGIC_ENUM_CASTABLE(O)) { \
       if constexpr (n<v>().size_ != 0) {                                             \
-        append_named(offsets, J + O, v, n<v>());                                     \
+        detail::append_named(offsets, J + O, v, n<v>());                             \
       }                                                                              \
     }                                                                                \
   }
@@ -1281,7 +1281,7 @@ MAGIC_ENUM_CONSTEVAL auto block_offsets() noexcept {
     for (std::size_t i = 0; i < count; ++i) {
       // nb() takes zero in place of a value that it cannot cast.
       if (block.names[i].size_ != 0 && (plain_scan_v<E, S> || batch_castable<E>(underlying_value<E, Min, S>(J + i)))) {
-        append_named(offsets, J + i, value<E, Min, S>(J + i), block.names[i]);
+        detail::append_named(offsets, J + i, value<E, Min, S>(J + i), block.names[i]);
       }
     }
   } else {
@@ -1644,7 +1644,7 @@ constexpr std::size_t name_index([[maybe_unused]] string_view value, [[maybe_unu
       }
     }
     for (std::size_t i = 0; i < count_v<E, S>; ++i) {
-      if (cmp_equal(value, names_v<E, S>[i], p)) {
+      if (detail::cmp_equal(value, names_v<E, S>[i], p)) {
         return i;
       }
     }
@@ -2079,7 +2079,7 @@ constexpr decltype(auto) hash_switch_page(Lambda&& lambda, Searched searched, ty
   constexpr auto cases = hash_cases<GlobValues, Hash>::template page<Page, Size>();
   MAGIC_ENUM_PAGE_SWITCHES(MAGIC_ENUM_HASH_CASE, searched_hash)
   if constexpr (size > Page + Size) {
-    return hash_switch_page<GlobValues, Page + Size, Hash>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
+    return detail::hash_switch_page<GlobValues, Page + Size, Hash>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
   } else {
     return def();
   }
@@ -2101,7 +2101,7 @@ constexpr decltype(auto) hash_switch(
   using hash_t = std::conditional_t<has_unique_hashes_v<GlobValues, Hash>, Hash, typename Hash::secondary_hash>;
   static_assert(has_unique_hashes_v<GlobValues, hash_t>, "magic_enum::detail::hash_switch duplicated hash found, please report it: https://github.com/Neargye/magic_enum/issues.");
   const auto searched_hash = hash_v<hash_t>(searched);
-  return hash_switch_page<GlobValues, 0, hash_t>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
+  return detail::hash_switch_page<GlobValues, 0, hash_t>(std::forward<Lambda>(lambda), searched, searched_hash, std::forward<ResultGetterType>(def), std::forward<BinaryPredicate>(pred));
 }
 
 #endif
@@ -2254,7 +2254,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Returns the index of the enum value in enum_values, or an empty optional.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_index(E value) noexcept -> detail::enable_if_t<E, optional<std::size_t>> {
-  return enum_index<std::decay_t<E>, S>(value);
+  return magic_enum::enum_index<std::decay_t<E>, S>(value);
 }
 
 // Returns index in enum values from compile-time enum value.
@@ -2262,7 +2262,7 @@ template <auto V, detail::enum_subtype S = detail::subtype_v<decltype(V)>>
 [[nodiscard]] constexpr auto enum_index() noexcept -> detail::enable_if_t<decltype(V), std::size_t> {
   using D = std::decay_t<decltype(V)>;
   static_assert(detail::is_reflected_v<D, S>, "magic_enum::enum_index requires a non-empty reflected enum. Check the enum definition, customize::enum_name and the scan range (customize::enum_range or MAGIC_ENUM_RANGE_MIN/MAX).");
-  constexpr auto index = enum_index<D, S>(V);
+  constexpr auto index = magic_enum::enum_index<D, S>(V);
   static_assert(index, "magic_enum::enum_index enum value has no index.");
 
   return *index;
@@ -2293,7 +2293,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Returns the reflected name of the enum value, or an empty string.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_name(E value) noexcept -> detail::enable_if_t<E, string_view> {
-  return enum_name<std::decay_t<E>, S>(value);
+  return magic_enum::enum_name<std::decay_t<E>, S>(value);
 }
 
 // Returns std::array with names, sorted by enum value.
@@ -2365,7 +2365,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Returns true if enum contains specified value.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_contains(E value) noexcept -> detail::enable_if_t<E, bool> {
-  return enum_contains<std::decay_t<E>, S>(value);
+  return magic_enum::enum_contains<std::decay_t<E>, S>(value);
 }
 
 // Returns true if enum contains specified integer value.
@@ -2386,7 +2386,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>, typename Bi
 
 #if defined(MAGIC_ENUM_ENABLE_HASH)
   if constexpr (detail::has_usable_hash<&detail::names_v<D, S>, detail::constexpr_hash_t, (detail::count_v<D, S> > 0 && detail::is_default_predicate_v<BinaryPredicate>)>()) {
-    return static_cast<bool>(enum_cast<D, S, BinaryPredicate&>(value, p));
+    return static_cast<bool>(magic_enum::enum_cast<D, S, BinaryPredicate&>(value, p));
   } else {
 #endif
     return detail::name_index<D, S>(value, p) < detail::count_v<D, S>;
@@ -2431,7 +2431,7 @@ template <typename E, detail::enum_subtype S = detail::subtype_v<E>>
 // Checks the reflection domain, not enumerator membership.
 template <detail::enum_subtype S, typename E>
 [[nodiscard]] constexpr auto enum_reflected(E value) noexcept -> detail::enable_if_t<E, bool> {
-  return enum_reflected<std::decay_t<E>, S>(value);
+  return magic_enum::enum_reflected<std::decay_t<E>, S>(value);
 }
 
 template <bool AsFlags = true>

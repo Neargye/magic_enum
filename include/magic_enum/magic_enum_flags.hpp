@@ -64,7 +64,7 @@ template <typename E>
 MAGIC_ENUM_CONSTEVAL std::size_t zero_index() noexcept {
   constexpr auto& values = values_v<E, enum_subtype::flags>;
   for (std::size_t i = 0; i < values.size(); ++i) {
-    if (enum_value_equal(values[i], 0)) {
+    if (detail::enum_value_equal(values[i], 0)) {
       return i;
     }
   }
@@ -83,7 +83,7 @@ constexpr bool is_flags_mask([[maybe_unused]] I value) noexcept {
     const auto flag_value = static_cast<V>(static_cast<U>(value));
     constexpr auto mask = values_ors<E>();
     constexpr bool named_zero = zero_index<E>() < count_v<E, enum_subtype::flags>;
-    return in_underlying_range<E>(value) && (flag_value & static_cast<V>(~mask)) == V{0} && (flag_value != V{0} || named_zero);
+    return detail::in_underlying_range<E>(value) && (flag_value & static_cast<V>(~mask)) == V{0} && (flag_value != V{0} || named_zero);
   }
 }
 
@@ -106,13 +106,13 @@ constexpr bool parse_flags([[maybe_unused]] string_view value, [[maybe_unused]] 
       }
       const auto s = value.substr(first, last - first);
 #if defined(MAGIC_ENUM_ENABLE_HASH)
-      if (const auto flag = enum_cast<E, S, BinaryPredicate&>(s, p)) {
+      if (const auto flag = magic_enum::enum_cast<E, S, BinaryPredicate&>(s, p)) {
         result |= static_cast<V>(*flag);
       } else {
         return false;
       }
 #else
-      if (const auto i = name_index<E, S>(s, p); i < count_v<E, S>) {
+      if (const auto i = detail::name_index<E, S>(s, p); i < count_v<E, S>) {
         result |= static_cast<V>(values_v<E, S>[i]);
       } else {
         return false;
