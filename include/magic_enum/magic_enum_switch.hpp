@@ -115,6 +115,8 @@ constexpr auto result_type() noexcept {
     if constexpr (count_v<E, S> == 0) {
       // An empty enum has no cases, so only Result determines the result type.
       return identity<D>{};
+    } else if constexpr (HasResult && std::is_same_v<R, nonesuch> && std::is_convertible_v<Result, D>) {
+      return identity<D>{};
     } else if constexpr (std::is_convertible_v<R, D> && (!HasResult || std::is_convertible_v<Result, D>)) {
       return identity<D>{};
     } else if constexpr (std::is_convertible_v<Result, R>) {

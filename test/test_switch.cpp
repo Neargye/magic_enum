@@ -303,6 +303,16 @@ TEST_CASE("enum_switch") {
     REQUIRE(enum_switch(integer, static_cast<Color>(0), converted_fallback) == -1);
   }
 
+  SUBCASE("fallback when no reflected value is accepted") {
+    constexpr auto only_count = [](enum_constant<WithCount::Count>) { return 0; };
+    constexpr int fallback = 42;
+    static_assert(!enum_contains(WithCount::Count));
+    static_assert(enum_switch(only_count, WithCount::First, fallback) == fallback);
+    static_assert(enum_switch(only_count, WithCount::Count, fallback) == fallback);
+    auto result = enum_switch(only_count, WithCount::Second, std::make_unique<int>(fallback));
+    REQUIRE(*result == fallback);
+  }
+
   SUBCASE("partial invocable with lvalue fallback") {
     int calls = 0;
     const int fallback = -1;
