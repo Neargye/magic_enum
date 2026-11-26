@@ -311,7 +311,14 @@ TEST_CASE("signature parser regressions") {
 }
 
 
+namespace {
+namespace {
+enum class NestedName { Value };
 enum class FallbackNames { Default, Renamed, Hidden };
+} // namespace
+} // namespace
+
+static_assert(magic_enum::enum_name(NestedName::Value) == "Value");
 
 template <>
 struct magic_enum::customize::enum_range<FallbackNames> {
@@ -336,6 +343,7 @@ constexpr bool magic_enum::detail::batch_supported<FallbackNames>() noexcept {
 }
 
 TEST_CASE("fallback scanner customization") {
+  static_assert(magic_enum::enum_name<FallbackNames::Default>() == "Default");
   constexpr auto entries = magic_enum::enum_entries<FallbackNames>();
   static_assert(entries.size() == 2);
   static_assert(entries[0].first == FallbackNames::Default && entries[0].second == "Default");

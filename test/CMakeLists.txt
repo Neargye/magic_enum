@@ -358,6 +358,13 @@ magic_enum_make_compile_fail_test(
 )
 magic_enum_make_compile_fail_test(
   configuration
+  name-template-cast
+  28
+  "magic_enum::enum_name enum value does not have a name"
+  MAGIC_ENUM_TEST_TEMPLATE_CAST
+)
+magic_enum_make_compile_fail_test(
+  configuration
   value-out-of-range
   29
   "magic_enum::enum_value out of range"

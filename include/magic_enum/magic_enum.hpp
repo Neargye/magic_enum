@@ -602,9 +602,11 @@ MAGIC_ENUM_CONSTEVAL cname_ref enum_signature_name([[maybe_unused]] const char* 
   return name.str_[0] == '(' ? cname_ref{} : name;
 #elif defined(__clang__)
   cname_ref name{str + 34, size - 35};
-  if (name.size_ > 22 && name.str_[0] == '(' && name.str_[1] == 'a' && name.str_[10] == ' ' && name.str_[22] == ':') {
-    name.size_ -= 23;
-    name.str_ += 23;
+  constexpr char prefix[] = "(anonymous namespace)::";
+  constexpr auto length = sizeof(prefix) - 1;
+  while (name.size_ > length && name.str_[0] == '(' && __builtin_memcmp(name.str_, prefix, length) == 0) {
+    name.str_ += length;
+    name.size_ -= length;
   }
   if (name.str_[0] == '(' || name.str_[0] == '-' || (name.str_[0] >= '0' && name.str_[0] <= '9')) {
     return {};

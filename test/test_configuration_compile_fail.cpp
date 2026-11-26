@@ -439,7 +439,14 @@ constexpr auto index = magic_enum::enum_index<static_cast<IndexProbe>(5)>();
 
 #  include <magic_enum/magic_enum.hpp>
 
+#  if defined(MAGIC_ENUM_TEST_TEMPLATE_CAST)
+// This cast matches the old Clang anonymous-namespace probe at offsets 0, 1, 10 and 22.
+namespace dimensions { struct Unit {}; }
+template <typename, typename> struct axis { enum class Value { First, Second }; };
+using NameProbe = axis<int, dimensions::Unit>::Value;
+#  else
 enum class NameProbe { First, Second };
+#  endif
 
 constexpr auto name = magic_enum::enum_name<static_cast<NameProbe>(5)>();
 
