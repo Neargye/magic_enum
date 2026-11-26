@@ -648,9 +648,14 @@ struct array {
 
   constexpr void swap(array& other) noexcept(std::is_nothrow_move_constructible_v<V> && std::is_nothrow_move_assignable_v<V>) {
     for (std::size_t i = 0; i < a.size(); ++i) {
-      auto v = std::move(other.a[i]);
-      other.a[i] = std::move(a[i]);
-      a[i] = std::move(v);
+      if constexpr (std::is_move_constructible_v<V> && std::is_move_assignable_v<V>) {
+        auto v = std::move(other.a[i]);
+        other.a[i] = std::move(a[i]);
+        a[i] = std::move(v);
+      } else {
+        using std::swap;
+        swap(a[i], other.a[i]);
+      }
     }
   }
 

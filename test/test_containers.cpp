@@ -275,6 +275,27 @@ static_assert([] {
   return lhs[Color::RED] == 4 && rhs[Color::RED] == 1;
 }());
 
+struct ImmovableElement {
+  int value{};
+  ImmovableElement() = default;
+  ImmovableElement(const ImmovableElement&) = delete;
+  ImmovableElement& operator=(const ImmovableElement&) = delete;
+
+  friend constexpr void swap(ImmovableElement& lhs, ImmovableElement& rhs) noexcept {
+    const int tmp = lhs.value;
+    lhs.value = rhs.value;
+    rhs.value = tmp;
+  }
+};
+
+static_assert([] {
+  magic_enum::containers::array<Color, ImmovableElement> lhs{}, rhs{};
+  lhs.front().value = 1;
+  rhs.back().value = 2;
+  lhs.swap(rhs);
+  return lhs.front().value == 0 && rhs.front().value == 1 && lhs.back().value == 2 && rhs.back().value == 0;
+}());
+
 // Volatile keeps MSVC from proving the compare loops unreachable, which is C4702 at /O1.
 volatile bool throw_on_less = true;
 
