@@ -154,6 +154,8 @@ static_assert(magic_enum::enum_name(ShapeKind::Box) == magic_enum::enum_name(Sha
   * Clang: `-fconstexpr-depth=N`, `-fconstexpr-steps=N` <https://clang.llvm.org/docs/UsersManual.html#controlling-implementation-limits>
   * GCC: `-fconstexpr-depth=N`, `-fconstexpr-loop-limit=N`, `-fconstexpr-ops-limit=N` <https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html>
 
+* On Clang 18, `enum_for_each` with more than 256 reflected values can exceed the expression nesting limit. Increase it with `-fbracket-depth=N`, for example `-fbracket-depth=1024`.
+
 * Non-ASCII enumerator names need GCC 10 or newer. On MSVC, compile UTF-8 sources with `/utf-8`.
 
 * ReSharper C++ and CLion Nova are supported from version 2025.3.
