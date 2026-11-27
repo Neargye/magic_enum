@@ -458,8 +458,9 @@ class static_str {
 
 template <typename Op = std::equal_to<>>
 class case_insensitive {
-  static constexpr char_type to_lower(char_type c) noexcept {
-    return (c >= char_type{'A'} && c <= char_type{'Z'}) ? static_cast<char_type>(c + (char_type{'a'} - char_type{'A'})) : c;
+  // Unsigned like std::char_traits, so the order does not depend on char signedness.
+  static constexpr auto to_lower(char_type c) noexcept {
+    return static_cast<std::make_unsigned_t<char_type>>((c >= char_type{'A'} && c <= char_type{'Z'}) ? static_cast<char_type>(c + (char_type{'a'} - char_type{'A'})) : c);
   }
 
  public:
@@ -1765,8 +1766,9 @@ constexpr decltype(auto) invoke_constant(F&& f, std::integral_constant<T, V>&& v
   }
 }
 
-template <typename E>
-using switch_t = std::conditional_t<(sizeof(std::underlying_type_t<E>) < sizeof(int)), int, std::underlying_type_t<E>>;
+// bool can be as wide as int, see #488.
+template <typename E, typename U = std::underlying_type_t<E>>
+using switch_t = std::conditional_t<std::is_same_v<U, bool> || (sizeof(U) < sizeof(int)), int, U>;
 
 // Padding labels must be distinct from real cases and from each other.
 // Only the last page needs padding, so labels may reuse values from earlier pages.

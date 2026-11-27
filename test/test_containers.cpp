@@ -1596,6 +1596,9 @@ TEST_CASE("containers_set") {
   auto blue_ci_by_string = color_ci_name_set.find(blue_name_lower_string);
   REQUIRE(blue_ci_by_string != color_ci_name_set.end());
   REQUIRE(*blue_ci_by_string == Color::BLUE);
+  // Non-ASCII bytes sort after ASCII like name_less, whatever the signedness of char.
+  REQUIRE(name_bounds_set.upper_bound("\xE6") == name_bounds_set.end());
+  REQUIRE(color_ci_name_set.upper_bound("\xE6") == color_ci_name_set.end());
 
   magic_enum::containers::set<EquivalentNames, magic_enum::containers::name_less_case_insensitive> equivalent_name_set {EquivalentNames::A, EquivalentNames::a};
   REQUIRE(equivalent_name_set.size() == 2);

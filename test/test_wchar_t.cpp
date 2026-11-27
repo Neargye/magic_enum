@@ -17,7 +17,7 @@
 #include "test_helpers.hpp"
 
 #include <array>
-#include <cctype>
+#include <cwctype>
 #include <iomanip>
 #include <sstream>
 
@@ -62,7 +62,7 @@ TEST_CASE("enum_cast") {
     constexpr auto cr = enum_cast<Color>(L"red");
     REQUIRE(cr.value() == Color::RED);
     REQUIRE(enum_cast<Color&>(L"GREEN").value() == Color::GREEN);
-    REQUIRE(enum_cast<Color>(L"blue", [](wchar_t lhs, wchar_t rhs) { return std::tolower(lhs) == std::tolower(rhs); }).value() == Color::BLUE);
+    REQUIRE(enum_cast<Color>(L"blue", [](wchar_t lhs, wchar_t rhs) { return std::towlower(static_cast<std::wint_t>(lhs)) == std::towlower(static_cast<std::wint_t>(rhs)); }).value() == Color::BLUE);
     REQUIRE_FALSE(enum_cast<Color>(L"None").has_value());
   }
 

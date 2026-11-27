@@ -65,6 +65,8 @@ Standard reflection is selected automatically when available, for example on GCC
 
 * The default range is `MAGIC_ENUM_RANGE_MIN = -128` to `MAGIC_ENUM_RANGE_MAX = 127`. After clamping to the underlying type, bounds must fit `int`, with `min <= max` and `max - min < 65535`.
 
+* Plain `char` is signed on x86 and unsigned on most Linux ARM and PPC targets, so a `char` enum value above `0x7F`, such as `'\xE9'`, is reflected only where `char` is signed. Use `signed char` or `unsigned char`, or set the range to `min = -128` and `max = 255`.
+
 * Named values at a few points just outside the range cause a compile-time error. Extend the range to fix it. Values further out are skipped silently, so check the count, for example `static_assert(magic_enum::enum_count<E>() == 5)`. The check is skipped for `as_common<>` with a flags enum. Define `MAGIC_ENUM_NO_CHECK_OUT_OF_RANGE` for the whole build to disable it.
 
 * To exclude sentinels such as `Count`, return `invalid_tag` from [name customization](reference.md#synopsis). Narrowing the scan range can trigger the range check and has no effect with standard reflection.
